@@ -38,7 +38,7 @@ body[data-theme="dark"] .weeeDescMenu button.active{background:#1d3a4d}
 /* Flat, single-line material-column headers (Πρέσα κ.λπ.) reuse .prodOfficialHead for its sticky/
    background styling but must NOT inherit its narrow two-line (code+description) width squeeze --
    that caused the header text to wrap and collide with the footer below it. */
-.matColHead{min-width:110px;max-width:none;font-size:12px;font-weight:700;white-space:normal}
+.matColHead{min-width:110px;max-width:none;font-size:12px;font-weight:700;white-space:normal!important}
 /* Συγκεντρωτικό ζυγολόγιο fields (Νέα Παραλαβή/Μικρά Σημεία summary bar, Νέα Φόρτωση) -- a slightly
    darker "header" background sets the aggregate/summary field apart from the ordinary form fields
    around it. */
@@ -547,7 +547,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 <div class="readyGroupTabsRow" id="readyGroupTabs">
 <button class="readyGroupTab active" data-readygroup="AXIOPOIISIMA">Αξιοποιήσιμα Υλικά</button>
 <button class="readyGroupTab" data-readygroup="EIDIKIS_DIACHEIRISIS">Υλικά Ειδικής Διαχείρισης</button>
-<button class="readyGroupTab" data-readygroup="PLAKETES">ΠΛΑΚΕΤΕΣ</button>
+<button class="readyGroupTab" data-readygroup="PLAKETES">Πλακέτες</button>
 <button class="readyGroupTab" data-readygroup="APORRIPSI">Υλικά προς Απόρριψη</button>
 <button class="readyGroupTab" data-readygroup="PRESS">Πρέσα</button>
 </div>
@@ -1052,7 +1052,11 @@ function renderReadyPress(){
    g.kg+=Number(e.weight_kg||0);
    g.bales+=e.bale_seq!=null?1:Number(e.bale_count||0);
  });
- let groups=Object.values(byGroup).sort((a,b)=>b.kg-a.kg);
+ // Column order follows the same drag-saved sort_order as the other Υλικά tabs (readySortOrder /
+ // setMatGroupOverride, keyed by material label) instead of always re-sorting by kg -- kg-desc is
+ // only the tie-break/fallback for materials that haven't been manually reordered yet.
+ let groups=Object.values(byGroup).sort((a,b)=>readySortOrder(a.material_group)-readySortOrder(b.material_group)||b.kg-a.kg);
+ let orderTokens=groups.map(g=>g.material_group);
  let grandKg=groups.reduce((s,g)=>s+g.kg,0),grandBales=groups.reduce((s,g)=>s+g.bales,0);
  if(!groups.length){
    $('readyPressHead').innerHTML='<tr><th>Μέτρηση</th></tr>';
@@ -1060,7 +1064,30 @@ function renderReadyPress(){
    $('readyPressFoot').innerHTML='';
    return;
  }
- $('readyPressHead').innerHTML=`<tr><th>Μέτρηση</th>${groups.map(g=>`<th class="matColHead">${esc(g.material_group)}</th>`).join('')}<th>Σύνολο</th></tr>`;
+ $('readyPressHead').innerHTML=`<tr><th>Μέτρηση</th>${groups.map(g=>`<th class="matColHead" draggable="true" data-material="${esc(g.material_group)}" title="${esc(g.material_group)}">${esc(g.material_group)}</th>`).join('')}<th>Σύνολο</th></tr>`;
+ // Drag-and-drop reorder, same mechanics as #readyMatHead in renderReadyMaterials: dropping "on" a
+ // target inserts before it, or after it when the dragged column started to its left (rightward
+ // move) so dragging right of the target doesn't undershoot by one.
+ document.querySelectorAll('#readyPressHead [data-material]').forEach(th=>{
+   th.ondragstart=(e)=>{e.dataTransfer.setData('text/material-label',JSON.stringify([th.dataset.material]));th.classList.add('dragging')};
+   th.ondragend=()=>th.classList.remove('dragging');
+   th.ondragover=(e)=>{e.preventDefault();th.classList.add('dragTarget')};
+   th.ondragleave=()=>th.classList.remove('dragTarget');
+   th.ondrop=async(e)=>{
+     e.preventDefault();th.classList.remove('dragTarget');
+     let raw=e.dataTransfer.getData('text/material-label');if(!raw)return;
+     let dragged=JSON.parse(raw)[0];
+     let target=th.dataset.material;
+     if(!dragged||dragged===target)return;
+     let movingRight=orderTokens.indexOf(dragged)<orderTokens.indexOf(target);
+     let order=orderTokens.filter(t=>t!==dragged);
+     let idx=order.indexOf(target)+(movingRight?1:0);
+     order.splice(idx,0,dragged);
+     let writeGroup=(readyAllLabels.find(x=>x.label===dragged)||{}).category_group||(matGroupOverrides[dragged]&&matGroupOverrides[dragged].category_group)||'AXIOPOIISIMA';
+     await Promise.all(order.map((tok,i)=>setMatGroupOverride(tok,(readyAllLabels.find(x=>x.label===tok)||{}).category_group||(matGroupOverrides[tok]&&matGroupOverrides[tok].category_group)||writeGroup,i)));
+     await loadMatGroupOverrides();renderReadyPress();
+   };
+ });
  $('readyPressBody').innerHTML=`<tr><td><b>Κιλά</b></td>${groups.map(g=>`<td>${prodVal(g.kg)}</td>`).join('')}<td><b>${prodVal(grandKg)||'0'}</b></td></tr>`
   +`<tr><td><b>Δέματα</b></td>${groups.map(g=>`<td>${g.bales||''}</td>`).join('')}<td><b>${grandBales||''}</b></td></tr>`;
  $('readyPressFoot').innerHTML='';
@@ -1217,7 +1244,7 @@ function renderReadyMaterials(){
  const colValue=(arr,c)=>arr.filter(e=>inGroup(e)&&e.material_label===c.label).reduce((s,e)=>s+Number(e.weight_kg||0),0);
  const colBalance=(c)=>readyBalanceByName[c.label]||0;
  let buckets=readyDateBuckets();
- let groupLabel=isPlaketes?'ΠΛΑΚΕΤΕΣ':MAT_GROUP_LABELS[g];
+ let groupLabel=isPlaketes?'Πλακέτες':MAT_GROUP_LABELS[g];
  let groupEntriesAll=entries.filter(inGroup);
  let groupEntries=readyStockOnly?groupEntriesAll.filter(e=>readyHasStock(e.material_label)):groupEntriesAll;
  if(!groupEntries.length){
