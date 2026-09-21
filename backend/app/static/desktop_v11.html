@@ -1910,6 +1910,15 @@ const weeeMonthNames=['Ιαν','Φεβ','Μαρ','Απρ','Μαι','Ιουν','�
 function weeeUpdateMonthActive(){let curY=Number(weeeDay.slice(0,4)),curM=Number(weeeDay.slice(5,7));$('weeePeriodDropdown').querySelectorAll('[data-m]').forEach(b=>b.classList.toggle('active',weeePickerYear===curY&&Number(b.dataset.m)===curM))}
 function weeeUpdateQuarterActive(){let curY=Number(weeeDay.slice(0,4)),curQ=Math.floor((Number(weeeDay.slice(5,7))-1)/3)+1;$('weeePeriodDropdown').querySelectorAll('[data-q]').forEach(b=>b.classList.toggle('active',weeePickerYear===curY&&Number(b.dataset.q)===curQ))}
 function weeeRenderYears(){let cur=Number(weeeDay.slice(0,4)),years=[];for(let y=cur-3;y<=cur+3;y++)years.push(y);$('weeePeriodYears').innerHTML=years.map(y=>`<button type="button" class="periodPickerYearBtn${y===weeePickerYear?' active':''}" data-y="${y}">${y}</button>`).join('');$('weeePeriodYears').querySelectorAll('[data-y]').forEach(b=>b.onclick=()=>{weeePickerYear=Number(b.dataset.y);weeeRenderYears();weeeUpdateMonthActive();weeeUpdateQuarterActive();if(weeeGranularity==='year'){weeeDay=`${weeePickerYear}-01-01`;$('weeePeriodDropdown').classList.add('hidden');$('weeePeriodPickerBtn').classList.remove('open');loadWeee()}})}
+// Scrolls a period-picker list (years, or whichever of months/quarters is showing) so its .active
+// entry sits roughly centered -- one option's worth of room above and below -- instead of opening
+// scrolled to the top of the list with the actual current month/year cut off or out of view.
+function scrollActiveIntoView(container){
+ if(!container)return;
+ let active=container.querySelector('.active');
+ if(!active)return;
+ container.scrollTop=Math.max(0,active.offsetTop-container.clientHeight/2+active.offsetHeight/2);
+}
 $('weeePeriodDropdown').querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{let m=String(b.dataset.m).padStart(2,'0');weeeDay=`${weeePickerYear}-${m}-01`;$('weeePeriodDropdown').classList.add('hidden');$('weeePeriodPickerBtn').classList.remove('open');loadWeee()});
 $('weeePeriodDropdown').querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{let q=Number(b.dataset.q),m=String((q-1)*3+1).padStart(2,'0');weeeDay=`${weeePickerYear}-${m}-01`;$('weeePeriodDropdown').classList.add('hidden');$('weeePeriodPickerBtn').classList.remove('open');loadWeee()});
 $('weeePeriodPickerBtn').onclick=(e)=>{e.stopPropagation();let dd=$('weeePeriodDropdown'),btn=$('weeePeriodPickerBtn');if(!dd.classList.contains('hidden')){dd.classList.add('hidden');btn.classList.remove('open');return}weeePickerYear=Number(weeeDay.slice(0,4));weeeRenderYears();weeeUpdateMonthActive();weeeUpdateQuarterActive();
@@ -1919,7 +1928,10 @@ $('weeePeriodPickerBtn').onclick=(e)=>{e.stopPropagation();let dd=$('weeePeriodD
   // descendants instead of the viewport — offsetParent still reports it, so measure relative to that.
   let r=btn.getBoundingClientRect(),ddW=dd.offsetWidth||320,cb=dd.offsetParent?dd.offsetParent.getBoundingClientRect():{left:0,top:0};
   let top=Math.max(8,r.top),left=(r.right+10+ddW<=window.innerWidth)?(r.right+10):Math.max(8,r.left-10-ddW);
-  dd.style.top=(top-cb.top)+'px';dd.style.left=(left-cb.left)+'px'};
+  dd.style.top=(top-cb.top)+'px';dd.style.left=(left-cb.left)+'px';
+  scrollActiveIntoView($('weeePeriodYears'));
+  scrollActiveIntoView(weeeGranularity==='month'?$('weeePeriodMonths'):weeeGranularity==='quarter'?$('weeePeriodQuarters'):null);
+ };
 document.addEventListener('click',(e)=>{let dd=$('weeePeriodDropdown');if(dd&&!dd.classList.contains('hidden')&&!dd.contains(e.target)&&e.target!==$('weeePeriodPickerBtn')&&!$('weeePeriodPickerBtn').contains(e.target)){dd.classList.add('hidden');$('weeePeriodPickerBtn').classList.remove('open')}});
 // Generic version of the Αποθήκη ΑΗΗΕ period-picker (clickable title -> year row + month/quarter
 // grid dropdown) reused by Παραγωγή/Υλικά/Φορτώσεις so they don't each need their own bespoke copy
@@ -1950,6 +1962,8 @@ function wirePeriodPicker(cfg){
   let r=cfg.btn.getBoundingClientRect(),ddW=cfg.dropdown.offsetWidth||320,cb=cfg.dropdown.offsetParent?cfg.dropdown.offsetParent.getBoundingClientRect():{left:0,top:0};
   let top=Math.max(8,r.top),left=(r.right+10+ddW<=window.innerWidth)?(r.right+10):Math.max(8,r.left-10-ddW);
   cfg.dropdown.style.top=(top-cb.top)+'px';cfg.dropdown.style.left=(left-cb.left)+'px';
+  scrollActiveIntoView(cfg.yearsEl);
+  scrollActiveIntoView(cfg.getPeriod()==='month'?cfg.monthsEl:cfg.getPeriod()==='quarter'?cfg.quartersEl:null);
  };
  document.addEventListener('click',(e)=>{if(!cfg.dropdown.classList.contains('hidden')&&!cfg.dropdown.contains(e.target)&&e.target!==cfg.btn&&!cfg.btn.contains(e.target)){closeDropdown()}});
 }
