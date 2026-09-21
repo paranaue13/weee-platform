@@ -100,6 +100,12 @@ input.weeeRowCheck,input.materialRowCheck,input#weeeCheckAll,input#materialCheck
 .toggleSwitch input:checked+.slider{background:#0b6fd3}
 .toggleSwitch input:checked+.slider:before{transform:translateX(15px)}
 .toggleRow{display:flex;align-items:center;gap:8px}
+.mergeOptList{display:flex;flex-direction:column;gap:2px}
+.mergeOptRow{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:8px;cursor:pointer;width:100%}
+.mergeOptRow:hover{background:rgba(11,111,211,.06)}
+.mergeOptRow input{flex:0 0 auto}
+.mergeOptName{flex:1 1 auto;min-width:0}
+.mergeOptExtra{flex:0 0 auto;text-align:right;white-space:nowrap}
 .toggleRow span{font-weight:600;font-size:13px}
 /* Υλικά group tabs -- deliberately its OWN class (not .productionTab), even though visually
    identical: Παραγωγή wires a GLOBAL document.querySelectorAll('.productionTab') click handler
@@ -2129,8 +2135,9 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   openOrgMergePopup=function(kind,role,rowId){
     let ids=[...orgCheckedIds[kind]]; if(ids.length<2)return;
     let all=masterCache[rowId]||[]; let rows=ids.map(id=>all.find(x=>x.id===id)).filter(Boolean);
-    let optsHtml=rows.map((x,i)=>`<label class="toggleRow" style="align-items:flex-start"><input type="radio" name="fpMergeTarget" value="${x.id}" ${i===0?'checked':''}><span><b>${esc(x.legal_name||'—')}</b>${x.trade_name?' · '+esc(x.trade_name):''}${x.tax_id?' · ΑΦΜ '+esc(x.tax_id):''}</span></label>`).join('');
-    openFloat(`Συγχώνευση εγγραφών (${rows.length})`,`<div class="notice">Επίλεξε ποια εγγραφή θα παραμείνει. Οι υπόλοιπες θα διαγραφούν και όλες οι υπάρχουσες κινήσεις/παραστατικά τους (παραλαβές, φορτώσεις, containers, κ.λπ.) θα μεταφερθούν στην εγγραφή που θα επιλέξεις. Η ενέργεια δεν αναιρείται.</div><div class="formgrid" style="margin-top:10px">${optsHtml}</div><div id="fpMergeResult"></div>${actionButtons('fpMergeApply')}`);
+    let optsHtml=rows.map((x,i)=>{let extra=[x.trade_name,x.tax_id?('ΑΦΜ '+x.tax_id):null].filter(Boolean).join(' · ');
+      return `<label class="mergeOptRow"><input type="radio" name="fpMergeTarget" value="${x.id}" ${i===0?'checked':''}><span class="mergeOptName"><b>${esc(x.legal_name||'—')}</b></span><span class="mergeOptExtra muted">${esc(extra||'—')}</span></label>`}).join('');
+    openFloat(`Συγχώνευση εγγραφών (${rows.length})`,`<div class="notice">Επίλεξε ποια εγγραφή θα παραμείνει. Οι υπόλοιπες θα διαγραφούν και όλες οι υπάρχουσες κινήσεις/παραστατικά τους (παραλαβές, φορτώσεις, containers, κ.λπ.) θα μεταφερθούν στην εγγραφή που θα επιλέξεις. Η ενέργεια δεν αναιρείται.</div><div class="mergeOptList" style="margin-top:10px">${optsHtml}</div><div id="fpMergeResult"></div>${actionButtons('fpMergeApply')}`);
     $('fpMergeApply').textContent='Συγχώνευση';
     $('fpMergeApply').onclick=async()=>{
       let targetId=document.querySelector('input[name="fpMergeTarget"]:checked')?.value; if(!targetId)return;
