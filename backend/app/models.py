@@ -245,6 +245,14 @@ class CarrierDriver(Base, TimestampMixin):
     phone: Mapped[str|None] = mapped_column(String(50), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+class CarrierVehicle(Base, TimestampMixin):
+    __tablename__ = "carrier_vehicles"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    carrier_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"), index=True)
+    plate_number: Mapped[str] = mapped_column(String(40), index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    __table_args__ = (UniqueConstraint("carrier_id","plate_number",name="uq_carrier_vehicle"),)
+
 class VisitorLog(Base, TimestampMixin):
     __tablename__ = "visitor_logs"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)

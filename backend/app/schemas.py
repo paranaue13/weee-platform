@@ -120,6 +120,15 @@ class CarrierDriverOut(CarrierDriverCreate):
     id: str
     carrier_id: str
 
+class CarrierVehicleCreate(BaseModel):
+    plate_number: str
+    active: bool = True
+
+class CarrierVehicleOut(CarrierVehicleCreate):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    carrier_id: str
+
 class VisitorLogCreate(BaseModel):
     visit_date: datetime
     full_name: str

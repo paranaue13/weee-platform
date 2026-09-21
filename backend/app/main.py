@@ -300,6 +300,23 @@ def update_carrier_driver(driver_id:str, data:schemas.CarrierDriverCreate, db:Se
     if not obj: raise HTTPException(404,"Ο οδηγός δεν βρέθηκε")
     obj.full_name=data.full_name.strip(); obj.phone=data.phone; obj.active=data.active; db.commit(); db.refresh(obj); return obj
 
+@app.get("/master/carriers/{carrier_id}/vehicles", response_model=list[schemas.CarrierVehicleOut])
+def carrier_vehicles(carrier_id:str, include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
+    stmt=select(models.CarrierVehicle).where(models.CarrierVehicle.carrier_id==carrier_id)
+    if not include_inactive: stmt=stmt.where(models.CarrierVehicle.active==True)
+    return db.scalars(stmt.order_by(models.CarrierVehicle.plate_number)).all()
+
+@app.post("/master/carriers/{carrier_id}/vehicles", response_model=schemas.CarrierVehicleOut)
+def add_carrier_vehicle(carrier_id:str, data:schemas.CarrierVehicleCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    if not db.get(Organization,carrier_id): raise HTTPException(404,"Ο μεταφορέας δεν βρέθηκε")
+    plate=data.plate_number.strip().upper()
+    if not plate: raise HTTPException(422,"Συμπλήρωσε πινακίδα")
+    existing=db.scalar(select(models.CarrierVehicle).where(models.CarrierVehicle.carrier_id==carrier_id,models.CarrierVehicle.plate_number==plate))
+    if existing:
+        if not existing.active: existing.active=True; db.commit(); db.refresh(existing)
+        return existing
+    obj=models.CarrierVehicle(carrier_id=carrier_id,plate_number=plate,active=True); db.add(obj); db.commit(); db.refresh(obj); return obj
+
 @app.get("/visitor-log", response_model=list[schemas.VisitorLogOut])
 def visitor_log(db:Session=Depends(get_db), user=Depends(require_permission("receipt.view"))):
     return db.scalars(select(models.VisitorLog).order_by(models.VisitorLog.visit_date.desc(),models.VisitorLog.arrival_at.desc())).all()
