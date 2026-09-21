@@ -2112,42 +2112,28 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   };
 
   // Bulk edit: tick rows in the registry table (checkbox column + "select all" header checkbox),
-  // pick ONE field from a dropdown, type ONE value, apply it to every ticked category in one go.
+  // then fill in the SAME form as the single-record editor (editWeeePopup) -- an empty field means
+  // "no change" for that field on the bulk save, per explicit user direction (a full field-picker
+  // dropdown, tried earlier, no longer matches what's wanted here). Κωδικός stays disabled: bulk-
+  // setting the same code on several categories would violate the unique constraint.
   // Undo isn't a separate batch-undo button -- every PUT this triggers already goes through the
   // normal update_weee_category endpoint, which writes a full old/new AuditEvent per row (see
   // main.py); editWeeePopup's "Ιστορικό αλλαγών" section reads that per-record history and can
-  // revert any single field back to an earlier value, one record at a time.
-  // Deliberately excludes the code (bulk-setting the same code on several categories would violate
-  // the unique constraint) and the official description (regulatory wording per code -- not a
-  // field meant to share one common value across several categories), per explicit user direction.
-  const WEEE_BULK_FIELDS=[
-    {key:'her_description',label:'Περιγραφή μας',type:'text'},
-    {key:'eka_code',label:'Κωδικός ΕΚΑ',type:'text'},
-    {key:'processable',label:'Προς επεξεργασία',type:'bool'}
-  ];
-  function weeeBulkValueField(fieldKey){
-    let f=WEEE_BULK_FIELDS.find(x=>x.key===fieldKey);
-    if(f.type==='bool')return `<label>Νέα τιμή<select id="fpBulkValue"><option value="true">Ναι</option><option value="false">Όχι</option></select></label>`;
-    return `<label>Νέα τιμή<input id="fpBulkValue" placeholder="Θα εφαρμοστεί σε όλες τις επιλεγμένες εγγραφές"></label>`;
-  }
+  // revert any single field back to an earlier value, one record at a time, however many edits back.
   openWeeeBulkEdit=function(){
     let ids=[...weeeCheckedIds];
     if(!ids.length)return;
     let rows=ids.map(id=>weeeCache.find(x=>x.id===id)).filter(Boolean);
     let codes=rows.map(x=>x.official_code);
-    openFloat(`Μαζική επεξεργασία (${rows.length} επιλεγμένα)`,`<div class="notice">Θα ενημερωθούν: <b>${esc(codes.join(', '))}</b></div><div class="formgrid"><label>Πεδίο προς αλλαγή<select id="fpBulkField">${WEEE_BULK_FIELDS.map(f=>`<option value="${f.key}">${esc(f.label)}</option>`).join('')}</select></label><div id="fpBulkValueWrap">${weeeBulkValueField(WEEE_BULK_FIELDS[0].key)}</div></div><div id="fpBulkResult"></div>${actionButtons('fpBulkApply')}`);
-    $('fpBulkField').onchange=()=>{$('fpBulkValueWrap').innerHTML=weeeBulkValueField($('fpBulkField').value)};
+    openFloat(`Μαζική επεξεργασία (${rows.length} επιλεγμένα)`,`<div class="notice">Θα ενημερωθούν: <b>${esc(codes.join(', '))}</b><br><span class="muted" style="font-size:12px">Άδειο πεδίο = καμία αλλαγή σε αυτό το πεδίο για τις επιλεγμένες εγγραφές.</span></div><div class="formgrid"><label>Κωδικός<input value="διαφορετικός ανά εγγραφή" disabled></label><label class="span2">Επίσημη Περιγραφή<textarea id="fpBulkWeeeOfficial" placeholder="Χωρίς αλλαγή"></textarea></label><label class="span2">Περιγραφή HER<textarea id="fpBulkWeeeHer" placeholder="Χωρίς αλλαγή"></textarea></label>${field('Κωδικός ΕΚΑ','fpBulkWeeeEka','')}<label>Προς επεξεργασία<select id="fpBulkWeeeProcess"><option value="">— Χωρίς αλλαγή —</option><option value="true">Ναι</option><option value="false">Όχι</option></select></label></div><div id="fpBulkResult"></div>${actionButtons('fpBulkApply')}`);
     $('fpBulkApply').textContent='Εφαρμογή';
     $('fpBulkApply').onclick=async()=>{
-      let fieldKey=$('fpBulkField').value,fieldDef=WEEE_BULK_FIELDS.find(f=>f.key===fieldKey);
-      let raw=$('fpBulkValue').value;
-      let newVal=fieldDef.type==='bool'?raw==='true':(raw.trim()||null);
+      let off=$('fpBulkWeeeOfficial').value.trim(),her=$('fpBulkWeeeHer').value.trim(),eka=$('fpBulkWeeeEka').value.trim(),proc=$('fpBulkWeeeProcess').value;
       $('fpBulkApply').disabled=true;$('fpBulkApply').textContent='Εφαρμογή...';
       let updated=[],failed=[];
       for(const x of rows){
         try{
-          let payload={code:x.official_code,description_el:x.official_description||'',parent_code:null,is_internal_subcategory:false,average_weight:x.average_weight??null,her_description:x.her_description||null,eka_code:x.eka_code||null,processable:!!x.processable};
-          payload[fieldKey]=newVal;
+          let payload={code:x.official_code,description_el:off||x.official_description||'',parent_code:null,is_internal_subcategory:false,average_weight:x.average_weight??null,her_description:her||x.her_description||null,eka_code:eka||x.eka_code||null,processable:proc===''?!!x.processable:proc==='true'};
           await api('/master/weee-categories/'+x.id,{method:'PUT',body:JSON.stringify(payload)});
           updated.push(x.official_code);
         }catch(e){failed.push(x.official_code+': '+e.message)}
@@ -2155,7 +2141,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
       $('fpBulkApply').disabled=false;$('fpBulkApply').textContent='Εφαρμογή';
       $('fpBulkResult').innerHTML=`<div class="notice" style="margin-top:10px"><b>Ενημερώθηκαν: ${updated.length}</b>${updated.length?'<div class="muted" style="font-size:12px;margin-top:4px">'+esc(updated.join(', '))+'</div>':''}</div>`
         +(failed.length?`<div class="notice" style="margin-top:8px;border-color:#d9534f"><b>Σφάλματα (${failed.length})</b><div class="muted" style="font-size:12px;margin-top:4px">${esc(failed.join(' · '))}</div></div>`:'')
-        +`<div class="muted" style="margin-top:8px;font-size:12px">Για επαναφορά μεμονωμένης εγγραφής, άνοιξέ την και δες «Ιστορικό αλλαγών».</div>`;
+        +`<div class="muted" style="margin-top:8px;font-size:12px">Για αναίρεση σε μεμονωμένη εγγραφή, άνοιξέ την και δες «Ιστορικό αλλαγών».</div>`;
       weeeCheckedIds.clear();
       await loadWeeeNames();
     };
@@ -2193,29 +2179,22 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   // Deliberately excludes the ERP code (bulk-setting the same code on several materials would
   // violate its uniqueness) and the official description (same reasoning as WEEE_BULK_FIELDS
   // above), per explicit user direction.
-  const MATERIAL_BULK_FIELDS=[
-    {key:'her_description',label:'Περιγραφή HER',type:'text'},
-    {key:'eka_code',label:'Κωδικός ΕΚΑ',type:'text'},
-    {key:'reptool_code',label:'Κωδικός Reptool',type:'text'},
-    {key:'genre',label:'Γένος',type:'text'}
-  ];
-  function materialBulkValueField(){return `<label>Νέα τιμή<input id="fpMatBulkValue" placeholder="Θα εφαρμοστεί σε όλες τις επιλεγμένες εγγραφές"></label>`}
+  // Same "same shape as the single-record form, blank = no change" bulk editor as ΑΗΗΕ above --
+  // see the comment there. Κωδικός ERP stays disabled (unique per material).
   openMaterialBulkEdit=function(){
     let ids=[...materialCheckedIds];
     if(!ids.length)return;
     let rows=ids.map(id=>materialsCache.find(x=>x.id===id)).filter(Boolean);
     let labels=rows.map(x=>x.galaxy_code||x.internal_name);
-    openFloat(`Μαζική επεξεργασία (${rows.length} επιλεγμένα)`,`<div class="notice">Θα ενημερωθούν: <b>${esc(labels.join(', '))}</b></div><div class="formgrid"><label>Πεδίο προς αλλαγή<select id="fpMatBulkField">${MATERIAL_BULK_FIELDS.map(f=>`<option value="${f.key}">${esc(f.label)}</option>`).join('')}</select></label><div id="fpMatBulkValueWrap">${materialBulkValueField()}</div></div><div id="fpMatBulkResult"></div>${actionButtons('fpMatBulkApply')}`);
+    openFloat(`Μαζική επεξεργασία (${rows.length} επιλεγμένα)`,`<div class="notice">Θα ενημερωθούν: <b>${esc(labels.join(', '))}</b><br><span class="muted" style="font-size:12px">Άδειο πεδίο = καμία αλλαγή σε αυτό το πεδίο για τις επιλεγμένες εγγραφές.</span></div><div class="formgrid"><label>Κωδικός ERP<input value="διαφορετικός ανά εγγραφή" disabled></label>${field('Γένος','fpBulkMatGenre','')}<label class="span2">Επίσημη Περιγραφή<textarea id="fpBulkMatOfficial" placeholder="Χωρίς αλλαγή"></textarea></label>${field('Κωδικός Reptool','fpBulkMatRep','')}<label class="span2">Περιγραφή HER<textarea id="fpBulkMatHer" placeholder="Χωρίς αλλαγή"></textarea></label>${field('Κωδικός ΕΚΑ','fpBulkMatEka','')}</div><div id="fpMatBulkResult"></div>${actionButtons('fpMatBulkApply')}`);
     $('fpMatBulkApply').textContent='Εφαρμογή';
     $('fpMatBulkApply').onclick=async()=>{
-      let fieldKey=$('fpMatBulkField').value;
-      let raw=$('fpMatBulkValue').value.trim()||null;
+      let genre=$('fpBulkMatGenre').value.trim(),off=$('fpBulkMatOfficial').value.trim(),rep=$('fpBulkMatRep').value.trim(),her=$('fpBulkMatHer').value.trim(),eka=$('fpBulkMatEka').value.trim();
       $('fpMatBulkApply').disabled=true;$('fpMatBulkApply').textContent='Εφαρμογή...';
       let updated=[],failed=[];
       for(const x of rows){
         try{
-          let payload={internal_code:x.internal_code,internal_name:x.internal_name,galaxy_code:x.galaxy_code||null,galaxy_description:x.galaxy_description||null,genre:x.genre||null,official_description:x.official_description||null,her_description:x.her_description||null,eka_code:x.eka_code||null,reptool_code:x.reptool_code||null,reptool_description:x.reptool_description||null,is_precious:!!x.is_precious,export_step_kg:x.export_step_kg};
-          payload[fieldKey]=raw;
+          let payload={internal_code:x.internal_code,internal_name:off||x.internal_name,galaxy_code:x.galaxy_code||null,galaxy_description:off||x.galaxy_description||null,genre:genre||x.genre||null,official_description:off||x.official_description||null,her_description:her||x.her_description||null,eka_code:eka||x.eka_code||null,reptool_code:rep||x.reptool_code||null,reptool_description:x.reptool_description||null,is_precious:!!x.is_precious,export_step_kg:x.export_step_kg};
           await api('/master/materials/'+x.id,{method:'PUT',body:JSON.stringify(payload)});
           updated.push(x.galaxy_code||x.internal_name);
         }catch(e){failed.push((x.galaxy_code||x.internal_name)+': '+e.message)}
@@ -2223,7 +2202,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
       $('fpMatBulkApply').disabled=false;$('fpMatBulkApply').textContent='Εφαρμογή';
       $('fpMatBulkResult').innerHTML=`<div class="notice" style="margin-top:10px"><b>Ενημερώθηκαν: ${updated.length}</b>${updated.length?'<div class="muted" style="font-size:12px;margin-top:4px">'+esc(updated.join(', '))+'</div>':''}</div>`
         +(failed.length?`<div class="notice" style="margin-top:8px;border-color:#d9534f"><b>Σφάλματα (${failed.length})</b><div class="muted" style="font-size:12px;margin-top:4px">${esc(failed.join(' · '))}</div></div>`:'')
-        +`<div class="muted" style="margin-top:8px;font-size:12px">Για επαναφορά μεμονωμένης εγγραφής, άνοιξέ την και δες «Ιστορικό αλλαγών».</div>`;
+        +`<div class="muted" style="margin-top:8px;font-size:12px">Για αναίρεση σε μεμονωμένη εγγραφή, άνοιξέ την και δες «Ιστορικό αλλαγών».</div>`;
       materialCheckedIds.clear();
       await loadMasterMaterials();
     };
