@@ -78,6 +78,10 @@ class OrganizationUpdate(BaseModel):
     phone: str|None = None
     roles: list[str] = []
 
+class OrganizationMergeRequest(BaseModel):
+    target_id: str
+    source_ids: list[str]
+
 class OrganizationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str

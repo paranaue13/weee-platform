@@ -2,7 +2,7 @@ import asyncio, logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from sqlalchemy import select, inspect, text
+from sqlalchemy import select, inspect, text, update
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
@@ -220,6 +220,42 @@ def activate_organization(organization_id:str, db:Session=Depends(get_db), user:
     if not obj: raise HTTPException(404,"Η εταιρεία δεν βρέθηκε")
     obj.active=True; write_audit(db,user,"organization",obj.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit()
     return {"id":obj.id,"active":True}
+
+@app.post("/master/organizations/merge")
+def merge_organizations(data:schemas.OrganizationMergeRequest, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    target=db.get(Organization,data.target_id)
+    if not target: raise HTTPException(404,"Η εγγραφή-στόχος δεν βρέθηκε")
+    source_ids=[s for s in dict.fromkeys(data.source_ids) if s!=data.target_id]
+    if not source_ids: raise HTTPException(422,"Δεν επιλέχθηκαν εγγραφές για συγχώνευση")
+    merged=[]
+    for sid in source_ids:
+        src=db.get(Organization,sid)
+        if not src: continue
+        src_roles=set(db.execute(select(models.organization_roles.c.role).where(models.organization_roles.c.organization_id==sid)).scalars().all())
+        tgt_roles=set(db.execute(select(models.organization_roles.c.role).where(models.organization_roles.c.organization_id==data.target_id)).scalars().all())
+        for role in src_roles-tgt_roles:
+            db.execute(models.organization_roles.insert().values(organization_id=data.target_id,role=role))
+        db.execute(models.organization_roles.delete().where(models.organization_roles.c.organization_id==sid))
+        tgt_detail=db.scalar(select(models.OrganizationRegistryDetail).where(models.OrganizationRegistryDetail.organization_id==data.target_id))
+        src_detail=db.scalar(select(models.OrganizationRegistryDetail).where(models.OrganizationRegistryDetail.organization_id==sid))
+        if src_detail:
+            if tgt_detail: db.delete(src_detail)
+            else: src_detail.organization_id=data.target_id
+        for b in db.scalars(select(models.SupplierBranch).where(models.SupplierBranch.supplier_id==sid)).all():
+            clash=db.scalar(select(models.SupplierBranch).where(models.SupplierBranch.supplier_id==data.target_id,models.SupplierBranch.name==b.name))
+            if clash: db.delete(b)
+            else: b.supplier_id=data.target_id
+        db.execute(update(models.CarrierDriver).where(models.CarrierDriver.carrier_id==sid).values(carrier_id=data.target_id))
+        db.execute(update(models.ContainerAsset).where(models.ContainerAsset.owner_organization_id==sid).values(owner_organization_id=data.target_id))
+        db.execute(update(models.InboundTrip).where(models.InboundTrip.carrier_id==sid).values(carrier_id=data.target_id))
+        db.execute(update(models.InboundLoad).where(models.InboundLoad.supplier_id==sid).values(supplier_id=data.target_id))
+        db.execute(update(models.LoadingOrder).where(models.LoadingOrder.customer_id==sid).values(customer_id=data.target_id))
+        db.execute(update(models.LoadingOrder).where(models.LoadingOrder.carrier_id==sid).values(carrier_id=data.target_id))
+        write_audit(db,user,"organization",data.target_id,"MERGE",old={"merged_from_id":sid,"merged_from_name":src.legal_name},new={"merged_into_id":data.target_id,"merged_into_name":target.legal_name})
+        db.delete(src)
+        merged.append(sid)
+    db.commit(); db.refresh(target)
+    return {"target_id":target.id,"merged_ids":merged}
 
 @app.get("/master/suppliers/{supplier_id}/branches", response_model=list[schemas.SupplierBranchOut])
 def supplier_branches(supplier_id:str, include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
