@@ -75,3 +75,21 @@ Treat `TAB` as the hard scope boundary and `TASK` as the requested change.
 If a screenshot clearly identifies the UI area, do not require the user to describe information already visible in the screenshot.
 
 **Primary objective:** Use the minimum context, file reads, tool calls, output, and code changes necessary to complete each task safely.
+
+## GIT CHECKPOINTS (υποχρεωτικό)
+
+Το project έχει Git repository (`git init` έγινε στις 21/9/2026) ακριβώς για να μην χάνεται ποτέ ξανά δουλειά όπως συνέβη με το `desktop_v11.html` corruption incident. Κανόνες:
+
+- **Πριν** από κάθε μεγάλη/ριψοκίνδυνη αλλαγή (π.χ. αναδιάρθρωση HTML/CSS, μαζικό edit, database migration, οτιδήποτε αγγίζει πολλά αρχεία ή δομή): τρέξε πρώτα
+  ```
+  git add -A && git commit -m "Πριν: <σύντομη περιγραφή τι πρόκειται να αλλάξει>"
+  ```
+  ώστε να υπάρχει πάντα ένα σημείο επιστροφής πριν ξεκινήσει η αλλαγή.
+- **Μετά** από κάθε αλλαγή που επαληθεύτηκε ότι δουλεύει (π.χ. πέρασε το node --check / τα σχετικά tests / το Playwright verification): τρέξε
+  ```
+  git add -A && git commit -m "<σύντομη περιγραφή στα ελληνικά τι άλλαξε και δούλεψε>"
+  ```
+- Οι περιγραφές είναι σύντομες, στα ελληνικά, και λένε ΤΙ άλλαξε (όχι πώς ή γιατί με λεπτομέρειες).
+- Δεν χρειάζεται checkpoint για ασήμαντες/διερευνητικές αλλαγές (π.χ. ένα debug script στο scratchpad) — μόνο για αλλαγές στον πραγματικό κώδικα της εφαρμογής (`backend/`, `android/`) που ο χρήστης θα κρατήσει.
+- Το Git βρίσκεται στο `C:\Program Files\Git\bin\git.exe` — σε PowerShell που δεν το βλέπει ακόμα στο PATH, πρόσθεσε πρώτα: `$env:Path += ";C:\Program Files\Git\bin"`.
+- `backend/.venv/`, `*.db`, `backend/.env`, `backend/uploads/` είναι σκόπιμα εκτός Git (.gitignore) — ποτέ μην τα προσθέσεις με `git add -f`.
