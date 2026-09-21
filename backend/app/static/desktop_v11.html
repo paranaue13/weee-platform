@@ -64,6 +64,21 @@ body[data-theme="dark"] .sortingKpiCard.k1{background:#173044}body[data-theme="d
 .stockTable.showHermes .hermesCol{display:table-cell}
 .weeeDescHeader{cursor:pointer}
 .weeeDescHeader:hover{text-decoration:underline}
+/* Υλικά: drag-and-drop reclassification -- dragging a material column header onto another header
+   reorders within the group, onto a group tab reclassifies it into that group. */
+.prodTable th[draggable="true"]{cursor:grab}
+.prodTable th.dragging{opacity:.4}
+.prodTable th.dragTarget{box-shadow:inset 0 0 0 2px #1265d6}
+#readyGroupTabs .readyGroupTab.dragTarget{background:#eaf3ff;box-shadow:inset 0 0 0 2px #1265d6}
+.prodShipRow td{color:#93650f}
+.prodBalanceRow td{background:#eaf3ff!important}
+/* Υλικά group tabs -- deliberately its OWN class (not .productionTab), even though visually
+   identical: Παραγωγή wires a GLOBAL document.querySelectorAll('.productionTab') click handler
+   (keyed off data-prodtab) that would silently steal these buttons' onclick if they shared that
+   class, since it isn't scoped to #productionTabs. */
+.readyGroupTabsRow{display:flex;gap:8px;border-bottom:1px solid #e5eaf0;flex:1;min-width:340px}
+.readyGroupTab{border:0;background:transparent;padding:11px 14px;font-weight:700;color:#526172;border-bottom:2px solid transparent;cursor:pointer}
+.readyGroupTab.active{color:#1265d6;border-bottom-color:#1265d6}
 /* Αποθήκη ΑΗΗΕ period picker (month/quarter/year quick-pick under the date bar). */
 .periodPickerDropdown{position:fixed;z-index:140;background:#fffdfb;border:1px solid #cfd9e2;border-radius:var(--r-md);box-shadow:0 12px 35px rgba(21,32,43,.18);padding:10px;min-width:260px}
 .periodPickerYears{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
@@ -489,7 +504,27 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 <div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable"><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div><div class="productionHint">Κλικ σε κατηγορία 1–6 για ανάπτυξη / σύμπτυξη όλων των υποκατηγοριών της. Τα μηδενικά εμφανίζονται κενά.</div></div>
 <div id="productionPeoplePanel" class="hidden"><div class="prodTableWrap"><table class="prodTable"><thead id="prodPeopleHead"></thead><tbody id="prodPeopleBody"></tbody><tfoot id="prodPeopleFoot"></tfoot></table></div><div class="productionHint">Ένα τμήμα μπορεί να έχει συγκεντρωτική ποσότητα ή ανάλυση ανά εργαζόμενο. Το υλικό/ΑΗΗΕ εμφανίζεται σε κάθε γραμμή. Οι καταχωρίσεις υποστηρίζουν πηγή Android χειριστή περονοφόρου ή Windows.</div></div>
 </section>
-<section id="ready" class="view hidden"><div class="card"><h3>Αποθήκη υλικών προς φόρτωση</h3></div><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Υλικό</th><th>Μορφή</th><th>kg</th><th>Status</th></tr></thead><tbody id="readyRows"></tbody></table></div></section>
+<section id="ready" class="view hidden">
+<div class="productionTop">
+<div class="readyGroupTabsRow" id="readyGroupTabs">
+<button class="readyGroupTab active" data-readygroup="AXIOPOIISIMA">Αξιοποιήσιμα Υλικά</button>
+<button class="readyGroupTab" data-readygroup="EIDIKIS_DIACHEIRISIS">Υλικά Ειδικής Διαχείρισης</button>
+<button class="readyGroupTab" data-readygroup="PLAKETES">ΠΛΑΚΕΤΕΣ</button>
+<button class="readyGroupTab" data-readygroup="APORRIPSI">Υλικά προς Απόρριψη</button>
+<button class="readyGroupTab" data-readygroup="PRESS">Πρέσα</button>
+</div>
+<div class="productionPeriod">
+<div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-readyperiod="day">Ημέρα</button><button data-readyperiod="month" class="active">Μήνας</button><button data-readyperiod="quarter">Τρίμηνο</button><button data-readyperiod="year">Έτος</button></div></div>
+<div class="prodPeriodNav"><button id="readyPrev">‹</button><b id="readyPeriodTitle"></b><button id="readyNext">›</button></div>
+<button class="btn alt" id="readyRangeBtn">Προσαρμοσμένο διάστημα</button>
+</div>
+</div>
+<div id="readyStockOnlyWrap" class="toolbar"><label style="display:flex;align-items:center;gap:6px;font-weight:600"><input type="checkbox" id="readyStockOnlyToggle"> Μόνο με διαθέσιμο απόθεμα</label></div>
+<div id="readyQuarterInventoryCard" class="card hidden"><h3>Φυσική απογραφή</h3><div id="readyQuarterInventoryBody"></div></div>
+<div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
+<div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
+<div class="card" style="margin-top:16px"><h3>Αποθήκη υλικών προς φόρτωση</h3></div><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Υλικό</th><th>Μορφή</th><th>kg</th><th>Status</th></tr></thead><tbody id="readyRows"></tbody></table></div>
+</section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div><div class="tablewrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt iconOnly" id="loadingEcMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
 <div class="card" id="shipHistCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ιστορικό Δελτίων Αποστολής</h3><div style="display:flex;align-items:center;gap:8px"><button type="button" class="calendarNavBtn" id="shipHistPrev">‹</button><b id="shipHistPeriodTitle"></b><button type="button" class="calendarNavBtn" id="shipHistNext">›</button></div></div><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><div class="toolbar" id="shipHistKindFilter" style="margin:0"><button type="button" class="btn alt active" data-kind="">Όλα</button></div><span class="muted">Σύνολο: <span id="shipHistTotal"></span></span><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th>Ημερομηνία</th><th>Αρ. Δ.Α.</th><th>Περιγραφή</th><th>Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th>Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody></table></div></div></section>
