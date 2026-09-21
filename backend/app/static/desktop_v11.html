@@ -671,11 +671,21 @@ async function loadElectrocycle(){
   }
  }catch(e){console.error('electrocycle load failed',e)}
 }
-const ELECTROCYCLE_PLATFORM_URL='https://electrocycle.itn.services/Trash/StatementFlow.aspx';
 // Row click on either live-feed table -> a small menu at the click point (not always top-center,
 // since these tables can be long and scrolled) with two actions: jump straight into a prefilled Νέα
-// Παραλαβή for this order (same fill logic as the Αριθμός εντολής combo there), or open the real
-// ΑΝΑΚΥΚΛΩΣΗ ΣΥΣΚΕΥΩΝ platform itself for the fuller set of fields this local mirror doesn't carry.
+// Παραλαβή for this order (same fill logic as the Αριθμός εντολής combo there), or show the fuller
+// set of fields this local mirror already has (beyond the 6 columns in the table) in an in-app
+// popup -- no external site, per explicit request.
+function openEcOrderDetail(o){
+ let rows=[
+  ['Αριθμός εντολής',o.order_no],['Αποστολέας',o.sender],['Σημείο παραλαβής',o.pickup_point],
+  ['Διεύθυνση',o.address],['Πόλη',o.city],['Τ.Κ.',o.postal_code],['Μεταφορέας',o.carrier],
+  ['Μέσο συλλογής',o.collection_medium],['Διαδρομή εκτέλεσης',o.execution_route],
+  ['Διαδρομή παράδοσης',o.delivery_route],
+  ['Συγχρονισμός',o.synced_at?new Date(o.synced_at).toLocaleString('el-GR'):null],
+ ];
+ openFloat('Στοιχεία εντολής '+(o.order_no||''),`<table style="width:100%"><tbody>${rows.map(([label,val])=>`<tr><td style="padding:6px 12px 6px 0;color:#66717c;white-space:nowrap;vertical-align:top">${esc(label)}</td><td style="padding:6px 0;font-weight:600">${esc(val||'—')}</td></tr>`).join('')}</tbody></table>`);
+}
 function openEcOrderMenu(o,e){
  if(!o)return;
  e.stopPropagation();
@@ -687,7 +697,7 @@ function openEcOrderMenu(o,e){
  let x=Math.min(e.clientX,window.innerWidth-8-m.offsetWidth||e.clientX),y=Math.min(e.clientY,window.innerHeight-8-m.offsetHeight||e.clientY);
  m.style.left=Math.max(8,x)+'px';m.style.top=Math.max(8,y)+'px';
  m.querySelector('[data-act="open"]').onclick=(ev)=>{ev.stopPropagation();m.remove();prepareNewReceiptPopup();applyLiveFeedOrderToForm(o)};
- m.querySelector('[data-act="view"]').onclick=(ev)=>{ev.stopPropagation();m.remove();window.open(ELECTROCYCLE_PLATFORM_URL,'_blank')};
+ m.querySelector('[data-act="view"]').onclick=(ev)=>{ev.stopPropagation();m.remove();openEcOrderDetail(o)};
  setTimeout(()=>document.addEventListener('mousedown',function h(ev){if(!m.contains(ev.target)){m.remove();document.removeEventListener('mousedown',h)}}),0);
 }
 function startElectrocyclePolling(){loadElectrocycle();if(ecPollTimer)clearInterval(ecPollTimer);ecPollTimer=setInterval(loadElectrocycle,60000)}
