@@ -17,3 +17,6 @@ android/local.properties
 # OS / editor cruft
 .DS_Store
 Thumbs.db
+
+# Claude Code harness-internal state (not project code)
+.claude/scheduled_tasks.lock
