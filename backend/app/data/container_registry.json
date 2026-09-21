@@ -1,0 +1,2977 @@
+[
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "2 (ΜΟΝΕΣ)",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "6 (ΜΟΝΕΣ)",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "7 (ΜΟΝΕΣ)",
+    "tare_kg": 3160.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "9 (ΜΟΝΕΣ)",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "11 (ΜΟΝΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "12 (ΜΟΝΕΣ)",
+    "tare_kg": 3400.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "13 (ΜΟΝΕΣ)",
+    "tare_kg": 3490.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "14 (ΜΟΝΕΣ)",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "15 (ΜΟΝΕΣ)",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "16 (ΜΟΝΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "17 (ΜΟΝΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "18 (ΜΟΝΕΣ)",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "19 (ΜΟΝΕΣ)",
+    "tare_kg": 3390.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "20 (ΜΟΝΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "21 (ΜΟΝΕΣ)",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "22 (ΜΟΝΕΣ)",
+    "tare_kg": 3190.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "24 (ΜΟΝΕΣ)",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "25 (ΜΟΝΕΣ)",
+    "tare_kg": 3120.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "30 (ΜΟΝΕΣ)",
+    "tare_kg": 2835.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "31 (ΜΟΝΕΣ)",
+    "tare_kg": 3430.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "35 (ΜΟΝΕΣ)",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "36 (ΜΟΝΕΣ)",
+    "tare_kg": 3390.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "37 (ΜΟΝΕΣ)",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "38 (ΜΟΝΕΣ)",
+    "tare_kg": 3245.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "39 (ΜΟΝΕΣ)",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "40 (ΜΟΝΕΣ)",
+    "tare_kg": 3235.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "41 (ΜΟΝΕΣ)",
+    "tare_kg": 3295.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "45 (ΜΟΝΕΣ)",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "50 (ΜΟΝΕΣ)",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "02 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3390.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "2 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3425.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "03 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "05 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3370.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "07 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3230.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "8 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "09 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "9 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3290.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "10 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "11 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3370.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "12 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "13 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3290.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "14 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "15 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "16 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "17 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "19 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3400.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "20 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "21 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "22 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "23 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "24 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "25 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "27 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "28 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3370.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "29 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "30 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3350.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "31 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3390.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "32 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "33 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "34 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "35 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "36 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "37 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "38 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3450.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "39 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3190.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "41 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "42 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "43 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "44 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "45 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3355.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "46 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3190.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "50 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "51 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "52 (ΔΙΠΛΕΣ)",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "1 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "01 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "02 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3460.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "ST 3",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "4 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3390.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "05 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3570.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "6 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "7 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3400.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "9 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3550.0
+  },
+  {
+    "carrier": "ΦΑΙΔΡΑ ΜΟΝ. Ε.Π.Ε.",
+    "code": "10 (ΠΛΑΪΝΕΣ)",
+    "tare_kg": 3560.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "1 (ΜΠΛΕ)",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "2 (ΜΠΛΕ)",
+    "tare_kg": 2600.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "3 (ΜΠΛΕ)",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "351",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "363",
+    "tare_kg": 2770.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "365",
+    "tare_kg": 2800.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "367",
+    "tare_kg": 2680.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "368",
+    "tare_kg": 2680.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "370",
+    "tare_kg": 2800.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "371",
+    "tare_kg": 3075.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "373",
+    "tare_kg": 2800.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "550",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50050",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50052",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50053",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50054",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50055",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50058",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50060",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50061",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50062",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50063",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50064",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50065",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50066",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50067",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50068",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50069",
+    "tare_kg": 2720.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50070",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50071",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50072",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50073",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50074",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50075",
+    "tare_kg": 2620.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50076",
+    "tare_kg": 2610.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50077",
+    "tare_kg": 2860.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50078",
+    "tare_kg": 2730.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50079",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50080",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50081",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΓΛΥΚΑΣ ΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "50083",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "8",
+    "tare_kg": 2590.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "9",
+    "tare_kg": 2570.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "10",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "11",
+    "tare_kg": 3190.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "12",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "13",
+    "tare_kg": 3140.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "14",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "15",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "16",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "18",
+    "tare_kg": 3360.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "19",
+    "tare_kg": 3350.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "20",
+    "tare_kg": 3360.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "21",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "22",
+    "tare_kg": 3290.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "23",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "24",
+    "tare_kg": 3350.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "25",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "26",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "27",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "28",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "29",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "30",
+    "tare_kg": 3300.0
+  },
+  {
+    "carrier": "STAR ECO Ε.Ε.",
+    "code": "31",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40001",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40002",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40003",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40004",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40005",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40006",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40007",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40009",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40011",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40013",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40014",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40015",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40016",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40017",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40018",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40019",
+    "tare_kg": 3120.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40020",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40021",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40022",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40023",
+    "tare_kg": 3350.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40024",
+    "tare_kg": 3360.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40025",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40026",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40027",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40028",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40029",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40030",
+    "tare_kg": 3140.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40031",
+    "tare_kg": 3430.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40032",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40033",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40034",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40035",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40036",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40037",
+    "tare_kg": 3190.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40038",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40039",
+    "tare_kg": 3230.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40040",
+    "tare_kg": 3350.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40041",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40042",
+    "tare_kg": 3160.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40043",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40044",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40045",
+    "tare_kg": 3160.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40046",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40047",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40054",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40057",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40058",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40059",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40068",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40069",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40070",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40071",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40072",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40073",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40075",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40076",
+    "tare_kg": 3440.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40078",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40079",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40080",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40081",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40082",
+    "tare_kg": 3510.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40085",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40086",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40087",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40088",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40089",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40090",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40091",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40095",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40096",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40097",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40098",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40099",
+    "tare_kg": 3140.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40102",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40103",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40104",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40105",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40107",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40108",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40109",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40110",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40111",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40112",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40113",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40114",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40115",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40116",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40017",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40125",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40126",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40129",
+    "tare_kg": 2910.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40130",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40131",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40132",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40137",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40138",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40139",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40140",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40141",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40142",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40143",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40144",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40146",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40147",
+    "tare_kg": 2900.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40148",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40149",
+    "tare_kg": 2890.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40150",
+    "tare_kg": 2860.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40151",
+    "tare_kg": 2900.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40152",
+    "tare_kg": 2880.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40153",
+    "tare_kg": 3120.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40154",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40155",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40156",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40157",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40158",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40159",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40160",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40161",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40162",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40163",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40164",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40165",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40166",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40167",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40168",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40169",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40170",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40177",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40178",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40179",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40180",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40181",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40182",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40183",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40184",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40185",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40186",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40187",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40188",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40189",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40190",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40191",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40192",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40193",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40194",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40195",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40196",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40197",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40198",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40199",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40200",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40201",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40202",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40203",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40204",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40205",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40206",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40207",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40208",
+    "tare_kg": 3040.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40209",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40210",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40211",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40212",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40213",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40217",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40218",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40219",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40220",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40221",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40222",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40223",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40224",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40226",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40226",
+    "tare_kg": 3180.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40228",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40229",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40230",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40231",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40232",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40233",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40234",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40235",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40236",
+    "tare_kg": 3080.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40237",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40238",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40239",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40240",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40241",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40242",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40243",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40244",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40245",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40247",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40248",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40249",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40250",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40251",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40252",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40253",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40254",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40255",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40256",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40257",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40258",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40259",
+    "tare_kg": 2880.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40260",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40261",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40262",
+    "tare_kg": 3230.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40263",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40264",
+    "tare_kg": 2890.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40265",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40266",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40267",
+    "tare_kg": 2910.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40268",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40269",
+    "tare_kg": 3120.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40270",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40271",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40272",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40273",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40274",
+    "tare_kg": 2910.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40275",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40276",
+    "tare_kg": 2900.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40277",
+    "tare_kg": 2990.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40278",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40279",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40280",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40281",
+    "tare_kg": 2910.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40282",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40283",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40285",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40286",
+    "tare_kg": 2950.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40288",
+    "tare_kg": 2880.0
+  },
+  {
+    "carrier": "ECO TRANS Ε.Π.Ε.",
+    "code": "40289",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "1",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "2",
+    "tare_kg": 3400.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "3",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "4",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "5",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "6",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "7",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "8",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "9",
+    "tare_kg": 3240.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "10",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "11",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "12",
+    "tare_kg": 3220.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "13",
+    "tare_kg": 2720.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "14",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "15",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "16",
+    "tare_kg": 3300.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "17",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "18",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "19",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "20",
+    "tare_kg": 3100.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "21",
+    "tare_kg": 2680.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "22",
+    "tare_kg": 2840.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "23",
+    "tare_kg": 3280.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "24",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "25",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "26",
+    "tare_kg": 2580.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "27",
+    "tare_kg": 3340.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "28",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "29",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "30",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "31",
+    "tare_kg": 3310.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "32",
+    "tare_kg": 3160.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "33",
+    "tare_kg": 3020.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "34",
+    "tare_kg": 2140.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "35",
+    "tare_kg": 2100.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "36",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "37",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "38",
+    "tare_kg": 3700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "39",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "40",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "41",
+    "tare_kg": 2880.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "42",
+    "tare_kg": 3140.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "43",
+    "tare_kg": 1990.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "44",
+    "tare_kg": 2000.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "45",
+    "tare_kg": 2860.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "46",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "47",
+    "tare_kg": 2890.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "48",
+    "tare_kg": 2220.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "49",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "50",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "51",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "52",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "53",
+    "tare_kg": 3260.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "54",
+    "tare_kg": 2930.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "55",
+    "tare_kg": 2760.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "56",
+    "tare_kg": 2690.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "57",
+    "tare_kg": 2760.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "58",
+    "tare_kg": 3060.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "59",
+    "tare_kg": 2850.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "60",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "61",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "62",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "63",
+    "tare_kg": 2560.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "64",
+    "tare_kg": 2570.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "65",
+    "tare_kg": 2740.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "66",
+    "tare_kg": 2580.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "67",
+    "tare_kg": 2770.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "68",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "69",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "70",
+    "tare_kg": 2770.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "71",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "72",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "76",
+    "tare_kg": 3360.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "77",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "78",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "79",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "80",
+    "tare_kg": 2910.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "81",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "82",
+    "tare_kg": 2820.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "83",
+    "tare_kg": 2810.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "84",
+    "tare_kg": 2810.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "85",
+    "tare_kg": 2800.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "86",
+    "tare_kg": 2980.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "87",
+    "tare_kg": 2800.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "88",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "89",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "90",
+    "tare_kg": 3110.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "91",
+    "tare_kg": 2580.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "92",
+    "tare_kg": 2600.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "93",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "94",
+    "tare_kg": 2440.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "95",
+    "tare_kg": 2590.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "96",
+    "tare_kg": 2620.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "97",
+    "tare_kg": 2580.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "98",
+    "tare_kg": 2600.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "99",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "100",
+    "tare_kg": 2540.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "101",
+    "tare_kg": 2590.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "102",
+    "tare_kg": 2620.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "103",
+    "tare_kg": 2840.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "104",
+    "tare_kg": 2610.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "105",
+    "tare_kg": 2550.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "106",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "107",
+    "tare_kg": 2790.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "108",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "109",
+    "tare_kg": 2850.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "110",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "111",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "112",
+    "tare_kg": 2690.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "113",
+    "tare_kg": 2720.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "114",
+    "tare_kg": 2820.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "115",
+    "tare_kg": 2840.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "116",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "120",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "121",
+    "tare_kg": 2730.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "122",
+    "tare_kg": 2920.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "123",
+    "tare_kg": 3130.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "124",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "126",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "127",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "128",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "129",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "130",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "131",
+    "tare_kg": 3030.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "135",
+    "tare_kg": 2810.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "136",
+    "tare_kg": 2790.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "137",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "138",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "139",
+    "tare_kg": 2730.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "140",
+    "tare_kg": 2810.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "141",
+    "tare_kg": 2660.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "142",
+    "tare_kg": 2960.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "143",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "144",
+    "tare_kg": 2560.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "145",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "146",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "147",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "148",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "149",
+    "tare_kg": 3250.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "150",
+    "tare_kg": 2760.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "151",
+    "tare_kg": 2940.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "152",
+    "tare_kg": 2740.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "153",
+    "tare_kg": 2850.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "154",
+    "tare_kg": 2850.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "155",
+    "tare_kg": 2860.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "156",
+    "tare_kg": 2840.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "157",
+    "tare_kg": 2730.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "158",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "159",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "160",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "161",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "162",
+    "tare_kg": 2760.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "163",
+    "tare_kg": 2790.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "164",
+    "tare_kg": 3090.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "169",
+    "tare_kg": 2660.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "170",
+    "tare_kg": 2780.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "171",
+    "tare_kg": 2720.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "172",
+    "tare_kg": 2700.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "173",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "174",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "175",
+    "tare_kg": 2730.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "177",
+    "tare_kg": 2660.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "179",
+    "tare_kg": 2660.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "180",
+    "tare_kg": 2710.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "181",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "182",
+    "tare_kg": 3010.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "183",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "186",
+    "tare_kg": 2620.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "188",
+    "tare_kg": 2680.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "190",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "191",
+    "tare_kg": 2630.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "192",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "193",
+    "tare_kg": 3380.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "194",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "195",
+    "tare_kg": 2630.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "197",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "198",
+    "tare_kg": 3070.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "201",
+    "tare_kg": 2650.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "202",
+    "tare_kg": 2670.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "208",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "211",
+    "tare_kg": 2640.0
+  },
+  {
+    "carrier": "KYKΛΟΣ Α.Β.Ε.Ε.",
+    "code": "215",
+    "tare_kg": 2750.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "1",
+    "tare_kg": 3160.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "2",
+    "tare_kg": 3290.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "3",
+    "tare_kg": 3420.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "4",
+    "tare_kg": 3000.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "5",
+    "tare_kg": 3420.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "6",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "7",
+    "tare_kg": 3170.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "8",
+    "tare_kg": 3210.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "9",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "10",
+    "tare_kg": 3050.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "11",
+    "tare_kg": 3150.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "12",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "13",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "14",
+    "tare_kg": 3270.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "15",
+    "tare_kg": 3300.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "16",
+    "tare_kg": 4180.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "17",
+    "tare_kg": 2790.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "18",
+    "tare_kg": 2830.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "19",
+    "tare_kg": 2830.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "20",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "21",
+    "tare_kg": 3200.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "22",
+    "tare_kg": 3290.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "23",
+    "tare_kg": 2970.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "24",
+    "tare_kg": 2660.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "25",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "26",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "27",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "28",
+    "tare_kg": 3320.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "29",
+    "tare_kg": 3330.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "30",
+    "tare_kg": 3900.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "31",
+    "tare_kg": 4160.0
+  },
+  {
+    "carrier": "ΣΙΔΗΡΟΣΚΡΑΠ Ε.Π.Ε.",
+    "code": "32",
+    "tare_kg": 3990.0
+  }
+]

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Αποθήκη ΑΗΗΕ → Παραγωγή</title>
+<style>
+body{font-family:system-ui,Arial;margin:0;background:#f4f6f8;color:#17202a}.wrap{max-width:1180px;margin:auto;padding:24px}.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.card{background:#fff;border:1px solid #dfe4ea;border-radius:14px;padding:16px;margin:12px 0}.grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:center}.pill{display:inline-block;padding:4px 9px;border-radius:999px;background:#eef2f6;font-size:12px}.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;background:#202a35;color:#fff}.btn.alt{background:#e9edf2;color:#17202a}.btn:disabled{opacity:.45;cursor:not-allowed}input,select{padding:11px;border:1px solid #cbd3dc;border-radius:9px;font-size:16px}.summary{font-size:20px;font-weight:800}.muted{color:#647180}.error{color:#a11}.ok{color:#126b35}@media(max-width:760px){.grid{grid-template-columns:1fr}.wrap{padding:12px}.btn{min-height:48px}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><h1>Αποθήκη ΑΗΗΕ → Παραγωγή</h1><span class="pill">Build 0.6</span></div>
+<div class="card">
+  <div class="top"><label>Token <input id="token" placeholder="Bearer token"></label><button class="btn alt" id="load">Φόρτωση αποθέματος</button></div>
+  <div id="msg" class="muted">Η οθόνη δείχνει μόνο διαθέσιμο απόθεμα από κλεισμένες ταξινομήσεις.</div>
+</div>
+<div class="card"><div class="top"><label>Τμήμα / Υποτμήμα <select id="dept"><option value="">— επιλογή —</option></select></label><span class="summary" id="sum">0 kg επιλεγμένα</span><button class="btn" id="send" disabled>Αποστολή στην παραγωγή</button></div></div>
+<div id="rows"></div>
+</div>
+<script>
+const $=s=>document.querySelector(s); let lots=[]; let units=[];
+function headers(){return {'Authorization':'Bearer '+$('#token').value,'Content-Type':'application/json'}}
+async function api(url,opt={}){opt.headers={...(opt.headers||{}),...headers()};let r=await fetch(url,opt);if(!r.ok)throw new Error(await r.text());return r.json()}
+function selected(){return [...document.querySelectorAll('.pick:checked')].map(x=>{let id=x.dataset.id;let inp=document.querySelector('[data-weight="'+id+'"]');return {stock_lot_id:id,weight:inp&&inp.value?Number(inp.value):null}})}
+function update(){let total=0;for(const i of selected()){let l=lots.find(x=>x.id===i.stock_lot_id);total+=i.weight??Number(l.available_weight)}$('#sum').textContent=total.toFixed(0)+' kg επιλεγμένα';$('#send').disabled=!$('#dept').value||!selected().length}
+function render(){let box=$('#rows');box.innerHTML='';for(const l of lots){let d=document.createElement('div');d.className='card grid';d.innerHTML=`<label><input class="pick" type="checkbox" data-id="${l.id}"> <b>${l.weee_code}</b><br><span class="muted">${l.weee_description}</span></label><div>${l.medium_code||'Χύμα / χωρίς μέσο'}</div><div><b>${Number(l.available_weight).toFixed(0)} kg</b><br><span class="muted">διαθέσιμα</span></div><input data-weight="${l.id}" type="number" min="1" max="${l.available_weight}" step="1" placeholder="όλα"><span class="pill">${l.status}</span>`;box.appendChild(d)}document.querySelectorAll('.pick,input[data-weight]').forEach(x=>x.addEventListener('input',update));update()}
+async function load(){try{$('#msg').className='muted';lots=await api('/inventory/weee');units=await api('/master/org-units');$('#dept').innerHTML='<option value="">— επιλογή —</option>'+units.map(u=>`<option value="${u.id}">${u.name_el}</option>`).join('');render();$('#msg').textContent=lots.length+' διαθέσιμες παρτίδες.'}catch(e){$('#msg').className='error';$('#msg').textContent=e.message}}
+$('#load').addEventListener('click',load);$('#dept').addEventListener('change',update);$('#send').addEventListener('click',async()=>{try{let data={destination_org_unit_id:$('#dept').value,items:selected()};let r=await api('/production/transfers',{method:'POST',body:JSON.stringify(data)});$('#msg').className='ok';$('#msg').textContent='Δημιουργήθηκε κίνηση '+r.transfer_number;await load()}catch(e){$('#msg').className='error';$('#msg').textContent=e.message}})
+</script></body></html>

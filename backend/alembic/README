@@ -1,0 +1,38 @@
+Generic single-database configuration.
+
+## How this is wired into the app
+
+`app/migrations.py` calls Alembic automatically on every app startup (see
+`main.lifespan()`) -- there is no manual step for the person launching the
+desktop app. It resolves the DB URL the same way the app itself does
+(app/config.py: DATABASE_URL env var override, or the persistent
+LocalAppData path on Windows), so `alembic upgrade` always targets the same
+database the app is about to serve.
+
+`baseline_2_5_35` (alembic/versions/baseline_2_5_35_baseline_schema_2_5_35.py)
+is the first migration and simply describes the schema as it already stood
+in build 2.5.35 -- the schema that every existing database (fresh or
+years-old) already has, thanks to the pre-Alembic `Base.metadata.create_all()`
++ hand-written `ALTER TABLE` guards still sitting in `main.lifespan()`. On
+first contact with a database that has no `alembic_version` table yet,
+`app/migrations.py` *stamps* it at `baseline_2_5_35` (writes one row, runs no
+DDL) instead of trying to re-create tables that already exist. That old
+ALTER TABLE bootstrap in main.py is intentionally left in place; it is not
+being replaced retroactively.
+
+## Adding a new schema change from here on
+
+Don't add another `ALTER TABLE ...` block to `main.lifespan()`. Instead:
+
+1. Change the model(s) in `app/models.py`.
+2. From `backend/`, with the venv active:
+   `alembic revision --autogenerate -m "short description"`
+3. Open the generated file in `alembic/versions/` and check it -- autogenerate
+   is a good first draft, not a guarantee (SQLite in particular sometimes
+   needs the batch-mode `op.batch_alter_table(...)` form, which the env.py in
+   this folder already enables by default via `render_as_batch=True`).
+4. Test it locally: run the app once against a scratch copy of a real
+   persistent `weee_dev.db` (never the user's live one) and confirm existing
+   row counts are unchanged and the new column/table behaves as expected.
+   The next app startup after that will apply it automatically for every
+   real database via `alembic upgrade head` -- no manual step needed.
