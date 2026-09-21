@@ -76,8 +76,8 @@ body[data-theme="dark"] .sortingKpiCard.k1{background:#173044}body[data-theme="d
 /* Αρνητικά κιλά (πιθανό σφάλμα δεδομένων) -- κόκκινο κελί + ένα debounced toast ειδοποίησης ανά
    render burst, μοιρασμένο από prodVal()/blankKg() σε όλους τους πίνακες (Παραγωγή, Υλικά, Αποθήκη
    ΑΗΗΕ). Ούτε το κελί ούτε το toast είχαν ποτέ δικό τους στυλ -- έμεναν αόρατα μέσα στο απλό κείμενο. */
-.negKgCell{color:#a82727;font-weight:800}
-body[data-theme="dark"] .negKgCell{color:#ff8b8b}
+.negKgCell{background:#fde5e5;color:#9b2222;font-weight:800;padding:2px 7px;border-radius:6px;display:inline-block}
+body[data-theme="dark"] .negKgCell{background:#4a1f1f;color:#ff8b8b}
 #negKgToast{position:fixed;left:18px;bottom:18px;z-index:200;background:#a82727;color:#fff;padding:11px 14px;border-radius:var(--r-sm);box-shadow:0 10px 28px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;font-weight:700;max-width:420px;font-size:13px}
 #negKgToast button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:15px;opacity:.85;padding:0;line-height:1}
 #negKgToast button:hover{opacity:1}
@@ -1800,7 +1800,7 @@ function weeeApplyDescMode(){
 function stripGreekAccents(s){return s.normalize('NFD').replace(new RegExp('[̀-ͯ]','g'),'').normalize('NFC')}
 function weeeRange(){if(weeeGranularity==='custom'&&weeeCustomRange){let c=weeeCustomRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{start:new Date(c.start+'T12:00:00'),end:new Date(c.end+'T12:00:00'),label:`${fmt(c.start)} – ${fmt(c.end)}`,startISO:c.start,endISO:c.end}}
   let y=Number(weeeDay.slice(0,4)),m=Number(weeeDay.slice(5,7)),start,end,label;
-  if(weeeGranularity==='quarter'){let q=Math.floor((m-1)/3),sm=q*3+1;start=new Date(y,sm-1,1);end=new Date(y,sm+2,0);label=stripGreekAccents(`${q+1}Ο ΤΡΙΜΗΝΟ ${y}`)}
+  if(weeeGranularity==='quarter'){let q=Math.floor((m-1)/3),sm=q*3+1;start=new Date(y,sm-1,1);end=new Date(y,sm+2,0);label=`${q+1}ο τρίμηνο ${y}`}
   else if(weeeGranularity==='year'){start=new Date(y,0,1);end=new Date(y,11,31);label=String(y)}
   else{start=new Date(y,m-1,1);end=new Date(y,m,0);label=stripGreekAccents(start.toLocaleDateString((typeof currentLang!=='undefined'&&currentLang==='en')?'en-GB':'el-GR',{month:'long',year:'numeric'}).toUpperCase())}
   return{start,end,label,startISO:localISODate(start),endISO:localISODate(end)}}
