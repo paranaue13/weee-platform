@@ -60,8 +60,6 @@ body[data-theme="dark"] .sortingKpiCard.k1{background:#173044}body[data-theme="d
    (weeeProcessTable/weeeShipTable μοιράζονται την ίδια διάταξη πλάτους στηλών) και εμφανίζεται μόνο
    όταν πατηθεί το κουμπί "Επεξεργασία HERMES" (προσθέτει .showHermes στο weeeProcessTable). Η
    επικεφαλίδα "Περιγραφή" είναι clickable -- εναλλαγή Επίσημη/HER ονομασία για όλο τον πίνακα. */
-.stockTable .hermesCol{display:none}
-.stockTable.showHermes .hermesCol{display:table-cell}
 .weeeDescHeader{cursor:pointer}
 .weeeDescHeader:hover{text-decoration:underline}
 /* Υλικά: drag-and-drop reclassification -- dragging a material column header onto another header
@@ -93,11 +91,11 @@ body[data-theme="dark"] .sortingKpiCard.k1{background:#173044}body[data-theme="d
 .prodSegment button.iconSeg svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body[data-theme="dark"] .periodPickerBtn:hover{background:#1a2733}
 /* Αποθήκη ΑΗΗΕ period picker (month/quarter/year quick-pick under the date bar). */
-.periodPickerDropdown{position:fixed;z-index:140;background:#fffdfb;border:1px solid #cfd9e2;border-radius:var(--r-md);box-shadow:0 12px 35px rgba(21,32,43,.18);padding:10px;min-width:260px}
-.periodPickerYears{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-.periodPickerYearBtn{border:1px solid #c9d2da;background:#f8fafb;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+.periodPickerDropdown{position:fixed;z-index:140;background:#fffdfb;border:1px solid #cfd9e2;border-radius:var(--r-md);box-shadow:0 12px 35px rgba(21,32,43,.18);padding:8px;width:190px}
+.periodPickerYears{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;margin-bottom:8px;max-height:112px;overflow-y:auto}
+.periodPickerYearBtn{border:1px solid #c9d2da;background:#f8fafb;border-radius:8px;padding:6px 8px;cursor:pointer;font-size:13px}
 .periodPickerYearBtn.active{background:#0b6fd3;color:#fff;border-color:#0b6fd3}
-.periodPickerGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.periodPickerGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:5px;max-height:112px;overflow-y:auto}
 .periodPickerGrid.hidden{display:none}
 .periodPickerGrid button{border:1px solid #c9d2da;background:#f8fafb;border-radius:8px;padding:7px 6px;cursor:pointer;font-size:13px}
 .periodPickerGrid button.active{background:#0b6fd3;color:#fff;border-color:#0b6fd3}
@@ -515,7 +513,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 </div>
 <input id="weeeDatePicker" type="date" class="hidden">
 <div class="periodPickerDropdown hidden" id="weeePeriodDropdown"><div class="periodPickerYears" id="weeePeriodYears"></div><div class="periodPickerGrid" id="weeePeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="weeePeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div><div id="weeeKpis" class="grid weeeKpisCompact"></div>
-<div class="toolbar" style="justify-content:space-between;margin:14px 0 6px"><h3 style="margin:0">Απόθεμα προς επεξεργασία</h3><button type="button" class="btn alt" id="weeeProcHermesToggle">Επεξεργασία HERMES</button></div>
+<h3 style="margin:14px 0 6px">Απόθεμα προς επεξεργασία</h3>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeProcessTable"><thead><tr><th>Κωδικός</th><th class="weeeDescHeader">Περιγραφή</th><th>Απόθεμα έναρξης</th><th>Παραλαβές μήνα</th><th>Προς επεξεργασία</th><th>Επεξεργασία</th><th class="hermesCol">Επεξεργασία HERMES</th><th>Απόθεμα προς επεξεργασία</th></tr></thead><tbody id="weeeProcessRows"></tbody></table></div>
 <h3 style="margin:18px 0 6px">Απόθεμα προς αποστολή</h3>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable"><thead><tr><th>Κωδικός</th><th class="weeeDescHeader">Περιγραφή</th><th>Απόθεμα έναρξης</th><th>Παραλαβές μήνα</th><th>Προς αποστολή</th><th>Αποστολές</th><th>Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div>
@@ -1802,9 +1800,11 @@ let kpiIcons={
   box:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
   send:'<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/>',
   truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
-  boxAlt:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+  boxAlt:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M3 11h18"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+  archive:'<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
+  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>'
 };
-let cards=[['Παραλαβές περιόδου',k.receipts_month,'k1','inbox'],['Προς επεξεργασία',k.classified_to_process,'k2','clock'],['Επεξεργασία',k.processed_month,'k3','activity'],['Απόθεμα προς επεξεργασία',k.stock_to_process,'k4','box'],['Προς αποστολή',k.classified_to_ship,'k1','send'],['Αποστολές',k.weee_shipments_month,'k2','truck'],['Απόθεμα προς αποστολή',k.stock_to_ship,'k4','boxAlt']];
+let cards=[['Απόθεμα έναρξης',k.opening_stock_period_total,'k4','archive'],['Παραλαβές περιόδου',k.receipts_month,'k1','inbox'],['Επεξεργασία',k.processed_month,'k3','activity'],['Επεξεργασία HERMES',k.processed_hermes_total,'k2','zap'],['Απόθεμα προς επεξεργασία',k.stock_to_process,'k4','box'],['Αποστολές',k.weee_shipments_month,'k2','truck'],['Απόθεμα προς αποστολή',k.stock_to_ship,'k1','boxAlt']];
 $('weeeKpis').innerHTML=cards.map(x=>`<div class="sortingKpiCard ${x[2]}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${kpiIcons[x[3]]}</svg></span><span class="sortingKpiText"><small>${x[0]}</small><b>${blankKg(x[1])}</b></span></div>`).join('');let by={};function acc(x,kind){let key=x.official_code||x.code||x.id;if(!by[key])by[key]={key,official_code:key,description:x.description||x.official_description||'',herDescription:x.her_description||'',opening:0,receipts:0,to_process:0,processed:0,processedHermes:0,stock_process:0,to_ship:0,shipped:0,stock_ship:0};let r=by[key],opening=Number(x.previous_stock||0),incoming=Number(x.classification_month||0),out=Number(x.outgoing_month||0),processed=Number(x.processed_month||0),processedHermes=Number(x.processed_month_hermes||0),cur=Number(x.current_stock||0);r.kind=kind;r.opening+=opening;r.receipts+=incoming;if(kind==='process'){r.to_process+=incoming;r.processed+=processed;r.processedHermes+=processedHermes;r.stock_process+=cur}else{r.to_ship+=incoming;r.shipped+=out;r.stock_ship+=cur}};(d.to_process||[]).forEach(x=>acc(x,'process'));(d.to_ship||[]).forEach(x=>acc(x,'ship'));let rows=Object.values(by);
 // Split into two dedicated tables instead of one wide table where half the columns are
 // always blank per row -- materials bound for processing/production never carry a ship
@@ -1817,7 +1817,6 @@ let processRows=rows.filter(x=>x.kind==='process'),shipRows=rows.filter(x=>x.kin
 const weeeDescCell=x=>`<td class="weeeDescCell" data-official="${esc(x.description)}" data-her="${esc(x.herDescription||'')}">${esc(weeeDescModeFor('weee')==='her'&&x.herDescription?x.herDescription:x.description)}</td>`;
 $('weeeProcessRows').innerHTML=processRows.map(x=>`<tr class="materialRow" data-cat="${esc(x.key)}" data-code="${esc(x.official_code)}" data-desc="${esc(x.description)}"><td><b>${esc(x.official_code)}</b></td>${weeeDescCell(x)}<td>${blankKg(x.opening)}</td><td>${blankKg(x.receipts)}</td><td>${blankKg(x.to_process)}</td><td>${blankKg(x.processed)}</td><td class="hermesCol">${blankKg(x.processedHermes)}</td><td>${blankKg(x.stock_process)}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν υπάρχουν υλικά προς παραγωγή.</td></tr>';
 $('weeeShipRows').innerHTML=shipRows.map(x=>`<tr class="materialRow" data-cat="${esc(x.key)}" data-code="${esc(x.official_code)}" data-desc="${esc(x.description)}"><td><b>${esc(x.official_code)}</b></td>${weeeDescCell(x)}<td>${blankKg(x.opening)}</td><td>${blankKg(x.receipts)}</td><td>${blankKg(x.to_ship)}</td><td>${blankKg(x.shipped)}</td><td>${blankKg(x.stock_ship)}</td></tr>`).join('')||'<tr><td colspan="7" class="muted">Δεν υπάρχουν υλικά προς αποστολή.</td></tr>';
-if($('weeeProcHermesToggle'))$('weeeProcHermesToggle').onclick=()=>$('weeeProcessTable').classList.toggle('showHermes');
 document.querySelectorAll('#weeeProcessTable .weeeDescHeader,#weeeShipTable .weeeDescHeader').forEach(th=>th.onclick=(e)=>{
  e.stopPropagation();
  document.querySelectorAll('.weeeDescMenu').forEach(m=>m.remove());
