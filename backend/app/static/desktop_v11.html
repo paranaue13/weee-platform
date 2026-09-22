@@ -379,6 +379,13 @@ body[data-theme="dark"] #receiptForm.receiptPopup .receiptPopupHeader{background
 .receiptCalendarWeek,.receiptCalendar{gap:clamp(2px,.35vw,5px)}
 .receiptCalendarDay{min-width:0;font-size:clamp(11px,.82vw,14px)}
 .receiptMainPane .tablewrap{width:100%;max-width:100%;overflow-x:auto!important}
+/* overflow-x:auto above forces overflow-y to also compute as auto (CSS can't have one axis visible
+   and the other not) -- so .receiptMainPane's tables (#receiptDailyTable, #sortingDailyTable) DO
+   become their own scroll container despite looking like simple in-flow tables, which breaks the
+   page-scroll-tuned top:58px sticky offset used elsewhere: with only 1-2 rows the "stuck" header ends
+   up pinned partway down, on top of the only row, hiding it entirely. top:0 is correct here (same
+   fix already used for every other locally-scrolling .tablewrap in this file). */
+#receiptDailyTable thead th,#sortingDailyTable thead th{top:0!important}
 .receiptMainPane table{width:100%;min-width:900px}
 @media(max-width:1280px){.receiptWorkspace{grid-template-columns:minmax(0,1fr) 235px}.receiptSideCard{padding:9px}.receiptCalendarDay{font-size:11px}.receiptFilters label{font-size:12px}.receiptFilters select{padding:8px 7px}}
 @media(max-width:1050px){.receiptWorkspace{grid-template-columns:minmax(0,1fr) 210px}.receiptCalendarPane{position:sticky;top:72px}.receiptSideCard h3{font-size:15px}.quickDateBtn{padding:6px 4px}}
