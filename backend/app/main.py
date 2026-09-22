@@ -734,7 +734,7 @@ def electrocycle_orders(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-
     status=db.scalar(select(ElectrocycleSyncStatus))
     return {"orders":[{"id":r.id,"order_no":r.order_no,"execution_route":r.execution_route,"delivery_route":r.delivery_route,
              "sender":r.sender,"pickup_point":r.pickup_point,"address":r.address,"city":r.city,"postal_code":r.postal_code,
-             "carrier":r.carrier,"collection_medium":r.collection_medium,"synced_at":r.synced_at.isoformat()} for r in rows],
+             "carrier":r.carrier,"collection_medium":r.collection_medium,"source_date":r.source_date,"synced_at":r.synced_at.isoformat()} for r in rows],
             "status":{"ok":status.ok,"message":status.message,
                       "last_attempt_at":status.last_attempt_at.isoformat() if status and status.last_attempt_at else None,
                       "last_success_at":status.last_success_at.isoformat() if status and status.last_success_at else None} if status else None}
