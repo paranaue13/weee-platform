@@ -720,15 +720,17 @@ def material_group_override_set(material_label:str,data:schemas.MaterialGroupOve
     db.commit(); return {"ok":True}
 
 @app.get("/integrations/electrocycle/orders")
-def electrocycle_orders(db:Session=Depends(get_db),user=Depends(require_permission("receipt.view"))):
-    today=datetime.now().date().isoformat()
+def electrocycle_orders(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'),db:Session=Depends(get_db),user=Depends(require_permission("receipt.view"))):
+    # date lets the Παραλαβές calendar look up a past day's synced orders (source_date is kept
+    # indefinitely -- only today's rows get replaced on each sync); defaults to today.
+    target_date=date or datetime.now().date().isoformat()
     # An order used to create a receipt (InboundLoad.order_number) disappears from the live feed --
     # re-appears if that receipt is later deleted (soft-deleted trips are excluded from the "used" set).
     used_order_nos={r for (r,) in db.execute(
         select(models.InboundLoad.order_number).join(models.InboundTrip, models.InboundLoad.trip_id==models.InboundTrip.id)
         .where(models.InboundTrip.deleted_at.is_(None), models.InboundLoad.order_number.is_not(None))
     ).all()}
-    rows=[r for r in db.scalars(select(ElectrocycleOrder).where(ElectrocycleOrder.source_date==today).order_by(ElectrocycleOrder.order_no)).all() if r.order_no not in used_order_nos]
+    rows=[r for r in db.scalars(select(ElectrocycleOrder).where(ElectrocycleOrder.source_date==target_date).order_by(ElectrocycleOrder.order_no)).all() if r.order_no not in used_order_nos]
     status=db.scalar(select(ElectrocycleSyncStatus))
     return {"orders":[{"id":r.id,"order_no":r.order_no,"execution_route":r.execution_route,"delivery_route":r.delivery_route,
              "sender":r.sender,"pickup_point":r.pickup_point,"address":r.address,"city":r.city,"postal_code":r.postal_code,

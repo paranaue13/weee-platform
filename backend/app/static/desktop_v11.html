@@ -512,7 +512,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 <section id="receipts" class="view hidden">
 <div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode active" id="receiptDaysMode">Ημέρες</button><button class="receiptMode" id="receiptMonthsMode">Μήνες</button></div><div class="receiptActionButtons"><button class="btn" id="newReceipt">+ Νέα Παραλαβή</button><button class="btn alt" id="receiptExportBtn">Εξαγωγή</button><button class="btn alt iconOnly" id="receiptMoreBtn" title="Περισσότερα"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div></div>
 <div class="receiptSearchRow"><input id="receiptSearch" placeholder="Αναζήτηση παραλαβής..." autocomplete="off"><button class="btn alt hidden" id="openReceiptReport">ΑΝΑΦΟΡΑ</button><button class="btn alt hidden" id="receiptArchiveBtn">ΑΡΧΕΙΟ ΔΙΑΓΡΑΜΜΕΝΩΝ</button></div>
-<div class="card" id="electrocycleCard"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — Ανακύκλωση Συσκευών Α.Ε.</h3><div style="display:flex;align-items:center;gap:10px"><span id="ecStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt" id="ecRefreshBtn" style="padding:4px 12px;font-size:12px">⟳ Ανανέωση</button><button type="button" class="btn alt iconOnly" id="ecMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="ecTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="ecOrderRows"></tbody></table></div></div>
+<div class="card" id="electrocycleCard"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — Ανακύκλωση Συσκευών Α.Ε.<span id="ecFeedDate" class="muted" style="font-size:12px;font-weight:400"></span></h3><div style="display:flex;align-items:center;gap:10px"><span id="ecStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt" id="ecRefreshBtn" style="padding:4px 12px;font-size:12px">⟳ Ανανέωση</button><button type="button" class="btn alt iconOnly" id="ecMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="ecTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="ecOrderRows"></tbody></table></div></div>
 <div class="receiptWorkspace"><div class="receiptMainPane"><div id="receiptSelectedHead" class="receiptSelectedHead"></div><div id="receiptStats" class="receiptCompactOverview"></div><div id="receiptMonthSummary" class="hidden"></div><div id="receiptDailyTable" class="tablewrap"><table><thead><tr><th>Αριθμός Εντολής</th><th>Προμηθευτής</th><th>Τύπος φορτίου</th><th>Μεταφορέας</th><th>Καθαρό Βάρος (kg)</th></tr></thead><tbody id="receiptRows"></tbody></table></div></div><aside class="receiptCalendarPane"><div class="card receiptSideCard"><h3>Επιλογή ημερομηνίας</h3><div class="receiptCalendarNav"><button class="calendarNavBtn" id="receiptCalPrev" aria-label="Προηγούμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><b id="receiptCalTitle"></b><button class="calendarNavBtn" id="receiptCalNext" aria-label="Επόμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div><div class="receiptCalendarWeek"><span>Δευ</span><span>Τρι</span><span>Τετ</span><span>Πεμ</span><span>Παρ</span><span>Σαβ</span><span>Κυρ</span></div><div id="receiptCalendar" class="receiptCalendar"></div></div><div class="card receiptSideCard receiptFilters"><h3>Φίλτρα</h3>
 <label>Συνεργάτης / Προμηθευτής<select id="receiptPartnerFilter"><option value="">Όλοι</option></select></label>
 <label>Τύπος φορτίου<select id="receiptTypeFilter"><option value="">Όλοι</option><option value="CONTAINER">Container</option><option value="CURTAIN_TRAILER">Καρότσα</option><option value="SMALL_POINTS">Μικρά σημεία</option></select></label>
@@ -648,7 +648,14 @@ let ecPollTimer=null,ecOrders=[];
 const EC_HIDDEN_SENDER=/ΠΡ00959/i;
 async function loadElectrocycle(){
  try{
-  let d=await api('/integrations/electrocycle/orders');
+  // Παραλαβές shows the live feed for whichever calendar day is selected there (receiptNav.day),
+  // not always "today" -- past source_date rows are kept indefinitely by the sync (see
+  // electrocycle_sync.py), so picking another day just re-queries that day's already-synced orders.
+  // Φορτώσεις always needs TODAY's ΠΡ00959 rows regardless of that selection, so it gets its own
+  // fetch only on the (rare) occasion the two days differ.
+  let todayIso=localISODate(new Date());
+  let targetDay=(typeof receiptNav!=='undefined'&&receiptNav&&receiptNav.day)?receiptNav.day:todayIso;
+  let d=await api('/integrations/electrocycle/orders?date='+encodeURIComponent(targetDay));
   let st=d.status,el=$('ecStatus');
   if(el){
    if(!st) el.textContent='Δεν έχει συγχρονιστεί ακόμα';
@@ -659,6 +666,7 @@ async function loadElectrocycle(){
   let all=d.orders||[];
   ecOrders=all.filter(o=>!EC_HIDDEN_SENDER.test(o.sender||''));
   const ecRow=(o,i)=>`<tr class="ecRow" data-i="${i}"><td>${esc(o.order_no)}</td><td>${esc(o.sender||'—')}</td><td>${esc(o.pickup_point||'—')}</td><td>${esc(o.city||'—')}</td><td>${esc(o.carrier||'—')}</td><td>${esc(o.collection_medium||'—')}</td></tr>`;
+  if($('ecFeedDate'))$('ecFeedDate').textContent=targetDay===todayIso?'':(' · '+new Date(targetDay+'T12:00:00').toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'}));
   if($('ecOrderRows')){
    // Grouped by the same Τύπος φορτίου logic (and left-to-right order) as the Container/Καρότσα/Μικρά
    // Σημεία buttons in Νέα Παραλαβή, with a blank spacer row between groups so the split reads visually.
@@ -666,15 +674,20 @@ async function loadElectrocycle(){
    let byType={CONTAINER:[],CURTAIN_TRAILER:[],SMALL_POINTS:[]};
    ecOrders.forEach((o,i)=>byType[detectReceiptTypeFromOrder(o)].push(i));
    let groupsHtml=ECT_ORDER.map(t=>byType[t].map(i=>ecRow(ecOrders[i],i)).join('')).filter(Boolean);
-   $('ecOrderRows').innerHTML=groupsHtml.join('<tr class="ecTypeGap"><td colspan="6"></td></tr>')||'<tr><td colspan="6" class="muted">Καμία εντολή σήμερα.</td></tr>';
+   let emptyLabel=targetDay===todayIso?'Καμία εντολή σήμερα.':'Καμία εντολή αυτή την ημέρα.';
+   $('ecOrderRows').innerHTML=groupsHtml.join('<tr class="ecTypeGap"><td colspan="6"></td></tr>')||`<tr><td colspan="6" class="muted">${emptyLabel}</td></tr>`;
    $('ecOrderRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>openEcOrderMenu(ecOrders[Number(tr.dataset.i)],e));
   }
-  // TAB Φορτώσεις: the inverse filter -- only ΠΡ00959, the sender the Παραλαβές feed above hides.
+  // TAB Φορτώσεις: the inverse filter -- only ΠΡ00959, the sender the Παραλαβές feed above hides --
+  // and always for today, independent of whatever day is selected in the Παραλαβές calendar.
   if($('loadingEcRows')){
-   let onlySender=all.filter(o=>EC_HIDDEN_SENDER.test(o.sender||''));
+   let todayPayload=(targetDay===todayIso)?d:await api('/integrations/electrocycle/orders?date='+todayIso);
+   let allToday=todayPayload.orders||[];
+   let todayStatus=(targetDay===todayIso)?st:todayPayload.status;
+   let onlySender=allToday.filter(o=>EC_HIDDEN_SENDER.test(o.sender||''));
    $('loadingEcRows').innerHTML=onlySender.map(ecRow).join('')||'<tr><td colspan="6" class="muted">Καμία εντολή σήμερα.</td></tr>';
    $('loadingEcRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>openEcOrderMenu(onlySender[Number(tr.dataset.i)],e));
-   if($('loadingEcStatus'))$('loadingEcStatus').textContent=st&&st.last_success_at?'Ενημερώθηκε '+new Date(st.last_success_at).toLocaleString('el-GR'):'';
+   if($('loadingEcStatus'))$('loadingEcStatus').textContent=todayStatus&&todayStatus.last_success_at?'Ενημερώθηκε '+new Date(todayStatus.last_success_at).toLocaleString('el-GR'):'';
   }
  }catch(e){console.error('electrocycle load failed',e)}
 }
@@ -1724,6 +1737,7 @@ async function loadReceiptsV2(){let seq=++receiptLoadSeq;
     if(seq!==receiptLoadSeq)return;
     receiptRowsAll=Array.isArray(all)?all:[];
     ensureReceiptSelection(receiptRowsAll);
+    if(typeof loadElectrocycle==='function')loadElectrocycle();
     renderReceiptFilterOptions(receiptRowsAll);
     let rows=selectedReceiptRows(receiptRowsAll);
     renderSelectedReceiptHead(rows);
