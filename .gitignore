@@ -5,6 +5,9 @@ backend/.venv/
 backend/.pytest_cache/
 backend/.env
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Δεδομένα χρηστών / uploads (όχι κώδικας, μπορεί να είναι μεγάλα ή ευαίσθητα)
 backend/uploads/
