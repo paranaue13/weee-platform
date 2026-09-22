@@ -1151,7 +1151,7 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
           'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat()})
     photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='sorting_session',FileAttachment.entity_id==ses.id).order_by(FileAttachment.created_at.desc())).all() if ses else []
     audits=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type.in_(['sorting_session','sorting_entry'])).order_by(models.AuditEvent.created_at.desc()).limit(100)).all()
-    return {'load_id':load.id,'status':(ses.status if ses else load.status),'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
+    return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
       'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''), 'order_number':load.order_number,'net_weight':float(load.net_weight or 0),
       'sorting_weight':sum((r['approved_weight'] if r['approved_weight'] is not None else r['raw_weight']) for r in rows),'entries':rows,
       'dpp_number':load.dpp_number,'foreign_materials':(ses.foreign_materials if ses else None),'foreign_weight':(float(ses.foreign_weight) if ses and ses.foreign_weight is not None else 0),
