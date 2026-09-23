@@ -232,12 +232,19 @@ th{background:#dceef7}
 .sortMedCell{display:flex;gap:6px;align-items:center}
 .sortRowDelete{border:0;background:transparent;color:#a53629;cursor:pointer;font-size:16px;line-height:1;padding:4px 6px;border-radius:6px;flex:none}
 .sortRowDelete:hover{background:#fbe6e3}
-.medPickMenu{position:fixed;z-index:150;background:#fff;border:1px solid #cfd9e2;border-radius:12px;box-shadow:0 12px 35px rgba(21,32,43,.18);max-height:320px;overflow:auto;padding:5px;min-width:260px}
+.medPickMenu{position:fixed;z-index:150;background:#fff;border:1px solid #cfd9e2;border-radius:12px;box-shadow:0 12px 35px rgba(21,32,43,.18);max-height:360px;overflow:hidden;padding:0;min-width:460px}
+.medPickTwoPane{display:flex;height:100%}
+.medPickCol{flex:1 1 50%;min-width:0;display:flex;flex-direction:column;padding:6px}
+.medPickCol+.medPickCol{border-left:1px solid #e5eaf0}
+.medPickSearch{border:1px solid #c9d2da;border-radius:8px;padding:7px 9px;font-size:12.5px;margin:2px 2px 6px;width:calc(100% - 4px)}
+.medPickSearch:disabled{background:#f4f6f8;color:#99a3ac}
+.medPickList{overflow:auto;max-height:310px}
 .medPickItem{display:flex;justify-content:space-between;gap:14px;padding:9px 10px;border-radius:8px;cursor:pointer}
 .medPickItem:hover{background:#edf4f8}
+.medPickItem.active,.medPickTypeRow.active{background:#dceeff}
 .medPickItem .medPickType{color:#334b5b}
 .medPickItem .medPickCode{font-weight:700;color:#17202a}
-.medPickBack{font-weight:700;color:#0b6fd3;border-bottom:1px solid #edf0f2;border-radius:0;margin-bottom:3px}
+.medPickNoneRow{font-weight:700;color:#0b6fd3;border-bottom:1px solid #edf0f2;border-radius:0;margin-bottom:3px}
 .medPickCreate{color:#0b6fd3;font-weight:700;border-bottom:1px solid #edf0f2;border-radius:0;margin-bottom:3px}
 .medPickCreateForm{padding:8px 10px}
 .medPickCreateForm label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:#405262;margin-bottom:10px}
@@ -1820,12 +1827,12 @@ async function openSortingDetail(loadId,sourceRow=null){
     let med=entry?media.find(m=>m.id===entry.collection_medium_id):null;
     let w=entry!=null?Math.round(Number(entry.approved_weight!=null?entry.approved_weight:entry.raw_weight||0)):'';
     let pcs=entry?.piece_count??'';
-    return `<tr data-avg="${c.average_weight??''}" data-cat="${c.id}" data-entry="${entry?.id||''}" class="${entry?'hasEntry':''}"><td><b>${esc(c.official_code)}</b></td><td>${esc(desc||'')}</td><td><input type="number" step="1" min="0" class="sortRowWeight" value="${w}"></td><td><input type="number" step="1" min="0" class="sortRowPieces" value="${pcs}"></td><td><div class="sortMedCell"><button type="button" class="sortMedPick" data-med="${entry?entry.collection_medium_id||'':''}">${medLabel(med)}</button>${entry?'<button type="button" class="sortRowDelete" title="Διαγραφή εγγραφής">✕</button>':''}</div></td></tr>`;
+    return `<tr data-avg="${c.average_weight??''}" data-cat="${c.id}" data-entry="${entry?.id||''}" class="${entry?'hasEntry':''}"><td><b>${esc(c.official_code)}</b></td><td>${esc(desc||'')}</td><td class="muted">${c.average_weight!=null?esc(Number(c.average_weight).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':'—'}</td><td><input type="number" step="1" min="0" class="sortRowWeight" value="${w}"></td><td><input type="number" step="1" min="0" class="sortRowPieces" value="${pcs}"></td><td><div class="sortMedCell"><button type="button" class="sortMedPick" data-med="${entry?entry.collection_medium_id||'':''}">${medLabel(med)}</button>${entry?'<button type="button" class="sortRowDelete" title="Διαγραφή εγγραφής">✕</button>':''}</div></td></tr>`;
   }).join('');
   sd.innerHTML=`<div class="sortingPopupHeader" id="sortingPopupHandle"><div><h2 style="margin-bottom:9px">Φόρμα Ταξινόμησης</h2><h3 style="margin-top:0">Εντολή ${esc(d.order_number||d.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(d.dpp_number||'—')}</span></h3><div class="muted" style="margin-top:4px">${new Date(d.receipt_date).toLocaleDateString('el-GR')} · ${esc(d.carrier||'')} · ${esc(d.supplier||'')}</div></div><div style="position:relative;display:flex;gap:7px"><button class="btn alt" id="exportSortDetail">Εξαγωγή ▾</button><div class="exportChoices" id="sortExportChoices"><button class="btn alt" data-format="xlsx"><span class="fileIcon excelIcon">X</span> Excel</button><button class="btn alt" data-format="pdf"><span class="fileIcon pdfIcon">PDF</span> PDF</button></div><button class="btn review" id="sortMarkReview" ${canMarkReview?'':'disabled'} title="${canMarkReview?'Χαρακτηρισμός ως προς έλεγχο':'Διαθέσιμο μόνο όσο η ταξινόμηση είναι σε εξέλιξη'}">Προς Έλεγχο</button><button class="btn ok" id="sortCompleteBtn" ${canCompleteSort?'':'disabled'} title="${canCompleteSort?'Ολοκλήρωση ταξινόμησης':'Διαθέσιμο μόνο όταν η ταξινόμηση είναι προς έλεγχο'}">Ολοκλήρωση</button><button class="btn alt" id="editReceiptFromSorting">Επεξεργασία Παραλαβής</button><button class="btn danger" id="deleteReceiptFromSorting">Διαγραφή Παραλαβής</button><button type="button" class="winCtl" data-win="min" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" data-win="max" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="closeSortDetail" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div>
   <div class="grid"><div class="notice"><b>Καθαρό βάρος παραλαβής</b><br>${kg(d.net_weight)}</div><div class="notice"><b>Σύνολο ταξινόμησης</b><br>${kg(d.sorting_weight)}</div><div class="notice ${Math.abs(diff)<.001?'stockPos':'stockNeg'}"><b>Διαφορά</b><br>${kg(diff)}</div><div class="notice"><b>Κατάσταση</b><br>${statusEl(d.status)}</div></div>
   <div class="card" style="background:#fbf8f2"><b>Στοιχεία ελέγχου ταξινόμησης</b><div class="sortingMetaGrid"><label>Καθαρό βάρος ξένων υλικών (kg)<input id="sortForeignWeight" type="number" step="1" value="${Math.round(Number(d.foreign_weight||0))}"></label><label>Καθαρό βάρος αποβλήτων ειδικής διαχείρισης (kg)<input id="sortSpecialWeight" type="number" step="1" value="${Math.round(Number(d.special_waste_weight||0))}"></label></div><div class="toolbar"><label class="inlineCheck"><input type="checkbox" id="sortCheckSpecial" ${d.check_special?'checked':''}> Ειδικής διαχείρισης</label><label class="inlineCheck"><input type="checkbox" id="sortCheckKday" ${d.check_kday?'checked':''}> ΚΔΑΥ</label><label class="inlineCheck"><input type="checkbox" id="sortCheckNonInteger" ${d.check_non_integer?'checked':''}> Μη ακέραιο</label><label class="inlineCheck"><input type="checkbox" id="sortPure" ${d.load_pure?'checked':''}> Αμιγές</label><button class="btn alt" id="saveSortMeta">Αποθήκευση στοιχείων</button><span id="sortMetaMsg"></span></div></div>
-  ${editable?`<div class="card" style="background:#f6fbf9"><b>Καταχώρηση ανά κατηγορία ΑΗΗΕ</b><div class="sortingCatWrap" style="margin-top:10px;max-height:360px"><table class="sortingCatTable"><thead><tr><th>Κωδικός</th><th>Περιγραφή</th><th>Βάρος (kg)</th><th>Τεμάχια</th><th>Μέσο συλλογής</th></tr></thead><tbody>${allCatRows}</tbody></table></div><div id="sortEntryMsg"></div></div>`:''}`;
+  ${editable?`<div class="card" style="background:#f6fbf9"><b>Καταχώρηση ανά κατηγορία ΑΗΗΕ</b><div class="sortingCatWrap" style="margin-top:10px;max-height:360px"><table class="sortingCatTable"><thead><tr><th>Κωδικός</th><th>Περιγραφή</th><th>Μέσο βάρος</th><th>Βάρος (kg)</th><th>Τεμάχια</th><th>Μέσο συλλογής</th></tr></thead><tbody>${allCatRows}</tbody></table></div><div id="sortEntryMsg"></div></div>`:''}`;
   const sortWrap=sd.querySelector(':scope > .tablewrap'); if(sortWrap)sortWrap.scrollTop=0;
   makeDraggable(sd,$('sortingPopupHandle'));sd.querySelector('[data-win="max"]')?.addEventListener('click',()=>{sd.classList.remove('popupMin');sd.classList.toggle('popupMax')});sd.querySelector('[data-win="min"]')?.addEventListener('click',()=>{sd.classList.remove('popupMax');sd.classList.toggle('popupMin')});
   $('closeSortDetail').onclick=()=>sd.classList.add('hidden');$('editReceiptFromSorting').onclick=async()=>{sd.classList.add('hidden');await openReceiptPopup(d.receipt_id)};$('deleteReceiptFromSorting').onclick=async()=>{if(!confirm('Η παραλαβή θα μεταφερθεί στο αρχείο και δεν θα υπολογίζεται πουθενά. Συνέχεια;'))return;await api('/receipts/'+d.receipt_id,{method:'DELETE'});sd.classList.add('hidden');await loadSortingReview();await loadReceiptsV2()};
@@ -1837,7 +1844,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   if(editable){
     document.querySelectorAll('.sortRowPieces').forEach(inp=>inp.oninput=()=>{
       let tr=inp.closest('tr'),avg=tr.dataset.avg;
-      if(avg&&inp.value){let w=Math.round(Number(inp.value)*Number(avg));tr.querySelector('.sortRowWeight').value=w}
+      if(avg&&inp.value){let w=Math.ceil(Number(inp.value)*Number(avg));tr.querySelector('.sortRowWeight').value=w}
     });
     async function submitCatRow(tr,medId){
       let catId=tr.dataset.cat;
@@ -1872,45 +1879,64 @@ async function openSortingDetail(loadId,sourceRow=null){
         menu.style.left=left+'px';
         menu.style.top=Math.min(r.top,window.innerHeight-menu.offsetHeight-8)+'px';
       }
-      function renderTypes(){
-        let typeRows=medTypes.map(t=>{let count=media.filter(m=>m.type_id===t.id).length;return `<div class="medPickItem medPickTypeRow" data-type="${t.id}"><span class="medPickType">${esc(t.name_el)}</span><span class="medPickCode">${count?count+' καταχωρημένα':'—'}</span></div>`}).join('');
-        menu.innerHTML=`<div class="medPickItem" data-none="1"><span class="medPickType">${esc(NO_MEDIUM_LABEL)}</span></div>`+typeRows;
+      let selectedTypeId=null;
+      menu.innerHTML=`<div class="medPickTwoPane"><div class="medPickCol"><input type="text" class="medPickSearch" id="medPickTypeSearch" placeholder="Αναζήτηση είδους…" autocomplete="off"><div class="medPickList" id="medPickTypeList"></div></div><div class="medPickCol"><input type="text" class="medPickSearch" id="medPickInstSearch" placeholder="Αναζήτηση αριθμού…" autocomplete="off" disabled><div class="medPickList" id="medPickInstList"></div></div></div>`;
+      function renderLeft(){
+        let q=(menu.querySelector('#medPickTypeSearch').value||'').toLowerCase().trim();
+        let types=medTypes.filter(t=>!q||t.name_el.toLowerCase().includes(q));
+        let listEl=menu.querySelector('#medPickTypeList');
+        listEl.innerHTML=`<div class="medPickItem medPickNoneRow" data-none="1"><span class="medPickType">${esc(NO_MEDIUM_LABEL)}</span></div>`
+          +types.map(t=>`<div class="medPickItem medPickTypeRow${t.id===selectedTypeId?' active':''}" data-type="${t.id}"><span class="medPickType">${esc(t.name_el)}</span></div>`).join('');
+        listEl.querySelector('[data-none]').onclick=(ev)=>{ev.stopPropagation();menu.remove();submitCatRow(tr,null)};
+        listEl.querySelectorAll('.medPickTypeRow').forEach(row=>row.onclick=(ev)=>{ev.stopPropagation();selectedTypeId=row.dataset.type;renderLeft();renderRight()});
         place();
-        menu.querySelector('[data-none]').onclick=(ev)=>{ev.stopPropagation();menu.remove();submitCatRow(tr,null)};
-        menu.querySelectorAll('.medPickTypeRow').forEach(row=>row.onclick=(ev)=>{ev.stopPropagation();renderInstances(row.dataset.type)});
       }
-      function renderInstances(typeId){
-        let type=medTypes.find(t=>t.id===typeId);
-        let instances=media.filter(m=>m.type_id===typeId);
-        menu.innerHTML=`<div class="medPickItem medPickBack" data-back="1">‹ Πίσω</div>`
-          +`<div class="medPickItem medPickCreate" data-create="1">+ Δημιουργία νέου</div>`
+      function renderRight(){
+        let listEl=menu.querySelector('#medPickInstList');
+        let searchInp=menu.querySelector('#medPickInstSearch');
+        if(!selectedTypeId){
+          searchInp.disabled=true;
+          listEl.innerHTML='<div class="medPickItem muted" style="cursor:default">Επίλεξε πρώτα είδος μέσου</div>';
+          place();
+          return;
+        }
+        searchInp.disabled=false;
+        let q=(searchInp.value||'').toLowerCase().trim();
+        let instances=media.filter(m=>m.type_id===selectedTypeId&&(!q||m.code.toLowerCase().includes(q)));
+        listEl.innerHTML=`<div class="medPickItem medPickCreate" data-create="1">+ Δημιουργία νέου</div>`
           +(instances.map(m=>`<div class="medPickItem" data-id="${m.id}"><span class="medPickType">${esc(m.code)}</span><span class="medPickCode">${m.tare_weight!=null?Math.round(Number(m.tare_weight))+' kg':''}</span></div>`).join('')
             ||'<div class="medPickItem muted" style="cursor:default">Δεν υπάρχουν καταχωρημένα ακόμα</div>');
+        listEl.querySelector('[data-create]').onclick=(ev)=>{ev.stopPropagation();renderCreate()};
+        listEl.querySelectorAll('.medPickItem[data-id]').forEach(row=>row.onclick=(ev)=>{ev.stopPropagation();menu.remove();submitCatRow(tr,row.dataset.id)});
         place();
-        menu.querySelector('[data-back]').onclick=(ev)=>{ev.stopPropagation();renderTypes()};
-        menu.querySelector('[data-create]').onclick=(ev)=>{ev.stopPropagation();renderCreate(typeId)};
-        menu.querySelectorAll('.medPickItem[data-id]').forEach(row=>row.onclick=(ev)=>{ev.stopPropagation();menu.remove();submitCatRow(tr,row.dataset.id)});
       }
-      function renderCreate(typeId){
-        let type=medTypes.find(t=>t.id===typeId);
-        menu.innerHTML=`<div class="medPickItem medPickBack" data-back="1">‹ Πίσω</div><div class="medPickCreateForm"><label>Όνομα/κωδικός (${esc(type?.name_el||'')})<input type="text" id="medPickNewCode" placeholder="π.χ. ΠΑΛΕΤΑ-01"></label><button type="button" class="btn" id="medPickNewSave">Δημιουργία</button><div id="medPickNewMsg" class="error"></div></div>`;
+      function renderCreate(){
+        let type=medTypes.find(t=>t.id===selectedTypeId);
+        let listEl=menu.querySelector('#medPickInstList');
+        menu.querySelector('#medPickInstSearch').disabled=true;
+        listEl.innerHTML=`<div class="medPickCreateForm"><label>Όνομα/κωδικός (${esc(type?.name_el||'')})<input type="text" id="medPickNewCode" placeholder="π.χ. ΠΑΛΕΤΑ-01"></label><div style="display:flex;gap:8px"><button type="button" class="btn" id="medPickNewSave">Δημιουργία</button><button type="button" class="btn alt" id="medPickNewCancel">Άκυρο</button></div><div id="medPickNewMsg" class="error"></div></div>`;
         place();
-        menu.querySelector('[data-back]').onclick=(ev)=>{ev.stopPropagation();renderInstances(typeId)};
-        let inp=menu.querySelector('#medPickNewCode');
+        let inp=listEl.querySelector('#medPickNewCode');
         inp.focus();
-        menu.querySelector('#medPickNewSave').onclick=async(ev)=>{
+        listEl.querySelector('#medPickNewCancel').onclick=(ev)=>{ev.stopPropagation();renderRight()};
+        listEl.querySelector('#medPickNewSave').onclick=async(ev)=>{
           ev.stopPropagation();
           let code=inp.value.trim();
-          if(!code){menu.querySelector('#medPickNewMsg').textContent='Δώσε ένα όνομα για αναγνώριση';return}
+          if(!code){listEl.querySelector('#medPickNewMsg').textContent='Δώσε ένα όνομα για αναγνώριση';return}
           try{
-            let created=await api('/master/media',{method:'POST',body:JSON.stringify({type_id:typeId,code,tare_weight:null})});
+            let created=await api('/master/media',{method:'POST',body:JSON.stringify({type_id:selectedTypeId,code,tare_weight:null})});
             media.push(created);
             menu.remove();
             submitCatRow(tr,created.id);
-          }catch(err){menu.querySelector('#medPickNewMsg').textContent=err.message}
+          }catch(err){listEl.querySelector('#medPickNewMsg').textContent=err.message}
         };
       }
-      renderTypes();
+      menu.querySelector('#medPickTypeSearch').oninput=()=>renderLeft();
+      menu.querySelector('#medPickInstSearch').oninput=()=>renderRight();
+      renderLeft();
+      renderRight();
+      place();
+      menu.querySelector('#medPickTypeSearch').focus();
       setTimeout(()=>document.addEventListener('mousedown',function closeOnce(ev){if(!menu.contains(ev.target)){menu.remove();document.removeEventListener('mousedown',closeOnce)}}),0);
     });
     document.querySelectorAll('.sortRowDelete').forEach(btn=>btn.onclick=async(e)=>{
