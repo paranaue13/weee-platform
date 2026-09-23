@@ -248,6 +248,7 @@ class ReceiptCreate(BaseModel):
     driver_name: str|None = None
     vehicle_registration: str|None = None
     notes: str|None = None
+    aggregate_weighbridge_number: str|None = None
     loads: list[ReceiptLoadCreate]
 
 class ReceiptLoadOut(BaseModel):
@@ -281,6 +282,7 @@ class ReceiptOut(BaseModel):
     vehicle_registration: str|None
     status: str
     notes: str|None
+    aggregate_weighbridge_number: str|None
     loads: list[ReceiptLoadOut]
 
 class ReceiptStatusOut(BaseModel):

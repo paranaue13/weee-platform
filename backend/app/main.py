@@ -58,6 +58,7 @@ async def lifespan(app: FastAPI):
         if "inbound_trips" in tables:
             trip_cols={c["name"] for c in inspect(engine).get_columns("inbound_trips")}
             if "deleted_at" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN deleted_at DATETIME"))
+            if "aggregate_weighbridge_number" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN aggregate_weighbridge_number VARCHAR(100)"))
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
@@ -819,6 +820,16 @@ def _compute_net(receipt_type: str, load: schemas.ReceiptLoadCreate, outgoing: C
         return load.gross_weight - load.tare_weight - load.incoming_container_tare + out_tare
     return load.gross_weight - load.tare_weight
 
+def _compute_aggregate_weighbridge(data: schemas.ReceiptCreate) -> str|None:
+    # Container / Καρότσα / μοναδικό μικρό σημείο: το συγκεντρωτικό ζυγολόγιο ΕΙΝΑΙ ο αριθμός
+    # ζυγολογίου του ίδιου του φορτίου -- δεν χρειάζεται ξεχωριστή χειροκίνητη καταχώρηση, κρίσιμο
+    # για τη μελλοντική διασύνδεση με το ERP (Galaxy). Μόνο σε πολλαπλά μικρά σημεία (ένα φορτηγό,
+    # πολλές εντολές) το συγκεντρωτικό παραμένει χειροκίνητο, γιατί μπορεί να διαφέρει από το
+    # ζυγολόγιο κάθε επιμέρους εντολής.
+    if len(data.loads) == 1:
+        return data.loads[0].weighbridge_number
+    return data.aggregate_weighbridge_number
+
 
 def _receipt_out(db: Session, trip: InboundTrip):
     loads = db.scalars(select(models.InboundLoad).where(models.InboundLoad.trip_id==trip.id).order_by(InboundLoad.load_sequence)).all()
@@ -826,6 +837,7 @@ def _receipt_out(db: Session, trip: InboundTrip):
         id=trip.id, receipt_number=trip.receipt_number, receipt_type=trip.receipt_type,
         receipt_date=trip.receipt_date, carrier_id=trip.carrier_id, driver_name=trip.driver_name,
         vehicle_registration=trip.vehicle_registration, status=trip.status, notes=trip.notes,
+        aggregate_weighbridge_number=trip.aggregate_weighbridge_number,
         loads=[schemas.ReceiptLoadOut.model_validate(x) for x in loads]
     )
 
@@ -961,7 +973,8 @@ def create_receipt(data:schemas.ReceiptCreate, db:Session=Depends(get_db), user:
         raise HTTPException(422,"Container και κουρτίνα έχουν ένα φορτίο ανά παραλαβή")
     trip=InboundTrip(receipt_number=_receipt_number(db,data.receipt_date),receipt_type=data.receipt_type,
         receipt_date=data.receipt_date,carrier_id=data.carrier_id,driver_name=data.driver_name,
-        vehicle_registration=data.vehicle_registration,status="DRAFT",created_by=user.id,notes=data.notes)
+        vehicle_registration=data.vehicle_registration,status="DRAFT",created_by=user.id,notes=data.notes,
+        aggregate_weighbridge_number=_compute_aggregate_weighbridge(data))
     db.add(trip); db.flush()
     auto_dpps=_next_dpp_numbers(db,data.receipt_date.year,len(data.loads))
     for i,ld in enumerate(data.loads,1):
@@ -975,7 +988,8 @@ def create_receipt(data:schemas.ReceiptCreate, db:Session=Depends(get_db), user:
         obj=InboundLoad(trip_id=trip.id,load_sequence=i,supplier_id=ld.supplier_id,order_number=ld.order_number,
             incoming_container_number=ld.incoming_container_number,incoming_container_tare=ld.incoming_container_tare,
             outgoing_container_id=ld.outgoing_container_id,outgoing_container_tare=(outgoing.tare_weight if outgoing else ld.outgoing_container_tare),gross_weight=ld.gross_weight,tare_weight=ld.tare_weight,
-            net_weight=net,status="DRAFT",notes=ld.notes,dpp_number=(ld.dpp_number or auto_dpps[i-1]))
+            net_weight=net,status="DRAFT",notes=ld.notes,dpp_number=(ld.dpp_number or auto_dpps[i-1]),
+            weighbridge_number=ld.weighbridge_number,dispatch_note_number=ld.dispatch_note_number,seal_number=ld.seal_number)
         db.add(obj)
     db.flush()
     created_loads=db.scalars(select(models.InboundLoad).where(models.InboundLoad.trip_id==trip.id)).all()
@@ -1003,6 +1017,7 @@ def update_receipt(receipt_id:str, data:schemas.ReceiptCreate, db:Session=Depend
     if data.receipt_type != "SMALL_POINTS" and len(data.loads)!=1: raise HTTPException(422,"Container και κουρτίνα έχουν ένα φορτίο ανά παραλαβή")
     old={"receipt_type":trip.receipt_type,"receipt_date":trip.receipt_date.isoformat(),"carrier_id":trip.carrier_id,"driver_name":trip.driver_name,"vehicle_registration":trip.vehicle_registration,"notes":trip.notes}
     trip.receipt_type=data.receipt_type; trip.receipt_date=data.receipt_date; trip.carrier_id=data.carrier_id; trip.driver_name=data.driver_name; trip.vehicle_registration=data.vehicle_registration; trip.notes=data.notes
+    trip.aggregate_weighbridge_number=_compute_aggregate_weighbridge(data)
     existing=db.scalars(select(InboundLoad).where(InboundLoad.trip_id==receipt_id).order_by(InboundLoad.load_sequence)).all()
     old_dpp_by_order={x.order_number:x.dpp_number for x in existing if x.order_number and x.dpp_number}
     old_dpp_by_seq={x.load_sequence:x.dpp_number for x in existing if x.dpp_number}
@@ -1022,7 +1037,7 @@ def update_receipt(receipt_id:str, data:schemas.ReceiptCreate, db:Session=Depend
         keep_dpp=ld.dpp_number or old_dpp_by_order.get(ld.order_number) or old_dpp_by_seq.get(i)
         if not keep_dpp:
             keep_dpp=auto_pool[auto_i]; auto_i+=1
-        db.add(InboundLoad(trip_id=trip.id,load_sequence=i,supplier_id=ld.supplier_id,order_number=ld.order_number,incoming_container_number=ld.incoming_container_number,incoming_container_tare=ld.incoming_container_tare,outgoing_container_id=ld.outgoing_container_id,outgoing_container_tare=(outgoing.tare_weight if outgoing else ld.outgoing_container_tare),gross_weight=ld.gross_weight,tare_weight=ld.tare_weight,net_weight=net,status="READY_FOR_SORTING" if trip.status=="READY_FOR_SORTING" else "DRAFT",ready_for_sorting_at=datetime.now(timezone.utc) if trip.status=="READY_FOR_SORTING" else None,notes=ld.notes,dpp_number=keep_dpp))
+        db.add(InboundLoad(trip_id=trip.id,load_sequence=i,supplier_id=ld.supplier_id,order_number=ld.order_number,incoming_container_number=ld.incoming_container_number,incoming_container_tare=ld.incoming_container_tare,outgoing_container_id=ld.outgoing_container_id,outgoing_container_tare=(outgoing.tare_weight if outgoing else ld.outgoing_container_tare),gross_weight=ld.gross_weight,tare_weight=ld.tare_weight,net_weight=net,status="READY_FOR_SORTING" if trip.status=="READY_FOR_SORTING" else "DRAFT",ready_for_sorting_at=datetime.now(timezone.utc) if trip.status=="READY_FOR_SORTING" else None,notes=ld.notes,dpp_number=keep_dpp,weighbridge_number=ld.weighbridge_number,dispatch_note_number=ld.dispatch_note_number,seal_number=ld.seal_number))
     write_audit(db,user,"receipt",trip.id,"UPDATE",old=old,new={"type":data.receipt_type,"loads":len(data.loads)}); _sync_receipt_visitor(db,trip,user); db.commit(); db.refresh(trip); return _receipt_out(db,trip)
 
 

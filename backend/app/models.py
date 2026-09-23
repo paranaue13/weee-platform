@@ -355,6 +355,7 @@ class InboundTrip(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(40), default="DRAFT", index=True)
     created_by: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    aggregate_weighbridge_number: Mapped[str|None] = mapped_column(String(100), nullable=True)
     deleted_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
 
 class InboundLoad(Base, TimestampMixin):
