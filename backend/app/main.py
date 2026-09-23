@@ -740,8 +740,9 @@ def electrocycle_orders(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-
                       "last_success_at":status.last_success_at.isoformat() if status and status.last_success_at else None} if status else None}
 
 @app.post("/integrations/electrocycle/sync")
-async def electrocycle_manual_sync(db:Session=Depends(get_db),user=Depends(require_permission("receipt.edit"))):
-    result=await asyncio.to_thread(sync_electrocycle_orders,db)
+async def electrocycle_manual_sync(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'),db:Session=Depends(get_db),user=Depends(require_permission("receipt.edit"))):
+    target=datetime.fromisoformat(date).date() if date else None
+    result=await asyncio.to_thread(sync_electrocycle_orders,db,target)
     return result
 
 # ---- Build 0.2: Windows Receipts ----

@@ -51,10 +51,10 @@ class ElectrocycleAuthError(RuntimeError):
     more (same interactive flow used to set it up) before syncing can resume."""
 
 
-def _fetch_today_csv() -> bytes:
+def _fetch_orders_csv(target_date: date) -> bytes:
     from playwright.sync_api import sync_playwright
 
-    today = date.today().strftime("%d/%m/%Y")
+    target_str = target_date.strftime("%d/%m/%Y")
     profile_dir = settings.electrocycle_profile_dir
     Path(profile_dir).mkdir(parents=True, exist_ok=True)
 
@@ -80,8 +80,8 @@ def _fetch_today_csv() -> bytes:
             pg.select_option("#MainContent_DDCompanies", settings.electrocycle_company_value)
             pg.wait_for_timeout(1200)
             pg.select_option("#MainContent_DDCompaniesDelv", settings.electrocycle_delivery_point_value)
-            pg.fill("#MainContent_TxtParadDtmvFrom", today)
-            pg.fill("#MainContent_TxtParadDtmvTo", today)
+            pg.fill("#MainContent_TxtParadDtmvFrom", target_str)
+            pg.fill("#MainContent_TxtParadDtmvTo", target_str)
             pg.click("text=Αναζήτηση")
             pg.wait_for_timeout(5000)
 
@@ -137,8 +137,10 @@ def _parse_csv(raw: bytes) -> list[dict]:
     return out
 
 
-def sync_electrocycle_orders(db: Session) -> dict:
-    today_iso = date.today().isoformat()
+def sync_electrocycle_orders(db: Session, target_date: date | None = None) -> dict:
+    target_date = target_date or date.today()
+    target_iso = target_date.isoformat()
+    is_today = target_date == date.today()
     status = db.scalar(select(models.ElectrocycleSyncStatus))
     if not status:
         status = models.ElectrocycleSyncStatus()
@@ -146,7 +148,7 @@ def sync_electrocycle_orders(db: Session) -> dict:
     status.last_attempt_at = datetime.now()
 
     try:
-        raw = _fetch_today_csv()
+        raw = _fetch_orders_csv(target_date)
         rows = _parse_csv(raw)
     except ElectrocycleAuthError as e:
         status.ok = False
@@ -161,11 +163,15 @@ def sync_electrocycle_orders(db: Session) -> dict:
         log.exception("electrocycle sync failed")
         return {"ok": False, "message": status.message, "count": 0}
 
-    db.execute(delete(models.ElectrocycleOrder).where(models.ElectrocycleOrder.source_date == today_iso))
+    db.execute(delete(models.ElectrocycleOrder).where(models.ElectrocycleOrder.source_date == target_iso))
     for r in rows:
-        db.add(models.ElectrocycleOrder(source_date=today_iso, synced_at=datetime.now(), **r))
-    status.ok = True
-    status.last_success_at = datetime.now()
-    status.message = f"{len(rows)} εντολές σήμερα" if rows else "Καμία εντολή σήμερα"
+        db.add(models.ElectrocycleOrder(source_date=target_iso, synced_at=datetime.now(), **r))
+    # last_success_at/status.message reflect the sync run itself (used by the UI's "last updated"
+    # line) -- only overwrite them for today's own sync, so refreshing a future day's live feed on
+    # demand doesn't make today's status line silently report about a different day.
+    if is_today:
+        status.ok = True
+        status.last_success_at = datetime.now()
+        status.message = f"{len(rows)} εντολές σήμερα" if rows else "Καμία εντολή σήμερα"
     db.commit()
-    return {"ok": True, "message": status.message, "count": len(rows)}
+    return {"ok": True, "message": f"{len(rows)} εντολές" if rows else "Καμία εντολή αυτή την ημέρα", "count": len(rows)}
