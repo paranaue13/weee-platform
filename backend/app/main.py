@@ -488,6 +488,13 @@ def delete_container_master(item_id:str,db:Session=Depends(get_db),user:User=Dep
     x=db.get(ContainerAsset,item_id)
     if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
     x.active=False; db.commit(); return {"ok":True}
+@app.delete("/master/containers/{item_id}/purge")
+def purge_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
+    x=db.get(ContainerAsset,item_id)
+    if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
+    used=db.scalar(select(models.InboundLoad.id).where(models.InboundLoad.outgoing_container_id==item_id).limit(1))
+    if used: raise HTTPException(409,"Ο κάδος έχει χρησιμοποιηθεί σε παραλαβή. Χρησιμοποίησε «Μη ενεργό» για να διατηρηθεί το ιστορικό.")
+    db.delete(x); db.commit(); return {"deleted":True,"id":item_id}
 @app.put("/master/media/{item_id}", response_model=schemas.MediumOut)
 def update_medium_master(item_id:str,data:schemas.MediumCreate,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(CollectionMedium,item_id)
@@ -499,6 +506,15 @@ def delete_medium_master(item_id:str,db:Session=Depends(get_db),user:User=Depend
     x=db.get(CollectionMedium,item_id)
     if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
     x.active=False; db.commit(); return {"ok":True}
+@app.delete("/master/media/{item_id}/purge")
+def purge_medium_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
+    x=db.get(CollectionMedium,item_id)
+    if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
+    used=(db.scalar(select(models.SortingEntry.id).where(models.SortingEntry.collection_medium_id==item_id).limit(1))
+          or db.scalar(select(models.WEEEStockLot.id).where(models.WEEEStockLot.collection_medium_id==item_id).limit(1))
+          or db.scalar(select(models.ReadyMaterialLot.id).where(models.ReadyMaterialLot.collection_medium_id==item_id).limit(1)))
+    if used: raise HTTPException(409,"Το μέσο έχει χρησιμοποιηθεί σε ταξινόμηση/απόθεμα. Χρησιμοποίησε «Μη ενεργό» για να διατηρηθεί το ιστορικό.")
+    db.delete(x); db.commit(); return {"deleted":True,"id":item_id}
 @app.put("/master/materials/{item_id}", response_model=schemas.MaterialOut)
 def update_material_master(item_id:str,data:schemas.MaterialCreate,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(Material,item_id)
@@ -520,6 +536,14 @@ def delete_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depe
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     x.active=False; db.commit(); return {"ok":True}
+@app.delete("/master/materials/{item_id}/purge")
+def purge_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
+    x=db.get(Material,item_id)
+    if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
+    used=(db.scalar(select(models.ReadyMaterialLot.id).where(models.ReadyMaterialLot.material_id==item_id).limit(1))
+          or db.scalar(select(models.DirectProcessingMapping.id).where(models.DirectProcessingMapping.output_material_id==item_id).limit(1)))
+    if used: raise HTTPException(409,"Το υλικό έχει χρησιμοποιηθεί σε παρτίδα/αντιστοίχιση. Χρησιμοποίησε «Μη ενεργό» για να διατηρηθεί το ιστορικό.")
+    db.delete(x); db.commit(); return {"deleted":True,"id":item_id}
 @app.delete("/master/weee-categories/{item_id}")
 def delete_weee_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(WEEECategory,item_id)
