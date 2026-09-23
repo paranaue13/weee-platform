@@ -1317,7 +1317,16 @@ def sorting_delete_entry(entry_id:str, db:Session=Depends(get_db), user:User=Dep
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
     if ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση έχει ήδη επιβεβαιωθεί')
-    write_audit(db,user,'sorting_entry',e.id,'DELETE_DRAFT',old={'weight':str(e.raw_weight),'category_id':e.weee_category_id}); db.delete(e); db.commit(); return {'ok':True}
+    write_audit(db,user,'sorting_entry',e.id,'DELETE_DRAFT',old={'weight':str(e.raw_weight),'category_id':e.weee_category_id}); db.delete(e); db.flush()
+    # Deleting the only/last entry leaves an empty IN_PROGRESS session with the load stuck showing
+    # "Σε ταξινόμηση" even though nothing is left to sort -- reset back to the pre-start state so the
+    # load reappears as ready and a later /start creates a clean new session.
+    remaining=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
+    if not remaining:
+        load=db.get(InboundLoad,ses.inbound_load_id)
+        if load: load.status='READY_FOR_SORTING'
+        db.delete(ses)
+    db.commit(); return {'ok':True}
 
 @app.put('/sorting/{load_id}/metadata')
 def sorting_metadata(load_id:str, data:schemas.SortingMetaUpdate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
