@@ -246,6 +246,16 @@ th{background:#dceef7}
 .medPickItem .medPickCode{font-weight:700;color:#17202a}
 .medPickNoneRow{font-weight:700;color:#0b6fd3;border-bottom:1px solid #edf0f2;border-radius:0;margin-bottom:3px}
 .medPickCreate{color:#0b6fd3;font-weight:700;border-bottom:1px solid #edf0f2;border-radius:0;margin-bottom:3px}
+.histList{display:flex;flex-direction:column;gap:8px;max-height:60vh;overflow:auto}
+.histItem{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:#fbfdff}
+.histItem.histItemNested{margin:8px 0 0;background:#fff}
+.histItemHead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.histDiff{margin-top:6px;font-size:12.5px;color:#334b5b;display:flex;flex-direction:column;gap:2px}
+.histGroup{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.histGroupHead{padding:10px 12px;background:#f5f8fa;cursor:pointer;font-weight:700;font-size:13px}
+.histGroupHead:hover{background:#edf3f7}
+.histArrow{color:#0b6fd3;display:inline-block;width:12px}
+.histGroupBody{padding:0 12px 10px}
 .medPickCreateForm{padding:8px 10px}
 .medPickCreateForm label{display:flex;flex-direction:column;gap:5px;font-size:12.5px;font-weight:700;color:#405262;margin-bottom:10px}
 .medPickCreateForm input{width:100%;margin-top:2px}
@@ -681,12 +691,12 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 <div id="clients" class="mpanel card hidden"><h3>Πελάτες</h3><div class="masterTools"><input class="masterSearch" id="clientSearch" placeholder="Αναζήτηση πελάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="clientCreate">+ Δημιουργία</button><span class="muted"><span id="clientCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="clientMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="clientCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="clientRows"></tbody></table></div></div>
 <div id="carriers" class="mpanel card hidden"><h3>Μεταφορείς</h3><div class="masterTools"><input class="masterSearch" id="carrierSearch" placeholder="Αναζήτηση μεταφορέα, ΑΦΜ, ονομασίας…"><button class="btn" id="carrierCreate">+ Δημιουργία</button><span class="muted"><span id="carrierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="carrierMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="carrierCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="carrierRows"></tbody></table></div></div>
 <div id="partners" class="mpanel card hidden"><h3>Συνεργάτες</h3><div class="masterTools"><input class="masterSearch" id="partnerSearch" placeholder="Αναζήτηση συνεργάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="partnerCreate">+ Δημιουργία</button><span class="muted"><span id="partnerCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="partnerMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="partnerCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="partnerRows"></tbody></table></div></div>
-<div id="containersM" class="mpanel card hidden"><h3>Containers</h3><div class="masterTools"><input class="masterSearch" id="containerSearch" placeholder="Αναζήτηση container ή μεταφορικής…"><button class="btn" id="containerCreate">+ Δημιουργία</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Container</th><th>Μεταφορική</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th></tr></thead><tbody id="containerRows"></tbody></table></div></div>
-<div id="mediaM" class="mpanel card hidden"><h3>Μέσα συλλογής</h3><div class="masterTools"><input class="masterSearch" id="mediumSearch" placeholder="Αναζήτηση μέσου…"><button class="btn" id="mediumCreate">+ Δημιουργία</button></div><div id="medTypeButtons" class="toolbar"></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Τύπος</th><th>Αριθμός / Κωδικός</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th></tr></thead><tbody id="mediumRows"></tbody></table></div></div>
-<div id="weeeNamesM" class="mpanel card hidden"><h3>ΑΗΗΕ</h3><div class="masterTools"><input class="masterSearch" id="weeeSearch" placeholder="Αναζήτηση κωδικού, περιγραφής HER ή ΕΚΑ…"><button class="btn" id="weeeCreate">+ Δημιουργία</button><span class="muted"><span id="weeeCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="weeeBulkEditBtn" disabled>Επεξεργασία</button></div><div class="registryTableWrap"><table class="registryTable weeeRegistryTable"><thead><tr><th><input type="checkbox" id="weeeCheckAll"></th><th>Κωδικός / Επίσημη περιγραφή</th><th>Περιγραφή HER</th><th>Μέσο βάρος</th><th>Δικές μας υποκατηγορίες</th><th>Επεξεργάσιμο</th><th>Κατάσταση</th></tr></thead><tbody id="weeeNameRows"></tbody></table></div></div>
-<div id="materialsM" class="mpanel card hidden"><h3>Υλικά</h3><div class="masterTools"><input class="masterSearch" id="materialSearch" placeholder="Αναζήτηση ERP, γένους, HER, Reptool ή ΕΚΑ…"><button class="btn" id="materialCreate">+ Δημιουργία</button><span class="muted"><span id="materialCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="materialBulkEditBtn" disabled>Επεξεργασία</button></div><div class="registryTableWrap"><table class="registryTable materialsRegistryTable"><thead><tr><th><input type="checkbox" id="materialCheckAll"></th><th>ERP / Επίσημη περιγραφή</th><th>Γένος</th><th>Βήμα εξαγωγής</th><th>Κατάσταση</th></tr></thead><tbody id="materialRows"></tbody></table></div></div>
-<div id="departmentsM" class="mpanel card hidden"><h3>Τμήματα</h3><div class="masterTools"><input class="masterSearch" id="departmentSearch" placeholder="Αναζήτηση τμήματος ή θέσης…"><button class="btn" id="departmentCreate">+ Δημιουργία</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Τμήμα</th><th>Θέσεις</th><th>Κατάσταση</th></tr></thead><tbody id="departmentRows"></tbody></table></div></div>
-<div id="employeesM" class="mpanel card hidden"><h3>Εργαζόμενοι</h3><div class="masterTools"><input class="masterSearch" id="employeeSearch" placeholder="Αναζήτηση ονοματεπώνυμου, τηλεφώνου ή τμήματος…"><button class="btn" id="employeeCreate">+ Δημιουργία</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Τμήματα</th><th>Κατάσταση</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div></section>
+<div id="containersM" class="mpanel card hidden"><h3>Containers</h3><div class="masterTools"><input class="masterSearch" id="containerSearch" placeholder="Αναζήτηση container ή μεταφορικής…"><button class="btn" id="containerCreate">+ Δημιουργία</button><button class="btn alt" data-history="container">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Container</th><th>Μεταφορική</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th></tr></thead><tbody id="containerRows"></tbody></table></div></div>
+<div id="mediaM" class="mpanel card hidden"><h3>Μέσα συλλογής</h3><div class="masterTools"><input class="masterSearch" id="mediumSearch" placeholder="Αναζήτηση μέσου…"><button class="btn" id="mediumCreate">+ Δημιουργία</button><button class="btn alt" data-history="collection_medium">Ιστορικό αλλαγών</button></div><div id="medTypeButtons" class="toolbar"></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Τύπος</th><th>Αριθμός / Κωδικός</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th></tr></thead><tbody id="mediumRows"></tbody></table></div></div>
+<div id="weeeNamesM" class="mpanel card hidden"><h3>ΑΗΗΕ</h3><div class="masterTools"><input class="masterSearch" id="weeeSearch" placeholder="Αναζήτηση κωδικού, περιγραφής HER ή ΕΚΑ…"><button class="btn" id="weeeCreate">+ Δημιουργία</button><span class="muted"><span id="weeeCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="weeeBulkEditBtn" disabled>Επεξεργασία</button><button class="btn alt" data-history="weee_category">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable weeeRegistryTable"><thead><tr><th><input type="checkbox" id="weeeCheckAll"></th><th>Κωδικός / Επίσημη περιγραφή</th><th>Περιγραφή HER</th><th>Μέσο βάρος</th><th>Δικές μας υποκατηγορίες</th><th>Επεξεργάσιμο</th><th>Κατάσταση</th></tr></thead><tbody id="weeeNameRows"></tbody></table></div></div>
+<div id="materialsM" class="mpanel card hidden"><h3>Υλικά</h3><div class="masterTools"><input class="masterSearch" id="materialSearch" placeholder="Αναζήτηση ERP, γένους, HER, Reptool ή ΕΚΑ…"><button class="btn" id="materialCreate">+ Δημιουργία</button><span class="muted"><span id="materialCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="materialBulkEditBtn" disabled>Επεξεργασία</button><button class="btn alt" data-history="material">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable materialsRegistryTable"><thead><tr><th><input type="checkbox" id="materialCheckAll"></th><th>ERP / Επίσημη περιγραφή</th><th>Γένος</th><th>Βήμα εξαγωγής</th><th>Κατάσταση</th></tr></thead><tbody id="materialRows"></tbody></table></div></div>
+<div id="departmentsM" class="mpanel card hidden"><h3>Τμήματα</h3><div class="masterTools"><input class="masterSearch" id="departmentSearch" placeholder="Αναζήτηση τμήματος ή θέσης…"><button class="btn" id="departmentCreate">+ Δημιουργία</button><button class="btn alt" data-history="organizational_unit">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Τμήμα</th><th>Θέσεις</th><th>Κατάσταση</th></tr></thead><tbody id="departmentRows"></tbody></table></div></div>
+<div id="employeesM" class="mpanel card hidden"><h3>Εργαζόμενοι</h3><div class="masterTools"><input class="masterSearch" id="employeeSearch" placeholder="Αναζήτηση ονοματεπώνυμου, τηλεφώνου ή τμήματος…"><button class="btn" id="employeeCreate">+ Δημιουργία</button><button class="btn alt" data-history="employee">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th>Ονοματεπώνυμο</th><th>Τηλέφωνο</th><th>Τμήματα</th><th>Κατάσταση</th></tr></thead><tbody id="employeeRows"></tbody></table></div></div></section>
 <div class="hidden" aria-hidden="true"><div id="supplierEditor"></div><div id="carrierEditor"></div><div id="partnerEditor"></div><div id="driverManager"><span id="driverManagerTitle"></span><input id="newDriverName"><button id="addCarrierDriver"></button><div id="carrierDriverRows"></div></div><input id="ctrNo"><input id="ctrTare"><input id="ctrNotes"><button id="addContainer"></button><div id="containerMsg"></div><input id="medType"><div id="mediumFields"><span id="medCodeLabel"><input id="medCode"></span><span id="medTareLabel"><input id="medTare"></span><span id="medLoadLabel"><select id="medLoading"></select></span></div><button id="addMedium"></button><div id="mediumMsg"></div><select id="weeeParent"></select><input id="weeeInternalName"><button id="addWeeeInternal"></button><div id="weeeNameMsg"></div><input id="matCode"><input id="matName"><input id="matGalaxy"><input id="matEka"><input id="matReptool"><select id="matPrecious"><option value="false"></option></select><button id="addMaterial"></button><div id="materialMsg"></div><input id="depCode"><input id="depName"><select id="depParent"></select><button id="addDepartment"></button><div id="departmentMsg"></div></div>
 <div id="floatingEditor" class="floatPanel hidden"><div class="floatPanelHeader" id="floatingEditorHandle"><h3 id="floatingEditorTitle">Επεξεργασία</h3><div style="display:flex;gap:7px"><button type="button" class="winCtl" id="floatingEditorMin" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" id="floatingEditorMax" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="floatingEditorClose" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div id="floatingEditorBody"></div></div>
 <section id="visitorLog" class="view hidden"><div class="card"><h3>Βιβλίο Επισκεπτών</h3><div class="formgrid"><label>Ημερομηνία<input id="visitDate" type="date"></label><label>Ονοματεπώνυμο<input id="visitName" placeholder="Ονοματεπώνυμο"></label><label>Προσέλευση<input id="visitArrival" type="time"></label><label>Αποχώρηση<input id="visitDeparture" type="time"></label><label class="span2">Λόγος επίσκεψης<input id="visitReason" placeholder="π.χ. Συνάντηση / Συνεργάτης"></label></div><div class="toolbar"><button class="btn" id="addVisitor">+ ΕΓΓΡΑΦΗ</button></div><div id="visitorMsg"></div></div><div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Ονοματεπώνυμο</th><th>Προσέλευση</th><th>Αποχώρηση</th><th>Λόγος επίσκεψης</th></tr></thead><tbody id="visitorRows"></tbody></table></div></section>
@@ -2348,6 +2358,122 @@ async function loadMasterEmployees(){employeesCache=await api('/master/employees
 function editEmployeePopup(obj=null){let selected=new Set(obj?.org_unit_ids||[]);let checks=departmentsCache.filter(x=>x.active).map(x=>`<label><input type="checkbox" class="fpEmpDeptCheck" value="${x.id}" ${selected.has(x.id)?'checked':''}><span>${esc(x.name_el)}</span></label>`).join('')||'<div class="muted">Δεν υπάρχουν ενεργά τμήματα.</div>';openFloat(obj?'Επεξεργασία εργαζομένου':'Νέος εργαζόμενος',`<div class="formgrid">${field('Ονοματεπώνυμο','fpEmpName',obj?.full_name||'')}${field('Τηλέφωνο','fpEmpPhone',obj?.phone||'')}<label class="span2">Τμήματα<div class="multiCheckList">${checks}</div></label></div>${actionButtons('fpEmpSave',obj?'fpEmpDelete':null)}`);$('fpEmpSave').onclick=async()=>{let data={full_name:$('fpEmpName').value.trim(),phone:$('fpEmpPhone').value.trim()||null,org_unit_ids:[...document.querySelectorAll('.fpEmpDeptCheck:checked')].map(x=>x.value),default_org_unit_id:null};if(!data.full_name)return alert('Συμπλήρωσε ονοματεπώνυμο');await api(obj?'/master/employees/'+obj.id:'/master/employees',{method:obj?'PUT':'POST',body:JSON.stringify(data)});$('floatingEditor').classList.add('hidden');await loadMasterEmployees()};if(obj){$('fpEmpDelete').textContent=obj.active?'Μη ενεργό':'Ενεργοποίηση';$('fpEmpDelete').onclick=async()=>{await api(obj.active?'/master/employees/'+obj.id:'/master/employees/'+obj.id+'/activate',{method:obj.active?'DELETE':'POST'});$('floatingEditor').classList.add('hidden');await loadMasterEmployees()}}}
 if($('employeeCreate'))$('employeeCreate').onclick=()=>editEmployeePopup();if($('employeeSearch'))$('employeeSearch').addEventListener('input',loadMasterEmployees);
 document.querySelectorAll('.mtab').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.mtab==='employeesM')loadMasterEmployees()}));
+
+// Ενιαίο "Ιστορικό αλλαγών" ανά καρτέλα Μητρώα: μία λίστα με ΟΛΟ το ιστορικό της καρτέλας (όχι ανά
+// εγγραφή), με γκρουπάρισμα διαδοχικών αλλαγών ίδιου χρήστη/ενέργειας μέσα σε λίγα δευτερόλεπτα
+// (μαζική επεξεργασία), ίδια λογική ανοίγματος με τα γκρουπ Μικρών Σημείων στον πίνακα παραλαβών.
+// Δεν υπάρχει ξεχωριστό "redo": κάθε επαναφορά περνάει από το ίδιο PUT/POST endpoint που ήδη γράφει
+// το δικό του νέο AuditEvent -- οπότε ξαναπατώντας "Επαναφορά σε πριν" πάνω σε μια επαναφορά,
+// ουσιαστικά κάνεις redo της αρχικής αλλαγής.
+const MASTER_HISTORY_ACTION_LABELS={CREATE:'Δημιουργία',UPDATE:'Ενημέρωση',DEACTIVATE:'Απενεργοποίηση',ACTIVATE:'Ενεργοποίηση'};
+const MASTER_HISTORY_CONFIG={
+  container:{title:'Containers',fields:{container_number:'Container',owner_organization_id:'Μεταφορική',tare_weight:'Απόβαρο (kg)',notes:'Σημειώσεις',active:'Ενεργό'},
+    cache:()=>containers,label:x=>x?ctrLabel(x):null,resolve:{owner_organization_id:v=>orgs.find(o=>o.id===v)?.legal_name||v},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/containers/'+entityId+'/activate':'/master/containers/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=containers.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={container_number:cur.container_number,owner_organization_id:cur.owner_organization_id,tare_weight:cur.tare_weight,notes:cur.notes,...oldVals};await api('/master/containers/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadMasterContainers();
+    }},
+  collection_medium:{title:'Μέσα συλλογής',fields:{type_id:'Τύπος',code:'Αριθμός/Κωδικός',tare_weight:'Απόβαρο (kg)',linked_loading_order_id:'Δελτίο φόρτωσης',active:'Ενεργό'},
+    cache:()=>mediumRowsCache,label:x=>x?x.code:null,resolve:{type_id:v=>mediumTypesCache.find(t=>t.id===v)?.name_el||v},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/media/'+entityId+'/activate':'/master/media/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=mediumRowsCache.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={type_id:cur.type_id,code:cur.code,tare_weight:cur.tare_weight,linked_loading_order_id:cur.linked_loading_order_id,...oldVals};await api('/master/media/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadMasterMedia();
+    }},
+  material:{title:'Υλικά',fields:{internal_code:'Κωδικός',internal_name:'Ονομασία',galaxy_code:'Galaxy',galaxy_description:'Περιγραφή Galaxy',genre:'Γένος',official_description:'Επίσημη περιγραφή',her_description:'Περιγραφή HER',eka_code:'ΕΚΑ',reptool_code:'REPTOOL',reptool_description:'Περιγραφή REPTOOL',is_precious:'Πολύτιμο',export_step_kg:'Βήμα εξαγωγής',active:'Ενεργό'},
+    cache:()=>materialsCache,label:x=>x?(x.internal_code+' · '+x.internal_name):null,resolve:{},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/materials/'+entityId+'/activate':'/master/materials/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=materialsCache.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={internal_code:cur.internal_code,internal_name:cur.internal_name,galaxy_code:cur.galaxy_code,galaxy_description:cur.galaxy_description,genre:cur.genre,official_description:cur.official_description,her_description:cur.her_description,eka_code:cur.eka_code,reptool_code:cur.reptool_code,reptool_description:cur.reptool_description,is_precious:cur.is_precious,export_step_kg:cur.export_step_kg,...oldVals};await api('/master/materials/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadMasterMaterials();
+    }},
+  weee_category:{title:'ΑΗΗΕ',fields:{code:'Κωδικός',description_el:'Επίσημη περιγραφή',her_description:'Περιγραφή HER',eka_code:'ΕΚΑ',processable:'Προς επεξεργασία',average_weight:'Μέσο βάρος',active:'Ενεργό'},
+    cache:()=>weeeCache.filter(x=>!x.is_internal_subcategory),label:x=>x?(x.official_code+' · '+(x.official_description||'')):null,resolve:{},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/weee-categories/'+entityId+'/activate':'/master/weee-categories/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=weeeCache.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={code:cur.official_code,description_el:cur.official_description,parent_code:null,is_internal_subcategory:false,average_weight:cur.average_weight??null,her_description:cur.her_description,eka_code:cur.eka_code,processable:!!cur.processable,...oldVals};await api('/master/weee-categories/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadWeeeNames();
+    }},
+  organizational_unit:{title:'Τμήματα',fields:{code:'Κωδικός',name_el:'Ονομασία',name_en:'Ονομασία (EN)',parent_id:'Ανώτερο τμήμα',sort_order:'Σειρά',position:'Θέση',active:'Ενεργό'},
+    cache:()=>departmentsCache,label:x=>x?x.name_el:null,resolve:{parent_id:v=>departmentsCache.find(d=>d.id===v)?.name_el||v},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/org-units/'+entityId+'/activate':'/master/org-units/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=departmentsCache.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={code:cur.code,name_el:cur.name_el,name_en:cur.name_en,parent_id:cur.parent_id,sort_order:cur.sort_order,position:cur.position,positions:cur.positions,...oldVals};await api('/master/org-units/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadMasterDepartments();
+    }},
+  employee:{title:'Εργαζόμενοι',fields:{full_name:'Ονοματεπώνυμο',phone:'Τηλέφωνο',default_org_unit_id:'Βασικό τμήμα',org_unit_ids:'Τμήματα',active:'Ενεργό'},
+    cache:()=>employeesCache,label:x=>x?x.full_name:null,resolve:{default_org_unit_id:v=>departmentsCache.find(d=>d.id===v)?.name_el||v,org_unit_ids:v=>Array.isArray(v)?v.map(id=>departmentsCache.find(d=>d.id===id)?.name_el||id).join(', '):v},
+    async revert(entityId,action,oldVals){
+      if(action==='ACTIVATE'||action==='DEACTIVATE'){await api(oldVals.active?'/master/employees/'+entityId+'/activate':'/master/employees/'+entityId,{method:oldVals.active?'POST':'DELETE'})}
+      else{let cur=employeesCache.find(x=>x.id===entityId);if(!cur)throw new Error('Η εγγραφή δεν βρέθηκε πλέον');let payload={full_name:cur.full_name,phone:cur.phone,default_org_unit_id:cur.default_org_unit_id,org_unit_ids:cur.org_unit_ids,...oldVals};await api('/master/employees/'+entityId,{method:'PUT',body:JSON.stringify(payload)})}
+      await loadMasterEmployees();
+    }}
+};
+function histFieldValue(cfg,key,val){
+  if(val==null||val==='')return '—';
+  if(typeof val==='boolean')return val?'Ναι':'Όχι';
+  if(cfg.resolve&&cfg.resolve[key])return esc(String(cfg.resolve[key](val)));
+  if(Array.isArray(val))return esc(val.length?val.join(', '):'—');
+  return esc(String(val));
+}
+function histDiffHtml(cfg,oldV,newV){
+  if(!oldV||!newV)return '';
+  let parts=Object.keys(cfg.fields).filter(k=>k in newV&&JSON.stringify(oldV[k]??null)!==JSON.stringify(newV[k]??null))
+    .map(k=>`<div><b>${esc(cfg.fields[k])}</b>: ${histFieldValue(cfg,k,oldV[k])} → ${histFieldValue(cfg,k,newV[k])}</div>`);
+  return parts.join('');
+}
+function groupMasterHistoryEvents(events){
+  let groups=[];
+  for(let e of events){
+    let last=groups[groups.length-1];
+    if(last&&last.user_id===e.user_id&&last.action===e.action&&Math.abs(new Date(last.events[last.events.length-1].created_at)-new Date(e.created_at))<=5000){last.events.push(e)}
+    else{groups.push({user_id:e.user_id,action:e.action,events:[e]})}
+  }
+  return groups;
+}
+async function openMasterHistory(entityType){
+  let cfg=MASTER_HISTORY_CONFIG[entityType];
+  if(!cfg)return;
+  openFloat('Ιστορικό αλλαγών · '+cfg.title,'<div class="muted" id="histLoading">Φόρτωση ιστορικού...</div><div id="histList" class="histList"></div>');
+  async function load(){
+    let events;
+    try{events=await api('/master/history/'+entityType+'?limit=300')}catch(e){if($('histLoading'))$('histLoading').textContent='Σφάλμα φόρτωσης ιστορικού';return}
+    if($('histLoading'))$('histLoading').remove();
+    if(!$('histList'))return;
+    if(!events.length){$('histList').innerHTML='<div class="muted">Δεν υπάρχουν καταχωρημένες αλλαγές.</div>';return}
+    function labelFor(entityId){let obj=cfg.cache().find(x=>x.id===entityId);let l=cfg.label(obj);return l||('#'+String(entityId||'').slice(0,8))}
+    function renderEvent(e,nested){
+      let diff=histDiffHtml(cfg,e.old_values,e.new_values);
+      let when=new Date(e.created_at).toLocaleString('el-GR');
+      let canRevert=e.action!=='CREATE'&&e.old_values;
+      return `<div class="histItem${nested?' histItemNested':''}">
+        <div class="histItemHead"><b>${esc(labelFor(e.entity_id))}</b> <span class="pill gray">${esc(MASTER_HISTORY_ACTION_LABELS[e.action]||e.action)}</span></div>
+        <div class="muted" style="font-size:12px">${esc(when)} · ${esc(e.user||'—')}</div>
+        ${diff?`<div class="histDiff">${diff}</div>`:''}
+        ${canRevert?`<button type="button" class="btn alt histRevertBtn" data-event="${e.id}" style="margin-top:6px;padding:5px 10px;font-size:12px">Επαναφορά σε πριν</button>`:''}
+        <div class="error" data-msg="${e.id}" style="font-size:12px"></div>
+      </div>`;
+    }
+    let groups=groupMasterHistoryEvents(events);
+    $('histList').innerHTML=groups.map((g,gi)=>{
+      if(g.events.length===1)return renderEvent(g.events[0],false);
+      let when=new Date(g.events[0].created_at).toLocaleString('el-GR');
+      return `<div class="histGroup"><div class="histGroupHead"><span class="histArrow">▸</span> ${g.events.length} αλλαγές ομαδικά · ${esc(MASTER_HISTORY_ACTION_LABELS[g.action]||g.action)} · ${esc(when)} · ${esc(g.events[0].user||'—')}</div><div class="histGroupBody hidden">${g.events.map(e=>renderEvent(e,true)).join('')}</div></div>`;
+    }).join('');
+    document.querySelectorAll('.histGroupHead').forEach(h=>h.onclick=()=>{let body=h.nextElementSibling;let opening=body.classList.contains('hidden');body.classList.toggle('hidden');h.querySelector('.histArrow').textContent=opening?'▾':'▸'});
+    document.querySelectorAll('.histRevertBtn').forEach(btn=>btn.onclick=async()=>{
+      let ev=events.find(x=>x.id===btn.dataset.event);
+      if(!ev)return;
+      if(!confirm('Επαναφορά στην κατάσταση πριν από αυτή την αλλαγή;'))return;
+      btn.disabled=true;
+      try{await cfg.revert(ev.entity_id,ev.action,ev.old_values);await load()}
+      catch(err){let m=document.querySelector('[data-msg="'+ev.id+'"]');if(m)m.textContent=err.message;btn.disabled=false}
+    });
+  }
+  await load();
+}
+document.querySelectorAll('[data-history]').forEach(btn=>btn.onclick=()=>openMasterHistory(btn.dataset.history));
 async function openSortingMonthReport(){let month=sortingNav.day.slice(0,7),r=await api(`/sorting/month-report?month=${month}`),codes=[...new Set(r.days.flatMap(d=>d.loads.flatMap(l=>Object.keys(l.codes))))].sort((a,b)=>a.localeCompare(b,'el'));sortingMode='months';$('sortingDailyTable').classList.add('hidden');$('sortingSelectedHead').classList.add('hidden');$('sortingStats').classList.add('hidden');$('sortingMonthSummary').classList.remove('hidden');let html=`<div class="sortingReportHead"><h2>Αναφορά Ταξινόμησης · ${new Date(month+'-01T12:00:00').toLocaleDateString('el-GR',{month:'long',year:'numeric'})}</h2></div>`;r.days.forEach(d=>{html+=`<div class="card"><h3>${new Date(d.date+'T12:00:00').toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3><div class="tablewrap"><table><thead><tr><th>Αριθμός Εντολής</th><th>Προμηθευτής</th>${codes.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Σύνολο</th></tr></thead><tbody>${d.loads.map(l=>`<tr><td>${esc(l.order_number||'—')}</td><td>${esc(l.supplier||'—')}</td>${codes.map(c=>`<td>${prodVal(l.codes[c]||0)}</td>`).join('')}<td><b>${prodVal(Object.values(l.codes).reduce((a,b)=>a+b,0))}</b></td></tr>`).join('')}<tr class="totalRow"><td colspan="2">Σύνολο ημέρας</td>${codes.map(c=>`<td>${prodVal(d.totals[c]||0)}</td>`).join('')}<td><b>${prodVal(Object.values(d.totals).reduce((a,b)=>a+b,0))}</b></td></tr></tbody></table></div></div>`});html+=`<div class="card"><h3>Σύνολο μήνα</h3><div class="tablewrap"><table><thead><tr><th>Κωδικός</th><th>kg</th></tr></thead><tbody>${codes.map(c=>`<tr><td>${esc(c)}</td><td>${prodVal(r.totals[c]||0)}</td></tr>`).join('')}</tbody></table></div></div>`;$('sortingMonthSummary').innerHTML=html}if($('sortingReportBtn'))$('sortingReportBtn').onclick=openSortingMonthReport;
 if($('prodPrev'))$('prodPrev').onclick=()=>prodShift(-1);if($('prodNext'))$('prodNext').onclick=()=>prodShift(1);if($('prodRangeBtn'))$('prodRangeBtn').onclick=()=>{let r=prodRange();openDateRangePicker(r.startISO,r.endISO,(from,to)=>{prodState.period='custom';prodState.customRange={start:from,end:to};loadProduction()})};document.querySelectorAll('[data-prodperiod]').forEach(b=>b.onclick=()=>{prodState.period=b.dataset.prodperiod;loadProduction()});document.querySelectorAll('[data-prodgroup]').forEach(b=>b.onclick=()=>{prodState.group=b.dataset.prodgroup;renderProductionKpis();renderProdWeee();renderProdPeople();document.querySelectorAll('[data-prodgroup]').forEach(x=>x.classList.toggle('active',x.dataset.prodgroup===prodState.group))});document.querySelectorAll('.productionTab').forEach(b=>b.onclick=()=>{prodState.tab=b.dataset.prodtab;if(prodState.entries?.length||prodState.cats?.length){renderProductionKpis();renderProdWeee();renderProdPeople();renderProdMaterials();$('productionWeeePanel').classList.toggle('hidden',prodState.tab!=='weee');$('productionPeoplePanel').classList.toggle('hidden',prodState.tab!=='people');$('productionMaterialsPanel').classList.toggle('hidden',prodState.tab!=='materials');if($('prodStockOnlyWrap'))$('prodStockOnlyWrap').classList.toggle('hidden',prodState.tab!=='weee');document.querySelectorAll('.productionTab').forEach(x=>x.classList.toggle('active',x.dataset.prodtab===prodState.tab))}else loadProduction()});
 if($('prodStockOnlyToggle'))$('prodStockOnlyToggle').onchange=(e)=>{prodStockOnly=e.target.checked;renderProdWeee()};if($('productionSearch'))$('productionSearch').addEventListener('input',()=>{renderProductionKpis();renderProdWeee();renderProdPeople();renderProdMaterials()});if($('prodExpandAll'))$('prodExpandAll').onclick=()=>{if(prodState.tab==='weee'){PROD_MAJOR_CATS.forEach(x=>prodState.expanded.add(x));renderProdWeee()}else if(prodState.tab==='materials'){MAT_GROUP_ORDER.forEach(x=>(prodState.expandedMat||(prodState.expandedMat=new Set())).add(x));renderProdMaterials()}else{prodState.units.forEach(x=>prodState._deptExpanded.add(x.id));renderProdPeople()}};if($('prodCollapseAll'))$('prodCollapseAll').onclick=()=>{if(prodState.tab==='weee'){prodState.expanded.clear();renderProdWeee()}else if(prodState.tab==='materials'){(prodState.expandedMat||(prodState.expandedMat=new Set())).clear();renderProdMaterials()}else{prodState._deptExpanded.clear();renderProdPeople()}};

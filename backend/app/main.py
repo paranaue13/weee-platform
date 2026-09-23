@@ -159,8 +159,10 @@ def create_org_unit(data:schemas.OrgUnitCreate, db:Session=Depends(get_db), user
 def update_org_unit(unit_id:str, data:schemas.OrgUnitCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(OrganizationalUnit,unit_id)
     if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    old={"code":obj.code,"name_el":obj.name_el,"name_en":obj.name_en,"parent_id":obj.parent_id,"sort_order":obj.sort_order,"position":obj.position}
     for k,v in data.model_dump(exclude={"positions"}).items(): setattr(obj,k,v)
     if "positions" in data.model_fields_set: _replace_org_positions(db,obj.id,data.positions)
+    write_audit(db,user,"organizational_unit",obj.id,"UPDATE",old=old,new=data.model_dump(exclude={"positions"}))
     db.commit()
     rows=list_org_units(True,db,user); return next(x for x in rows if x["id"]==obj.id)
 
@@ -168,7 +170,7 @@ def update_org_unit(unit_id:str, data:schemas.OrgUnitCreate, db:Session=Depends(
 def delete_org_unit(unit_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(OrganizationalUnit,unit_id)
     if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
-    obj.active=False; db.commit(); return {"ok":True}
+    obj.active=False; write_audit(db,user,"organizational_unit",obj.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 
 @app.get("/master/organizations", response_model=list[schemas.OrganizationOut])
 def list_organizations(role:str|None=Query(default=None), include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -481,13 +483,15 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
 def update_container(item_id:str,data:schemas.ContainerCreate,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(ContainerAsset,item_id)
     if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
+    old={"container_number":x.container_number,"owner_organization_id":x.owner_organization_id,"tare_weight":x.tare_weight,"notes":x.notes}
     x.container_number=data.container_number; x.owner_organization_id=data.owner_organization_id; x.tare_weight=data.tare_weight; x.notes=data.notes
+    write_audit(db,user,"container",x.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(x); return _container_public(x)
 @app.delete("/master/containers/{item_id}")
 def delete_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(ContainerAsset,item_id)
     if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
-    x.active=False; db.commit(); return {"ok":True}
+    x.active=False; write_audit(db,user,"container",x.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 @app.delete("/master/containers/{item_id}/purge")
 def purge_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(ContainerAsset,item_id)
@@ -499,13 +503,15 @@ def purge_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depe
 def update_medium_master(item_id:str,data:schemas.MediumCreate,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(CollectionMedium,item_id)
     if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
+    old={"type_id":x.type_id,"code":x.code,"tare_weight":x.tare_weight,"linked_loading_order_id":x.linked_loading_order_id}
     x.type_id=data.type_id; x.code=data.code or x.code; x.tare_weight=data.tare_weight; x.linked_loading_order_id=data.linked_loading_order_id
+    write_audit(db,user,"collection_medium",x.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(x); return x
 @app.delete("/master/media/{item_id}")
 def delete_medium_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(CollectionMedium,item_id)
     if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
-    x.active=False; db.commit(); return {"ok":True}
+    x.active=False; write_audit(db,user,"collection_medium",x.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 @app.delete("/master/media/{item_id}/purge")
 def purge_medium_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(CollectionMedium,item_id)
@@ -531,11 +537,20 @@ def material_history(item_id:str, db:Session=Depends(get_db), user=Depends(requi
     uids={e.user_id for e in events if e.user_id}
     users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
     return [{"action":e.action,"old_values":json.loads(e.old_values) if e.old_values else None,"new_values":json.loads(e.new_values) if e.new_values else None,"reason":e.reason,"user":users.get(e.user_id),"created_at":e.created_at.isoformat()} for e in events]
+
+MASTER_HISTORY_ENTITY_TYPES={"container","collection_medium","material","weee_category","organizational_unit","employee"}
+@app.get("/master/history/{entity_type}")
+def master_tab_history(entity_type:str, limit:int=Query(default=300,le=1000), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
+    if entity_type not in MASTER_HISTORY_ENTITY_TYPES: raise HTTPException(404,"Άγνωστος τύπος ιστορικού")
+    events=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type==entity_type).order_by(models.AuditEvent.created_at.desc()).limit(limit)).all()
+    uids={e.user_id for e in events if e.user_id}
+    users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
+    return [{"id":e.id,"entity_id":e.entity_id,"action":e.action,"old_values":json.loads(e.old_values) if e.old_values else None,"new_values":json.loads(e.new_values) if e.new_values else None,"reason":e.reason,"user":users.get(e.user_id),"user_id":e.user_id,"created_at":e.created_at.isoformat()} for e in events]
 @app.delete("/master/materials/{item_id}")
 def delete_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
-    x.active=False; db.commit(); return {"ok":True}
+    x.active=False; write_audit(db,user,"material",x.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 @app.delete("/master/materials/{item_id}/purge")
 def purge_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(Material,item_id)
@@ -548,39 +563,39 @@ def purge_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depen
 def delete_weee_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(WEEECategory,item_id)
     if not x: raise HTTPException(404,"Η κατηγορία δεν βρέθηκε")
-    x.active=False; db.commit(); return {"ok":True}
+    x.active=False; write_audit(db,user,"weee_category",x.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 
 
 @app.post("/master/org-units/{unit_id}/activate")
 def activate_org_unit(unit_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(OrganizationalUnit,unit_id)
     if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
-    obj.active=True; db.commit(); return {"ok":True}
+    obj.active=True; write_audit(db,user,"organizational_unit",obj.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 @app.post("/master/containers/{item_id}/activate")
 def activate_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(ContainerAsset,item_id)
     if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
-    x.active=True; db.commit(); return {"ok":True}
+    x.active=True; write_audit(db,user,"container",x.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 @app.post("/master/media/{item_id}/activate")
 def activate_medium_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(CollectionMedium,item_id)
     if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
-    x.active=True; db.commit(); return {"ok":True}
+    x.active=True; write_audit(db,user,"collection_medium",x.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 @app.post("/master/materials/{item_id}/activate")
 def activate_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     if not (x.galaxy_code or '').strip(): raise HTTPException(409,"Υλικό χωρίς Κωδικό ERP δεν μπορεί να είναι ενεργό")
-    x.active=True; db.commit(); return {"ok":True}
+    x.active=True; write_audit(db,user,"material",x.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 @app.post("/master/weee-categories/{item_id}/activate")
 def activate_weee_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(WEEECategory,item_id)
     if not x: raise HTTPException(404,"Η κατηγορία δεν βρέθηκε")
-    x.active=True; db.commit(); return {"ok":True}
+    x.active=True; write_audit(db,user,"weee_category",x.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 
 def _employee_public(db:Session,e:Employee,p:Person):
@@ -613,28 +628,34 @@ def create_employee(data:schemas.EmployeeCreate, db:Session=Depends(get_db), use
     next_no=(db.scalar(select(text('count(*)')).select_from(Employee)) or 0)+1; code=f"EMP-{next_no:04d}"
     while db.scalar(select(Employee).where(Employee.employee_code==code)): next_no+=1; code=f"EMP-{next_no:04d}"
     emp=Employee(person_id=person.id,employee_code=code); db.add(emp); db.flush()
-    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids); db.commit(); db.refresh(emp)
+    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids)
+    write_audit(db,user,"employee",emp.id,"CREATE",new=data.model_dump())
+    db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)
 
 @app.put("/master/employees/{employee_id}", response_model=schemas.EmployeeOut)
 def update_employee(employee_id:str,data:schemas.EmployeeCreate,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     emp=db.get(Employee,employee_id)
     if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
-    person=db.get(Person,emp.person_id); full=data.full_name.strip(); parts=full.split(None,1); person.first_name=parts[0] if parts else full; person.last_name=parts[1] if len(parts)>1 else ""; person.phone=data.phone
-    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids); db.commit(); db.refresh(emp)
+    person=db.get(Person,emp.person_id)
+    old={"full_name":(person.first_name+" "+person.last_name).strip(),"phone":person.phone,"default_org_unit_id":emp.default_org_unit_id,"org_unit_ids":[r[0] for r in db.execute(select(employee_org_units.c.org_unit_id).where(employee_org_units.c.employee_id==emp.id)).all()]}
+    full=data.full_name.strip(); parts=full.split(None,1); person.first_name=parts[0] if parts else full; person.last_name=parts[1] if len(parts)>1 else ""; person.phone=data.phone
+    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids)
+    write_audit(db,user,"employee",emp.id,"UPDATE",old=old,new=data.model_dump())
+    db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)
 
 @app.delete("/master/employees/{employee_id}")
 def delete_employee(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     emp=db.get(Employee,employee_id)
     if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
-    emp.active=False; p=db.get(Person,emp.person_id); p.active=False; db.commit(); return {"ok":True}
+    emp.active=False; p=db.get(Person,emp.person_id); p.active=False; write_audit(db,user,"employee",emp.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
 
 @app.post("/master/employees/{employee_id}/activate")
 def activate_employee(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     emp=db.get(Employee,employee_id)
     if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
-    emp.active=True; p=db.get(Person,emp.person_id); p.active=True; db.commit(); return {"ok":True}
+    emp.active=True; p=db.get(Person,emp.person_id); p.active=True; write_audit(db,user,"employee",emp.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 @app.get("/production/work-entries", response_model=list[schemas.ProductionWorkEntryOut])
 def production_work_entries(start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
