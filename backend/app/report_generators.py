@@ -35,7 +35,7 @@ def _loads(db: Session, start: datetime, end: datetime):
         select(models.InboundLoad)
         .join(models.InboundTrip, models.InboundLoad.trip_id == models.InboundTrip.id)
         .where(models.InboundTrip.receipt_date >= start, models.InboundTrip.receipt_date < end, models.InboundTrip.deleted_at.is_(None))
-        .order_by(models.InboundTrip.receipt_date, models.InboundLoad.dpp_number, models.InboundLoad.created_at)
+        .order_by(models.InboundLoad.dpp_number.is_(None), models.InboundLoad.dpp_number, models.InboundTrip.receipt_date, models.InboundLoad.created_at)
     ).all()
 
 

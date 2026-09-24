@@ -1240,15 +1240,15 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
 def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Daily workbook: one sorting per worksheet plus final 'Σύνολο Μέρας', matching the imported daily workbook structure."""
     d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day)
-    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx')
+    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx',pad_blank_to=15)
 
-def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str):
+def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str, pad_blank_to:int=0):
     from openpyxl import load_workbook
     from copy import copy
     from tempfile import NamedTemporaryFile
     import os
     from starlette.background import BackgroundTask
-    loads=db.scalars(select(InboundLoad).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=start,InboundTrip.receipt_date<end,InboundTrip.deleted_at.is_(None)).order_by(InboundTrip.receipt_date,InboundLoad.created_at)).all()
+    loads=db.scalars(select(InboundLoad).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=start,InboundTrip.receipt_date<end,InboundTrip.deleted_at.is_(None)).order_by(InboundLoad.dpp_number.is_(None),InboundLoad.dpp_number,InboundTrip.receipt_date,InboundLoad.created_at)).all()
     template=Path(__file__).parent/'templates'/'daily_sorting_report_template.xlsx'
     wb=load_workbook(template)
     # Keep a pristine detail sheet and summary sheet from the imported template.
@@ -1258,21 +1258,33 @@ def _received_workbook_response(db:Session, start:datetime, end:datetime, summar
     detail_src.title='__DETAIL_TEMPLATE__'; summary_src.title=summary_title
     def fill(ws,data):
         l,t,ses=data['load'],data['trip'],data['session']; ex=data['extras']; org=lambda o:(o.trade_name or o.legal_name) if o else ''
-        ws['B2']=org(data['supplier']);ws['D2']=l.order_number or '';ws['B3']=org(data['carrier']);ws['D3']=l.seal_number or ex.get('sealNo','');ws['B4']=ex.get('recycler') or 'ΚΕΝΤΡΟ ΕΛΛΗΝΙΚΗΣ ΠΕΡΙΒΑΛΛΟΝΤΙΚΗΣ ΑΝΑΚΥΚΛΩΣΗΣ Α.Β.Ε.Τ.Ε.';ws['D4']=int(round(float(l.net_weight or 0)));ws['B5']=l.incoming_container_number or '-';ws['D5']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΟΧΙ';ws['B6']=l.weighbridge_number or ex.get('weighbridgeNo','');ws['D6']=int(round(float(ses.foreign_weight or 0))) if ses else 0;ws['B7']=(t.receipt_date or start).strftime('%d.%m.%Y');ws['D7']='ΝΑΙ' if ses and float(ses.special_waste_weight or 0)>0 else 'ΟΧΙ';ws['B8']=l.dispatch_note_number or ex.get('dispatchNo','');ws['D8']=int(round(float(ses.special_waste_weight or 0))) if ses else 0;ws['B9']=l.dpp_number or '';ws['D9']=t.vehicle_registration or ''
+        ws['B2']=org(data['supplier']);ws['D2']=l.order_number or '';ws['B3']=org(data['carrier']);ws['D3']=l.seal_number or ex.get('sealNo','') or '-';ws['B4']=ex.get('recycler') or 'ΚΕΝΤΡΟ ΕΛΛΗΝΙΚΗΣ ΠΕΡΙΒΑΛΛΟΝΤΙΚΗΣ ΑΝΑΚΥΚΛΩΣΗΣ Α.Β.Ε.Τ.Ε.';ws['B5']=l.incoming_container_number or '-';ws['D5']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΌΧΙ';ws['B6']=l.weighbridge_number or ex.get('weighbridgeNo','');ws['D6']=int(round(float(ses.foreign_weight or 0))) if ses else 0;ws['B7']=(t.receipt_date or start).strftime('%d.%m.%Y');ws['D7']='ΝΑΙ' if ses and float(ses.special_waste_weight or 0)>0 else 'ΌΧΙ';ws['B8']=l.dispatch_note_number or ex.get('dispatchNo','');ws['D8']=int(round(float(ses.special_waste_weight or 0))) if ses else 0;ws['B9']=l.dpp_number or '';ws['D9']=t.vehicle_registration or ''
         # Only user-authored observations; never workflow/import status text.
         plain=(ex.get('plainNotes','') or (ses.notes if ses else '') or '')
         import re as _re; plain=_re.sub(r'^Ιστορική εισαγωγή από .*?\.xlsx\s*','',plain,flags=_re.I)
-        ws['A10']=plain
-        ws['G12']='ΝΑΙ' if ses and ses.check_special else 'ΟΧΙ';ws['I12']='ΝΑΙ' if ses and ses.check_kday else 'ΟΧΙ';ws['L12']='ΝΑΙ' if ses and ses.check_non_integer else 'ΟΧΙ';ws['O12']='ΝΑΙ' if ses and ses.load_pure else 'ΟΧΙ';ws['R12']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΟΧΙ'
+        ws['A10']='Παρατηρήσεις - Σχόλια ανακυκλωτή'+('\n'+plain if plain.strip() else '')
+        feed=db.scalar(select(models.ElectrocycleOrder).where(models.ElectrocycleOrder.order_no==(l.order_number or '')).order_by(models.ElectrocycleOrder.source_date.desc()))
+        ws['A12']='ΥΠ/ΜΑ: '+((feed.address or '') if feed else '')+'\nΠΟΛΗ: '+((feed.city or '') if feed else '')
+        ws['G12']='ΝΑΙ' if ses and ses.check_special else 'ΌΧΙ';ws['I12']='ΝΑΙ' if ses and ses.check_kday else 'ΌΧΙ';ws['L12']='ΝΑΙ' if ses and ses.check_non_integer else 'ΌΧΙ';ws['O12']='ΝΑΙ' if ses and ses.load_pure else 'ΌΧΙ';ws['R12']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΌΧΙ'
         for row in range(15,83):
             c=str(ws.cell(row=row,column=4).value or '').strip()
-            if c: ws.cell(row=row,column=15).value=int(round(float(data['weights'].get(c,0)))) or None; ws.cell(row=row,column=16).value=int(data['pieces'].get(c,0)) or None
+            if c: ws.cell(row=row,column=15).value=int(round(float(data['weights'].get(c,0)))); ws.cell(row=row,column=16).value=int(data['pieces'].get(c,0))
     made=[]
     for i,l in enumerate(loads,1):
         ws=wb.copy_worksheet(detail_src); data=_sorting_export_data(db,l.id); fill(ws,data); name=str(l.dpp_number or l.order_number or i)[:31];
         while name in wb.sheetnames: name=(name[:27]+'_'+str(i))[:31]
         ws.title=name; made.append(ws)
+    if pad_blank_to>len(made):
+        n_blank=pad_blank_to-len(made)
+        for k in range(n_blank,0,-1):
+            ws=wb.copy_worksheet(detail_src)
+            for co in ('B2','D2','B3','D3','B5','D5','B6','D6','B7','D7','B8','D8','B9','D9','G12','I12','L12','O12','R12'): ws[co]=None
+            ws['A12']='ΥΠ/ΜΑ: \nΠΟΛΗ: '
+            for row in range(15,83):
+                if str(ws.cell(row=row,column=4).value or '').strip(): ws.cell(row=row,column=15).value=None; ws.cell(row=row,column=16).value=None
+            ws.title='.'*k; made.append(ws)
     wb.remove(detail_src)
+    if (end-start)<=timedelta(days=1): summary_src['B7']=start.strftime('%d.%m.%Y')
     # Rebuild cross-sheet totals from exactly the generated daily sorting sheets.
     detail_names=[ws.title for ws in made]
     def sum_tabs(cell):
