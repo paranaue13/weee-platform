@@ -948,7 +948,7 @@ def _notes_dpp(notes:str|None):
 
 def _next_dpp_numbers(db:Session, year:int, count:int=1, exclude_load_ids:set[str]|None=None):
     exclude_load_ids=exclude_load_ids or set()
-    rows=db.execute(select(models.InboundLoad.dpp_number,models.InboundLoad.id,models.InboundTrip.receipt_date).join(models.InboundTrip,models.InboundTrip.id==models.InboundLoad.trip_id).where(models.InboundLoad.dpp_number.is_not(None))).all()
+    rows=db.execute(select(models.InboundLoad.dpp_number,models.InboundLoad.id,models.InboundTrip.receipt_date).join(models.InboundTrip,models.InboundTrip.id==models.InboundLoad.trip_id).where(models.InboundLoad.dpp_number.is_not(None),models.InboundTrip.deleted_at.is_(None))).all()
     vals=[int(n) for n,lid,dt in rows if lid not in exclude_load_ids and dt and dt.year==year and n is not None]
     start=max(vals)+1 if vals else 1
     return list(range(start,start+count))
@@ -1065,6 +1065,15 @@ def receipt_archive(db:Session=Depends(get_db), user=Depends(require_permission(
 def restore_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("receipt.edit"))):
     trip=db.get(InboundTrip,receipt_id)
     if not trip: raise HTTPException(404,"Η παραλαβή δεν βρέθηκε")
+    # Οι διαγραμμένες παραλαβές δεν δεσμεύουν αριθμούς ΔΠΠ -- αν κάποιος αριθμός της έχει δοθεί στο μεταξύ
+    # σε άλλη παραλαβή, παίρνει νέο (επόμενο) αριθμό ώστε να μην υπάρχουν διπλοί.
+    trip.deleted_at=None; db.flush()
+    loads=db.scalars(select(InboundLoad).where(InboundLoad.trip_id==receipt_id).order_by(InboundLoad.load_sequence)).all()
+    for l in loads:
+        if l.dpp_number is None: continue
+        year=trip.receipt_date.year
+        clash=db.scalar(select(InboundLoad.id).join(InboundTrip,InboundTrip.id==InboundLoad.trip_id).where(InboundLoad.dpp_number==l.dpp_number,InboundLoad.trip_id!=receipt_id,InboundTrip.deleted_at.is_(None),InboundTrip.receipt_date>=datetime(year,1,1),InboundTrip.receipt_date<datetime(year+1,1,1)).limit(1))
+        if clash: l.dpp_number=_next_dpp_numbers(db,year,1,exclude_load_ids={l.id})[0]; db.flush()
     trip.deleted_at=None; write_audit(db,user,"receipt",receipt_id,"RESTORE",new={"deleted":False}); db.commit()
     return {"status":"restored","id":receipt_id}
 
