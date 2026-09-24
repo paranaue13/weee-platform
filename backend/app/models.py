@@ -214,6 +214,8 @@ class Organization(Base, TimestampMixin):
     galaxy_id: Mapped[str|None] = mapped_column(String(100), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     supplier_kind: Mapped[str|None] = mapped_column(String(20), nullable=True)
+    # PICKUP_POINT: όταν είναι αποστολέας στη ζωντανή ροή, προμηθευτής της παραλαβής είναι το σημείο παραλαβής
+    supplier_source: Mapped[str|None] = mapped_column(String(20), nullable=True)
 
 
 class OrganizationRegistryDetail(Base, TimestampMixin):

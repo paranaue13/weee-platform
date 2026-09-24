@@ -62,6 +62,10 @@ async def lifespan(app: FastAPI):
         if "organizations" in tables:
             orgs_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
             if "supplier_kind" not in orgs_cols: conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_kind VARCHAR(20)"))
+            if "supplier_source" not in orgs_cols:
+                conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_source VARCHAR(20)"))
+                for nm in ("ELECTRONET AE","MEGA ELECTRICS ΑΕΒΕ","ΑΚΤΙΒ ΚΟΜΠΙΟΥΤΕΡ ΣΥΣΤΕΜΣ%"):
+                    conn.execute(text("UPDATE organizations SET supplier_source='PICKUP_POINT' WHERE legal_name LIKE :n"),{"n":nm})
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
@@ -187,6 +191,7 @@ def list_organizations(role:str|None=Query(default=None), include_inactive:bool=
 @app.post("/master/organizations", response_model=schemas.OrganizationOut)
 def create_organization(data:schemas.OrganizationCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     if data.supplier_kind not in (None,"COMPANY","SCRAP_DEALER"): raise HTTPException(422,"Μη έγκυρη κατηγορία προμηθευτή")
+    if data.supplier_source not in (None,"SENDER","PICKUP_POINT"): raise HTTPException(422,"Μη έγκυρη πηγή προμηθευτή")
     payload=data.model_dump(exclude={"roles"}); obj=Organization(**payload); db.add(obj); db.flush()
     if data.roles:
         from sqlalchemy import insert
@@ -199,9 +204,10 @@ def update_organization(organization_id:str, data:schemas.OrganizationUpdate, db
     obj=db.get(Organization,organization_id)
     if not obj: raise HTTPException(404,"Η εταιρεία δεν βρέθηκε")
     if data.supplier_kind not in (None,"COMPANY","SCRAP_DEALER"): raise HTTPException(422,"Μη έγκυρη κατηγορία προμηθευτή")
-    old={"legal_name":obj.legal_name,"trade_name":obj.trade_name,"tax_id":obj.tax_id,"email":obj.email,"phone":obj.phone,"supplier_kind":obj.supplier_kind}
+    if data.supplier_source not in (None,"SENDER","PICKUP_POINT"): raise HTTPException(422,"Μη έγκυρη πηγή προμηθευτή")
+    old={"legal_name":obj.legal_name,"trade_name":obj.trade_name,"tax_id":obj.tax_id,"email":obj.email,"phone":obj.phone,"supplier_kind":obj.supplier_kind,"supplier_source":obj.supplier_source}
     for k,v in data.model_dump(exclude={"roles"}).items():
-        if k=="supplier_kind" and k not in data.model_fields_set: continue
+        if k in ("supplier_kind","supplier_source") and k not in data.model_fields_set: continue
         setattr(obj,k,v)
     db.execute(models.organization_roles.delete().where(models.organization_roles.c.organization_id==organization_id))
     for role in sorted(set(data.roles)):
