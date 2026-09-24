@@ -2421,6 +2421,52 @@ def equipment_alerts(days_ahead:int=Query(default=30,ge=1,le=365),db:Session=Dep
         for l in lots: expiring_lots.append({"consumable_type_id":ct.id,"consumable_name":ct.name,"lot_id":l.id,"quantity":float(l.quantity),"expiry_date":l.expiry_date.isoformat()})
     return {"ppe_certification_expiring":[_equipment_out(db,x) for x in ppe_expiring],"consumables_low_stock":low_stock,"consumable_lots_expiring":expiring_lots}
 
+# ---- Αναφορές και Στατιστικά: έτοιμες φόρμες αναφορών (Excel/PDF) ανά κατηγορία ----
+REPORT_CATEGORIES={"receipts","processing","dispatch","statistics","recycling"}
+REPORT_EXTENSIONS={".xlsx",".xlsm",".xls",".csv",".pdf"}
+REPORT_MAX_BYTES=25*1024*1024
+
+def _report_dir(category:str)->Path:
+    if category not in REPORT_CATEGORIES: raise HTTPException(404,"Άγνωστη κατηγορία αναφορών")
+    d=Path(settings.report_templates_dir)/category; d.mkdir(parents=True,exist_ok=True); return d
+
+def _report_kind(name:str)->str:
+    n=name.strip().lower()
+    if n.startswith("ημερήσι"): return "DAILY"
+    if n.startswith("μηνιαί"): return "MONTHLY"
+    return "OTHER"
+
+@app.get("/reports/templates/{category}")
+def list_report_templates(category:str, user:User=Depends(current_user)):
+    d=_report_dir(category)
+    out=[{"name":p.name,"size":p.stat().st_size,"modified":datetime.fromtimestamp(p.stat().st_mtime).isoformat(),"kind":_report_kind(p.name)} for p in d.iterdir() if p.is_file() and p.suffix.lower() in REPORT_EXTENSIONS]
+    return sorted(out,key=lambda x:x["name"].casefold())
+
+@app.get("/reports/templates/{category}/file")
+def download_report_template(category:str, name:str=Query(...), user:User=Depends(current_user)):
+    p=_report_dir(category)/Path(name).name
+    if not p.is_file(): raise HTTPException(404,"Το αρχείο δεν βρέθηκε")
+    return FileResponse(p,filename=p.name)
+
+@app.post("/reports/templates/{category}")
+async def upload_report_template(category:str, file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):
+    d=_report_dir(category)
+    name=Path(file.filename or "").name
+    if not name or Path(name).suffix.lower() not in REPORT_EXTENSIONS: raise HTTPException(422,"Επιτρέπονται αρχεία Excel (.xlsx, .xlsm, .xls), .csv ή .pdf")
+    data=await file.read(REPORT_MAX_BYTES+1)
+    if len(data)>REPORT_MAX_BYTES: raise HTTPException(413,"Το αρχείο ξεπερνά τα 25 MB")
+    (d/name).write_bytes(data)
+    write_audit(db,user,"report_template",None,"UPLOAD",new={"category":category,"name":name,"size":len(data)}); db.commit()
+    return {"name":name,"size":len(data),"kind":_report_kind(name)}
+
+@app.delete("/reports/templates/{category}")
+def delete_report_template(category:str, name:str=Query(...), db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):
+    p=_report_dir(category)/Path(name).name
+    if not p.is_file(): raise HTTPException(404,"Το αρχείο δεν βρέθηκε")
+    p.unlink()
+    write_audit(db,user,"report_template",None,"DELETE",old={"category":category,"name":p.name}); db.commit()
+    return {"ok":True}
+
 @app.get("/mobile")
 def mobile_workspace():
     return FileResponse(static_dir / "mobile_v12.html", headers={"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0","Pragma":"no-cache","Expires":"0","X-WEEE-Build":"1.9"})

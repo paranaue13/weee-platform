@@ -26,8 +26,13 @@ def _default_electrocycle_profile_dir() -> str:
     data_dir.mkdir(parents=True, exist_ok=True)
     return str(data_dir / "electrocycle_profile")
 
+def _default_report_templates_dir() -> str:
+    base = Path(os.environ.get("LOCALAPPDATA") or (Path.home() / "AppData" / "Local"))
+    return str(base / "WEEE Platform" / "data" / "report_templates")
+
 class Settings(BaseSettings):
     database_url: str = _default_database_url()
+    report_templates_dir: str = _default_report_templates_dir()
     jwt_secret: str = "dev-only-change-me"
     access_token_minutes: int = 480
     bootstrap_admin_username: str = "admin"
