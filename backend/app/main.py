@@ -844,7 +844,7 @@ def _receipt_out(db: Session, trip: InboundTrip):
         id=trip.id, receipt_number=trip.receipt_number, receipt_type=trip.receipt_type,
         receipt_date=trip.receipt_date, carrier_id=trip.carrier_id, driver_name=trip.driver_name,
         vehicle_registration=trip.vehicle_registration, status=trip.status, notes=trip.notes,
-        aggregate_weighbridge_number=trip.aggregate_weighbridge_number,
+        aggregate_weighbridge_number=trip.aggregate_weighbridge_number, deleted_at=trip.deleted_at,
         loads=[schemas.ReceiptLoadOut.model_validate(x) for x in loads]
     )
 
@@ -1240,9 +1240,19 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
 def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Daily workbook: one sorting per worksheet plus final 'Σύνολο Μέρας', matching the imported daily workbook structure."""
     d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day)
-    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx',pad_blank_to=15)
+    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx')
 
-def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str, pad_blank_to:int=0):
+def _copy_print_setup(src,dst):
+    """copy_worksheet δεν μεταφέρει περιοχή εκτύπωσης, κλίμακα, προβολή σελίδας και διακοπές σελίδας της φόρμας."""
+    from copy import copy
+    area=src.print_area
+    if area: dst.print_area=area.split('!')[-1].replace('$','')
+    dst.page_setup=copy(src.page_setup); dst.page_margins=copy(src.page_margins); dst.print_options=copy(src.print_options)
+    if src.sheet_properties.pageSetUpPr is not None: dst.sheet_properties.pageSetUpPr=copy(src.sheet_properties.pageSetUpPr)
+    dst.sheet_view.view=src.sheet_view.view; dst.sheet_view.zoomScale=src.sheet_view.zoomScale; dst.sheet_view.zoomScaleNormal=src.sheet_view.zoomScaleNormal; dst.sheet_view.zoomScalePageLayoutView=src.sheet_view.zoomScalePageLayoutView
+    dst.row_breaks=copy(src.row_breaks); dst.col_breaks=copy(src.col_breaks)
+
+def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str):
     from openpyxl import load_workbook
     from copy import copy
     from tempfile import NamedTemporaryFile
@@ -1268,21 +1278,12 @@ def _received_workbook_response(db:Session, start:datetime, end:datetime, summar
         ws['G12']='ΝΑΙ' if ses and ses.check_special else 'ΌΧΙ';ws['I12']='ΝΑΙ' if ses and ses.check_kday else 'ΌΧΙ';ws['L12']='ΝΑΙ' if ses and ses.check_non_integer else 'ΌΧΙ';ws['O12']='ΝΑΙ' if ses and ses.load_pure else 'ΌΧΙ';ws['R12']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΌΧΙ'
         for row in range(15,83):
             c=str(ws.cell(row=row,column=4).value or '').strip()
-            if c: ws.cell(row=row,column=15).value=int(round(float(data['weights'].get(c,0)))); ws.cell(row=row,column=16).value=int(data['pieces'].get(c,0))
+            if c: ws.cell(row=row,column=15).value=int(round(float(data['weights'].get(c,0)))) or None; ws.cell(row=row,column=16).value=int(data['pieces'].get(c,0)) or None
     made=[]
     for i,l in enumerate(loads,1):
-        ws=wb.copy_worksheet(detail_src); data=_sorting_export_data(db,l.id); fill(ws,data); name=str(l.dpp_number or l.order_number or i)[:31];
+        ws=wb.copy_worksheet(detail_src); _copy_print_setup(detail_src,ws); data=_sorting_export_data(db,l.id); fill(ws,data); name=str(l.dpp_number or l.order_number or i)[:31];
         while name in wb.sheetnames: name=(name[:27]+'_'+str(i))[:31]
         ws.title=name; made.append(ws)
-    if pad_blank_to>len(made):
-        n_blank=pad_blank_to-len(made)
-        for k in range(n_blank,0,-1):
-            ws=wb.copy_worksheet(detail_src)
-            for co in ('B2','D2','B3','D3','B5','D5','B6','D6','B7','D7','B8','D8','B9','D9','G12','I12','L12','O12','R12'): ws[co]=None
-            ws['A12']='ΥΠ/ΜΑ: \nΠΟΛΗ: '
-            for row in range(15,83):
-                if str(ws.cell(row=row,column=4).value or '').strip(): ws.cell(row=row,column=15).value=None; ws.cell(row=row,column=16).value=None
-            ws.title='.'*k; made.append(ws)
     wb.remove(detail_src)
     if (end-start)<=timedelta(days=1): summary_src['B7']=start.strftime('%d.%m.%Y')
     # Rebuild cross-sheet totals from exactly the generated daily sorting sheets.
