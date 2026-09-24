@@ -834,14 +834,14 @@ def _compute_net(receipt_type: str, load: schemas.ReceiptLoadCreate, outgoing: C
     return load.gross_weight - load.tare_weight
 
 def _compute_aggregate_weighbridge(data: schemas.ReceiptCreate) -> str|None:
-    # Container / Καρότσα / μοναδικό μικρό σημείο: το συγκεντρωτικό ζυγολόγιο ΕΙΝΑΙ ο αριθμός
-    # ζυγολογίου του ίδιου του φορτίου -- δεν χρειάζεται ξεχωριστή χειροκίνητη καταχώρηση, κρίσιμο
-    # για τη μελλοντική διασύνδεση με το ERP (Galaxy). Μόνο σε πολλαπλά μικρά σημεία (ένα φορτηγό,
-    # πολλές εντολές) το συγκεντρωτικό παραμένει χειροκίνητο, γιατί μπορεί να διαφέρει από το
-    # ζυγολόγιο κάθε επιμέρους εντολής.
+    # Container / Καρότσα / μοναδικό μικρό σημείο: το συγκεντρωτικό ζυγολόγιο είναι από προεπιλογή ο
+    # αριθμός ζυγολογίου του ίδιου του φορτίου, κρίσιμο για τη μελλοντική διασύνδεση με το ERP
+    # (Galaxy). Αν ο χρήστης έχει δώσει δικό του αριθμό (και σε μοναδικό σημείο), ισχύει αυτός. Σε
+    # πολλαπλά μικρά σημεία (ένα φορτηγό, πολλές εντολές) είναι πάντα χειροκίνητο.
+    manual = (data.aggregate_weighbridge_number or '').strip() or None
     if len(data.loads) == 1:
-        return data.loads[0].weighbridge_number
-    return data.aggregate_weighbridge_number
+        return manual or data.loads[0].weighbridge_number
+    return manual
 
 
 def _receipt_out(db: Session, trip: InboundTrip):
