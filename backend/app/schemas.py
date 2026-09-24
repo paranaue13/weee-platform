@@ -67,6 +67,7 @@ class OrganizationCreate(BaseModel):
     tax_id: str|None = None
     email: str|None = None
     phone: str|None = None
+    supplier_kind: str|None = None
     roles: list[str] = []
 
 
@@ -76,6 +77,7 @@ class OrganizationUpdate(BaseModel):
     tax_id: str|None = None
     email: str|None = None
     phone: str|None = None
+    supplier_kind: str|None = None
     roles: list[str] = []
 
 class OrganizationMergeRequest(BaseModel):
@@ -92,6 +94,7 @@ class OrganizationOut(BaseModel):
     phone: str|None
     galaxy_id: str|None
     active: bool
+    supplier_kind: str|None = None
 
 
 

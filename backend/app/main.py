@@ -59,6 +59,9 @@ async def lifespan(app: FastAPI):
             trip_cols={c["name"] for c in inspect(engine).get_columns("inbound_trips")}
             if "deleted_at" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN deleted_at DATETIME"))
             if "aggregate_weighbridge_number" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN aggregate_weighbridge_number VARCHAR(100)"))
+        if "organizations" in tables:
+            orgs_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
+            if "supplier_kind" not in orgs_cols: conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_kind VARCHAR(20)"))
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
@@ -183,6 +186,7 @@ def list_organizations(role:str|None=Query(default=None), include_inactive:bool=
 
 @app.post("/master/organizations", response_model=schemas.OrganizationOut)
 def create_organization(data:schemas.OrganizationCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    if data.supplier_kind not in (None,"COMPANY","SCRAP_DEALER"): raise HTTPException(422,"Μη έγκυρη κατηγορία προμηθευτή")
     payload=data.model_dump(exclude={"roles"}); obj=Organization(**payload); db.add(obj); db.flush()
     if data.roles:
         from sqlalchemy import insert
@@ -194,8 +198,11 @@ def create_organization(data:schemas.OrganizationCreate, db:Session=Depends(get_
 def update_organization(organization_id:str, data:schemas.OrganizationUpdate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(Organization,organization_id)
     if not obj: raise HTTPException(404,"Η εταιρεία δεν βρέθηκε")
-    old={"legal_name":obj.legal_name,"trade_name":obj.trade_name,"tax_id":obj.tax_id,"email":obj.email,"phone":obj.phone}
-    for k,v in data.model_dump(exclude={"roles"}).items(): setattr(obj,k,v)
+    if data.supplier_kind not in (None,"COMPANY","SCRAP_DEALER"): raise HTTPException(422,"Μη έγκυρη κατηγορία προμηθευτή")
+    old={"legal_name":obj.legal_name,"trade_name":obj.trade_name,"tax_id":obj.tax_id,"email":obj.email,"phone":obj.phone,"supplier_kind":obj.supplier_kind}
+    for k,v in data.model_dump(exclude={"roles"}).items():
+        if k=="supplier_kind" and k not in data.model_fields_set: continue
+        setattr(obj,k,v)
     db.execute(models.organization_roles.delete().where(models.organization_roles.c.organization_id==organization_id))
     for role in sorted(set(data.roles)):
         db.execute(models.organization_roles.insert().values(organization_id=organization_id,role=role))
@@ -1223,23 +1230,26 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
 @app.get('/sorting/daily-export')
 def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Daily workbook: one sorting per worksheet plus final 'Σύνολο Μέρας', matching the imported daily workbook structure."""
+    d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day)
+    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx')
+
+def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str):
     from openpyxl import load_workbook
     from copy import copy
     from tempfile import NamedTemporaryFile
     import os
     from starlette.background import BackgroundTask
-    d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day); end=start+timedelta(days=1)
-    loads=db.scalars(select(InboundLoad).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=start,InboundTrip.receipt_date<end,InboundTrip.deleted_at.is_(None)).order_by(InboundLoad.created_at)).all()
+    loads=db.scalars(select(InboundLoad).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=start,InboundTrip.receipt_date<end,InboundTrip.deleted_at.is_(None)).order_by(InboundTrip.receipt_date,InboundLoad.created_at)).all()
     template=Path(__file__).parent/'templates'/'daily_sorting_report_template.xlsx'
     wb=load_workbook(template)
     # Keep a pristine detail sheet and summary sheet from the imported template.
     detail_src=wb[wb.sheetnames[0]]; summary_src=wb['Σύνολο Μέρας'] if 'Σύνολο Μέρας' in wb.sheetnames else wb[wb.sheetnames[-1]]
     for ws in list(wb.worksheets):
         if ws not in (detail_src,summary_src): wb.remove(ws)
-    detail_src.title='__DETAIL_TEMPLATE__'; summary_src.title='Σύνολο Μέρας'
+    detail_src.title='__DETAIL_TEMPLATE__'; summary_src.title=summary_title
     def fill(ws,data):
         l,t,ses=data['load'],data['trip'],data['session']; ex=data['extras']; org=lambda o:(o.trade_name or o.legal_name) if o else ''
-        ws['B2']=org(data['supplier']);ws['D2']=l.order_number or '';ws['B3']=org(data['carrier']);ws['D3']=l.seal_number or ex.get('sealNo','');ws['B4']=ex.get('recycler') or 'ΚΕΝΤΡΟ ΕΛΛΗΝΙΚΗΣ ΠΕΡΙΒΑΛΛΟΝΤΙΚΗΣ ΑΝΑΚΥΚΛΩΣΗΣ Α.Β.Ε.Τ.Ε.';ws['D4']=int(round(float(l.net_weight or 0)));ws['B5']=l.incoming_container_number or '-';ws['D5']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΟΧΙ';ws['B6']=l.weighbridge_number or ex.get('weighbridgeNo','');ws['D6']=int(round(float(ses.foreign_weight or 0))) if ses else 0;ws['B7']=d.strftime('%d.%m.%Y');ws['D7']='ΝΑΙ' if ses and float(ses.special_waste_weight or 0)>0 else 'ΟΧΙ';ws['B8']=l.dispatch_note_number or ex.get('dispatchNo','');ws['D8']=int(round(float(ses.special_waste_weight or 0))) if ses else 0;ws['B9']=l.dpp_number or '';ws['D9']=t.vehicle_registration or ''
+        ws['B2']=org(data['supplier']);ws['D2']=l.order_number or '';ws['B3']=org(data['carrier']);ws['D3']=l.seal_number or ex.get('sealNo','');ws['B4']=ex.get('recycler') or 'ΚΕΝΤΡΟ ΕΛΛΗΝΙΚΗΣ ΠΕΡΙΒΑΛΛΟΝΤΙΚΗΣ ΑΝΑΚΥΚΛΩΣΗΣ Α.Β.Ε.Τ.Ε.';ws['D4']=int(round(float(l.net_weight or 0)));ws['B5']=l.incoming_container_number or '-';ws['D5']='ΝΑΙ' if ses and float(ses.foreign_weight or 0)>0 else 'ΟΧΙ';ws['B6']=l.weighbridge_number or ex.get('weighbridgeNo','');ws['D6']=int(round(float(ses.foreign_weight or 0))) if ses else 0;ws['B7']=(t.receipt_date or start).strftime('%d.%m.%Y');ws['D7']='ΝΑΙ' if ses and float(ses.special_waste_weight or 0)>0 else 'ΟΧΙ';ws['B8']=l.dispatch_note_number or ex.get('dispatchNo','');ws['D8']=int(round(float(ses.special_waste_weight or 0))) if ses else 0;ws['B9']=l.dpp_number or '';ws['D9']=t.vehicle_registration or ''
         # Only user-authored observations; never workflow/import status text.
         plain=(ex.get('plainNotes','') or (ses.notes if ses else '') or '')
         import re as _re; plain=_re.sub(r'^Ιστορική εισαγωγή από .*?\.xlsx\s*','',plain,flags=_re.I)
@@ -1268,7 +1278,6 @@ def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:S
     try: wb.calculation.fullCalcOnLoad=True;wb.calculation.forceFullCalc=True;wb.calculation.calcMode='auto'
     except Exception: pass
     tmp=NamedTemporaryFile(delete=False,suffix='.xlsx');tmp.close();wb.save(tmp.name)
-    filename=d.strftime('%d.%m.%Y')+'.xlsx'
     return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=filename,background=BackgroundTask(os.unlink,tmp.name))
 
 @app.get('/sorting/{load_id}', response_model=schemas.SortingSessionOut)
@@ -2466,6 +2475,9 @@ def delete_report_template(category:str, name:str=Query(...), db:Session=Depends
     p.unlink()
     write_audit(db,user,"report_template",None,"DELETE",old={"category":category,"name":p.name}); db.commit()
     return {"ok":True}
+
+from . import report_generators
+for _r in report_generators.router.routes: app.add_api_route(_r.path,_r.endpoint,methods=list(_r.methods))
 
 @app.get("/mobile")
 def mobile_workspace():

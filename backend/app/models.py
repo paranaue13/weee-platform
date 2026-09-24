@@ -213,6 +213,7 @@ class Organization(Base, TimestampMixin):
     phone: Mapped[str|None] = mapped_column(String(50), nullable=True)
     galaxy_id: Mapped[str|None] = mapped_column(String(100), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    supplier_kind: Mapped[str|None] = mapped_column(String(20), nullable=True)
 
 
 class OrganizationRegistryDetail(Base, TimestampMixin):
