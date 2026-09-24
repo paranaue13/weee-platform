@@ -833,6 +833,17 @@ def _compute_net(receipt_type: str, load: schemas.ReceiptLoadCreate, outgoing: C
         return load.gross_weight - load.tare_weight - load.incoming_container_tare + out_tare
     return load.gross_weight - load.tare_weight
 
+def _nonneg(value, label: str):
+    """Κανένα βάρος/τεμάχια δεν μπορεί να είναι αρνητικό -- σε καμία καταχώρηση."""
+    if value is not None and Decimal(value) < 0:
+        raise HTTPException(422, f"{label}: δεν επιτρέπεται αρνητική τιμή. Έλεγξε το πεδίο.")
+
+def _check_load_weights(ld: schemas.ReceiptLoadCreate, net, row: int):
+    for v, name in ((ld.gross_weight, "1η ζύγιση"), (ld.tare_weight, "2η ζύγιση"), (ld.incoming_container_tare, "Απόβαρο κάδου εισόδου"), (ld.outgoing_container_tare, "Απόβαρο κάδου εξόδου")):
+        _nonneg(v, f"Γραμμή {row} - {name}")
+    if net is not None and net < 0:
+        raise HTTPException(422, f"Γραμμή {row}: τα κιλά παραλαβής βγαίνουν αρνητικά ({net:f} kg). Έλεγξε την 1η και 2η ζύγιση.")
+
 def _compute_aggregate_weighbridge(data: schemas.ReceiptCreate) -> str|None:
     # Container / Καρότσα / μοναδικό μικρό σημείο: το συγκεντρωτικό ζυγολόγιο είναι από προεπιλογή ο
     # αριθμός ζυγολογίου του ίδιου του φορτίου, κρίσιμο για τη μελλοντική διασύνδεση με το ERP
@@ -998,6 +1009,7 @@ def create_receipt(data:schemas.ReceiptCreate, db:Session=Depends(get_db), user:
             if ld.incoming_container_tare is None: raise HTTPException(422,"Απαιτείται απόβαρο εισερχόμενου container")
             if not outgoing and ld.outgoing_container_tare is None: raise HTTPException(422,"Απαιτείται κάδος εξόδου ή Προσαρμοσμένο απόβαρο")
         net=_compute_net(data.receipt_type,ld,outgoing)
+        _check_load_weights(ld,net,i)
         obj=InboundLoad(trip_id=trip.id,load_sequence=i,supplier_id=ld.supplier_id,order_number=ld.order_number,
             incoming_container_number=ld.incoming_container_number,incoming_container_tare=ld.incoming_container_tare,
             outgoing_container_id=ld.outgoing_container_id,outgoing_container_tare=(outgoing.tare_weight if outgoing else ld.outgoing_container_tare),gross_weight=ld.gross_weight,tare_weight=ld.tare_weight,
@@ -1047,6 +1059,7 @@ def update_receipt(receipt_id:str, data:schemas.ReceiptCreate, db:Session=Depend
             if ld.incoming_container_tare is None: raise HTTPException(422,"Απαιτείται απόβαρο εισερχόμενου container")
             if not outgoing and ld.outgoing_container_tare is None: raise HTTPException(422,"Απαιτείται κάδος εξόδου ή Προσαρμοσμένο απόβαρο")
         net=_compute_net(data.receipt_type,ld,outgoing)
+        _check_load_weights(ld,net,i)
         keep_dpp=ld.dpp_number or old_dpp_by_order.get(ld.order_number) or old_dpp_by_seq.get(i)
         if not keep_dpp:
             keep_dpp=auto_pool[auto_i]; auto_i+=1
@@ -1320,6 +1333,7 @@ def list_media(db:Session=Depends(get_db), user=Depends(require_permission('mast
 
 @app.post('/sorting/{load_id}/entries', response_model=schemas.SortingEntryOut)
 def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    _nonneg(data.raw_weight,'Βάρος'); _nonneg(data.piece_count,'Τεμάχια')
     load,ses=_session_for_load(db,load_id,True,user)
     if ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
     cat=db.get(WEEECategory,data.weee_category_id)
@@ -1347,6 +1361,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
 
 @app.put('/sorting/entries/{entry_id}', response_model=schemas.SortingEntryOut)
 def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    _nonneg(data.raw_weight,'Βάρος'); _nonneg(data.piece_count,'Τεμάχια')
     e=db.get(SortingEntry,entry_id)
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
@@ -1431,6 +1446,7 @@ def sorting_metadata(load_id:str, data:schemas.SortingMetaUpdate, db:Session=Dep
     if not ses: raise HTTPException(404,'Η ταξινόμηση δεν βρέθηκε')
     for field in ('foreign_weight','special_waste_weight'):
         v=getattr(data,field)
+        _nonneg(v,'Καθαρό βάρος ξένων υλικών' if field=='foreign_weight' else 'Καθαρό βάρος αποβλήτων ειδικής διαχείρισης')
         if v is not None and Decimal(v)!=Decimal(v).to_integral_value():
             raise HTTPException(422,'Τα βάρη καταχωρούνται σε ακέραια kg')
     ses.foreign_materials=(data.foreign_materials or '').strip() or None
@@ -1561,6 +1577,7 @@ def sorting_confirm(load_id:str, db:Session=Depends(get_db), user:User=Depends(r
 
 @app.post('/sorting/entries/{entry_id}/adjust', response_model=schemas.SortingEntryOut)
 def sorting_adjust(entry_id:str, data:schemas.SortingAdjustmentCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
+    _nonneg(data.new_weight,'Νέο βάρος')
     e=db.get(SortingEntry,entry_id)
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
