@@ -1168,7 +1168,7 @@ def sorting_available(db:Session=Depends(get_db), user=Depends(require_permissio
         trip=db.get(InboundTrip,l.trip_id); sup=db.get(Organization,l.supplier_id)
         out.append({'load_id':l.id,'receipt_id':trip.id,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,
           'receipt_date':trip.receipt_date.isoformat(),'supplier':sup.trade_name or sup.legal_name,'carrier_id':trip.carrier_id,
-          'order_number':l.order_number,'container_number':l.incoming_container_number,'net_weight':float(l.net_weight or 0),'status':l.status})
+          'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,'net_weight':float(l.net_weight or 0),'status':l.status})
     return out
 
 @app.post('/sorting/{load_id}/start', response_model=schemas.SortingStartOut)
@@ -1439,6 +1439,12 @@ def sorting_delete_entry(entry_id:str, db:Session=Depends(get_db), user:User=Dep
         if load: load.status='READY_FOR_SORTING'
         db.delete(ses)
     db.commit(); return {'ok':True}
+
+@app.get('/sorting/{load_id}/metadata')
+def sorting_metadata_get(load_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    load,ses=_session_for_load(db,load_id,False)
+    if not ses: return {'foreign_materials':None,'foreign_weight':0,'special_waste':None,'special_waste_weight':0,'load_pure':False,'check_special':False,'check_kday':False,'check_non_integer':False}
+    return {'foreign_materials':ses.foreign_materials,'foreign_weight':float(ses.foreign_weight or 0),'special_waste':ses.special_waste,'special_waste_weight':float(ses.special_waste_weight or 0),'load_pure':bool(ses.load_pure),'check_special':bool(ses.check_special),'check_kday':bool(ses.check_kday),'check_non_integer':bool(ses.check_non_integer)}
 
 @app.put('/sorting/{load_id}/metadata')
 def sorting_metadata(load_id:str, data:schemas.SortingMetaUpdate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
