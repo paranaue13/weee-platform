@@ -1907,6 +1907,67 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     return {'period':period,'selected':label,'month':label[:7],'kpis':{'receipts_period':round(receipt_total,3),'receipts_month':round(receipt_total,3),'classified_total':round(classified_process+classified_ship,3),'classified_to_process':classified_process,'classified_to_ship':classified_ship,'processed_period':round(sum(x['processed_period'] for x in rows),3),'processed_month':round(sum(x['processed_period'] for x in rows),3),'processed_hermes_total':round(sum(x['processed_month_hermes'] for x in rows),3),'weee_shipments_period':round(sum(x['outgoing_period'] for x in out_ship),3),'weee_shipments_month':round(sum(x['outgoing_period'] for x in out_ship),3),'stock_to_process':round(sum(x['current_stock'] for x in out_process if x['current_stock'] is not None),3),'stock_to_ship':round(sum(x['current_stock'] for x in out_ship if x['current_stock'] is not None),3),'inferred_carry_in':round(sum(carry_in.values()),3),'opening_stock_documented_total':round(sum(documented_opening_family.values()),3),'opening_stock_gap_total':round(sum(undocumented_gap_family.values()),3),'opening_stock_period_total':round(sum(x['previous_stock'] for x in rows if x['previous_stock'] is not None),3)},'to_process':out_process,'to_ship':out_ship}
 
 
+def _weee_family_code(c):
+    return c.parent_code if c.is_internal_subcategory and c.parent_code else c.code
+
+@app.get('/inventory/weee/media-summary')
+def weee_media_summary(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """Available WEEE stock lots pooled per official category family and per collection-medium type."""
+    cats={c.id:c for c in db.scalars(select(WEEECategory)).all()}
+    media={m.id:m for m in db.scalars(select(CollectionMedium)).all()}
+    types={t.id:t for t in db.scalars(select(CollectionMediumType)).all()}
+    fam={}; used={}
+    for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all():
+        c=cats.get(lot.weee_category_id)
+        if not c: continue
+        m=media.get(lot.collection_medium_id) if lot.collection_medium_id else None; t=types.get(m.type_id) if m else None
+        key=t.id if t else 'NONE'; used[key]=(t.name_el if t else 'Χύμα / χωρίς μέσο', t.code if t else 'NONE')
+        d=fam.setdefault(_weee_family_code(c),{}); d[key]=round(d.get(key,0)+float(lot.available_weight or 0),3)
+    order=['BASKET_SMALL','BASKET_LARGE','INFOCYCLE_1','INFOCYCLE_2','SACK_1KG','SACK_2KG_UN','PALLET','BOX','BULK','NONE']
+    tl=sorted(({'key':k,'name':v[0],'code':v[1]} for k,v in used.items()),key=lambda x:(order.index(x['code']) if x['code'] in order else 90,x['name']))
+    return {'types':tl,'families':fam}
+
+@app.get('/inventory/weee/media-detail')
+def weee_media_detail(official_code:str, type_key:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """Media of one type that currently hold a category family, with the kg of that family in each."""
+    ids={c.id for c in db.scalars(select(WEEECategory)).all() if _weee_family_code(c)==official_code}
+    media={m.id:m for m in db.scalars(select(CollectionMedium)).all()}
+    types={t.id:t for t in db.scalars(select(CollectionMediumType)).all()}
+    groups={}; type_name='Χύμα / χωρίς μέσο'
+    for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all():
+        if lot.weee_category_id not in ids: continue
+        m=media.get(lot.collection_medium_id) if lot.collection_medium_id else None; t=types.get(m.type_id) if m else None
+        if (t.id if t else 'NONE')!=type_key: continue
+        if t: type_name=t.name_el
+        g=groups.setdefault(lot.collection_medium_id or 'NONE',{'medium_id':lot.collection_medium_id,'code':m.code if m else 'Χύμα','kg':0.0})
+        g['kg']=round(g['kg']+float(lot.available_weight or 0),3)
+    def natural(x):
+        import re
+        return [int(p) if p.isdigit() else p.lower() for p in re.split(r'(\d+)',str(x['code']))]
+    out=sorted(groups.values(),key=natural)
+    return {'official_code':official_code,'type':type_name,'total':round(sum(x['kg'] for x in out),3),'media':out}
+
+@app.get('/inventory/weee/medium/{medium_id}/history')
+def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    med=db.get(CollectionMedium,medium_id)
+    if not med: raise HTTPException(404,'Το μέσο συλλογής δεν βρέθηκε')
+    mt=db.get(CollectionMediumType,med.type_id)
+    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
+    events=[]; current=0.0
+    for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id).order_by(WEEEStockLot.created_at)).all():
+        load=db.get(InboundLoad,lot.inbound_load_id); trip=db.get(InboundTrip,load.trip_id) if load else None
+        if trip and trip.deleted_at is not None: continue
+        cat=db.get(WEEECategory,lot.weee_category_id); sup=db.get(Organization,load.supplier_id) if load else None
+        current+=float(lot.available_weight or 0)
+        for mv in db.scalars(select(StockMovement).where(StockMovement.lot_id==lot.id).order_by(StockMovement.created_at)).all():
+            unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
+            at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
+            events.append({'at':at.isoformat(),'type':mv.movement_type,'label':labels.get(mv.movement_type,mv.movement_type),'weight':(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0),
+              'category':cat.code if cat else '','description':cat.description_el if cat else '','supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
+              'unit':unit.name_el if unit else None,'reason':mv.reason})
+    events.sort(key=lambda e:e['at'],reverse=True)
+    return {'medium':{'id':med.id,'code':med.code,'type':mt.name_el if mt else '','tare_weight':float(med.tare_weight) if med.tare_weight is not None else None},'current_weight':round(current,3),'events':events}
+
 @app.get('/inventory/weee/category/{category_id}/positions')
 def weee_category_positions(category_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     cat=db.get(WEEECategory,category_id)
