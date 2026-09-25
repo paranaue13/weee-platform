@@ -2,10 +2,16 @@ package gr.weee.platform;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.ClipData;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.provider.MediaStore;
 import android.view.ViewGroup;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -14,11 +20,19 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
 
 public class MainActivity extends Activity {
+    private static final String VERSION = "2.5.37";
+    private static final int REQ_FILES = 4711;
+
     private WebView web;
     private SharedPreferences prefs;
     private String serverUrl;
+    private ValueCallback<Uri[]> filePathCallback;
+    private File cameraFile;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -36,7 +50,7 @@ public class MainActivity extends Activity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setPadding(12,10,12,10);
         TextView status = new TextView(this);
-        status.setText("WEEE Platform 2.5.1");
+        status.setText("WEEE Platform " + VERSION);
         status.setTextSize(16);
         status.setTextColor(Color.WHITE);
         status.setPadding(8,12,8,12);
@@ -56,17 +70,85 @@ public class MainActivity extends Activity {
         ws.setAllowFileAccess(true);
         ws.setMediaPlaybackRequiresUserGesture(false);
         web.setWebViewClient(new WebViewClient());
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            // <input type="file"> in /mobile: offer camera or gallery, results go back to the page which uploads them to the load.
+            @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (filePathCallback != null) filePathCallback.onReceiveValue(null);
+                filePathCallback = callback;
+                boolean multiple = params != null && params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE;
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Φωτογραφία")
+                    .setItems(new String[]{"Κάμερα", "Συλλογή"}, (d, which) -> { if (which == 0) openCamera(); else openGallery(multiple); })
+                    .setOnCancelListener(d -> finishChooser(null))
+                    .show();
+                return true;
+            }
+        });
         root.addView(web, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1));
         setContentView(root);
         loadApp();
+    }
+
+    private void openCamera() {
+        try {
+            cameraFile = new File(PhotoProvider.dir(this), "cam_" + System.currentTimeMillis() + ".jpg");
+            Uri out = PhotoProvider.uriFor(cameraFile);
+            Intent i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            i.putExtra(MediaStore.EXTRA_OUTPUT, out);
+            i.setClipData(ClipData.newRawUri("photo", out));
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            startActivityForResult(i, REQ_FILES);
+        } catch (ActivityNotFoundException | SecurityException e) {
+            cameraFile = null;
+            Toast.makeText(this, "Δεν ήταν δυνατό το άνοιγμα της κάμερας", Toast.LENGTH_LONG).show();
+            finishChooser(null);
+        }
+    }
+
+    private void openGallery(boolean multiple) {
+        cameraFile = null;
+        try {
+            Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("image/*");
+            if (multiple) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            startActivityForResult(Intent.createChooser(i, "Επιλογή φωτογραφιών"), REQ_FILES);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Δεν βρέθηκε εφαρμογή συλλογής", Toast.LENGTH_LONG).show();
+            finishChooser(null);
+        }
+    }
+
+    private void finishChooser(Uri[] result) {
+        if (filePathCallback != null) { filePathCallback.onReceiveValue(result); filePathCallback = null; }
+    }
+
+    @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_FILES) return;
+        Uri[] result = null;
+        if (resultCode == RESULT_OK) {
+            if (cameraFile != null) {
+                if (cameraFile.exists() && cameraFile.length() > 0) result = new Uri[]{PhotoProvider.uriFor(cameraFile)};
+            } else if (data != null) {
+                if (data.getClipData() != null) {
+                    ClipData c = data.getClipData();
+                    result = new Uri[c.getItemCount()];
+                    for (int k = 0; k < result.length; k++) result[k] = c.getItemAt(k).getUri();
+                } else if (data.getData() != null) {
+                    result = new Uri[]{data.getData()};
+                }
+            }
+        }
+        cameraFile = null;
+        finishChooser(result);
     }
 
     private void loadApp() {
         String s = serverUrl.trim();
         while (s.endsWith("/")) s = s.substring(0, s.length()-1);
         web.clearCache(true);
-        web.loadUrl(s + "/mobile?build=2.5.30");
+        web.loadUrl(s + "/mobile?build=" + VERSION);
     }
 
     private void editServer() {

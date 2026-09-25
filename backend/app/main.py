@@ -1245,14 +1245,14 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
           'medium_type':mt.name_el if mt else None,'medium_code':(str(med.code).replace('I2-','') if med else None),'tare_weight':float(med.tare_weight) if med and med.tare_weight is not None else None,
           'entry_type':e.entry_type,'raw_weight':float(e.raw_weight or 0),'approved_weight':float(e.approved_weight) if e.approved_weight is not None else None,
           'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat()})
-    photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='sorting_session',FileAttachment.entity_id==ses.id).order_by(FileAttachment.created_at.desc())).all() if ses else []
+    photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load.id).order_by(FileAttachment.created_at)).all()
     audits=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type.in_(['sorting_session','sorting_entry'])).order_by(models.AuditEvent.created_at.desc()).limit(100)).all()
     return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
       'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''), 'order_number':load.order_number,'net_weight':float(load.net_weight or 0),
       'sorting_weight':sum((r['approved_weight'] if r['approved_weight'] is not None else r['raw_weight']) for r in rows),'entries':rows,
       'dpp_number':load.dpp_number,'foreign_materials':(ses.foreign_materials if ses else None),'foreign_weight':(float(ses.foreign_weight) if ses and ses.foreign_weight is not None else 0),
       'special_waste':(ses.special_waste if ses else None),'special_waste_weight':(float(ses.special_waste_weight) if ses and ses.special_waste_weight is not None else 0),'load_pure':bool(ses.load_pure) if ses else False,'check_special':bool(ses.check_special) if ses else False,'check_kday':bool(ses.check_kday) if ses else False,'check_non_integer':bool(ses.check_non_integer) if ses else False,
-      'photos':[{'filename':p.filename,'category':p.category,'created_at':p.created_at.isoformat()} for p in photos],
+      'photos':[{'id':p.id,'filename':p.filename,'category':p.category,'created_at':p.created_at.isoformat()} for p in photos],
       'history':[{'action':a.action,'reason':a.reason,'created_at':a.created_at.isoformat()} for a in audits if a.entity_id in ({ses.id} if ses else set()) | {e.id for e in entries}]}
 
 @app.get('/sorting/daily-export')
