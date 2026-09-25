@@ -1168,7 +1168,7 @@ def sorting_available(db:Session=Depends(get_db), user=Depends(require_permissio
         trip=db.get(InboundTrip,l.trip_id); sup=db.get(Organization,l.supplier_id)
         if trip.deleted_at is not None: continue  # deleted receipts must not be offered for sorting
         out.append({'load_id':l.id,'receipt_id':trip.id,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,
-          'receipt_date':trip.receipt_date.isoformat(),'supplier':sup.trade_name or sup.legal_name,'carrier_id':trip.carrier_id,
+          'receipt_date':trip.receipt_date.isoformat(),'supplier':sup.trade_name or sup.legal_name,'carrier_id':trip.carrier_id,'carrier':((lambda c:(c.trade_name or c.legal_name) if c else '')(db.get(Organization,trip.carrier_id) if trip.carrier_id else None)),
           'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,'net_weight':float(l.net_weight or 0),'status':l.status})
     return out
 
@@ -1644,6 +1644,16 @@ def sorting_photos(load_id:str, db:Session=Depends(get_db), user=Depends(require
     rows=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load_id).order_by(FileAttachment.created_at)).all()
     return [{'id':x.id,'filename':x.filename,'category':x.category,'created_at':x.created_at.isoformat()} for x in rows]
 
+
+@app.delete('/sorting/photos/{photo_id}')
+def sorting_photo_delete(photo_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    obj=db.get(models.FileAttachment,photo_id)
+    if not obj or obj.entity_type!='INBOUND_LOAD': raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
+    path=Path(obj.stored_path); old={'load_id':obj.entity_id,'category':obj.category,'filename':obj.filename}
+    write_audit(db,user,'attachment',obj.id,'DELETE',old=old); db.delete(obj); db.commit()
+    try: path.unlink(missing_ok=True)
+    except OSError: pass
+    return {'deleted':photo_id}
 
 @app.get('/sorting/photos/{photo_id}/file')
 def sorting_photo_file(photo_id:str, token:str=Query(default=''), db:Session=Depends(get_db)):
