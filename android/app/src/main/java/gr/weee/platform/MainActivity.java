@@ -25,7 +25,7 @@ import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends Activity {
-    private static final String VERSION = "2.5.38";
+    private static final String VERSION = "2.5.39";
     private static final int REQ_FILES = 4711;
 
     private WebView web;
@@ -168,6 +168,10 @@ public class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (web != null && web.canGoBack()) web.goBack(); else super.onBackPressed();
+        if (web == null) { super.onBackPressed(); return; }
+        // The page closes its top-most layer (photo / panel / load) and answers "true"; on the loads list it answers "false" and the app exits.
+        web.evaluateJavascript("(function(){try{return window.appBack?window.appBack():false}catch(e){return false}})()", value -> {
+            if (!"true".equals(value)) super.onBackPressed();
+        });
     }
 }

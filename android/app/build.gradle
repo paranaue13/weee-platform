@@ -7,7 +7,7 @@ android {
         applicationId 'gr.weee.platform'
         minSdk 26
         targetSdk 35
-        versionCode 2538
-        versionName '2.5.38'
+        versionCode 2539
+        versionName '2.5.39'
     }
 }
