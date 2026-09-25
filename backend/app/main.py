@@ -1947,6 +1947,47 @@ def weee_media_detail(official_code:str, type_key:str, db:Session=Depends(get_db
     out=sorted(groups.values(),key=natural)
     return {'official_code':official_code,'type':type_name,'total':round(sum(x['kg'] for x in out),3),'media':out}
 
+def _non_weee_cats(db):
+    import re as _re
+    return {c.id:c for c in db.scalars(select(WEEECategory)).all() if _re.fullmatch(r'\d{6}',str(c.code))}
+
+@app.get('/inventory/weee/non-weee-summary')
+def weee_non_weee_summary(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """Pieces of the non-WEEE materials (codes 109991-109994 type A, 119999 type B): received in the period and still in stock."""
+    s=datetime.fromisoformat(start); e=datetime.fromisoformat(end)+timedelta(days=1)
+    cats=_non_weee_cats(db); out={c.code:{'pieces_period':0,'pieces_stock':0} for c in cats.values()}
+    if not cats: return out
+    rows=db.execute(select(models.SortingEntry,InboundTrip).join(SortingSession,models.SortingEntry.session_id==SortingSession.id).join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=s,InboundTrip.receipt_date<e,InboundTrip.deleted_at.is_(None),models.SortingEntry.weee_category_id.in_(list(cats)))).all()
+    for en,_trip in rows: out[cats[en.weee_category_id].code]['pieces_period']+=int(en.piece_count or 0)
+    for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0,WEEEStockLot.weee_category_id.in_(list(cats)))).all():
+        orig=float(lot.original_weight or 0)
+        if lot.piece_count and orig>0: out[cats[lot.weee_category_id].code]['pieces_stock']+=int(round(lot.piece_count*float(lot.available_weight or 0)/orig))
+    return out
+
+@app.get('/inventory/weee/category-history')
+def weee_category_history(official_code:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    ids=[c.id for c in db.scalars(select(WEEECategory).where(WEEECategory.code==official_code)).all()]
+    if not ids: raise HTTPException(404,'Άγνωστη κατηγορία')
+    cat=db.get(WEEECategory,ids[0])
+    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
+    events=[]; pieces_stock=0
+    for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id.in_(ids)).order_by(WEEEStockLot.created_at)).all():
+        load=db.get(InboundLoad,lot.inbound_load_id); trip=db.get(InboundTrip,load.trip_id) if load else None
+        if trip and trip.deleted_at is not None: continue
+        sup=db.get(Organization,load.supplier_id) if load else None; orig=float(lot.original_weight or 0)
+        if lot.piece_count and orig>0 and float(lot.available_weight or 0)>0: pieces_stock+=int(round(lot.piece_count*float(lot.available_weight or 0)/orig))
+        for mv in db.scalars(select(StockMovement).where(StockMovement.lot_id==lot.id).order_by(StockMovement.created_at)).all():
+            unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
+            at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
+            events.append({'at':at.isoformat(),'label':labels.get(mv.movement_type,mv.movement_type),'weight':(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0),
+              'pieces':lot.piece_count if mv.movement_type=='SORTING_IN' else None,'supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
+              'unit':unit.name_el if unit else None,'reason':mv.reason})
+    for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.weee_category_id.in_(ids),ProductionWorkEntry.active==True)).all():
+        unit=db.get(OrganizationalUnit,pe.org_unit_id) if pe.org_unit_id else None
+        events.append({'at':pe.work_date.isoformat(),'label':'Επεξεργασία (Παραγωγή)','weight':-float(pe.weight_kg or 0),'pieces':None,'supplier':'','order_number':None,'unit':unit.name_el if unit else None,'reason':pe.notes})
+    events.sort(key=lambda x:x['at'],reverse=True)
+    return {'category':{'code':cat.code,'description':cat.description_el},'pieces_stock':pieces_stock,'events':events}
+
 @app.get('/inventory/weee/medium/{medium_id}/history')
 def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     med=db.get(CollectionMedium,medium_id)
