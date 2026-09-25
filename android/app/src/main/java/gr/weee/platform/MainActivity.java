@@ -25,7 +25,7 @@ import android.widget.Toast;
 import java.io.File;
 
 public class MainActivity extends Activity {
-    private static final String VERSION = "2.5.37";
+    private static final String VERSION = "2.5.38";
     private static final int REQ_FILES = 4711;
 
     private WebView web;
@@ -37,7 +37,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("weee", MODE_PRIVATE);
-        serverUrl = prefs.getString("server", "http://192.168.1.100:8000");
+        serverUrl = prefs.getString("server", "http://192.168.1.9:8000");
         buildUi();
     }
 

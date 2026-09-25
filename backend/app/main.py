@@ -1166,6 +1166,7 @@ def sorting_available(db:Session=Depends(get_db), user=Depends(require_permissio
         if ses is not None and ses.status != 'IN_PROGRESS':
             continue
         trip=db.get(InboundTrip,l.trip_id); sup=db.get(Organization,l.supplier_id)
+        if trip.deleted_at is not None: continue  # deleted receipts must not be offered for sorting
         out.append({'load_id':l.id,'receipt_id':trip.id,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,
           'receipt_date':trip.receipt_date.isoformat(),'supplier':sup.trade_name or sup.legal_name,'carrier_id':trip.carrier_id,
           'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,'net_weight':float(l.net_weight or 0),'status':l.status})
