@@ -1910,6 +1910,24 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
 def _weee_family_code(c):
     return c.parent_code if c.is_internal_subcategory and c.parent_code else c.code
 
+ANDROID_WEEE_DESC_KEY='android.weee_desc_mode'
+
+@app.get('/settings/android')
+def android_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    row=db.scalar(select(AppSetting).where(AppSetting.key==ANDROID_WEEE_DESC_KEY))
+    return {'weee_desc_mode':row.value if row and row.value in ('official','her') else 'official'}
+
+@app.put('/settings/android')
+def android_settings_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    mode=data.get('weee_desc_mode')
+    if mode not in ('official','her'): raise HTTPException(422,'Μη έγκυρη επιλογή εμφάνισης')
+    row=db.scalar(select(AppSetting).where(AppSetting.key==ANDROID_WEEE_DESC_KEY))
+    old=row.value if row else None
+    if row: row.value=mode
+    else: db.add(AppSetting(key=ANDROID_WEEE_DESC_KEY,value=mode))
+    write_audit(db,user,'app_setting',ANDROID_WEEE_DESC_KEY,'UPDATE',old={'weee_desc_mode':old},new={'weee_desc_mode':mode}); db.commit()
+    return {'weee_desc_mode':mode}
+
 @app.get('/inventory/weee/media-summary')
 def weee_media_summary(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     """Available WEEE stock lots pooled per official category family and per collection-medium type."""
