@@ -1195,13 +1195,17 @@ def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permis
         .where(InboundTrip.deleted_at.is_(None))
         .order_by(InboundLoad.created_at.desc())
     ).all()
+    entry_counts={}
+    for sid in db.scalars(select(SortingEntry.session_id)).all(): entry_counts[sid]=entry_counts.get(sid,0)+1
     out=[]
     for load,trip,ses,sup,carrier in rows:
         effective_status=(ses.status if ses else load.status) or trip.status or 'DRAFT'
         if effective_status=='IN_PROGRESS': effective_status='SORTING_IN_PROGRESS'
+        # Opening a load starts its session, but it only counts as "in sorting" once at least one entry exists.
+        if effective_status=='SORTING_IN_PROGRESS' and not (ses and entry_counts.get(ses.id)): effective_status='READY_FOR_SORTING'
         out.append({'load_id':load.id,'session_id':ses.id if ses else None,'status':effective_status,'receipt_id':trip.id,'receipt_number':trip.receipt_number,
           'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''),
-          'order_number':load.order_number,'container_number':load.incoming_container_number,'net_weight':float(load.net_weight or 0),
+          'order_number':load.order_number,'dpp_number':load.dpp_number,'container_number':load.incoming_container_number,'net_weight':float(load.net_weight or 0),
           'time_known':('\"sourceTimeKnown\":false' not in (trip.notes or '').replace(' ','')),
           'sorting_confirmed_at':ses.sorting_confirmed_at.isoformat() if ses and ses.sorting_confirmed_at else None})
     return out
