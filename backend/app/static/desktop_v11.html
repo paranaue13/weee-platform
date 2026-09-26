@@ -2113,9 +2113,12 @@ function renderCompactReceiptStats(rows){
     ['CONTAINER','Container','k1','<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>'],
     ['CURTAIN_TRAILER','Καρότσα','k2','<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'],
     ['SMALL_POINTS','Μικρά σημεία','k3','<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>']
-  ],count=t=>rows.filter(r=>r.receipt_type===t).length,sum=t=>rows.filter(r=>!t||r.receipt_type===t).reduce((a,r)=>a+receiptNet(r),0),pts=n=>`${n} ${n===1?'σημείο':'σημεία'}`;
+  // A receipt (trip) can bundle several Μικρά Σημεία order numbers under one row -- each order
+  // number is its own "σημείο", so points count loads, not receipts (a Container/Καρότσα receipt
+  // always has exactly 1 load, so this doesn't change those two).
+  ],count=t=>rows.filter(r=>r.receipt_type===t).reduce((a,r)=>a+(r.loads?.length||1),0),sum=t=>rows.filter(r=>!t||r.receipt_type===t).reduce((a,r)=>a+receiptNet(r),0),pts=n=>`${n} ${n===1?'σημείο':'σημεία'}`,totalPts=rows.reduce((a,r)=>a+(r.loads?.length||1),0);
   $('receiptStats').innerHTML=specs.map(([t,n,cls,icon])=>{let c=count(t);return `<div class="sortingKpiCard ${cls} statFilterCard" data-type="${t}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="sortingKpiText"><small>${n}</small><b>${pts(c)} · ${kg(sum(t))}</b></span></div>`}).join('')
-  +`<div class="sortingKpiCard k4 statFilterCard" data-type=""><span class="sortingKpiIcon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="sortingKpiText"><small>Σύνολο ημέρας</small><b>${pts(rows.length)} · ${kg(sum())}</b></span></div>`;
+  +`<div class="sortingKpiCard k4 statFilterCard" data-type=""><span class="sortingKpiIcon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="sortingKpiText"><small>Σύνολο ημέρας</small><b>${pts(totalPts)} · ${kg(sum())}</b></span></div>`;
   document.querySelectorAll('#receiptStats .statFilterCard').forEach(card=>card.onclick=()=>{
     let type=card.dataset.type,active=card.classList.contains('statFilterActive');
     document.querySelectorAll('#receiptStats .statFilterCard').forEach(c=>c.classList.remove('statFilterActive'));
