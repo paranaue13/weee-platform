@@ -15,6 +15,7 @@ from starlette.background import BackgroundTask
 from . import models
 from .db import get_db
 from .security import require_permission
+from .export_settings import archive_export_copy
 
 router = APIRouter()
 TEMPLATES = Path(__file__).parent / "templates"
@@ -81,10 +82,12 @@ def _insert_rows(ws, at: int, n: int, style_row: int, merge_ranges=()):
             ws.merge_cells(start_row=row, end_row=row, start_column=c1, end_column=c2)
 
 
-def _response(wb, filename: str):
+def _response(wb, filename: str, db: Session | None = None, when=None):
     tmp = NamedTemporaryFile(delete=False, suffix=".xlsx")
     tmp.close()
     wb.save(tmp.name)
+    if db is not None and when is not None:
+        archive_export_copy(db, tmp.name, filename, when)
     return FileResponse(tmp.name, media_type=XLSX, filename=filename, background=BackgroundTask(os.unlink, tmp.name))
 
 
@@ -125,7 +128,7 @@ def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), db: Ses
         wb.calculation.fullCalcOnLoad = True
     except Exception:
         pass
-    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx")
+    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx", db, start.date())
 
 
 @router.get("/reports/generate/non-weee-by-supplier")
@@ -154,7 +157,7 @@ def non_weee_by_supplier(month: str = Query(..., pattern=r"^\d{4}-\d{2}$"), db: 
             ws.cell(2 + i, 2).value = int(round(kg))
         tot = 2 + cap + extra
         ws.cell(tot, 2).value = f"=SUM(B2:B{tot-1})"
-    return _response(wb, f"Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή {m:02d}.{y}.xlsx")
+    return _response(wb, f"Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή {m:02d}.{y}.xlsx", db, start.date())
 
 
 @router.get("/reports/generate/monthly-received")

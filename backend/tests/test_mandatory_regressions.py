@@ -227,4 +227,6 @@ def test_mandatory_get_cache_present():
 def test_mandatory_receipts_column_contract():
     with TestClient(app) as c:
         html = c.get('/desktop').text
-    assert 'Αριθμός Εντολής</th><th>Προμηθευτής</th><th>Τύπος φορτίου</th><th>Μεταφορέας</th><th>Καθαρό Βάρος (kg)' in html
+    # ΔΠΠ was added between Αριθμός Εντολής and Προμηθευτής per explicit user request
+    # (Σεπτέμβριος 2026 session) -- this is the current contract, not the pre-ΔΠΠ one.
+    assert 'Αριθμός Εντολής</th><th>ΔΠΠ</th><th>Προμηθευτής</th><th>Τύπος φορτίου</th><th>Μεταφορέας</th><th>Καθαρό Βάρος (kg)' in html

@@ -40,7 +40,7 @@ Use globally in Receipts, Sorting, Production, WEEE Warehouse and reports.
 
 ## 5. Receipts
 Daily columns:
-**Αριθμός Εντολής | Προμηθευτής | Τύπος φορτίου | Μεταφορέας | Καθαρό Βάρος (kg)**
+**Αριθμός Εντολής | ΔΠΠ | Προμηθευτής | Τύπος φορτίου | Μεταφορέας | Καθαρό Βάρος (kg)**
 
 Do not show separate columns for `Ώρα`, `Όχημα / Χέρι`, or `Ενέργειες`.
 Order number is clickable and opens the receipt.
@@ -53,7 +53,10 @@ Date titles use normal casing, e.g. `Δευτέρα 31 Αυγούστου 2026`.
 
 ## 6. Sorting
 Daily columns:
-**Αριθμός Εντολής | Προμηθευτής | Τύπος φορτίου | Μεταφορέας | Καθαρό Βάρος (kg) | Κατάσταση**
+**Αριθμός Εντολής | ΔΠΠ | Προμηθευτής | Τύπος φορτίου | Μεταφορέας | Καθαρό Βάρος (kg) | Κατάσταση**
+
+Κατάσταση is "Σε ταξινόμηση" only once at least one entry is recorded (opening the load alone keeps
+it "Έτοιμη για ταξινόμηση").
 
 No time column. Keep status. Order number clickable.
 `Αποθηκευτική τοποθέτηση` belongs in the top action bar.

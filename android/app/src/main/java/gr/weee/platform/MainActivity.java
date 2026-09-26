@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Bundle;
 import android.content.SharedPreferences;
@@ -23,9 +24,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends Activity {
-    private static final String VERSION = "2.5.39";
+    private static final String VERSION = "2.5.41";
     private static final int REQ_FILES = 4711;
 
     private WebView web;
@@ -97,7 +100,10 @@ public class MainActivity extends Activity {
             i.putExtra(MediaStore.EXTRA_OUTPUT, out);
             i.setClipData(ClipData.newRawUri("photo", out));
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-            startActivityForResult(i, REQ_FILES);
+            // Always show the app picker instead of silently reusing whatever camera app is set as
+            // the device default -- lets a camera app installed for its own features (e.g.
+            // Timestamp Camera, which stamps date/time on the photo) be picked deliberately.
+            startActivityForResult(Intent.createChooser(i, "Επιλογή εφαρμογής κάμερας"), REQ_FILES);
         } catch (ActivityNotFoundException | SecurityException e) {
             cameraFile = null;
             Toast.makeText(this, "Δεν ήταν δυνατό το άνοιγμα της κάμερας", Toast.LENGTH_LONG).show();
@@ -129,7 +135,25 @@ public class MainActivity extends Activity {
         Uri[] result = null;
         if (resultCode == RESULT_OK) {
             if (cameraFile != null) {
-                if (cameraFile.exists() && cameraFile.length() > 0) result = new Uri[]{PhotoProvider.uriFor(cameraFile)};
+                if (cameraFile.exists() && cameraFile.length() > 0) {
+                    result = new Uri[]{PhotoProvider.uriFor(cameraFile)};
+                } else if (data != null) {
+                    // Some camera-replacement apps ignore EXTRA_OUTPUT entirely and return the
+                    // photo their own way instead -- fall back to those so the picture still
+                    // reaches the app rather than silently staying only in that app's own gallery.
+                    Uri returned = data.getData();
+                    if (returned != null) {
+                        result = new Uri[]{returned};
+                    } else {
+                        Object thumb = data.getExtras() != null ? data.getExtras().get("data") : null;
+                        if (thumb instanceof Bitmap) {
+                            try (FileOutputStream out2 = new FileOutputStream(cameraFile)) {
+                                ((Bitmap) thumb).compress(Bitmap.CompressFormat.JPEG, 90, out2);
+                                result = new Uri[]{PhotoProvider.uriFor(cameraFile)};
+                            } catch (IOException ignored) { }
+                        }
+                    }
+                }
             } else if (data != null) {
                 if (data.getClipData() != null) {
                     ClipData c = data.getClipData();

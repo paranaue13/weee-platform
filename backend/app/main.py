@@ -17,6 +17,7 @@ from .audit import write_audit
 from .migrations import run_alembic_migrations
 from .config import settings
 from .electrocycle_sync import sync_electrocycle_orders
+from .export_settings import get_export_settings, archive_export_copy, EXPORT_DIR_KEY
 
 _log = logging.getLogger("electrocycle")
 
@@ -1335,6 +1336,7 @@ def _received_workbook_response(db:Session, start:datetime, end:datetime, summar
     try: wb.calculation.fullCalcOnLoad=True;wb.calculation.forceFullCalc=True;wb.calculation.calcMode='auto'
     except Exception: pass
     tmp=NamedTemporaryFile(delete=False,suffix='.xlsx');tmp.close();wb.save(tmp.name)
+    archive_export_copy(db,tmp.name,filename,start.date())
     return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=filename,background=BackgroundTask(os.unlink,tmp.name))
 
 @app.get('/sorting/{load_id}', response_model=schemas.SortingSessionOut)
@@ -1956,6 +1958,28 @@ def schedule_put(data:dict, db:Session=Depends(get_db), user:User=Depends(requir
     if row: row.value=json.dumps(payload,ensure_ascii=False)
     else: db.add(AppSetting(key=SCHEDULE_KEY,value=json.dumps(payload,ensure_ascii=False)))
     write_audit(db,user,'app_setting',SCHEDULE_KEY,'UPDATE',old={'schedule':old},new={'schedule':payload}); db.commit()
+    return payload
+
+@app.get('/settings/export')
+def export_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    return get_export_settings(db)
+
+@app.put('/settings/export')
+def export_settings_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    path=(data.get('path') or '').strip()
+    group=bool(data.get('group_by_month',True))
+    if path:
+        try:
+            p=Path(path); p.mkdir(parents=True,exist_ok=True)
+            probe=p/'.weee_export_test'; probe.write_text('ok',encoding='utf-8'); probe.unlink()
+        except Exception as e:
+            raise HTTPException(422,f'Ο φάκελος δεν είναι προσβάσιμος για εγγραφή: {e}')
+    payload={'path':path or None,'group_by_month':group}
+    row=db.scalar(select(AppSetting).where(AppSetting.key==EXPORT_DIR_KEY))
+    old=row.value if row else None
+    if row: row.value=json.dumps(payload,ensure_ascii=False)
+    else: db.add(AppSetting(key=EXPORT_DIR_KEY,value=json.dumps(payload,ensure_ascii=False)))
+    write_audit(db,user,'app_setting',EXPORT_DIR_KEY,'UPDATE',old={'export':old},new={'export':payload}); db.commit()
     return payload
 
 @app.get('/settings/android')
