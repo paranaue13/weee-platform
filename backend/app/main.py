@@ -21,15 +21,24 @@ from .electrocycle_sync import sync_electrocycle_orders
 _log = logging.getLogger("electrocycle")
 
 async def _electrocycle_loop():
-    # First run soon after startup, then every electrocycle_sync_minutes.
+    # First run soon after startup, then every electrocycle_sync_minutes -- or sooner (every
+    # 60s, up to 5 tries) right after a failed attempt, so a transient network blip (e.g. the
+    # machine switching Wi-Fi networks mid-sync) clears itself without needing the manual
+    # "Ανανέωση" button. A hard timeout guards against a genuinely stuck Playwright run
+    # (a hung browser/profile lock) wedging this loop forever.
     await asyncio.sleep(15)
+    fail_streak = 0
     while True:
+        ok = False
         try:
             with SessionLocal() as db:
-                await asyncio.to_thread(sync_electrocycle_orders, db)
+                result = await asyncio.wait_for(asyncio.to_thread(sync_electrocycle_orders, db), timeout=90)
+                ok = bool(result and result.get("ok"))
         except Exception:
             _log.exception("electrocycle sync loop iteration failed")
-        await asyncio.sleep(max(60, settings.electrocycle_sync_minutes * 60))
+        fail_streak = 0 if ok else fail_streak + 1
+        delay = 60 if 0 < fail_streak <= 5 else max(60, settings.electrocycle_sync_minutes * 60)
+        await asyncio.sleep(delay)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -796,7 +805,9 @@ def electrocycle_orders(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-
              "carrier":r.carrier,"collection_medium":r.collection_medium,"source_date":r.source_date,"synced_at":r.synced_at.isoformat()} for r in rows],
             "status":{"ok":status.ok,"message":status.message,
                       "last_attempt_at":status.last_attempt_at.isoformat() if status and status.last_attempt_at else None,
-                      "last_success_at":status.last_success_at.isoformat() if status and status.last_success_at else None} if status else None}
+                      "last_success_at":status.last_success_at.isoformat() if status and status.last_success_at else None,
+                      "sync_minutes":settings.electrocycle_sync_minutes} if status else None,
+            "server_now":datetime.now().isoformat()}
 
 @app.post("/integrations/electrocycle/sync")
 async def electrocycle_manual_sync(date:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'),db:Session=Depends(get_db),user=Depends(require_permission("receipt.edit"))):

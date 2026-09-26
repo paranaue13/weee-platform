@@ -749,10 +749,16 @@ async function loadElectrocycle(){
   let d=await api('/integrations/electrocycle/orders?date='+encodeURIComponent(targetDay));
   let st=d.status,el=$('ecStatus');
   if(el){
+   // Elapsed time is computed from the server's own clock on both ends (server_now vs
+   // last_success_at), so it stays correct even if this PC's own clock is off -- an absolute
+   // time alone can look deceptively "current" when it's actually stale.
+   let agoTxt=iso=>{if(!iso||!d.server_now)return'';let mins=Math.max(0,Math.round((new Date(d.server_now)-new Date(iso))/60000));return mins<1?'μόλις τώρα':mins<60?`πριν ${mins}'`:`πριν ${Math.floor(mins/60)}ω ${mins%60}'`};
+   let staleMins=st?.last_success_at&&d.server_now?Math.round((new Date(d.server_now)-new Date(st.last_success_at))/60000):null;
+   let staleCutoff=Math.max(15,(st?.sync_minutes||5)*3);
    if(!st) el.textContent='Δεν έχει συγχρονιστεί ακόμα';
-   else if(st.ok) el.textContent='Ενημερώθηκε '+(st.last_success_at?new Date(st.last_success_at).toLocaleString('el-GR'):'');
-   else el.textContent='⚠ '+(st.message||'Σφάλμα συγχρονισμού')+(st.last_success_at?' (τελευταία επιτυχής: '+new Date(st.last_success_at).toLocaleString('el-GR')+')':'');
-   el.style.color=(st&&!st.ok)?'#a53629':'';
+   else if(st.ok) el.textContent='Ενημερώθηκε '+agoTxt(st.last_success_at)+(st.last_success_at?' ('+new Date(st.last_success_at).toLocaleString('el-GR')+')':'');
+   else el.textContent='⚠ '+(st.message||'Σφάλμα συγχρονισμού')+(st.last_success_at?' (τελευταία επιτυχής '+agoTxt(st.last_success_at)+')':'');
+   el.style.color=(st&&!st.ok)?'#a53629':(staleMins!=null&&staleMins>staleCutoff)?'#a26a00':'';
   }
   let all=d.orders||[];
   ecOrders=all.filter(o=>!EC_HIDDEN_SENDER.test(o.sender||''));
