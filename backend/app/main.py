@@ -1916,6 +1916,37 @@ def _weee_family_code(c):
 
 ANDROID_WEEE_DESC_KEY='android.weee_desc_mode'
 
+SCHEDULE_KEY='app.schedule'
+DEFAULT_SCHEDULE={'active':'summer','summer':{'start':'06:30','end':'14:50'},'winter':{'start':'07:15','end':'15:35'}}
+
+def _check_time(v,label):
+    import re as _re
+    if not _re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d',str(v or '')): raise HTTPException(422,f'{label}: μη έγκυρη ώρα (ωω:λλ)')
+    return str(v)
+
+@app.get('/settings/schedule')
+def schedule_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
+    if not row: return DEFAULT_SCHEDULE
+    try: return json.loads(row.value)
+    except Exception: return DEFAULT_SCHEDULE
+
+@app.put('/settings/schedule')
+def schedule_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    active=data.get('active')
+    if active not in ('summer','winter','special'): raise HTTPException(422,'Μη έγκυρη επιλογή ωραρίου')
+    summer={'start':_check_time((data.get('summer') or {}).get('start'),'Θερινό'),'end':_check_time((data.get('summer') or {}).get('end'),'Θερινό')}
+    winter={'start':_check_time((data.get('winter') or {}).get('start'),'Χειμερινό'),'end':_check_time((data.get('winter') or {}).get('end'),'Χειμερινό')}
+    if summer['start']>=summer['end']: raise HTTPException(422,'Θερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
+    if winter['start']>=winter['end']: raise HTTPException(422,'Χειμερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
+    payload={'active':active,'summer':summer,'winter':winter}
+    row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
+    old=row.value if row else None
+    if row: row.value=json.dumps(payload,ensure_ascii=False)
+    else: db.add(AppSetting(key=SCHEDULE_KEY,value=json.dumps(payload,ensure_ascii=False)))
+    write_audit(db,user,'app_setting',SCHEDULE_KEY,'UPDATE',old={'schedule':old},new={'schedule':payload}); db.commit()
+    return payload
+
 @app.get('/settings/android')
 def android_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
     row=db.scalar(select(AppSetting).where(AppSetting.key==ANDROID_WEEE_DESC_KEY))
