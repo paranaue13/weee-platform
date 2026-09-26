@@ -1930,7 +1930,7 @@ def _weee_family_code(c):
 ANDROID_WEEE_DESC_KEY='android.weee_desc_mode'
 
 SCHEDULE_KEY='app.schedule'
-DEFAULT_SCHEDULE={'active':'summer','summer':{'start':'06:30','end':'14:50'},'winter':{'start':'07:15','end':'15:35'}}
+DEFAULT_SCHEDULE={'active':'summer','summer':{'start':'06:30','end':'14:50'},'winter':{'start':'07:15','end':'15:35'},'special':{'start':'06:30','end':'14:50'}}
 
 def _check_time(v,label):
     import re as _re
@@ -1950,15 +1950,36 @@ def schedule_put(data:dict, db:Session=Depends(get_db), user:User=Depends(requir
     if active not in ('summer','winter','special'): raise HTTPException(422,'Μη έγκυρη επιλογή ωραρίου')
     summer={'start':_check_time((data.get('summer') or {}).get('start'),'Θερινό'),'end':_check_time((data.get('summer') or {}).get('end'),'Θερινό')}
     winter={'start':_check_time((data.get('winter') or {}).get('start'),'Χειμερινό'),'end':_check_time((data.get('winter') or {}).get('end'),'Χειμερινό')}
+    special={'start':_check_time((data.get('special') or {}).get('start'),'Έκτακτο'),'end':_check_time((data.get('special') or {}).get('end'),'Έκτακτο')}
     if summer['start']>=summer['end']: raise HTTPException(422,'Θερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
     if winter['start']>=winter['end']: raise HTTPException(422,'Χειμερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
-    payload={'active':active,'summer':summer,'winter':winter}
+    if special['start']>=special['end']: raise HTTPException(422,'Έκτακτο: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
+    payload={'active':active,'summer':summer,'winter':winter,'special':special}
     row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
     old=row.value if row else None
     if row: row.value=json.dumps(payload,ensure_ascii=False)
     else: db.add(AppSetting(key=SCHEDULE_KEY,value=json.dumps(payload,ensure_ascii=False)))
     write_audit(db,user,'app_setting',SCHEDULE_KEY,'UPDATE',old={'schedule':old},new={'schedule':payload}); db.commit()
     return payload
+
+def _pick_folder_dialog(initial:str|None)->str|None:
+    # Runs on the server's own desktop session (this app is always run interactively on the
+    # office PC, same as the Electrocycle Playwright sync) -- a real native Windows folder
+    # dialog, "Δημιουργία νέου φακέλου" included, since the browser itself has no way to hand
+    # back a real filesystem path (the File System Access API deliberately hides it).
+    import tkinter as tk
+    from tkinter import filedialog
+    root=tk.Tk(); root.withdraw(); root.attributes('-topmost',True)
+    try:
+        path=filedialog.askdirectory(title='Επιλογή φακέλου εξαγωγών', initialdir=(initial or None), mustexist=False)
+    finally:
+        root.destroy()
+    return path or None
+
+@app.post('/settings/export/browse')
+async def export_settings_browse(data:dict|None=None, user:User=Depends(require_permission('settings.manage'))):
+    path=await asyncio.to_thread(_pick_folder_dialog,(data or {}).get('initial'))
+    return {'path':path}
 
 @app.get('/settings/export')
 def export_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
