@@ -164,7 +164,8 @@ button,.selectableRow,.masterItem,.medTypeBtn,.materialRow,[data-clickable="1"]{
 .masterTools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px}.masterSearch{min-width:280px;flex:1;max-width:620px}
 .floatPanel{position:fixed;left:50%;top:16%;transform:translateX(-50%);z-index:90;width:min(760px,calc(100vw - 48px));max-height:76vh;overflow:auto;background:#fff;border:1px solid #d9e2e8;border-radius:12px;box-shadow:0 18px 55px rgba(28,54,70,.22);padding:16px}
 .btn.danger{background:#a82727}
-.floatPanelHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:move;user-select:none;border-bottom:1px solid #e5ecef;padding-bottom:10px;margin-bottom:14px}
+.floatPanelHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:move;user-select:none;border-bottom:1px solid #e5ecef;padding:16px 16px 10px;margin:-16px -16px 14px;position:sticky;top:-16px;z-index:4;background:#fff}
+body[data-theme="dark"] .floatPanelHeader{background:#17232d}
 .floatPanelHeader h3{margin:0}.floatPanel .formgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.floatPanel input,.floatPanel select,.floatPanel textarea{width:100%}
 .floatPanel .formgrid label{font-size:12.5px;font-weight:750;color:#405262;gap:4px}
 .floatPanel input,.floatPanel select,.floatPanel textarea{border-color:#d9e2e8}
@@ -2172,7 +2173,7 @@ let masterCache={};
 function intValue(v){let n=Number(v);return Number.isFinite(n)?Math.round(n):0}
 function blankZero(v){let n=Number(v);return Number.isFinite(n)&&Math.abs(n)<.000001?'':kg(v)}
 function makeDraggable(panel,handle){if(!panel||panel.dataset.dragBound)return;panel.dataset.dragBound='1';let dragging=false,dx=0,dy=0;handle.addEventListener('pointerdown',e=>{if(e.target.closest('button,input,select,textarea'))return;let r=panel.getBoundingClientRect();panel.style.transform='none';panel.style.left=r.left+'px';panel.style.top=r.top+'px';dragging=true;dx=e.clientX-r.left;dy=e.clientY-r.top;handle.setPointerCapture(e.pointerId)});handle.addEventListener('pointermove',e=>{if(!dragging)return;let x=Math.max(8,Math.min(window.innerWidth-panel.offsetWidth-8,e.clientX-dx));let y=Math.max(62,Math.min(window.innerHeight-80,e.clientY-dy));panel.style.left=x+'px';panel.style.top=y+'px'});handle.addEventListener('pointerup',()=>dragging=false)}
-function openFloat(title,html){let p=$('floatingEditor');$('floatingEditorTitle').textContent=title;$('floatingEditorBody').innerHTML=html;p.classList.remove('hidden','popupMin','popupMax');p.style.left='50%';p.style.top='16%';p.style.transform='translateX(-50%)';makeDraggable(p,$('floatingEditorHandle'));return p}
+function openFloat(title,html){let p=$('floatingEditor');$('floatingEditorTitle').textContent=title;$('floatingEditorBody').innerHTML=html;p.classList.remove('hidden','popupMin','popupMax');p.style.left='50%';p.style.top='16%';p.style.transform='translateX(-50%)';p.scrollTop=0;makeDraggable(p,$('floatingEditorHandle'));return p}
 // Same panel as openFloat, but anchored at the click point (x,y) instead of centered -- for popups
 // triggered by clicking a specific row/item, so the popup opens where the user is looking, not
 // always top-center. Clamped to stay fully on-screen.
