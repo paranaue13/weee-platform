@@ -9,10 +9,10 @@ a half-written page and produce a corrupt snapshot).
 This protects DATA (weee_dev.db). It has nothing to do with git, which only
 tracks the application CODE and never the database file (see .gitignore).
 
-Retention, to keep disk usage bounded:
+Retention, to keep disk usage bounded while still holding a full year of history:
   - every snapshot from the last 24h is kept (4/hour x 24h = up to 96 files)
-  - beyond 24h, only the first snapshot of each day is kept, for 30 days
-  - anything older than 30 days is deleted
+  - beyond 24h, only the first snapshot of each day is kept, for 365 days
+  - anything older than 365 days is deleted
 """
 import os, sqlite3, sys
 from datetime import datetime, timedelta
@@ -44,7 +44,7 @@ def do_backup(db_path: Path, out_dir: Path) -> Path:
 def prune(out_dir: Path):
     now = datetime.now()
     cutoff_full = now - timedelta(hours=24)
-    cutoff_daily = now - timedelta(days=30)
+    cutoff_daily = now - timedelta(days=365)
     files = sorted(out_dir.glob("weee_dev_*.db"))
     kept_day_for_older = set()
     for f in files:
