@@ -146,8 +146,20 @@ def import_ylika(db):
     for label, group in MANUAL_OVERRIDES.items():
         if label not in seen:
             db.add(MaterialHerGroup(material_label=label, her_group=group))
+            seen[label] = group
+    # Third source: the app's own `materials` master table (Μητρώο -> Υλικά) already carries a
+    # her_description for many rows, including the 32 materials added 28-29/9/2026 from the real
+    # September operational file (tabs 3/4/5) that had no Ylika entry at all. Lowest priority -- only
+    # fills labels neither Ylika nor MANUAL_OVERRIDES already cover.
+    from app.models import Material
+    n_from_materials = 0
+    for name, her in db.query(Material.internal_name, Material.her_description).filter(Material.her_description.isnot(None), Material.her_description != ""):
+        if name not in seen:
+            db.add(MaterialHerGroup(material_label=name, her_group=her))
+            seen[name] = her
+            n_from_materials += 1
     db.commit()
-    print(f"[import_ylika] imported {len(seen)} + {len(MANUAL_OVERRIDES)} manual = {len(seen)+len(MANUAL_OVERRIDES)} material -> HER group mappings")
+    print(f"[import_ylika] imported {len(seen)} total material -> HER group mappings ({n_from_materials} from the materials master table)")
 
 
 def main():
