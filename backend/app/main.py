@@ -753,9 +753,16 @@ def _norm_material_label(s:str|None)->str:
     if not s: return ""
     return s.strip().upper().translate(_HER_LOOKALIKE_TABLE)
 
-def _quarter_end(year:int,q:int)->datetime:
-    month=q*3
-    return (datetime(year+1,1,1) if month==12 else datetime(year,month+1,1))-timedelta(seconds=1)
+def _quarter_label_totals(entries, quarter_of):
+    """Bucket entries into {normalised_label: [q1_total, q2_total, q3_total, q4_total]} in one O(n)
+    pass -- the per-report-row loop below only ever needs a label's total for a given quarter, so
+    precomputing this once avoids rescanning the full entries list for every (row x quarter) combo
+    (with ~150 rows x 4 quarters x thousands of entries, that rescan used to cost over a second)."""
+    totals:dict[str,list[float]]={}
+    for e in entries:
+        bucket=totals.setdefault(_norm_material_label(e.material_label),[0.0,0.0,0.0,0.0])
+        bucket[quarter_of(e)-1]+=float(e.weight_kg or 0)
+    return totals
 
 @app.get("/reports/inventory-count")
 def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
@@ -769,17 +776,23 @@ def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user
     count_rows=db.scalars(select(models.InventoryCountEntry).where(models.InventoryCountEntry.year==year)).all()
     actuals=db.scalars(select(models.InventoryActualStock).where(models.InventoryActualStock.year==year)).all()
     actual_by_row_q={(a.row_id,a.quarter):float(a.weight_kg or 0) for a in actuals}
+    quarter_of_date=lambda e:(e.work_date.month-1)//3+1
+    proc_totals=_quarter_label_totals(out_rows,quarter_of_date)
+    sales_totals=_quarter_label_totals(ship_rows,quarter_of_date)
+    counted_totals=_quarter_label_totals(count_rows,lambda e:e.quarter)
+    zero4=[0.0,0.0,0.0,0.0]
     result=[]
     for r in rows:
         active=r.her_group is not None
         matched=labels_by_her.get(r.her_group,set()) if active else set()
         quarters=[]
+        cum_proc=cum_sales=0.0
         for q in (1,2,3,4):
-            qend=_quarter_end(year,q)
             if active:
-                proc=sum(float(o.weight_kg or 0) for o in out_rows if o.work_date<=qend and _norm_material_label(o.material_label) in matched)
-                sales=sum(float(s.weight_kg or 0) for s in ship_rows if s.work_date<=qend and _norm_material_label(s.material_label) in matched)
-                counted=sum(float(c.weight_kg or 0) for c in count_rows if c.quarter==q and _norm_material_label(c.material_label) in matched)
+                cum_proc+=sum(proc_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                cum_sales+=sum(sales_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                counted=sum(counted_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                proc,sales=cum_proc,cum_sales
                 stock=float(r.baseline_stock_2025 or 0)+proc-sales+counted
             else:
                 proc=sales=stock=0.0
@@ -936,8 +949,9 @@ def _compute_aggregate_weighbridge(data: schemas.ReceiptCreate) -> str|None:
     return manual
 
 
-def _receipt_out(db: Session, trip: InboundTrip):
-    loads = db.scalars(select(models.InboundLoad).where(models.InboundLoad.trip_id==trip.id).order_by(InboundLoad.load_sequence)).all()
+def _receipt_out(db: Session, trip: InboundTrip, loads=None):
+    if loads is None:
+        loads = db.scalars(select(models.InboundLoad).where(models.InboundLoad.trip_id==trip.id).order_by(InboundLoad.load_sequence)).all()
     return schemas.ReceiptOut(
         id=trip.id, receipt_number=trip.receipt_number, receipt_type=trip.receipt_type,
         receipt_date=trip.receipt_date, carrier_id=trip.carrier_id, driver_name=trip.driver_name,
@@ -945,6 +959,19 @@ def _receipt_out(db: Session, trip: InboundTrip):
         aggregate_weighbridge_number=trip.aggregate_weighbridge_number, deleted_at=trip.deleted_at,
         loads=[schemas.ReceiptLoadOut.model_validate(x) for x in loads]
     )
+
+def _receipts_out_bulk(db: Session, trips: list[InboundTrip]):
+    """Same shape as calling _receipt_out() per trip, but fetches every trip's loads in one query
+    instead of one SELECT per trip -- list_receipts()/receipt_archive() used to pay N+1 round-trips
+    (one per historical receipt, growing forever as more get recorded), which was the single biggest
+    contributor to Παραλαβές's load time."""
+    trip_ids = [t.id for t in trips]
+    loads_by_trip: dict[str, list] = {}
+    if trip_ids:
+        all_loads = db.scalars(select(models.InboundLoad).where(models.InboundLoad.trip_id.in_(trip_ids)).order_by(InboundLoad.trip_id, InboundLoad.load_sequence)).all()
+        for ld in all_loads:
+            loads_by_trip.setdefault(ld.trip_id, []).append(ld)
+    return [_receipt_out(db, t, loads_by_trip.get(t.id, [])) for t in trips]
 
 def _container_public(x: ContainerAsset):
     display=x.container_number
@@ -1023,7 +1050,7 @@ def create_container(data:schemas.ContainerCreate, db:Session=Depends(get_db), u
 @app.get("/receipts", response_model=list[schemas.ReceiptOut])
 def list_receipts(db:Session=Depends(get_db), user=Depends(require_permission("receipt.view"))):
     trips=db.scalars(select(InboundTrip).where(InboundTrip.deleted_at.is_(None)).order_by(InboundTrip.receipt_date.desc())).all()
-    return [_receipt_out(db,t) for t in trips]
+    return _receipts_out_bulk(db,trips)
 
 @app.get("/receipts/{receipt_id}", response_model=schemas.ReceiptOut)
 def get_receipt(receipt_id:str, db:Session=Depends(get_db), user=Depends(require_permission("receipt.view"))):
@@ -1159,7 +1186,7 @@ def delete_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends
 @app.get("/receipts-archive", response_model=list[schemas.ReceiptOut])
 def receipt_archive(db:Session=Depends(get_db), user=Depends(require_permission("receipt.view"))):
     trips=db.scalars(select(InboundTrip).where(InboundTrip.deleted_at.is_not(None)).order_by(InboundTrip.receipt_date.desc())).all()
-    return [_receipt_out(db,t) for t in trips]
+    return _receipts_out_bulk(db,trips)
 
 @app.post("/receipts/{receipt_id}/restore")
 def restore_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("receipt.edit"))):
