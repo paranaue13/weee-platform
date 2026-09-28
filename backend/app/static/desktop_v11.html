@@ -1787,7 +1787,11 @@ function renderInventoryCount(){
       e.preventDefault();th.classList.remove('dragTarget');
       let dragged=e.dataTransfer.getData('text/plain'),target=th.dataset.invcol;
       if(!dragged||dragged===target)return;
-      let order=invIdOrder.filter(k=>k!==dragged),idx=order.indexOf(target);
+      // Dropping "on" a target inserts before it, or after it when the dragged column started to
+      // its left (rightward move) so dragging right of the target doesn't undershoot by one -- same
+      // fix as #readyPressHead/#readyMatHead's drag-reorder (renderReadyPress/renderReadyMaterials).
+      let movingRight=invIdOrder.indexOf(dragged)<invIdOrder.indexOf(target);
+      let order=invIdOrder.filter(k=>k!==dragged),idx=order.indexOf(target)+(movingRight?1:0);
       order.splice(idx,0,dragged);invIdOrder=order;renderInventoryCount();
     };
   });
