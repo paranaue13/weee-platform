@@ -1604,9 +1604,14 @@ function renderReadyMaterials(){
  let shipGroupEntries=(readyState.shipEntries||[]).filter(inGroup);
  let shipTotal=shipGroupEntries.reduce((s,e)=>s+Number(e.weight_kg||0),0);
  let balanceTotal=bodyCols.reduce((s,c)=>s+colBalance(c),0);
+ let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
+ let invQuarter=closingMonth?Math.floor(readyState.cursor.getMonth()/3)+1:null,invYear=closingMonth?readyState.cursor.getFullYear():null;
+ let invRow=closingMonth?`<tr class="prodInvRow"><td>Ποσότητα απογραφής</td><td></td>${bodyCols.map(c=>`<td><input type="number" step="1" class="invQtyInput" data-material="${esc(c.label)}" value="${readyState.countEntries?.[c.label]??''}" style="width:70px"></td>`).join('')}</tr>`:'';
  $('readyMatFoot').innerHTML=`<tr><td>Σύνολο ${readyPW()}</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(groupEntries,c))}</td>`).join('')}</tr>`
   +`<tr class="prodShipRow"><td>Αποστολές ${readyPW()}</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(shipGroupEntries,c))}</td>`).join('')}</tr>`
-  +`<tr class="prodBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`;
+  +`<tr class="prodBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
+  +invRow;
+ if(closingMonth)document.querySelectorAll('.invQtyInput').forEach(inp=>inp.onchange=async()=>{if(inp.value==='')return;try{await api('/inventory/count-entries',{method:'PUT',body:JSON.stringify({year:invYear,quarter:invQuarter,material_label:inp.dataset.material,weight_kg:Number(inp.value)})})}catch(e){alert(e.message)}});
  stickyStackFooter('readyMatFoot');
  // Drag-and-drop: dragging a material header onto the group tabs (wired separately) reclassifies
  // it; dragging it onto another material's header in this same list reorders both within the group.
@@ -1645,6 +1650,8 @@ async function loadReadyMaterials(){
  let [entries,shipEntries]=await Promise.all([api(`/production/material-output?start=${r.startISO}&end=${r.endISO}`),api(`/production/material-shipments?start=${r.startISO}&end=${r.endISO}`),loadMatGroupOverrides(),loadReadyBalance()]);
  readyState.entries=entries;
  readyState.shipEntries=shipEntries;
+ let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
+ if(closingMonth){let q=Math.floor(readyState.cursor.getMonth()/3)+1;try{readyState.countEntries=await api(`/inventory/count-entries?year=${readyState.cursor.getFullYear()}&quarter=${q}`)}catch{readyState.countEntries={}}}else{readyState.countEntries=null}
  renderReadyMaterials();renderReadyQuarterInventory();
  document.querySelectorAll('[data-readyperiod]').forEach(b=>b.classList.toggle('active',b.dataset.readyperiod===readyState.period));
  document.querySelectorAll('#readyGroupTabs [data-readygroup]').forEach(b=>b.classList.toggle('active',b.dataset.readygroup===readyState.activeGroup));
