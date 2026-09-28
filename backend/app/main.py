@@ -786,7 +786,7 @@ def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user
             actual=actual_by_row_q.get((r.id,q))
             diff=(actual-stock) if actual is not None else None
             quarters.append({"processing":round(proc,3),"sales":round(sales,3),"stock":round(stock,3),"actual_stock":actual,"diff":round(diff,3) if diff is not None else None})
-        result.append({"id":r.id,"group_name":r.group_name,"subcategory":r.subcategory,"her_group":r.her_group,"eka_code":r.eka_code,"reptool_code":r.reptool_code,"baseline_stock_2025":float(r.baseline_stock_2025 or 0),"active":active,"quarters":quarters})
+        result.append({"id":r.id,"group_name":r.group_name,"subcategory":r.subcategory,"her_group":r.her_group,"eka_code":r.eka_code,"reptool_code":r.reptool_code,"baseline_stock_2025":float(r.baseline_stock_2025 or 0),"active":active,"frozen_hidden":r.frozen_hidden,"quarters":quarters})
     return {"year":year,"rows":result}
 
 @app.put("/reports/inventory-actual-stock")
