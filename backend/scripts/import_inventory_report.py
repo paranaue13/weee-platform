@@ -30,7 +30,9 @@ YLIKA_PATH = Path(r"C:\Users\paran\Desktop\HER app\Ylika.xlsx")
 #   ΡΑΔΙΕΝΕΡΓΑ ΣΤΟΙΧΕΙΑ (ΠΑΡΑΛΑΒΕΣ), ΛΑΜΠΤΗΡΕΣ ΦΘΟΡΙΣΜΟΥ ΑΠΟ ΠΑΡΑΛΑΒΕΣ, TONER ΑΠΟ ΠΑΡΑΛΑΒΕΣ
 #     -- these are ΑΗΗΕ categories sorted straight to inter-unit transfer, not processed materials.
 #   ΠΛΥΝΤΗΡΙΑ, ΚΟΥΖΙΝΕΣ -- bulk whole-appliance categories, not materials.
-#   ΦΕΛΙΖΟΛ, ΚΙΝΗΤΑ / LAPTOPS / ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ -- still pending the user's call.
+#   ΦΕΛΙΖΟΛ -- still pending the user's call.
+# ΚΙΝΗΤΑ / LAPTOPS / ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ turned out to be PCB labels, not whole devices -- renamed at the
+# source instead of overridden here, see rename_pcb_material_labels.py.
 MANUAL_OVERRIDES = {
     "ΜΠΡΟΥΤΖΟΣ / ΧΑΛΚΟΣ": "Μέταλλο μη σιδηρούχο",
     "ΙΝΟΧ ΑΝΑΜΕΙΚΤΟ": "Μέταλλο μη σιδηρούχο",
