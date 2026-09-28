@@ -2814,6 +2814,14 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     if((r.right-e.clientX)>COL_RESIZE_EDGE_PX)return;
     let table=th.closest('table');
     if(!table)return;
+    // The live drag below switches the table to table-layout:fixed on the very first mousemove but
+    // only ever sets an explicit width on the ONE column being dragged -- per the fixed-layout spec,
+    // every OTHER column's width comes purely from row 1's cells, so any sibling lacking an explicit
+    // width collapses to an equal share of whatever's left for the rest of the drag (and stays that
+    // way until the next full re-render happens to call applyStoredColWidths and silently repair
+    // it). Lock every row-1 column to its current rendered width up front so table-layout:fixed has
+    // a hint for all of them, not just the one being resized.
+    table.querySelectorAll('thead tr:first-child th').forEach(sib=>{if(!sib.style.width)sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px'});
     state={th,table,startX:e.clientX,startW:r.width};
     document.body.style.userSelect='none';
     e.preventDefault();
