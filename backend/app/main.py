@@ -744,6 +744,75 @@ def material_shipment_entries(start:str|None=Query(default=None), end:str|None=Q
     rows=db.scalars(stmt.order_by(models.MaterialShipmentEntry.work_date,models.MaterialShipmentEntry.created_at)).all()
     return [{"id":r.id,"work_date":r.work_date.isoformat(),"category_group":r.category_group,"material_label":r.material_label,"weight_kg":float(r.weight_kg or 0),"notes":r.notes,"active":r.active} for r in rows]
 
+# ---- Build 2.5.36: Απογραφή (τρέχον έτος) -- quarterly stock-reconciliation report ----
+_HER_LOOKALIKE_TABLE=str.maketrans({"Α":"A","Β":"B","Ε":"E","Ζ":"Z","Η":"H","Ι":"I","Κ":"K","Μ":"M","Ν":"N","Ο":"O","Ρ":"P","Τ":"T","Υ":"Y","Χ":"X"})
+def _norm_material_label(s:str|None)->str:
+    """Normalise a material label for matching live production/shipment data against the Ylika.xlsx
+    HER-group mapping -- the two disagree here and there on Greek-vs-Latin lookalike letters (e.g.
+    Greek 'ΙΝΟΧ' vs Latin 'INOX') or stray whitespace."""
+    if not s: return ""
+    return s.strip().upper().translate(_HER_LOOKALIKE_TABLE)
+
+def _quarter_end(year:int,q:int)->datetime:
+    month=q*3
+    return (datetime(year+1,1,1) if month==12 else datetime(year,month+1,1))-timedelta(seconds=1)
+
+@app.get("/reports/inventory-count")
+def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    rows=db.scalars(select(models.InventoryReportRow).order_by(models.InventoryReportRow.sort_order)).all()
+    her_map=db.scalars(select(models.MaterialHerGroup)).all()
+    labels_by_her:dict[str,set[str]]={}
+    for m in her_map: labels_by_her.setdefault(m.her_group,set()).add(_norm_material_label(m.material_label))
+    year_start=datetime(year,1,1); year_end=datetime(year+1,1,1)
+    out_rows=db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True,models.MaterialOutputEntry.work_date>=year_start,models.MaterialOutputEntry.work_date<year_end)).all()
+    ship_rows=db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True,models.MaterialShipmentEntry.work_date>=year_start,models.MaterialShipmentEntry.work_date<year_end)).all()
+    count_rows=db.scalars(select(models.InventoryCountEntry).where(models.InventoryCountEntry.year==year)).all()
+    actuals=db.scalars(select(models.InventoryActualStock).where(models.InventoryActualStock.year==year)).all()
+    actual_by_row_q={(a.row_id,a.quarter):float(a.weight_kg or 0) for a in actuals}
+    result=[]
+    for r in rows:
+        active=r.her_group is not None
+        matched=labels_by_her.get(r.her_group,set()) if active else set()
+        quarters=[]
+        for q in (1,2,3,4):
+            qend=_quarter_end(year,q)
+            if active:
+                proc=sum(float(o.weight_kg or 0) for o in out_rows if o.work_date<=qend and _norm_material_label(o.material_label) in matched)
+                sales=sum(float(s.weight_kg or 0) for s in ship_rows if s.work_date<=qend and _norm_material_label(s.material_label) in matched)
+                counted=sum(float(c.weight_kg or 0) for c in count_rows if c.quarter==q and _norm_material_label(c.material_label) in matched)
+                stock=float(r.baseline_stock_2025 or 0)+proc-sales+counted
+            else:
+                proc=sales=stock=0.0
+            actual=actual_by_row_q.get((r.id,q))
+            diff=(actual-stock) if actual is not None else None
+            quarters.append({"processing":round(proc,3),"sales":round(sales,3),"stock":round(stock,3),"actual_stock":actual,"diff":round(diff,3) if diff is not None else None})
+        result.append({"id":r.id,"group_name":r.group_name,"subcategory":r.subcategory,"her_group":r.her_group,"eka_code":r.eka_code,"reptool_code":r.reptool_code,"baseline_stock_2025":float(r.baseline_stock_2025 or 0),"active":active,"quarters":quarters})
+    return {"year":year,"rows":result}
+
+@app.put("/reports/inventory-actual-stock")
+def save_inventory_actual_stock(data:schemas.InventoryActualStockIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    if not db.get(models.InventoryReportRow,data.row_id): raise HTTPException(404,"Η γραμμή δεν βρέθηκε")
+    if data.quarter not in (1,2,3,4): raise HTTPException(422,"Μη έγκυρο τρίμηνο")
+    existing=db.scalar(select(models.InventoryActualStock).where(models.InventoryActualStock.row_id==data.row_id,models.InventoryActualStock.year==data.year,models.InventoryActualStock.quarter==data.quarter))
+    if existing: existing.weight_kg=data.weight_kg; existing.updated_by_user_id=user.id
+    else: db.add(models.InventoryActualStock(row_id=data.row_id,year=data.year,quarter=data.quarter,weight_kg=data.weight_kg,updated_by_user_id=user.id))
+    db.commit()
+    return {"ok":True}
+
+@app.get("/inventory/count-entries")
+def list_inventory_count_entries(year:int=Query(...), quarter:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    rows=db.scalars(select(models.InventoryCountEntry).where(models.InventoryCountEntry.year==year,models.InventoryCountEntry.quarter==quarter)).all()
+    return {r.material_label:float(r.weight_kg or 0) for r in rows}
+
+@app.put("/inventory/count-entries")
+def save_inventory_count_entry(data:schemas.InventoryCountEntryIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    if data.quarter not in (1,2,3,4): raise HTTPException(422,"Μη έγκυρο τρίμηνο")
+    existing=db.scalar(select(models.InventoryCountEntry).where(models.InventoryCountEntry.year==data.year,models.InventoryCountEntry.quarter==data.quarter,models.InventoryCountEntry.material_label==data.material_label))
+    if existing: existing.weight_kg=data.weight_kg; existing.updated_by_user_id=user.id
+    else: db.add(models.InventoryCountEntry(year=data.year,quarter=data.quarter,material_label=data.material_label,weight_kg=data.weight_kg,updated_by_user_id=user.id))
+    db.commit()
+    return {"ok":True}
+
 @app.get("/production/press-bales")
 def press_bale_entries(start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     """Per-bale packaging detail from the ΠΡΕΣΑ (baling press) sheets, purely informational --

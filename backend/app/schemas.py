@@ -586,3 +586,15 @@ class ConsumableLotCreate(BaseModel):
     received_date: datetime
     expiry_date: datetime|None = None
     notes: str|None = None
+
+class InventoryActualStockIn(BaseModel):
+    row_id: str
+    year: int
+    quarter: int
+    weight_kg: Decimal
+
+class InventoryCountEntryIn(BaseModel):
+    year: int
+    quarter: int
+    material_label: str
+    weight_kg: Decimal

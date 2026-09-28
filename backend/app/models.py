@@ -717,3 +717,62 @@ class ElectrocycleSyncStatus(Base):
     last_success_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     ok: Mapped[bool] = mapped_column(Boolean, default=True)
     message: Mapped[str|None] = mapped_column(Text, nullable=True)
+
+
+# ---- Build 2.5.36: Απογραφή (τρέχον έτος) quarterly stock-reconciliation report ----
+class MaterialHerGroup(Base, TimestampMixin):
+    """Maps a granular production/shipment material_label (MaterialOutputEntry / MaterialShipmentEntry)
+    to its roll-up "Περιγραφή HER" group, per the company's Ylika.xlsx reference file (row 4 = HER
+    group, row 5 = the ERP label that equals material_label here). Powers the live per-quarter
+    aggregation in the Απογραφή report -- e.g. ΑΛΟΥΜΙΝΙΟ ΣΚΛΗΡΟ/ΜΑΛΑΚΟ/ΠΡΟΦΙΛ/... all roll up to
+    "Αλουμίνιο"."""
+    __tablename__ = "material_her_groups"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    material_label: Mapped[str] = mapped_column(String(150), unique=True, index=True)
+    her_group: Mapped[str] = mapped_column(String(150), index=True)
+
+class InventoryReportRow(Base, TimestampMixin):
+    """One row of the Απογραφή (τρέχον έτος) report, seeded once from ΑΠΟΓΡΑΦΗ 2026.xlsm's "Αποθήκη"
+    sheet (row order preserved via sort_order). her_group is null for the sheet's many hidden
+    placeholder rows (finer REPTOOL sub-codes with no real activity yet) -- those just show their
+    frozen 2025/2026 figures from the import; rows with her_group set are computed live from
+    material_output_entries / material_shipment_entries / inventory_count_entries via
+    MaterialHerGroup."""
+    __tablename__ = "inventory_report_rows"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    sort_order: Mapped[int] = mapped_column(Integer, index=True)
+    group_name: Mapped[str|None] = mapped_column(String(100), nullable=True)
+    subcategory: Mapped[str|None] = mapped_column(String(100), nullable=True)
+    reptool_code: Mapped[str|None] = mapped_column(String(60), nullable=True)
+    description_en: Mapped[str|None] = mapped_column(String(255), nullable=True)
+    her_group: Mapped[str|None] = mapped_column(String(150), nullable=True, index=True)
+    eka_code: Mapped[str|None] = mapped_column(String(40), nullable=True)
+    baseline_stock_2025: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    frozen_hidden: Mapped[bool] = mapped_column(Boolean, default=False)
+
+class InventoryActualStock(Base, TimestampMixin):
+    """ΠΡΑΓΜΑΤΙΚΟ ΑΠΟΘΕΜΑ -- the physically-counted stock the user types in by hand for one report
+    row, for one quarter of one year. ΔΙΑΦΟΡΑ is computed on read (ΑΠΟΘΕΜΑ - ΠΡΑΓΜΑΤΙΚΟ ΑΠΟΘΕΜΑ), not
+    stored."""
+    __tablename__ = "inventory_actual_stock"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    row_id: Mapped[str] = mapped_column(String(36), ForeignKey("inventory_report_rows.id", ondelete="CASCADE"), index=True)
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    quarter: Mapped[int] = mapped_column(Integer)
+    weight_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    updated_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("row_id", "year", "quarter", name="uq_inventory_actual_stock"),)
+
+class InventoryCountEntry(Base, TimestampMixin):
+    """Ποσότητα απογραφής -- physically-counted quantity of a not-yet-ready material, typed in by hand
+    in the Υλικά tab only on quarter-closing months (Μάρτιος/Ιούνιος/Σεπτέμβριος/Δεκέμβριος). Not part
+    of "Τρέχον απόθεμα"; feeds into the Απογραφή report's ΑΠΟΘΕΜΑ column (ready-to-ship stock + this)
+    and, per the mass-balance logic still to come, into that quarter's outgoing-materials balance."""
+    __tablename__ = "inventory_count_entries"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    quarter: Mapped[int] = mapped_column(Integer)
+    material_label: Mapped[str] = mapped_column(String(150), index=True)
+    weight_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    updated_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("year", "quarter", "material_label", name="uq_inventory_count_entry"),)
