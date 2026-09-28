@@ -774,43 +774,56 @@ def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user
     out_rows=db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True,models.MaterialOutputEntry.work_date>=year_start,models.MaterialOutputEntry.work_date<year_end)).all()
     ship_rows=db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True,models.MaterialShipmentEntry.work_date>=year_start,models.MaterialShipmentEntry.work_date<year_end)).all()
     count_rows=db.scalars(select(models.InventoryCountEntry).where(models.InventoryCountEntry.year==year)).all()
-    actuals=db.scalars(select(models.InventoryActualStock).where(models.InventoryActualStock.year==year)).all()
-    actual_by_row_q={(a.row_id,a.quarter):float(a.weight_kg or 0) for a in actuals}
     quarter_of_date=lambda e:(e.work_date.month-1)//3+1
     proc_totals=_quarter_label_totals(out_rows,quarter_of_date)
     sales_totals=_quarter_label_totals(ship_rows,quarter_of_date)
     counted_totals=_quarter_label_totals(count_rows,lambda e:e.quarter)
     zero4=[0.0,0.0,0.0,0.0]
+
+    # ΠΡΑΓΜΑΤΙΚΟ is fully computed now, not typed in by hand: the same "Τρέχον απόθεμα" figure Υλικά
+    # shows (all-time produced minus all-time shipped per material, NOT scoped to `year` -- stock on
+    # hand doesn't reset each year, see loadReadyBalance()'s comment in desktop_v11.html) plus that
+    # quarter's own Ποσότητα απογραφής. Opening-stock (2025) figures are deliberately excluded here
+    # too, same as Υλικά, per prior explicit user direction that it must not feed "ready to load".
+    all_out=db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True)).all()
+    all_ship=db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True)).all()
+    current_balance:dict[str,float]={}
+    for e in all_out:
+        lbl=_norm_material_label(e.material_label)
+        current_balance[lbl]=current_balance.get(lbl,0.0)+float(e.weight_kg or 0)
+    for e in all_ship:
+        lbl=_norm_material_label(e.material_label)
+        current_balance[lbl]=current_balance.get(lbl,0.0)-float(e.weight_kg or 0)
+
     result=[]
     for r in rows:
         active=r.her_group is not None
         matched=labels_by_her.get(r.her_group,set()) if active else set()
+        row_current_stock=sum(current_balance.get(lbl,0.0) for lbl in matched) if active else 0.0
         quarters=[]
         cum_proc=cum_sales=0.0
         for q in (1,2,3,4):
             if active:
-                cum_proc+=sum(proc_totals.get(lbl,zero4)[q-1] for lbl in matched)
-                cum_sales+=sum(sales_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                proc_q=sum(proc_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                sales_q=sum(sales_totals.get(lbl,zero4)[q-1] for lbl in matched)
+                cum_proc+=proc_q; cum_sales+=sales_q
                 counted=sum(counted_totals.get(lbl,zero4)[q-1] for lbl in matched)
-                proc,sales=cum_proc,cum_sales
-                stock=float(r.baseline_stock_2025 or 0)+proc-sales+counted
+                stock=float(r.baseline_stock_2025 or 0)+cum_proc-cum_sales+counted
+                actual=row_current_stock+counted
+                diff=stock-actual
             else:
-                proc=sales=stock=0.0
-            actual=actual_by_row_q.get((r.id,q))
-            diff=(actual-stock) if actual is not None else None
-            quarters.append({"processing":round(proc,3),"sales":round(sales,3),"stock":round(stock,3),"actual_stock":actual,"diff":round(diff,3) if diff is not None else None})
+                proc_q=sales_q=stock=0.0; actual=diff=None
+            quarters.append({
+                "processing":round(cum_proc,3) if active else 0.0,
+                "sales":round(cum_sales,3) if active else 0.0,
+                "processing_interval":round(proc_q,3) if active else 0.0,
+                "sales_interval":round(sales_q,3) if active else 0.0,
+                "stock":round(stock,3),
+                "actual_stock":round(actual,3) if actual is not None else None,
+                "diff":round(diff,3) if diff is not None else None,
+            })
         result.append({"id":r.id,"group_name":r.group_name,"subcategory":r.subcategory,"her_group":r.her_group,"eka_code":r.eka_code,"reptool_code":r.reptool_code,"baseline_stock_2025":float(r.baseline_stock_2025 or 0),"active":active,"frozen_hidden":r.frozen_hidden,"quarters":quarters})
     return {"year":year,"rows":result}
-
-@app.put("/reports/inventory-actual-stock")
-def save_inventory_actual_stock(data:schemas.InventoryActualStockIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
-    if not db.get(models.InventoryReportRow,data.row_id): raise HTTPException(404,"Η γραμμή δεν βρέθηκε")
-    if data.quarter not in (1,2,3,4): raise HTTPException(422,"Μη έγκυρο τρίμηνο")
-    existing=db.scalar(select(models.InventoryActualStock).where(models.InventoryActualStock.row_id==data.row_id,models.InventoryActualStock.year==data.year,models.InventoryActualStock.quarter==data.quarter))
-    if existing: existing.weight_kg=data.weight_kg; existing.updated_by_user_id=user.id
-    else: db.add(models.InventoryActualStock(row_id=data.row_id,year=data.year,quarter=data.quarter,weight_kg=data.weight_kg,updated_by_user_id=user.id))
-    db.commit()
-    return {"ok":True}
 
 @app.get("/inventory/count-entries")
 def list_inventory_count_entries(year:int=Query(...), quarter:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
