@@ -31,9 +31,15 @@ YLIKA_PATH = Path(r"C:\Users\paran\Desktop\HER app\Ylika.xlsx")
 #     -- these are ΑΗΗΕ categories sorted straight to inter-unit transfer, not processed materials.
 #   ΠΛΥΝΤΗΡΙΑ, ΚΟΥΖΙΝΕΣ -- bulk whole-appliance categories, not materials.
 #   ΦΕΛΙΖΟΛ -- still pending the user's call.
-# ΚΙΝΗΤΑ / LAPTOPS / ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ turned out to be PCB labels, not whole devices -- renamed at the
-# source instead of overridden here, see rename_pcb_material_labels.py.
+# ΚΙΝΗΤΑ / LAPTOPS / ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ: a WEEE category can yield either a whole-device material
+# output (e.g. "ΚΙΝΗΤΑ") or a PCB-only output from the same devices (e.g. "ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ") -- these
+# are two DIFFERENT materials, not spelling variants of one, confirmed against the app's own existing
+# PLAKETES_LABELS set (desktop_v11.html) which already lists "ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ" and "LAPTOPS" as PCB
+# labels, bare, no "ΠΛΑΚΕΤΕΣ" prefix -- so no rename needed, just the right HER group each.
 MANUAL_OVERRIDES = {
+    "ΚΙΝΗΤΑ": "Κινητά - Tablet - Laptop",
+    "ΚΙΝΗΤΩΝ ΤΗΛΕΦΩΝΩΝ": "Πλακέτες τυπ/νων κυκλωμάτων >10cm²",
+    "LAPTOPS": "Πλακέτες τυπ/νων κυκλωμάτων >10cm²",
     "ΜΠΡΟΥΤΖΟΣ / ΧΑΛΚΟΣ": "Μέταλλο μη σιδηρούχο",
     "ΙΝΟΧ ΑΝΑΜΕΙΚΤΟ": "Μέταλλο μη σιδηρούχο",
     "ΚΑΛΩΔΙΑ ΑΠΛΑ": "Εσωτερικά Καλώδια",
