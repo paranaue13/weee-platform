@@ -495,6 +495,10 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
     if mt.code=="BULK" and not code:
         seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like("BULK-%"))).all())+1
         code=f"BULK-{datetime.now().year}-{seq:06d}"
+    if mt.code in ("MATERIAL_SACK","MATERIAL_PALLET") and not code:
+        prefix="MS" if mt.code=="MATERIAL_SACK" else "MP"
+        seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like(f"{prefix}-%"))).all())+1
+        code=f"{prefix}-{datetime.now().year}-{seq:06d}"
     if not code: raise HTTPException(422,"Απαιτείται κωδικός μέσου")
     if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code)): raise HTTPException(409,"Ο κωδικός μέσου υπάρχει ήδη")
     if data.linked_loading_order_id and not db.get(models.LoadingOrder,data.linked_loading_order_id): raise HTTPException(422,"Άγνωστο δελτίο φόρτωσης")
@@ -837,6 +841,31 @@ def save_inventory_count_entry(data:schemas.InventoryCountEntryIn, db:Session=De
     if existing: existing.weight_kg=data.weight_kg; existing.updated_by_user_id=user.id
     else: db.add(models.InventoryCountEntry(year=data.year,quarter=data.quarter,material_label=data.material_label,weight_kg=data.weight_kg,updated_by_user_id=user.id))
     db.commit()
+    return {"ok":True}
+
+@app.get("/inventory/material-corrections")
+def list_material_corrections(year:int=Query(...), month:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    start=datetime(year,month,1); end=datetime(year+1,1,1) if month==12 else datetime(year,month+1,1)
+    rows=db.scalars(select(models.MaterialCorrectionEntry).where(models.MaterialCorrectionEntry.work_date>=start,models.MaterialCorrectionEntry.work_date<end).order_by(models.MaterialCorrectionEntry.work_date)).all()
+    uids={r.created_by_user_id for r in rows if r.created_by_user_id}
+    users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
+    return [schemas.MaterialCorrectionOut(id=r.id,work_date=r.work_date.date().isoformat(),material_label=r.material_label,weight_kg_delta=r.weight_kg_delta,piece_delta=r.piece_delta,reason=r.reason,created_by=users.get(r.created_by_user_id)) for r in rows]
+
+@app.post("/inventory/material-corrections", response_model=schemas.MaterialCorrectionOut)
+def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    wd=datetime.fromisoformat(data.work_date)
+    obj=models.MaterialCorrectionEntry(work_date=wd,material_label=data.material_label,weight_kg_delta=data.weight_kg_delta,piece_delta=data.piece_delta,reason=data.reason,created_by_user_id=user.id)
+    db.add(obj); db.flush()
+    write_audit(db,user,'material_correction',obj.id,'CREATE',new={'material':data.material_label,'kg':str(data.weight_kg_delta),'pieces':data.piece_delta,'reason':data.reason})
+    db.commit(); db.refresh(obj)
+    return schemas.MaterialCorrectionOut(id=obj.id,work_date=obj.work_date.date().isoformat(),material_label=obj.material_label,weight_kg_delta=obj.weight_kg_delta,piece_delta=obj.piece_delta,reason=obj.reason,created_by=user.username)
+
+@app.delete("/inventory/material-corrections/{entry_id}")
+def delete_material_correction(entry_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    obj=db.get(models.MaterialCorrectionEntry,entry_id)
+    if not obj: raise HTTPException(404,"Δεν βρέθηκε")
+    write_audit(db,user,'material_correction',obj.id,'DELETE',old={'material':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta})
+    db.delete(obj); db.commit()
     return {"ok":True}
 
 @app.get("/production/press-bales")
@@ -2365,7 +2394,8 @@ def _ready_lot_number(db:Session, material:Material)->str:
 def _ready_out(db:Session,x:ReadyMaterialLot):
     mat=db.get(Material,x.material_id); med=db.get(CollectionMedium,x.collection_medium_id) if x.collection_medium_id else None
     return schemas.ReadyMaterialOut(id=x.id,lot_number=x.lot_number,material_id=x.material_id,material_code=mat.internal_code,material_name=mat.internal_name,
-        output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id)
+        output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id,
+        created_at=x.created_at.isoformat())
 
 @app.post('/production/outputs', response_model=schemas.ReadyMaterialOut)
 def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
@@ -2391,9 +2421,11 @@ def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_d
     db.commit(); db.refresh(lot); return _ready_out(db,lot)
 
 @app.get('/inventory/ready-materials', response_model=list[schemas.ReadyMaterialOut])
-def ready_materials(available_only:bool=True, db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+def ready_materials(available_only:bool=True, start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
     q=select(ReadyMaterialLot).order_by(ReadyMaterialLot.created_at.desc())
     if available_only: q=q.where(ReadyMaterialLot.status=='AVAILABLE')
+    if start: q=q.where(ReadyMaterialLot.created_at>=datetime.fromisoformat(start))
+    if end: q=q.where(ReadyMaterialLot.created_at<datetime.fromisoformat(end)+timedelta(days=1))
     return [_ready_out(db,x) for x in db.scalars(q).all()]
 
 @app.get('/inventory/ready-materials/stock-by-name')

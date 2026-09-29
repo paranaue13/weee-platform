@@ -156,6 +156,10 @@ def seed(db: Session):
         ("BULK","Χύμα",None,False,False),
         # legacy type retained for existing databases / unique big-bag numbering
         ("BIG_BAG","Μεγασάκος",None,True,True),
+        # Υλικά storage media (σακός/παλέτα) -- kept separate from the ΑΗΗΕ-side PALLET/SACK_* types
+        # above so materials numbering never collides with or is affected by ΑΗΗΕ warehouse usage.
+        ("MATERIAL_SACK","Σακός Υλικών",None,True,True),
+        ("MATERIAL_PALLET","Παλέτα Υλικών",None,True,True),
     ]
     for code,name,tare,req,never in medium_types:
         obj=db.scalar(select(CollectionMediumType).where(CollectionMediumType.code==code))

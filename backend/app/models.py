@@ -776,3 +776,20 @@ class InventoryCountEntry(Base, TimestampMixin):
     weight_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
     updated_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     __table_args__ = (UniqueConstraint("year", "quarter", "material_label", name="uq_inventory_count_entry"),)
+
+class MaterialCorrectionEntry(Base, TimestampMixin):
+    """Διορθώσεις -- a manual +/- adjustment to a material's monthly kg and/or piece count in Υλικά,
+    entered by logistics/management (not the android operator). Multiple per material per month are
+    expected (e.g. a stock-take finds 2 extra bags one week, a mis-weighed lot gets corrected the
+    next) -- same "several small entries, tagged and summed" pattern as Παραγωγή's own correction row
+    (see notes=='Διόρθωση αρχείου παραγωγής' entries in MaterialOutputEntry), but as its own small
+    table instead of overloading MaterialOutputEntry (which represents real production output, not
+    manual adjustments) with signed deltas."""
+    __tablename__ = "material_correction_entries"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    work_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    material_label: Mapped[str] = mapped_column(String(150), index=True)
+    weight_kg_delta: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    piece_delta: Mapped[int] = mapped_column(Integer, default=0)
+    reason: Mapped[str|None] = mapped_column(Text, nullable=True)
+    created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)

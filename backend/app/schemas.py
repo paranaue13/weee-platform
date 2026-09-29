@@ -445,6 +445,7 @@ class ReadyMaterialOut(BaseModel):
     net_weight: Decimal
     status: str
     source_org_unit_id: str|None
+    created_at: str
 
 
 # ---- Build 0.8 ----
@@ -592,3 +593,19 @@ class InventoryCountEntryIn(BaseModel):
     quarter: int
     material_label: str
     weight_kg: Decimal
+
+class MaterialCorrectionIn(BaseModel):
+    work_date: str
+    material_label: str
+    weight_kg_delta: Decimal = Decimal("0")
+    piece_delta: int = 0
+    reason: str | None = None
+
+class MaterialCorrectionOut(BaseModel):
+    id: str
+    work_date: str
+    material_label: str
+    weight_kg_delta: Decimal
+    piece_delta: int
+    reason: str | None
+    created_by: str | None
