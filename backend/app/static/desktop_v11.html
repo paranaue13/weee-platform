@@ -3021,7 +3021,10 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   });
   document.addEventListener('click',e=>{
     if(cellFmtMenu&&!cellFmtMenu.contains(e.target))closeCellFmtMenu();
-    if(!(e.ctrlKey||e.metaKey)&&!e.target.closest('.cellFmtMenu')&&!e.target.closest('.cellFmtToolbar')&&!e.target.closest(CELL_SELECTOR))clearSelection();
+    // A plain (non-Ctrl) click anywhere -- INCLUDING on another cell -- clears the selection, same as
+    // Excel losing a multi-selection the moment you click without a modifier. Only exempt the menu and
+    // the persistent toolbar, where the click IS the formatting action being taken on the selection.
+    if(!(e.ctrlKey||e.metaKey)&&!e.target.closest('.cellFmtMenu')&&!e.target.closest('.cellFmtToolbar'))clearSelection();
   });
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeCellFmtMenu();clearSelection()}});
   document.addEventListener('scroll',()=>closeCellFmtMenu(),true);
