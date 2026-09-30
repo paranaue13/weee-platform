@@ -878,7 +878,7 @@ def device_yields(db:Session=Depends(get_db), user=Depends(require_permission("p
     cells=db.scalars(select(models.DeviceMaterialYield)).all()
     return {
         "categories":[{"id":c.id,"code":c.code,"description_el":c.description_el,"her_description":c.her_description} for c in cats],
-        "materials":[{"id":r.id,"name":_yield_row_label(r),"active":r.her_group is not None} for r in rows],
+        "materials":[{"id":r.id,"name":_yield_row_label(r),"system_description":r.description_en,"active":r.her_group is not None} for r in rows],
         "cells":[{"weee_category_id":x.weee_category_id,"report_row_id":x.report_row_id,"percentage":x.percentage} for x in cells],
     }
 
