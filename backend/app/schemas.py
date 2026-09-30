@@ -617,3 +617,7 @@ class DeviceYieldCellIn(BaseModel):
     weee_category_id: str
     report_row_id: str
     percentage: Decimal
+
+class DeviceYieldApplyBatchIn(BaseModel):
+    weee_category_id: str
+    batch_id: str | None = None

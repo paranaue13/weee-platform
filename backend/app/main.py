@@ -887,11 +887,54 @@ def device_yields(db:Session=Depends(get_db), user=Depends(require_permission("p
     cats=db.scalars(select(WEEECategory).where(WEEECategory.is_internal_subcategory==False,WEEECategory.active==True,WEEECategory.processable!=False).order_by(WEEECategory.code)).all()
     rows=db.scalars(select(models.InventoryReportRow).order_by(models.InventoryReportRow.sort_order)).all()
     cells=db.scalars(select(models.DeviceMaterialYield)).all()
+    batches=db.scalars(select(models.DeviceYieldBatch).order_by(models.DeviceYieldBatch.created_at)).all()
+    batches_by_cat={}
+    for b in batches: batches_by_cat.setdefault(b.weee_category_id,[]).append({"id":b.id,"label":b.label,"sample_size":b.sample_size})
+    active_batch_by_cat={}
+    for x in cells:
+        if x.source_batch_id: active_batch_by_cat[x.weee_category_id]=x.source_batch_id
     return {
-        "categories":[{"id":c.id,"code":c.code,"description_el":c.description_el,"her_description":c.her_description} for c in cats],
+        "categories":[{"id":c.id,"code":c.code,"description_el":c.description_el,"her_description":c.her_description,"batches":batches_by_cat.get(c.id,[]),"active_batch_id":active_batch_by_cat.get(c.id)} for c in cats],
         "materials":[{"id":r.id,"name":_yield_row_label(r),"system_description":r.description_en,"active":r.her_group is not None} for r in rows],
         "cells":[{"weee_category_id":x.weee_category_id,"report_row_id":x.report_row_id,"percentage":x.percentage} for x in cells],
     }
+
+@app.post("/reports/device-yields/apply-batch")
+def apply_device_yield_batch(data:schemas.DeviceYieldApplyBatchIn, db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):
+    cat=db.get(WEEECategory,data.weee_category_id)
+    if not cat: raise HTTPException(404,"Άγνωστη κατηγορία ΑΗΗΕ")
+    all_batches=db.scalars(select(models.DeviceYieldBatch).where(models.DeviceYieldBatch.weee_category_id==data.weee_category_id)).all()
+    if not all_batches: raise HTTPException(422,"Δεν υπάρχει κανένα batch για αυτή την κατηγορία")
+    if data.batch_id:
+        batch=next((b for b in all_batches if b.id==data.batch_id),None)
+        if not batch: raise HTTPException(404,"Το batch δεν βρέθηκε για αυτή την κατηγορία")
+        target_cells={c.report_row_id:c.percentage for c in db.scalars(select(models.DeviceYieldBatchCell).where(models.DeviceYieldBatchCell.batch_id==batch.id)).all()}
+        applied_batch_id=batch.id
+    else:
+        # Weighted average across every batch for this category, weighted by sample_size (falls back
+        # to an unweighted average -- weight 1 each -- for batches with no recorded sample_size).
+        all_cells=db.scalars(select(models.DeviceYieldBatchCell).where(models.DeviceYieldBatchCell.batch_id.in_([b.id for b in all_batches]))).all()
+        weight_by_batch={b.id:(b.sample_size or 1) for b in all_batches}
+        num={}; den={}
+        for c in all_cells:
+            w=weight_by_batch.get(c.batch_id,1)
+            num[c.report_row_id]=num.get(c.report_row_id,0)+float(c.percentage)*w
+            den[c.report_row_id]=den.get(c.report_row_id,0)+w
+        target_cells={rid:Decimal(str(num[rid]/den[rid])) for rid in num}
+        applied_batch_id=None
+    existing_by_row={x.report_row_id:x for x in db.scalars(select(models.DeviceMaterialYield).where(models.DeviceMaterialYield.weee_category_id==data.weee_category_id)).all()}
+    for row_id, pct in target_cells.items():
+        if row_id in existing_by_row:
+            existing_by_row[row_id].percentage=pct; existing_by_row[row_id].updated_by_user_id=user.id; existing_by_row[row_id].source_batch_id=applied_batch_id
+        else:
+            db.add(models.DeviceMaterialYield(weee_category_id=data.weee_category_id,report_row_id=row_id,percentage=pct,updated_by_user_id=user.id,source_batch_id=applied_batch_id))
+    # Materials that had a value from a previously-applied batch but aren't in the newly-selected one
+    # go back to zero/blank rather than silently keeping a stale figure from the old source.
+    for row_id, existing in existing_by_row.items():
+        if row_id not in target_cells and existing.source_batch_id is not None:
+            db.delete(existing)
+    db.commit()
+    return {"ok":True,"applied_batch_id":applied_batch_id,"cells":len(target_cells)}
 
 @app.put("/reports/device-yields/cell")
 def set_device_yield_cell(data:schemas.DeviceYieldCellIn, db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):

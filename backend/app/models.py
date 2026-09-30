@@ -809,4 +809,31 @@ class DeviceMaterialYield(Base, TimestampMixin):
     report_row_id: Mapped[str] = mapped_column(String(36), ForeignKey("inventory_report_rows.id"), index=True)
     percentage: Mapped[Decimal] = mapped_column(Numeric(9,4), default=0)
     updated_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    source_batch_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("device_yield_batches.id"), nullable=True)
     __table_args__ = (UniqueConstraint("weee_category_id", "report_row_id", name="uq_device_material_yield"),)
+
+class DeviceYieldBatch(Base, TimestampMixin):
+    """One real measured batch (a physical dismantling/weighing session) for one WEEE category --
+    the historical source behind DeviceMaterialYield's percentages. Several batches can exist for
+    the same category over time; sample_size (pieces measured) weights the "average of all batches"
+    option in the UI. label is a short human name (e.g. the source filename's own title) shown in the
+    picker when a category has more than one batch."""
+    __tablename__ = "device_yield_batches"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    weee_category_id: Mapped[str] = mapped_column(String(36), ForeignKey("weee_categories.id"), index=True)
+    label: Mapped[str] = mapped_column(String(200))
+    sample_size: Mapped[int|None] = mapped_column(Integer, nullable=True)
+    total_input_kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    total_output_kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    source_file: Mapped[str|None] = mapped_column(String(300), nullable=True)
+    created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+
+class DeviceYieldBatchCell(Base, TimestampMixin):
+    """One material's measured percentage within a DeviceYieldBatch."""
+    __tablename__ = "device_yield_batch_cells"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    batch_id: Mapped[str] = mapped_column(String(36), ForeignKey("device_yield_batches.id", ondelete="CASCADE"), index=True)
+    report_row_id: Mapped[str] = mapped_column(String(36), ForeignKey("inventory_report_rows.id"), index=True)
+    weight_kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    percentage: Mapped[Decimal] = mapped_column(Numeric(9,4), default=0)
+    __table_args__ = (UniqueConstraint("batch_id", "report_row_id", name="uq_device_yield_batch_cell"),)
