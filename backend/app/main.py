@@ -873,12 +873,12 @@ def _yield_row_label(r)->str:
 
 @app.get("/reports/device-yields")
 def device_yields(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
-    cats=db.scalars(select(WEEECategory).where(WEEECategory.is_internal_subcategory==False,WEEECategory.active==True).order_by(WEEECategory.code)).all()
+    cats=db.scalars(select(WEEECategory).where(WEEECategory.is_internal_subcategory==False,WEEECategory.active==True,WEEECategory.processable!=False).order_by(WEEECategory.code)).all()
     rows=db.scalars(select(models.InventoryReportRow).order_by(models.InventoryReportRow.sort_order)).all()
     cells=db.scalars(select(models.DeviceMaterialYield)).all()
     return {
         "categories":[{"id":c.id,"code":c.code,"description_el":c.description_el,"her_description":c.her_description} for c in cats],
-        "materials":[{"id":r.id,"name":_yield_row_label(r)} for r in rows],
+        "materials":[{"id":r.id,"name":_yield_row_label(r),"active":r.her_group is not None} for r in rows],
         "cells":[{"weee_category_id":x.weee_category_id,"report_row_id":x.report_row_id,"percentage":x.percentage} for x in cells],
     }
 

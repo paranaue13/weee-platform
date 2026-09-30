@@ -2044,20 +2044,20 @@ $('reportsUploadInput').onchange=async e=>{
 // ---- Ανάλυση συσκευών: πίνακας ποσοστών υλικού ανά κατηγορία ΑΗΗΕ (χειροκίνητες μετρήσεις,
 // βάση για μελλοντική ανάλυση παραγωγής -- ΔΕΝ προκύπτει από πραγματικές κινήσεις). Excel-style
 // επιλογή κελιών με σύρσιμο + Ctrl+C για αντιγραφή αλλού, διπλό κλικ για επεξεργασία ποσοστού.
-let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false;
+let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldActiveOnly=true,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false;
 async function loadDeviceYields(){
   $('deviceYieldPanel').innerHTML='<div class="card muted">Φόρτωση…</div>';
   try{
     deviceYieldData=await api('/reports/device-yields');
     deviceYieldPctMap={};
-    deviceYieldData.cells.forEach(c=>deviceYieldPctMap[c.weee_category_id+'|'+c.material_id]=Number(c.percentage));
+    deviceYieldData.cells.forEach(c=>deviceYieldPctMap[c.weee_category_id+'|'+c.report_row_id]=Number(c.percentage));
     renderDeviceYieldTable();
   }catch(e){$('deviceYieldPanel').innerHTML='<div class="card error">'+esc(e.message)+'</div>'}
 }
 function renderDeviceYieldTable(){
-  let cats=deviceYieldData.categories,mats=deviceYieldData.materials;
-  let head1='<tr><th'+(deviceYieldCalcMode?' rowspan="2"':'')+'>Υλικό</th>'+cats.map(c=>{
-    let label=esc(c.her_description||c.description_el||c.code)+'<br><span class="muted" style="font-size:10px">'+esc(c.code)+'</span>';
+  let cats=deviceYieldData.categories,mats=deviceYieldData.materials.filter(m=>!deviceYieldActiveOnly||m.active);
+  let head1='<tr><th'+(deviceYieldCalcMode?' rowspan="2"':'')+'>Περιγραφή HER</th>'+cats.map(c=>{
+    let label=esc(c.her_description||c.description_el||c.code);
     return deviceYieldCalcMode?`<th colspan="2" class="dyCatHead">${label}</th>`:`<th class="dyCatHead">${label}</th>`;
   }).join('')+'</tr>';
   let head2=deviceYieldCalcMode?'<tr>'+cats.map(c=>`<th class="prodSubHead">%</th><th class="prodSubHead"><input type="number" class="dyCalcInput" data-cat="${c.id}" placeholder="kg" value="${deviceYieldInputs[c.id]??''}"></th>`).join('')+'</tr>':'';
@@ -2076,11 +2076,13 @@ function renderDeviceYieldTable(){
   }).join('');
   $('deviceYieldPanel').innerHTML=`<div class="toolbar" style="margin:14px 0 10px">
     <button class="btn alt" id="dyCalcToggle">${deviceYieldCalcMode?'Απόκρυψη υπολογισμού εξερχομένων':'Υπολογισμός εξερχομένων'}</button>
+    <div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="dyActiveOnlyToggle" ${deviceYieldActiveOnly?'checked':''}><span class="slider"></span></label><span>Μόνο ενεργά</span></div>
     <button class="btn alt" id="dyImportBtn" style="margin-left:auto">+ Εισαγωγή από Excel</button>
   </div>
   <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 300px)">
     <table class="prodTable" id="dyTable"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table>
   </div>`;
+  $('dyActiveOnlyToggle').onchange=e=>{deviceYieldActiveOnly=e.target.checked;renderDeviceYieldTable()};
   wireDeviceYieldTable();
 }
 function wireDeviceYieldTable(){
