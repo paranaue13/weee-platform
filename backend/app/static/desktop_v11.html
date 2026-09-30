@@ -489,6 +489,12 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 
 /* Build 2.5.33 - Production workspace */
 .productionTop{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px;flex-wrap:wrap}.productionTabs{display:flex;gap:8px;border-bottom:1px solid #e5eaf0;flex:1;min-width:340px}.productionTab{border:0;background:transparent;padding:11px 14px;font-weight:700;color:#526172;border-bottom:2px solid transparent;cursor:pointer}.productionTab.active{color:#1265d6;border-bottom-color:#1265d6}.productionPeriod{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.productionPeriod label{font-size:11px;color:#64748b;font-weight:700}.prodSegment{display:flex;border:1px solid #dbe3ec;border-radius:7px;overflow:hidden;background:#fff}.prodSegment button{border:0;border-right:1px solid #e4e9ef;background:#fff;padding:8px 13px;cursor:pointer;font-weight:700;color:#475569}.prodSegment button:last-child{border-right:0}.prodSegment button.active{background:#1265d6;color:#fff}.prodPeriodNav{display:flex;align-items:center;border:1px solid #dbe3ec;border-radius:7px;background:#fff;min-height:34px}.prodPeriodNav button{border:0;background:transparent;padding:7px 10px;cursor:pointer}.prodPeriodNav b{padding:0 10px;min-width:145px;text-align:center}.productionKpis{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin:8px 0 12px}.prodKpi{border:1px solid #e1e7ef;border-radius:8px;background:#fff;padding:12px 15px}.prodKpi small{display:block;color:#6b7787;font-size:11px;margin-bottom:5px}.prodKpi b{font-size:20px}.prodKpi .sub{font-size:12px;margin-left:6px;color:#5d6b7b}.productionTools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0}.productionFilter{display:flex;flex-direction:column;gap:4px}.productionFilter label{font-size:11px;color:#64748b;font-weight:700}.productionSearch{display:flex;gap:8px;align-items:center;min-width:340px}.productionSearch input{min-width:270px}.prodTableWrap{max-height:calc(100vh - 350px);overflow:auto;border:1px solid #e1e7ef;border-radius:8px;background:#fff}.prodTable{min-width:100%;border-collapse:separate;border-spacing:0}.prodTable th,.prodTable td{white-space:nowrap;border-bottom:1px solid #edf1f5;border-right:1px solid #edf1f5;padding:8px 10px;text-align:right}.prodTable th:first-child,.prodTable td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:inherit;min-width:130px;white-space:normal;overflow-wrap:break-word;word-break:break-word}.prodTable thead th{position:sticky;top:0;z-index:4;background:#f8fafc;font-size:11px}.prodTable thead th:first-child{z-index:5;background:#f8fafc}.prodTable tbody tr:nth-child(even){background:#fafbfd}.prodTable tfoot td{position:sticky;bottom:0;background:#eaf3ff;font-weight:800;z-index:3}.prodCategoryHead{cursor:pointer;user-select:none}.prodCategoryHead .chev{margin-left:6px;color:#1265d6}.prodSubHead{background:#f4f8fd!important;font-size:10px!important}.prodEmpty{text-align:center!important;color:#7a8797;padding:28px!important}.deptRow{font-weight:800;background:#f7f9fc!important;cursor:pointer}.employeeRow td:first-child{padding-left:32px}.prodMaterialTags{display:flex;gap:4px;flex-wrap:wrap;max-width:320px}.prodMaterialTag{display:inline-block;padding:2px 7px;border-radius:10px;background:#eef4fb;font-size:10px;color:#345}.productionHint{font-size:11px;color:#6b7787;margin-top:7px}.masterRow.inactive{background:#f8dfd5}.empName{font-weight:700}.empPhone{color:#5d6b7b;font-size:12px}
+.dyCatHead{min-width:90px}
+.dyPctCell,.dyCalcCell{cursor:cell;user-select:none;min-width:64px}
+.dyPctCell.dySel,.dyCalcCell.dySel{background:#dceeff!important}
+.dyEditInput{width:100%;border:0;background:#fff;text-align:right;padding:2px;font-size:13px;min-height:auto}
+.dyCalcInput{width:100%;text-align:right;padding:3px 4px;font-size:12px;min-height:auto;border-radius:5px}
+.dyCalcCell{background:#f6fbf9;color:#19713e;font-weight:700}
 @media(max-width:1050px){.productionKpis{grid-template-columns:repeat(2,minmax(150px,1fr))}.productionSearch{min-width:260px}.productionSearch input{min-width:190px}}
 
 /* Build 2.5.33 - hierarchical production category headers */
@@ -714,7 +720,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 <div class="periodPickerDropdown hidden" id="shipHistPeriodDropdown"><div class="periodPickerYears" id="shipHistPeriodYears"></div><div class="periodPickerGrid" id="shipHistPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="shipHistPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
 <div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><span class="muted">Σύνολο: <span id="shipHistTotal"></span></span><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th>Ημερομηνία</th><th>Αρ. Δ.Α.</th><th>Περιγραφή</th><th>Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th>Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody></table></div></div></section>
 
-<section id="reports" class="view hidden"><div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode repTab active" data-reptab="receipts">Παραλαβές</button><button class="receiptMode repTab" data-reptab="processing">Επεξεργασία</button><button class="receiptMode repTab" data-reptab="dispatch">Αποστολές</button><button class="receiptMode repTab" data-reptab="statistics">Στατιστικά</button><button class="receiptMode repTab" data-reptab="recycling">Ανακύκλωση Συσκευών</button></div><div class="receiptActionButtons"><button class="btn" id="reportsUploadBtn">+ Φόρτωση αρχείου</button><input type="file" id="reportsUploadInput" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.pdf" multiple></div></div><div class="card hidden" id="reportsGenerate"><div class="toolbar" style="margin:0 0 10px"><b>Δημιουργία από τις καταγραφές</b><span id="reportsGenMsg" class="muted"></span></div><div class="toolbar" style="margin:0 0 8px"><label class="inlineCheck">Ημέρα <input type="date" id="reportsGenDay"></label><button class="btn alt repGen" data-kind="day" data-path="/sorting/daily-export?day=">Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="day" data-path="/reports/generate/daily-summary?day=">Ημερήσιο Συγκεντρωτικό</button></div><div class="toolbar" style="margin:0"><label class="inlineCheck">Μήνας <input type="month" id="reportsGenMonth"></label><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/monthly-received?month=">Μηνιαία Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/non-weee-by-supplier?month=">Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή</button></div></div><div id="reportsList"></div></section>
+<section id="reports" class="view hidden"><div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode repTab active" data-reptab="receipts">Παραλαβές</button><button class="receiptMode repTab" data-reptab="processing">Επεξεργασία</button><button class="receiptMode repTab" data-reptab="dispatch">Αποστολές</button><button class="receiptMode repTab" data-reptab="statistics">Στατιστικά</button><button class="receiptMode repTab" data-reptab="recycling">Ανακύκλωση Συσκευών</button></div><div class="receiptActionButtons"><button class="btn" id="reportsUploadBtn">+ Φόρτωση αρχείου</button><input type="file" id="reportsUploadInput" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.pdf" multiple></div></div><div class="card hidden" id="reportsGenerate"><div class="toolbar" style="margin:0 0 10px"><b>Δημιουργία από τις καταγραφές</b><span id="reportsGenMsg" class="muted"></span></div><div class="toolbar" style="margin:0 0 8px"><label class="inlineCheck">Ημέρα <input type="date" id="reportsGenDay"></label><button class="btn alt repGen" data-kind="day" data-path="/sorting/daily-export?day=">Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="day" data-path="/reports/generate/daily-summary?day=">Ημερήσιο Συγκεντρωτικό</button></div><div class="toolbar" style="margin:0"><label class="inlineCheck">Μήνας <input type="month" id="reportsGenMonth"></label><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/monthly-received?month=">Μηνιαία Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/non-weee-by-supplier?month=">Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή</button></div></div><div id="reportsList"></div><div class="receiptViewTabs hidden" id="statsSubTabs" style="margin-top:14px"><button class="receiptMode statsSubBtn active" data-statssub="files">Αρχεία</button><button class="receiptMode statsSubBtn" data-statssub="deviceYield">Ανάλυση συσκευών</button></div><div id="deviceYieldPanel" class="hidden"></div></section>
 <section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><button class="btn alt" id="invShowHiddenBtn">Εμφάνιση κρυφών γραμμών</button><button class="btn alt" id="invResetColsBtn">Επαναφορά στηλών</button><div class="prodPeriodNav" id="invZoomNav"><button type="button" id="invZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="invZoomLabel" style="min-width:52px">100%</b><button type="button" id="invZoomIn" title="Μεγέθυνση πίνακα">+</button></div></div><div class="cellFmtToolbar" id="invFmtToolbar" title="Μορφοποίηση επιλεγμένων κελιών: Ctrl+κλικ για επιλογή, Ctrl+Shift+κλικ για εύρος"><span class="cellFmtLabel">Μορφοποίηση</span><button type="button" class="cellFmtBtn" id="invFmtBold" style="font-weight:900">B</button><span class="cellFmtDiv"></span><button type="button" class="cellFmtBtn" data-ifalign="left" title="Αριστερά">◄</button><button type="button" class="cellFmtBtn" data-ifalign="center" title="Κέντρο">■</button><button type="button" class="cellFmtBtn" data-ifalign="right" title="Δεξιά">►</button><span class="cellFmtDiv"></span><button type="button" class="cellFmtBtn" data-ifsize="11px" style="font-size:11px" title="Μικρό">A</button><button type="button" class="cellFmtBtn" data-ifsize="" style="font-size:14px" title="Κανονικό">A</button><button type="button" class="cellFmtBtn" data-ifsize="16px" style="font-size:17px" title="Μεγάλο">A</button><span class="cellFmtDiv"></span><span id="invFmtColors"></span><span id="invFmtBgs"></span><span class="cellFmtDiv"></span><button type="button" class="cellFmtBtn" id="invFmtClearBtn" title="Καθαρισμός μορφοποίησης">⟲</button></div><div id="invHiddenColsRow" class="row hidden" style="gap:6px;flex-wrap:wrap;margin:0 0 8px;align-items:center"></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
 <section id="master" class="view hidden"><div class="card masterSticky"><h3>Μητρώα</h3><div class="tabs"><button class="tab mtab active" data-mtab="suppliers">Προμηθευτές</button><button class="tab mtab" data-mtab="clients">Πελάτες</button><button class="tab mtab" data-mtab="carriers">Μεταφορείς</button><button class="tab mtab" data-mtab="partners">Συνεργάτες</button><button class="tab mtab" data-mtab="containersM">Containers</button><button class="tab mtab" data-mtab="mediaM">Μέσα συλλογής</button><button class="tab mtab" data-mtab="weeeNamesM">ΑΗΗΕ</button><button class="tab mtab" data-mtab="materialsM">Υλικά</button><button class="tab mtab" data-mtab="departmentsM">Τμήματα</button><button class="tab mtab" data-mtab="employeesM">Εργαζόμενοι</button></div></div>
 <div id="suppliers" class="mpanel card"><h3>Προμηθευτές</h3><div class="masterTools"><input class="masterSearch" id="supplierSearch" placeholder="Αναζήτηση προμηθευτή, ΑΦΜ, ονομασίας…"><button class="btn" id="supplierCreate">+ Δημιουργία</button><span class="muted"><span id="supplierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="supplierMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="supplierCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
@@ -1840,11 +1846,20 @@ function fmtDate(iso){return iso?new Date(iso).toLocaleDateString('el-GR'):'—'
 // ---- Αναφορές και Στατιστικά: έτοιμες φόρμες αναφορών (Excel/PDF) ανά κατηγορία ----
 const REPORT_TABS=[['receipts','Παραλαβές'],['processing','Επεξεργασία'],['dispatch','Αποστολές'],['statistics','Στατιστικά'],['recycling','Ανακύκλωση Συσκευών']];
 const REPORT_KIND_LABELS={DAILY:'Ημερήσιες αναφορές',MONTHLY:'Μηνιαίες αναφορές',OTHER:'Λοιπές αναφορές'};
-let reportsActiveTab='receipts';
+let reportsActiveTab='receipts',statsSubTab='files';
 function fmtBytes(n){n=Number(n||0);return n>=1048576?(n/1048576).toLocaleString('el-GR',{maximumFractionDigits:1})+' MB':Math.max(1,Math.round(n/1024)).toLocaleString('el-GR')+' KB'}
 function reportFileBadge(name){let ext=(name.split('.').pop()||'').toLowerCase();return ext==='pdf'?'<span class="pill red">PDF</span>':ext==='csv'?'<span class="pill gray">CSV</span>':'<span class="pill green">Excel</span>'}
 async function loadReports(){
-  document.querySelectorAll('.repTab').forEach(b=>b.classList.toggle('active',b.dataset.reptab===reportsActiveTab));
+  document.querySelectorAll('.repTab[data-reptab]').forEach(b=>b.classList.toggle('active',b.dataset.reptab===reportsActiveTab));
+  $('statsSubTabs').classList.toggle('hidden',reportsActiveTab!=='statistics');
+  document.querySelectorAll('#statsSubTabs button').forEach(b=>b.classList.toggle('active',b.dataset.statssub===statsSubTab));
+  if(reportsActiveTab==='statistics'&&statsSubTab==='deviceYield'){
+    $('reportsList').classList.add('hidden');$('reportsGenerate').classList.add('hidden');
+    $('deviceYieldPanel').classList.remove('hidden');
+    await loadDeviceYields();
+    return;
+  }
+  $('deviceYieldPanel').classList.add('hidden');
   $('reportsList').classList.remove('hidden');
   $('reportsGenerate').classList.toggle('hidden',reportsActiveTab!=='receipts');
   if(!$('reportsGenDay').value)$('reportsGenDay').value=localISODate(new Date());if(!$('reportsGenMonth').value)$('reportsGenMonth').value=localISODate(new Date()).slice(0,7);
@@ -1861,7 +1876,8 @@ async function loadReports(){
   box.querySelectorAll('.repDownload').forEach(b=>b.onclick=async()=>{try{await downloadAuthorized('/reports/templates/'+reportsActiveTab+'/file?name='+encodeURIComponent(b.dataset.name))}catch(e){alert(e.message)}});
   box.querySelectorAll('.repDelete').forEach(b=>b.onclick=async()=>{if(!confirm('Διαγραφή του αρχείου «'+b.dataset.name+'»;'))return;try{await api('/reports/templates/'+reportsActiveTab+'?name='+encodeURIComponent(b.dataset.name),{method:'DELETE'});await loadReports()}catch(e){alert(e.message)}});
 }
-document.querySelectorAll('.repTab').forEach(b=>b.onclick=()=>{reportsActiveTab=b.dataset.reptab;loadReports()});
+document.querySelectorAll('.repTab[data-reptab]').forEach(b=>b.onclick=()=>{reportsActiveTab=b.dataset.reptab;loadReports()});
+document.querySelectorAll('#statsSubTabs .statsSubBtn').forEach(b=>b.onclick=()=>{statsSubTab=b.dataset.statssub;loadReports()});
 let invData=null,invActiveOnly=true,invShowHidden=false,invYear=new Date().getFullYear();
 let invQuarters=new Set([Math.floor(new Date().getMonth()/3)+1]);
 let invMode='progressive';
@@ -2024,6 +2040,135 @@ $('reportsUploadInput').onchange=async e=>{
   }
   await loadReports();
 };
+
+// ---- Ανάλυση συσκευών: πίνακας ποσοστών υλικού ανά κατηγορία ΑΗΗΕ (χειροκίνητες μετρήσεις,
+// βάση για μελλοντική ανάλυση παραγωγής -- ΔΕΝ προκύπτει από πραγματικές κινήσεις). Excel-style
+// επιλογή κελιών με σύρσιμο + Ctrl+C για αντιγραφή αλλού, διπλό κλικ για επεξεργασία ποσοστού.
+let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false;
+async function loadDeviceYields(){
+  $('deviceYieldPanel').innerHTML='<div class="card muted">Φόρτωση…</div>';
+  try{
+    deviceYieldData=await api('/reports/device-yields');
+    deviceYieldPctMap={};
+    deviceYieldData.cells.forEach(c=>deviceYieldPctMap[c.weee_category_id+'|'+c.material_id]=Number(c.percentage));
+    renderDeviceYieldTable();
+  }catch(e){$('deviceYieldPanel').innerHTML='<div class="card error">'+esc(e.message)+'</div>'}
+}
+function renderDeviceYieldTable(){
+  let cats=deviceYieldData.categories,mats=deviceYieldData.materials;
+  let head1='<tr><th'+(deviceYieldCalcMode?' rowspan="2"':'')+'>Υλικό</th>'+cats.map(c=>{
+    let label=esc(c.her_description||c.description_el||c.code)+'<br><span class="muted" style="font-size:10px">'+esc(c.code)+'</span>';
+    return deviceYieldCalcMode?`<th colspan="2" class="dyCatHead">${label}</th>`:`<th class="dyCatHead">${label}</th>`;
+  }).join('')+'</tr>';
+  let head2=deviceYieldCalcMode?'<tr>'+cats.map(c=>`<th class="prodSubHead">%</th><th class="prodSubHead"><input type="number" class="dyCalcInput" data-cat="${c.id}" placeholder="kg" value="${deviceYieldInputs[c.id]??''}"></th>`).join('')+'</tr>':'';
+  let body=mats.map(m=>{
+    let cells=cats.map(c=>{
+      let key=c.id+'|'+m.id,pct=deviceYieldPctMap[key];
+      let pctText=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2}):'';
+      let pctCell=`<td class="dyPctCell" data-cat="${c.id}" data-mat="${m.id}">${pctText}</td>`;
+      if(!deviceYieldCalcMode)return pctCell;
+      let kgIn=Number(deviceYieldInputs[c.id]||0);
+      let calc=(pct!=null&&kgIn>0)?(kgIn*pct/100):null;
+      let calcCell=`<td class="dyCalcCell" data-cat="${c.id}" data-mat="${m.id}">${calc!=null?calc.toLocaleString('el-GR',{maximumFractionDigits:2}):''}</td>`;
+      return pctCell+calcCell;
+    }).join('');
+    return `<tr><td>${esc(m.name)}</td>${cells}</tr>`;
+  }).join('');
+  $('deviceYieldPanel').innerHTML=`<div class="toolbar" style="margin-bottom:10px">
+    <button class="btn alt" id="dyCalcToggle">${deviceYieldCalcMode?'Απόκρυψη υπολογισμού εξερχομένων':'Υπολογισμός εξερχομένων'}</button>
+    <span class="muted" style="margin-left:6px">Επίλεξε κελιά με σύρσιμο και Ctrl+C για αντιγραφή σε Excel. Διπλό κλικ για επεξεργασία ποσοστού.</span>
+    <button class="btn alt" id="dyImportBtn" style="margin-left:auto">+ Εισαγωγή από Excel</button>
+  </div>
+  <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 300px)">
+    <table class="prodTable" id="dyTable"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table>
+  </div>`;
+  wireDeviceYieldTable();
+}
+function wireDeviceYieldTable(){
+  const table=$('dyTable');
+  $('dyCalcToggle').onclick=()=>{deviceYieldCalcMode=!deviceYieldCalcMode;renderDeviceYieldTable()};
+  $('dyImportBtn').onclick=openDeviceYieldImport;
+  table.querySelectorAll('.dyCalcInput').forEach(inp=>inp.oninput=()=>{
+    let catId=inp.dataset.cat,kgIn=Number(inp.value||0);
+    deviceYieldInputs[catId]=inp.value;
+    table.querySelectorAll(`.dyCalcCell[data-cat="${catId}"]`).forEach(td=>{
+      let pct=deviceYieldPctMap[catId+'|'+td.dataset.mat];
+      td.textContent=(pct!=null&&kgIn>0)?(kgIn*pct/100).toLocaleString('el-GR',{maximumFractionDigits:2}):'';
+    });
+  });
+  let dragging=false,anchor=null;
+  function clearSel(){table.querySelectorAll('.dySel').forEach(td=>td.classList.remove('dySel'))}
+  function selectRange(a,b){
+    clearSel();
+    let r1=Math.min(a.parentElement.rowIndex,b.parentElement.rowIndex),r2=Math.max(a.parentElement.rowIndex,b.parentElement.rowIndex);
+    let c1=Math.min(a.cellIndex,b.cellIndex),c2=Math.max(a.cellIndex,b.cellIndex);
+    for(let r=r1;r<=r2;r++){
+      let row=table.rows[r];if(!row)continue;
+      for(let c=c1;c<=c2;c++){let cell=row.cells[c];if(cell&&cell.tagName==='TD')cell.classList.add('dySel')}
+    }
+  }
+  function startEditCell(td){
+    if(td.querySelector('input'))return;
+    let catId=td.dataset.cat,matId=td.dataset.mat,old=deviceYieldPctMap[catId+'|'+matId];
+    td.innerHTML=`<input type="number" step="0.01" class="dyEditInput" value="${old!=null?old:''}">`;
+    let inp=td.querySelector('input');inp.focus();inp.select();
+    let done=false;
+    function commit(){
+      if(done)return;done=true;
+      let val=inp.value.trim(),pct=val===''?null:Number(val);
+      deviceYieldPctMap[catId+'|'+matId]=pct;
+      td.innerHTML='';td.textContent=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2}):'';
+      api('/reports/device-yields/cell',{method:'PUT',body:JSON.stringify({weee_category_id:catId,material_id:matId,percentage:pct||0})}).catch(()=>{});
+      if(deviceYieldCalcMode){
+        let calcTd=table.querySelector(`.dyCalcCell[data-cat="${catId}"][data-mat="${matId}"]`);
+        if(calcTd){let kgIn=Number(deviceYieldInputs[catId]||0);calcTd.textContent=(pct!=null&&kgIn>0)?(kgIn*pct/100).toLocaleString('el-GR',{maximumFractionDigits:2}):''}
+      }
+    }
+    inp.addEventListener('blur',commit);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){inp.blur()}else if(e.key==='Escape'){done=true;td.textContent=old!=null?old.toLocaleString('el-GR',{maximumFractionDigits:2}):''}});
+  }
+  table.querySelectorAll('tbody td.dyPctCell').forEach(td=>{
+    td.addEventListener('mousedown',e=>{if(e.target.tagName==='INPUT')return;dragging=true;anchor=td;selectRange(td,td);e.preventDefault()});
+    td.addEventListener('mouseenter',()=>{if(dragging&&anchor)selectRange(anchor,td)});
+    td.addEventListener('dblclick',()=>startEditCell(td));
+  });
+  document.addEventListener('mouseup',()=>dragging=false);
+  if(!dyKeydownBound){
+    dyKeydownBound=true;
+    document.addEventListener('keydown',e=>{
+      if(!(e.ctrlKey||e.metaKey)||e.key!=='c')return;
+      let t=$('dyTable');if(!t)return;
+      let sel=[...t.querySelectorAll('.dySel')];if(!sel.length)return;
+      let rows={};
+      sel.forEach(td=>{let r=td.parentElement.rowIndex;(rows[r]=rows[r]||[]).push(td)});
+      let text=Object.keys(rows).sort((a,b)=>a-b).map(r=>rows[r].sort((a,b)=>a.cellIndex-b.cellIndex).map(td=>td.textContent.trim()).join('\t')).join('\n');
+      navigator.clipboard?.writeText(text).catch(()=>{});
+    });
+  }
+}
+function openDeviceYieldImport(){
+  openFloat('Εισαγωγή ποσοστών από Excel',`<div class="notice">Πρώτη γραμμή: κωδικοί ΑΗΗΕ. Πρώτη στήλη: κωδικός ή όνομα υλικού. Τα υπόλοιπα κελιά: ποσοστά. Ο πιο εύκολος τρόπος να ξεκινήσεις -- επίλεξε τον υπάρχοντα πίνακα εδώ με σύρσιμο, Ctrl+C, και επικόλλησέ τον σε ένα κενό Excel για να φτιάξεις το αρχείο.</div>
+    <div id="dyDropZone" style="border:2px dashed #cbd5e1;border-radius:10px;padding:30px;text-align:center;cursor:pointer;margin-top:12px">Σύρε εδώ το αρχείο Excel ή κάνε κλικ για επιλογή<input type="file" id="dyImportFile" accept=".xlsx,.xlsm,.xls" class="hidden"></div>
+    <div id="dyImportMsg" class="muted" style="margin-top:10px"></div>`);
+  let zone=$('dyDropZone'),inp=$('dyImportFile');
+  zone.onclick=()=>inp.click();
+  zone.ondragover=e=>{e.preventDefault();zone.style.background='#eef4f8'};
+  zone.ondragleave=()=>{zone.style.background=''};
+  zone.ondrop=async e=>{e.preventDefault();zone.style.background='';if(e.dataTransfer.files.length)await doDeviceYieldImport(e.dataTransfer.files[0])};
+  inp.onchange=async()=>{if(inp.files.length)await doDeviceYieldImport(inp.files[0])};
+}
+async function doDeviceYieldImport(file){
+  let msg=$('dyImportMsg');msg.className='muted';msg.textContent='Ανέβασμα…';
+  try{
+    let fd=new FormData();fd.append('file',file);
+    let r=await fetch('/reports/device-yields/import',{method:'POST',headers:token?{Authorization:'Bearer '+token}:{},body:fd});
+    let d=await r.json();
+    if(!r.ok)throw new Error(d.detail||'Σφάλμα');
+    msg.className='oktext';
+    msg.textContent=`Ενημερώθηκαν ${d.updated} κελιά.`+(d.unmatched_materials.length?(' Δεν αναγνωρίστηκαν ως υλικό: '+d.unmatched_materials.join(', ')):'');
+    await loadDeviceYields();
+  }catch(e){msg.className='error';msg.textContent=e.message}
+}
 
 async function loadEquipment(){
  let [tools,ppe,cons,alerts,emps]=await Promise.all([

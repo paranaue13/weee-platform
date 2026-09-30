@@ -793,3 +793,16 @@ class MaterialCorrectionEntry(Base, TimestampMixin):
     piece_delta: Mapped[int] = mapped_column(Integer, default=0)
     reason: Mapped[str|None] = mapped_column(Text, nullable=True)
     created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+
+class DeviceMaterialYield(Base, TimestampMixin):
+    """Ανάλυση συσκευών -- reference/recipe percentages (not derived from live transactions):
+    "1 kg of this WEEE category is expected to yield X% of this material", from manual measurements
+    that get updated over time. This is the base for a future ΑΗΗΕ production-analysis report, not a
+    record of what actually happened -- keep it strictly separate from real production/output ledgers."""
+    __tablename__ = "device_material_yields"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    weee_category_id: Mapped[str] = mapped_column(String(36), ForeignKey("weee_categories.id"), index=True)
+    material_id: Mapped[str] = mapped_column(String(36), ForeignKey("materials.id"), index=True)
+    percentage: Mapped[Decimal] = mapped_column(Numeric(9,4), default=0)
+    updated_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("weee_category_id", "material_id", name="uq_device_material_yield"),)

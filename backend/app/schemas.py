@@ -609,3 +609,8 @@ class MaterialCorrectionOut(BaseModel):
     piece_delta: int
     reason: str | None
     created_by: str | None
+
+class DeviceYieldCellIn(BaseModel):
+    weee_category_id: str
+    material_id: str
+    percentage: Decimal

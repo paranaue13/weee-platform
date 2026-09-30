@@ -868,6 +868,77 @@ def delete_material_correction(entry_id:str, db:Session=Depends(get_db), user:Us
     db.delete(obj); db.commit()
     return {"ok":True}
 
+@app.get("/reports/device-yields")
+def device_yields(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    cats=db.scalars(select(WEEECategory).where(WEEECategory.is_internal_subcategory==False,WEEECategory.active==True).order_by(WEEECategory.code)).all()
+    mats=db.scalars(select(Material).where(Material.active==True).order_by(Material.internal_name)).all()
+    cells=db.scalars(select(models.DeviceMaterialYield)).all()
+    return {
+        "categories":[{"id":c.id,"code":c.code,"description_el":c.description_el,"her_description":c.her_description} for c in cats],
+        "materials":[{"id":m.id,"code":m.internal_code,"name":m.internal_name} for m in mats],
+        "cells":[{"weee_category_id":x.weee_category_id,"material_id":x.material_id,"percentage":x.percentage} for x in cells],
+    }
+
+@app.put("/reports/device-yields/cell")
+def set_device_yield_cell(data:schemas.DeviceYieldCellIn, db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):
+    row=db.scalar(select(models.DeviceMaterialYield).where(models.DeviceMaterialYield.weee_category_id==data.weee_category_id,models.DeviceMaterialYield.material_id==data.material_id))
+    if data.percentage is None or data.percentage==0:
+        if row: db.delete(row); db.commit()
+        return {"ok":True}
+    if row:
+        row.percentage=data.percentage; row.updated_by_user_id=user.id
+    else:
+        db.add(models.DeviceMaterialYield(weee_category_id=data.weee_category_id,material_id=data.material_id,percentage=data.percentage,updated_by_user_id=user.id))
+    db.commit()
+    return {"ok":True}
+
+from fastapi import UploadFile, File
+@app.post("/reports/device-yields/import")
+async def import_device_yields(file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission("reports.manage"))):
+    from openpyxl import load_workbook
+    import io
+    content=await file.read()
+    try:
+        wb=load_workbook(io.BytesIO(content),data_only=True)
+    except Exception:
+        raise HTTPException(422,"Δεν ήταν δυνατή η ανάγνωση του αρχείου Excel")
+    ws=wb[wb.sheetnames[0]]
+    cats={c.code:c for c in db.scalars(select(WEEECategory).where(WEEECategory.is_internal_subcategory==False)).all()}
+    mats=db.scalars(select(Material)).all()
+    mats_by_key={}
+    for m in mats:
+        mats_by_key[m.internal_code.strip().lower()]=m
+        mats_by_key[m.internal_name.strip().lower()]=m
+    header=[c.value for c in next(ws.iter_rows(min_row=1,max_row=1))]
+    col_map={}
+    for idx,val in enumerate(header):
+        if val is None: continue
+        code=str(val).strip()
+        if code in cats: col_map[idx]=cats[code]
+    if not col_map:
+        raise HTTPException(422,"Δεν βρέθηκε καμία στήλη με αναγνωρίσιμο κωδικό ΑΗΗΕ στην πρώτη γραμμή")
+    updated=0; unmatched_materials=[]
+    for row in ws.iter_rows(min_row=2):
+        if not row: continue
+        name_cell=row[0].value
+        if name_cell is None or str(name_cell).strip()=="": continue
+        mat=mats_by_key.get(str(name_cell).strip().lower())
+        if not mat:
+            unmatched_materials.append(str(name_cell)); continue
+        for idx,cat in col_map.items():
+            if idx>=len(row): continue
+            val=row[idx].value
+            if val is None or val=="": continue
+            try: pct=Decimal(str(val))
+            except Exception: continue
+            existing=db.scalar(select(models.DeviceMaterialYield).where(models.DeviceMaterialYield.weee_category_id==cat.id,models.DeviceMaterialYield.material_id==mat.id))
+            if existing: existing.percentage=pct; existing.updated_by_user_id=user.id
+            else: db.add(models.DeviceMaterialYield(weee_category_id=cat.id,material_id=mat.id,percentage=pct,updated_by_user_id=user.id))
+            updated+=1
+    db.commit()
+    write_audit(db,user,'device_material_yield','import','IMPORT',new={'updated':updated,'unmatched_materials':len(unmatched_materials)})
+    return {"updated":updated,"unmatched_materials":unmatched_materials[:30]}
+
 @app.get("/production/press-bales")
 def press_bale_entries(start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     """Per-bale packaging detail from the ΠΡΕΣΑ (baling press) sheets, purely informational --
