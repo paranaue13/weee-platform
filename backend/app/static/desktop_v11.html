@@ -279,8 +279,10 @@ th{background:#dceef7}
    παιδιά της επικεφαλίδας, και όλο το υπόλοιπο popup, κρύβονται. Νέος τύπος popup που θέλει να
    ελαχιστοποιείται πρέπει απλά να προσθέσει το class της επικεφαλίδας του εδώ. */
 .popupMin>*{display:none!important}
-.popupMin>.floatPanelHeader,.popupMin>.receiptPopupHeader,.popupMin>.sortingPopupHeader{display:flex!important;align-items:center!important}
-.popupMin .floatPanelHeader h3,.popupMin .receiptPopupHeader h3,.popupMin .sortingPopupHeader h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.popupMin>.floatPanelHeader,.popupMin>.receiptPopupHeader,.popupMin>.sortingPopupHeader{display:flex!important;align-items:center!important;padding:8px 12px!important;margin:0!important}
+.popupMin .floatPanelHeader h3,.popupMin .receiptPopupHeader h3,.popupMin .sortingPopupHeader h2{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;font-size:13px!important}
+.popupMin .winCtl{font-size:13px!important;padding:3px 5px!important}
+.popupMin .winCtl svg{width:12px!important;height:12px!important}
 .popupMin .sortingPopupHeader>div:first-child{flex:1;min-width:0;overflow:hidden}
 .popupMin .sortingPopupHeader>div:first-child>*:not(h2),.popupMin .sortingPopupHeader>div:last-child>*:not(.winCtl){display:none!important}.sortingMetaGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.inlineCheck{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:7px}.inlineCheck input{width:auto!important}
 
