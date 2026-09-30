@@ -612,5 +612,5 @@ class MaterialCorrectionOut(BaseModel):
 
 class DeviceYieldCellIn(BaseModel):
     weee_category_id: str
-    material_id: str
+    report_row_id: str
     percentage: Decimal
