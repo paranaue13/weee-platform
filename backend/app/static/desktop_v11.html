@@ -498,6 +498,8 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 .dyCalcCell{background:#f6fbf9;color:#19713e;font-weight:700}
 .dyToggleActive{background:#1265d6!important;color:#fff!important}
 #dyTable td.invTextCol,#dyTable th.invTextCol{text-align:left;white-space:normal;min-width:110px;overflow-wrap:break-word;word-break:break-word}
+#invCountTable .invHerInput{width:100%;border:0;border-radius:0;background:transparent;padding:4px;font-size:13px;min-height:auto}
+#invCountTable .invHerInput:focus{background:#eef5f8;border-radius:4px}
 /* Κανόνας: κάθε αριθμητικό πεδίο μέσα σε prodTable είναι ένα κελί που συμπληρώνεται -- ποτέ
    περίγραμμα/στρογγυλοποίηση σαν "συννεφάκι", ποτέ τα εγγενή βελάκια πάνω/κάτω του browser. */
 .prodTable input[type=number]{-moz-appearance:textfield}
@@ -1967,7 +1969,11 @@ function renderInventoryCount(){
     if((rows[i].group_name||'')===(rows[i-1].group_name||'')){spans[i-1]+=spans[i];spans[i]=0}
   }
   $('invCountBody').innerHTML=rows.map((r,i)=>{
-    let idCells=idCols.map(k=>{let c=INV_ID_COLS[k];return `<td class="${c.text?'invTextCol':''}">${esc(String(c.get(r)??''))}</td>`}).join('');
+    let idCells=idCols.map(k=>{
+      let c=INV_ID_COLS[k];
+      if(k==='her')return `<td class="invTextCol"><input type="text" class="invHerInput" data-row="${r.id}" value="${esc(r.her_group||'')}" placeholder="—"></td>`;
+      return `<td class="${c.text?'invTextCol':''}">${esc(String(c.get(r)??''))}</td>`;
+    }).join('');
     let qCells=quartersShown.map((qn,qi)=>{
       let q=r.quarters[qn-1];
       return qCols.map((k,ki)=>`<td${qi>0&&ki===0?' class="prodGroupStart"':''}>${INV_Q_COLS[k].get(q)}</td>`).join('');
@@ -1975,6 +1981,9 @@ function renderInventoryCount(){
     let groupCell=spans[i]>0?`<td rowspan="${spans[i]}" class="invGroupCell">${esc(r.group_name||'')}</td>`:'';
     return `<tr${r.active?'':' class="muted"'}>${groupCell}${idCells}${qCells}</tr>`;
   }).join('')||`<tr><td class="prodEmpty" colspan="${1+idCols.length+Math.max(qCols.length*quartersShown.length,1)}">Καμία γραμμή.</td></tr>`;
+  document.querySelectorAll('.invHerInput').forEach(inp=>inp.onchange=async()=>{
+    try{await api('/inventory/report-rows/'+inp.dataset.row+'/her-group',{method:'PUT',body:JSON.stringify({her_group:inp.value.trim()||null})});await loadInventoryCount()}catch(e){alert(e.message)}
+  });
   document.querySelectorAll('.invColHide').forEach(b=>b.onclick=(e)=>{e.stopPropagation();invHiddenCols.add(b.dataset.invhide);renderInventoryCount()});
   let hiddenRow=$('invHiddenColsRow'),hiddenKeys=[...invHiddenCols];
   hiddenRow.classList.toggle('hidden',!hiddenKeys.length);

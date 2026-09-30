@@ -843,6 +843,17 @@ def save_inventory_count_entry(data:schemas.InventoryCountEntryIn, db:Session=De
     db.commit()
     return {"ok":True}
 
+@app.put("/inventory/report-rows/{row_id}/her-group")
+def set_inventory_row_her_group(row_id:str, data:schemas.InventoryRowHerGroupIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    row=db.get(models.InventoryReportRow,row_id)
+    if not row: raise HTTPException(404,"Δεν βρέθηκε γραμμή")
+    val=(data.her_group or "").strip() or None
+    old=row.her_group
+    row.her_group=val
+    write_audit(db,user,'inventory_report_row',row.id,'EDIT',old={'her_group':old},new={'her_group':val})
+    db.commit()
+    return {"ok":True,"her_group":val}
+
 @app.get("/inventory/material-corrections")
 def list_material_corrections(year:int=Query(...), month:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     start=datetime(year,month,1); end=datetime(year+1,1,1) if month==12 else datetime(year,month+1,1)

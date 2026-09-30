@@ -594,6 +594,9 @@ class InventoryCountEntryIn(BaseModel):
     material_label: str
     weight_kg: Decimal
 
+class InventoryRowHerGroupIn(BaseModel):
+    her_group: str | None = None
+
 class MaterialCorrectionIn(BaseModel):
     work_date: str
     material_label: str
