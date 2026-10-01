@@ -1302,6 +1302,10 @@ const PROD_MAJOR_CATS=['1','2','4','5','6'];
 let prodStockOnly=false;
 function prodRange(){if(prodState.period==='custom'&&prodState.customRange){let c=prodState.customRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{start:new Date(c.start+'T12:00:00'),end:new Date(c.end+'T12:00:00'),label:`${fmt(c.start)} – ${fmt(c.end)}`,startISO:c.start,endISO:c.end}}let d=new Date(prodState.cursor),start,end,label;if(prodState.period==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);label=start.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'})}else if(prodState.period==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,0);label=start.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}else if(prodState.period==='quarter'){let q=Math.floor(d.getMonth()/3),m=q*3;start=new Date(d.getFullYear(),m,1);end=new Date(d.getFullYear(),m+3,0);label=`${q+1}ο τρίμηνο ${d.getFullYear()}`}else{start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear(),11,31);label=String(d.getFullYear())}return{start,end,label,startISO:localISODate(start),endISO:localISODate(end)}}
 function prodShift(n){if(prodState.period==='custom')return;let d=prodState.cursor;if(prodState.period==='day')d.setDate(d.getDate()+n);else if(prodState.period==='month')d.setMonth(d.getMonth()+n);else if(prodState.period==='quarter')d.setMonth(d.getMonth()+3*n);else d.setFullYear(d.getFullYear()+n);prodState.cursor=new Date(d);loadProduction()}
+// Standing rule: any production picker/report excludes ΑΗΗΕ we don't process and ΜΗ ΑΗΗΕ Τύπου Α/Β
+// entirely. ΜΗ ΑΗΗΕ codes are plain 6-digit numbers (e.g. "109991") -- same test the Android app's
+// mGroup() uses for its own A/B grouping.
+function isProducedWeeeCat(c){return c.active!==false&&c.processable!==false&&!/^\d{6}$/.test(c.official_code||c.code||'')}
 function prodTop(code){let m=String(code||'').match(/^([1-6])/);return m?m[1]:''}function prodTopName(n){return {'1':'Κλιματιστικά','2':'Οθόνες','3':'Λαμπτήρες','4':'Μεγ. Συσκευές & Λοιπά','5':'Μικρές Συσκευές','6':'Πληροφορική & Τηλεπικοινωνίες'}[n]||n}function prodVal(v){v=Number(v||0);if(Math.abs(v)<.0005)return'';let s=Math.round(v).toLocaleString('el-GR');if(v<0){flagNegativeKg();return`<span class="negKgCell" title="Αρνητικό απόθεμα -- ελέγξτε τα δεδομένα">${s}</span>`}return s}
 function prodFilteredEntries(){let q=($('productionSearch')?.value||'').trim().toLocaleLowerCase('el');return prodState.entries.filter(e=>(prodState.group==='ALL'||e.supplier_group===prodState.group)&&(!q||[e.code,e.description,e.unit_name,e.employee_name].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)))}
 function renderProductionKpis(){let a=prodFilteredEntries(),sum=a.reduce((s,e)=>s+Number(e.weight_kg||0),0),h=prodState.entries.filter(e=>e.supplier_group==='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),o=prodState.entries.filter(e=>e.supplier_group!=='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),days=new Set(a.map(e=>(e.work_date||'').slice(0,10))).size;let units=new Set(a.map(e=>e.org_unit_id).filter(Boolean)).size,emps=new Set(a.map(e=>e.employee_id).filter(Boolean)).size;$('productionKpis').innerHTML=prodState.tab==='weee'?`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>HERMES</small><b>${prodVal(h)||'0'} kg</b></div><div class="prodKpi"><small>Λοιποί προμηθευτές</small><b>${prodVal(o)||'0'} kg</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`:`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>Τμήματα</small><b>${units}</b></div><div class="prodKpi"><small>Άτομα</small><b>${emps}</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`}
@@ -1842,7 +1846,7 @@ function renderDeltio(){
     let rows=placed.map(e=>{
       let a=deltioAttByEmp(e.id);
       let entry=deltioState.entries.find(x=>x.org_unit_id===u.id&&x.employee_id===e.id);
-      let catOpts='<option value="">—</option>'+(prodState.cats||[]).filter(c=>c.active!==false).map(c=>`<option value="${c.id}" ${entry&&entry.weee_category_id===c.id?'selected':''}>${esc(c.display_name||c.official_description||c.code)}</option>`).join('');
+      let catOpts='<option value="">—</option>'+(prodState.cats||[]).filter(isProducedWeeeCat).map(c=>`<option value="${c.id}" ${entry&&entry.weee_category_id===c.id?'selected':''}>${esc(c.display_name||c.official_description||c.code)}</option>`).join('');
       return `<tr>
         <td>${esc(e.full_name)}</td>
         <td><input type="text" class="deltioPosInput" placeholder="—" data-emp="${e.id}" value="${esc(a.position_text||'')}"></td>
@@ -3845,7 +3849,12 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
 
 // Build 2.5.34 production hierarchy: no duplicate official-total column for company subcategories.
 renderProdWeee=function(){
- let entries=prodFilteredEntries(),cats=prodState.cats.filter(c=>c.active!==false&&c.processable!==false&&(c.group_no||prodTop(c.official_code||c.code)));
+ // ΜΗ ΑΗΗΕ Τύπου Α/Β codes are plain 6-digit numbers (e.g. "109991") and also live in
+ // weee_categories -- group_no is NOT a reliable exclusion signal for them since the server just
+ // checks the first digit is 1-6, which codes like "109991" also satisfy; the old `||prodTop(...)`
+ // fallback had the exact same blind spot. Standing rule: production pickers/reports never show
+ // ΑΗΗΕ we don't process or ΜΗ ΑΗΗΕ at all -- isProducedWeeeCat() is the one place that decides this.
+ let entries=prodFilteredEntries(),cats=prodState.cats.filter(isProducedWeeeCat);
  const topOfCat=c=>String(c.group_no||prodTop(c.official_code||c.code)||'');
  const catHasProduction=id=>entries.some(e=>e.weee_category_id===id);
  const officials=cats.filter(c=>!c.is_internal_subcategory),internals=cats.filter(c=>c.is_internal_subcategory);
