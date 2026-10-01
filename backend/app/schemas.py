@@ -61,6 +61,25 @@ class ProductionWorkEntryUpdate(BaseModel):
     notes: str|None = None
     reason: str|None = None
 
+class ProductionAttendanceUpsert(BaseModel):
+    work_date: datetime
+    employee_id: str
+    status: str|None = None  # PRESENT|ABSENT|LEFT
+    org_unit_id: str|None = None
+    position_text: str|None = None
+    since_at: datetime|None = None
+
+class ProductionAttendanceOut(ProductionAttendanceUpsert):
+    id: str
+
+class ProductionDayMaterialIn(BaseModel):
+    work_date: datetime
+    org_unit_id: str
+    employee_id: str|None = None
+    weee_category_id: str
+    weight_kg: Decimal
+    source: str = "WINDOWS"
+
 class OrganizationCreate(BaseModel):
     legal_name: str
     trade_name: str|None = None

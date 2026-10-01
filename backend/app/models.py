@@ -88,6 +88,19 @@ class ProductionWorkEntry(Base, TimestampMixin):
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+
+class ProductionAttendance(Base, TimestampMixin):
+    __tablename__ = "production_attendance"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    work_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    employee_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), index=True)
+    status: Mapped[str|None] = mapped_column(String(10), nullable=True)  # PRESENT|ABSENT|LEFT
+    org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
+    position_text: Mapped[str|None] = mapped_column(String(150), nullable=True)  # free text until OrgUnitPosition data is ready
+    since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    __table_args__ = (UniqueConstraint("work_date", "employee_id", name="uq_production_attendance_day_emp"),)
+
 class MaterialOutputEntry(Base, TimestampMixin):
     __tablename__ = "material_output_entries"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)

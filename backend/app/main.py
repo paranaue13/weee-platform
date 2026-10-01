@@ -6,7 +6,7 @@ from sqlalchemy import select, inspect, text, update
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
-from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
+from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
 from .security import verify_password, make_token, current_user, require_permission
 from .seed import seed
 from .import_real_2026 import ensure_real_2026_import
@@ -731,6 +731,55 @@ def production_work_entry_history(entry_id:str, db:Session=Depends(get_db), user
     uids={e.user_id for e in events if e.user_id}
     users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
     return [{"action":e.action,"old_values":json.loads(e.old_values) if e.old_values else None,"new_values":json.loads(e.new_values) if e.new_values else None,"reason":e.reason,"user":users.get(e.user_id),"created_at":e.created_at.isoformat()} for e in events]
+
+@app.get("/production/attendance", response_model=list[schemas.ProductionAttendanceOut])
+def production_attendance_for_date(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    day=datetime.fromisoformat(date)
+    rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=day,ProductionAttendance.work_date<day+timedelta(days=1))).all()
+    return rows
+
+@app.put("/production/attendance", response_model=schemas.ProductionAttendanceOut)
+def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    if not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    if data.org_unit_id and not db.get(OrganizationalUnit,data.org_unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
+    obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==data.employee_id))
+    old=None
+    if obj:
+        old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
+        obj.status=data.status; obj.org_unit_id=data.org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
+    else:
+        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=data.org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
+        db.add(obj)
+    db.flush()
+    new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
+    write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
+    db.commit(); db.refresh(obj); return obj
+
+@app.post("/production/day-material", response_model=schemas.ProductionWorkEntryOut)
+def upsert_production_day_material(data:schemas.ProductionDayMaterialIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    unit=db.get(OrganizationalUnit,data.org_unit_id)
+    if not unit: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    if data.employee_id and not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    if not db.get(WEEECategory,data.weee_category_id): raise HTTPException(404,"Η κατηγορία ΑΗΗΕ δεν βρέθηκε")
+    day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
+    obj=db.scalar(select(ProductionWorkEntry).where(ProductionWorkEntry.work_date==day,ProductionWorkEntry.org_unit_id==data.org_unit_id,
+        ProductionWorkEntry.employee_id==data.employee_id,ProductionWorkEntry.weee_category_id==data.weee_category_id,ProductionWorkEntry.active==True))
+    prev=obj.weight_kg if obj else 0
+    delta=data.weight_kg-prev
+    # Δελτίο Παραγωγής: a plain material+kg table cell, not a physical lot pick like Android's
+    # forklift flow -- auto-consume the INCREASE from whatever ΑΗΗΕ stock sorting has produced for
+    # this category (oldest lots first), same real stock as /production/transfers. A decrease only
+    # corrects the reported number, same no-reversal convention as the existing Windows "Διόρθωση
+    # παραγωγής" editor for production_work_entries.
+    if delta>0: _consume_weee_stock_for_category(db,unit,data.weee_category_id,delta,user,notes="Δελτίο Παραγωγής")
+    if obj:
+        obj.weight_kg=data.weight_kg
+    else:
+        obj=ProductionWorkEntry(work_date=day,org_unit_id=data.org_unit_id,employee_id=data.employee_id,weee_category_id=data.weee_category_id,
+            weight_kg=data.weight_kg,source=data.source,created_by_user_id=user.id)
+        db.add(obj)
+    db.commit(); db.refresh(obj); return obj
 
 @app.get("/production/material-output")
 def material_output_entries(start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
@@ -2425,34 +2474,64 @@ def _transfer_number(db:Session)->str:
     rows=db.scalars(select(ProductionTransfer).where(ProductionTransfer.transfer_number.like(f'PRD-{year}-%'))).all()
     return f'PRD-{year}-{len(rows)+1:06d}'
 
+def _consume_lot(db:Session, transfer_id:str, lot, qty, unit, user:User, notes:str|None):
+    before=lot.available_weight; lot.available_weight=before-qty
+    lot.status='CONSUMED' if lot.available_weight==0 else 'PARTIAL'
+    ti=ProductionTransferItem(transfer_id=transfer_id,stock_lot_id=lot.id,weight=qty)
+    db.add(ti); db.flush()
+    db.add(ProductionInputBalance(transfer_item_id=ti.id,org_unit_id=unit.id,initial_weight=qty,current_remaining_weight=qty,status='OPEN'))
+    db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,
+        weight=qty,org_unit_id=unit.id,user_id=user.id,reason=notes))
+    cat=db.get(WEEECategory,lot.weee_category_id); medium=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+    return schemas.ProductionTransferItemOut(stock_lot_id=lot.id,weight=qty,weee_code=cat.code,medium_code=medium.code if medium else None), lot.collection_medium_id
+
+def _update_medium_lifecycle(db:Session, medium_ids:set):
+    # Medium lifecycle: only mark as in production when every stock lot currently attached to it is exhausted from WEEE warehouse.
+    for mid in medium_ids:
+        if not mid: continue
+        remaining=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==mid,WEEEStockLot.available_weight>0)).all()
+        medium=db.get(CollectionMedium,mid)
+        if medium and not remaining: medium.status='IN_PRODUCTION'
+
+def _consume_weee_stock_for_category(db:Session, unit, category_id:str, weight, user:User, notes:str|None):
+    """Auto-selects available WEEEStockLot rows for a category (oldest first) and consumes up to
+    `weight` across as many lots as needed, creating a ProductionTransfer the same way a manual
+    /production/transfers call would. Used by the Δελτίο Παραγωγής day-material entry, where the
+    operator just types a material+kg instead of picking physical lots one by one. Returns the
+    actually-consumed weight, which can be LESS than requested if sorting hasn't produced enough
+    stock yet -- callers tolerate that (same "flag, don't block" convention as prodVal/flagNegativeKg
+    elsewhere) rather than rejecting the entry."""
+    from decimal import Decimal
+    remaining=Decimal(weight)
+    if remaining<=0: return Decimal(0)
+    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=notes)
+    db.add(transfer); db.flush()
+    lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id==category_id,WEEEStockLot.available_weight>0).order_by(WEEEStockLot.created_at)).all()
+    consumed=Decimal(0); medium_ids=set()
+    for lot in lots:
+        if remaining<=0: break
+        qty=min(lot.available_weight, remaining)
+        _,mid=_consume_lot(db,transfer.id,lot,qty,unit,user,notes)
+        medium_ids.add(mid); consumed+=qty; remaining-=qty
+    _update_medium_lifecycle(db, medium_ids)
+    if consumed>0: write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'auto':True,'weight':str(consumed)})
+    return consumed
+
 @app.post('/production/transfers', response_model=schemas.ProductionTransferOut)
 def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
     unit=db.get(OrganizationalUnit,data.destination_org_unit_id)
     if not unit or not unit.active: raise HTTPException(422,'Άγνωστο ή ανενεργό τμήμα/υποτμήμα')
     if not data.items: raise HTTPException(422,'Δεν επιλέχθηκαν υλικά')
     transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=data.notes)
-    db.add(transfer); db.flush(); out=[]
+    db.add(transfer); db.flush(); out=[]; medium_ids=set()
     for req in data.items:
         lot=db.get(WEEEStockLot,req.stock_lot_id)
         if not lot or lot.available_weight<=0: raise HTTPException(409,'Το επιλεγμένο απόθεμα δεν είναι πλέον διαθέσιμο')
         qty=lot.available_weight if req.weight is None else req.weight
         if qty<=0 or qty>lot.available_weight: raise HTTPException(422,'Μη έγκυρη ποσότητα προς παραγωγή')
-        before=lot.available_weight; lot.available_weight=before-qty
-        lot.status='CONSUMED' if lot.available_weight==0 else 'PARTIAL'
-        ti=ProductionTransferItem(transfer_id=transfer.id,stock_lot_id=lot.id,weight=qty)
-        db.add(ti); db.flush()
-        db.add(ProductionInputBalance(transfer_item_id=ti.id,org_unit_id=unit.id,initial_weight=qty,current_remaining_weight=qty,status='OPEN'))
-        db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,
-            weight=qty,org_unit_id=unit.id,user_id=user.id,reason=data.notes))
-        cat=db.get(WEEECategory,lot.weee_category_id); medium=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
-        out.append(schemas.ProductionTransferItemOut(stock_lot_id=lot.id,weight=qty,weee_code=cat.code,medium_code=medium.code if medium else None))
-    # Medium lifecycle: only mark as in production when every stock lot currently attached to it is exhausted from WEEE warehouse.
-    medium_ids={db.get(WEEEStockLot,x.stock_lot_id).collection_medium_id for x in data.items}
-    for mid in medium_ids:
-        if not mid: continue
-        remaining=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==mid,WEEEStockLot.available_weight>0)).all()
-        medium=db.get(CollectionMedium,mid)
-        if medium and not remaining: medium.status='IN_PRODUCTION'
+        item_out,mid=_consume_lot(db,transfer.id,lot,qty,unit,user,data.notes)
+        out.append(item_out); medium_ids.add(mid)
+    _update_medium_lifecycle(db, medium_ids)
     write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'items':len(out)})
     db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out)
 
