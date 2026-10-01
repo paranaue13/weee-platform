@@ -498,6 +498,11 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 .dyCalcCell{background:#f6fbf9;color:#19713e;font-weight:700}
 .dyToggleActive{background:#1265d6!important;color:#fff!important}
 #dyTable td.invTextCol,#dyTable th.invTextCol{text-align:left;white-space:normal;min-width:110px;overflow-wrap:break-word;word-break:break-word}
+/* Κανόνας: κάθε sticky πρώτη στήλη πρέπει να έχει ΔΙΚΟ ΤΗΣ αδιαφανές φόντο, ποτέ background:inherit --
+   σε μονές γραμμές χωρίς δικό τους χρώμα, inherit καταλήγει σε transparent, και το περιεχόμενο της
+   επόμενης (μη-sticky) στήλης φαίνεται να περνάει από κάτω/πάνω της κατά το οριζόντιο scroll. */
+#dyTable td:first-child{background:#fff}
+#dyTable tbody tr:nth-child(even) td:first-child{background:#fafbfd}
 .dyBatchPickBtn{border:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;cursor:pointer;padding:0;text-align:inherit;white-space:normal}
 .dyBatchPickBtn:hover{text-decoration:underline}
 .dyBatchDot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#19713e;margin-left:3px;vertical-align:middle}
@@ -2070,7 +2075,7 @@ $('reportsUploadInput').onchange=async e=>{
 // ---- Ανάλυση συσκευών: πίνακας ποσοστών υλικού ανά κατηγορία ΑΗΗΕ (χειροκίνητες μετρήσεις,
 // βάση για μελλοντική ανάλυση παραγωγής -- ΔΕΝ προκύπτει από πραγματικές κινήσεις). Excel-style
 // επιλογή κελιών με σύρσιμο + Ctrl+C για αντιγραφή αλλού, διπλό κλικ για επεξεργασία ποσοστού.
-let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldActiveOnly=true,deviceYieldSysDescHidden=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false;
+let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldActiveOnly=true,deviceYieldSysDescHidden=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false,dyClickOutsideBound=false,dyZoomPct=100;
 async function loadDeviceYields(){
   $('deviceYieldPanel').innerHTML='<div class="card muted">Φόρτωση…</div>';
   try{
@@ -2109,7 +2114,8 @@ function renderDeviceYieldTable(){
     <button class="btn${deviceYieldCalcMode?' dyToggleActive':' alt'}" id="dyCalcToggle">${deviceYieldCalcMode?'Απόκρυψη υπολογισμού εξερχομένων':'Υπολογισμός εξερχομένων'}</button>
     <div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="dyActiveOnlyToggle" ${deviceYieldActiveOnly?'checked':''}><span class="slider"></span></label><span>Μόνο ενεργά</span></div>
     ${hiddenChip}
-    <button class="btn alt" id="dyImportBtn" style="margin-left:auto">+ Εισαγωγή από Excel</button>
+    <div class="prodPeriodNav" id="dyZoomNav" style="margin-left:auto"><button type="button" id="dyZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="dyZoomLabel" style="min-width:52px">${dyZoomPct}%</b><button type="button" id="dyZoomIn" title="Μεγέθυνση πίνακα">+</button></div>
+    <button class="btn alt" id="dyImportBtn">+ Εισαγωγή από Excel</button>
   </div>
   <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 200px)">
     <table class="prodTable" id="dyTable"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table>
@@ -2120,11 +2126,33 @@ function renderDeviceYieldTable(){
   let showChip=$('deviceYieldPanel').querySelector('.dySysShowChip');
   if(showChip)showChip.onclick=()=>{deviceYieldSysDescHidden=false;renderDeviceYieldTable()};
   wireDeviceYieldTable();
+  // Deferred like invApplyZoom() (renderInventoryCount) -- thead/tbody were just rebuilt above, so
+  // let the column-width-persistence MutationObserver settle before dyApplyZoom() measures widths.
+  setTimeout(dyApplyZoom,0);
+}
+function dyApplyZoom(){
+  dyZoomPct=Math.max(70,Math.min(150,dyZoomPct));
+  let table=$('dyTable');if(!table)return;
+  table.querySelectorAll('thead tr:first-child th').forEach(th=>{th.style.width=''});
+  table.style.tableLayout='';table.style.minWidth='';table.style.width='';table.style.zoom='';
+  applyStoredColWidths(table);
+  if(dyZoomPct!==100){
+    let total=0;
+    table.querySelectorAll('thead tr:first-child th').forEach(th=>{
+      let w=Math.round(th.getBoundingClientRect().width);
+      th.style.width=w+'px';total+=w;
+    });
+    table.style.tableLayout='fixed';table.style.minWidth='0';table.style.width=total+'px';
+    table.style.zoom=(dyZoomPct/100);
+  }
+  let lbl=$('dyZoomLabel');if(lbl)lbl.textContent=dyZoomPct+'%';
 }
 function wireDeviceYieldTable(){
   const table=$('dyTable');
   $('dyCalcToggle').onclick=()=>{deviceYieldCalcMode=!deviceYieldCalcMode;renderDeviceYieldTable()};
   $('dyImportBtn').onclick=openDeviceYieldImport;
+  $('dyZoomOut').onclick=()=>{dyZoomPct-=10;dyApplyZoom()};
+  $('dyZoomIn').onclick=()=>{dyZoomPct+=10;dyApplyZoom()};
   table.querySelectorAll('.dyBatchPickBtn').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();openDeviceYieldBatchPick(btn.dataset.cat,btn)});
   table.querySelectorAll('.dyCalcInput').forEach(inp=>inp.oninput=()=>{
     let catId=inp.dataset.cat,kgIn=Number(inp.value||0);
@@ -2171,6 +2199,14 @@ function wireDeviceYieldTable(){
     td.addEventListener('dblclick',()=>startEditCell(td));
   });
   document.addEventListener('mouseup',()=>dragging=false);
+  if(!dyClickOutsideBound){
+    dyClickOutsideBound=true;
+    document.addEventListener('mousedown',e=>{
+      if(e.target.closest('.dyPctCell'))return;
+      let t=$('dyTable');if(!t)return;
+      t.querySelectorAll('.dySel').forEach(td=>td.classList.remove('dySel'));
+    });
+  }
   if(!dyKeydownBound){
     dyKeydownBound=true;
     document.addEventListener('keydown',e=>{
