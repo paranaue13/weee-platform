@@ -2093,7 +2093,7 @@ function renderDeviceYieldTable(){
   let body=mats.map(m=>{
     let cells=cats.map(c=>{
       let key=c.id+'|'+m.id,pct=deviceYieldPctMap[key];
-      let pctText=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2}):'';
+      let pctText=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2})+'%':'';
       let pctCell=`<td class="dyPctCell" data-cat="${c.id}" data-mat="${m.id}">${pctText}</td>`;
       if(!deviceYieldCalcMode)return pctCell;
       let kgIn=Number(deviceYieldInputs[c.id]||0);
@@ -2111,7 +2111,7 @@ function renderDeviceYieldTable(){
     ${hiddenChip}
     <button class="btn alt" id="dyImportBtn" style="margin-left:auto">+ Εισαγωγή από Excel</button>
   </div>
-  <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 300px)">
+  <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 200px)">
     <table class="prodTable" id="dyTable"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table>
   </div>`;
   $('dyActiveOnlyToggle').onchange=e=>{deviceYieldActiveOnly=e.target.checked;renderDeviceYieldTable()};
@@ -2155,7 +2155,7 @@ function wireDeviceYieldTable(){
       if(done)return;done=true;
       let val=inp.value.trim(),pct=val===''?null:Number(val);
       deviceYieldPctMap[catId+'|'+matId]=pct;
-      td.innerHTML='';td.textContent=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2}):'';
+      td.innerHTML='';td.textContent=pct!=null?pct.toLocaleString('el-GR',{maximumFractionDigits:2})+'%':'';
       api('/reports/device-yields/cell',{method:'PUT',body:JSON.stringify({weee_category_id:catId,report_row_id:matId,percentage:pct||0})}).catch(()=>{});
       if(deviceYieldCalcMode){
         let calcTd=table.querySelector(`.dyCalcCell[data-cat="${catId}"][data-mat="${matId}"]`);
@@ -2163,7 +2163,7 @@ function wireDeviceYieldTable(){
       }
     }
     inp.addEventListener('blur',commit);
-    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){inp.blur()}else if(e.key==='Escape'){done=true;td.textContent=old!=null?old.toLocaleString('el-GR',{maximumFractionDigits:2}):''}});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){inp.blur()}else if(e.key==='Escape'){done=true;td.textContent=old!=null?old.toLocaleString('el-GR',{maximumFractionDigits:2})+'%':''}});
   }
   table.querySelectorAll('tbody td.dyPctCell').forEach(td=>{
     td.addEventListener('mousedown',e=>{if(e.target.tagName==='INPUT')return;dragging=true;anchor=td;selectRange(td,td);e.preventDefault()});
