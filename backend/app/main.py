@@ -6,7 +6,7 @@ from sqlalchemy import select, inspect, text, update
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
-from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
+from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, ProductionPlacementInterval, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
 from .security import verify_password, make_token, current_user, require_permission
 from .seed import seed
 from .import_real_2026 import ensure_real_2026_import
@@ -632,6 +632,18 @@ def _employee_public(db:Session,e:Employee,p:Person):
     names=[u.name_el for u in sorted(units,key=lambda u:u.name_el)]
     return {"id":e.id,"employee_code":e.employee_code,"full_name":((p.first_name+" "+p.last_name).strip()),"phone":p.phone,"default_org_unit_id":e.default_org_unit_id,"org_unit_ids":ids,"org_unit_names":names,"active":bool(e.active and p.active)}
 
+def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,at:datetime|None=None):
+    """Closes any open placement interval for this employee today and opens a new one for
+    new_org_unit_id. No-op if the department isn't actually changing. Pure addition -- never read by
+    ProductionWorkEntry/ProductionAttendance or the reports built on them."""
+    now=at or datetime.now(timezone.utc)
+    day=datetime(now.year,now.month,now.day,tzinfo=timezone.utc)
+    open_row=db.scalar(select(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==employee_id,ProductionPlacementInterval.work_date==day,ProductionPlacementInterval.ended_at.is_(None)))
+    if open_row:
+        if open_row.org_unit_id==new_org_unit_id: return
+        open_row.ended_at=now
+    db.add(ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now))
+
 def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
     clean=[]
     for unit_id in ids or []:
@@ -640,7 +652,9 @@ def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
             clean.append(unit_id)
     db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
     for unit_id in clean: db.execute(employee_org_units.insert().values(employee_id=emp.id,org_unit_id=unit_id))
-    emp.default_org_unit_id=clean[0] if clean else None
+    new_default=clean[0] if clean else None
+    if new_default!=emp.default_org_unit_id: _log_placement_interval(db,emp.id,new_default)
+    emp.default_org_unit_id=new_default
 
 @app.get("/master/employees", response_model=list[schemas.EmployeeOut])
 def list_employees(include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -745,16 +759,38 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==data.employee_id))
     old=None
+    old_org_unit_id=obj.org_unit_id if obj else None
     if obj:
         old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
         obj.status=data.status; obj.org_unit_id=data.org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
     else:
         obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=data.org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
         db.add(obj)
+    if data.org_unit_id!=old_org_unit_id: _log_placement_interval(db,data.employee_id,data.org_unit_id,at=data.since_at)
     db.flush()
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
     db.commit(); db.refresh(obj); return obj
+
+@app.get("/production/placement-intervals")
+def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    day=datetime.fromisoformat(date)
+    rows=db.scalars(select(ProductionPlacementInterval).where(ProductionPlacementInterval.work_date==datetime(day.year,day.month,day.day)).order_by(ProductionPlacementInterval.employee_id,ProductionPlacementInterval.started_at)).all()
+    emps={e.id:e for e in db.scalars(select(Employee)).all()}
+    people={p.id:p for p in db.scalars(select(Person)).all()}
+    units={u.id:u for u in db.scalars(select(OrganizationalUnit)).all()}
+    out=[]
+    for r in rows:
+        emp=emps.get(r.employee_id); person=people.get(emp.person_id) if emp else None
+        unit=units.get(r.org_unit_id) if r.org_unit_id else None
+        # SQLite returns DateTime(timezone=True) values naive regardless of how they were stored, so
+        # the "still ongoing" fallback must be naive too or the subtraction below throws.
+        ended=r.ended_at or datetime.utcnow()
+        out.append({"id":r.id,"employee_id":r.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
+            "org_unit_id":r.org_unit_id,"org_unit_name":unit.name_el if unit else None,
+            "started_at":r.started_at.isoformat(),"ended_at":r.ended_at.isoformat() if r.ended_at else None,
+            "ongoing":r.ended_at is None,"minutes":round((ended-r.started_at).total_seconds()/60)})
+    return out
 
 @app.post("/production/day-material", response_model=schemas.ProductionWorkEntryOut)
 def upsert_production_day_material(data:schemas.ProductionDayMaterialIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
