@@ -2464,10 +2464,49 @@ def weee_inventory(available_only:bool=True, db:Session=Depends(get_db), user=De
     if available_only: q=q.where(WEEEStockLot.available_weight>0)
     return [_lot_out(db,x) for x in db.scalars(q).all()]
 
-@app.get('/inventory/weee/by-medium/{medium_id}', response_model=list[schemas.WEEEStockLotOut])
+@app.get('/inventory/weee/media-with-stock')
+def weee_media_with_stock(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    # Mirror of weee_category_positions() (grouped by medium instead of by category) -- used by the
+    # Android ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ flow's "ΜΕΣΟ ΣΥΛΛΟΓΗΣ πρώτα" direction. Not filtered by processable/ΜΗ
+    # ΑΗΗΕ here -- the frontend already owns that decision via isProducedCat(), same as every other
+    # production category picker (see [[production_excludes_unprocessed_materials]]).
+    lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all()
+    groups={}
+    for lot in lots:
+        med=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+        mt=db.get(CollectionMediumType,med.type_id) if med else None
+        cat=db.get(WEEECategory,lot.weee_category_id)
+        key=lot.collection_medium_id or 'BULK'
+        g=groups.setdefault(key,{'medium_id':lot.collection_medium_id,'medium_type':mt.name_el if mt else 'Χύμα / χωρίς αριθμημένο μέσο','medium_code':med.code if med else 'Χύμα','total_weight':0.0,'categories':{}})
+        g['total_weight']+=float(lot.available_weight or 0)
+        c=g['categories'].setdefault(cat.id,{'category_id':cat.id,'code':cat.code,'description':cat.description_el,'weight':0.0})
+        c['weight']+=float(lot.available_weight or 0)
+    out=[]
+    for g in groups.values():
+        g['total_weight']=round(g['total_weight'],3)
+        g['categories']=sorted(({**c,'weight':round(c['weight'],3)} for c in g['categories'].values()),key=lambda x:x['code'])
+        out.append(g)
+    out.sort(key=lambda x:(x['medium_type'],x['medium_code']))
+    return out
+
+@app.get('/inventory/weee/by-medium/{medium_id}')
 def weee_inventory_medium(medium_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
-    rows=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)).all()
-    return [_lot_out(db,x) for x in rows]
+    # medium_id='BULK' is the synthetic "Χύμα" bucket (collection_medium_id IS NULL), matching the key
+    # weee_category_positions()/weee_media_with_stock() already use for it. Response shape mirrors
+    # weee_category_positions() (grouped by category instead of by medium) for frontend consistency.
+    if medium_id=='BULK':
+        med=None; lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id.is_(None),WEEEStockLot.available_weight>0)).all()
+    else:
+        med=db.get(CollectionMedium,medium_id)
+        if not med: raise HTTPException(404,'Το μέσο συλλογής δεν βρέθηκε')
+        lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)).all()
+    groups={}
+    for lot in lots:
+        cat=db.get(WEEECategory,lot.weee_category_id)
+        g=groups.setdefault(cat.id,{'category_id':cat.id,'code':cat.code,'description':cat.description_el,'weight':0.0})
+        g['weight']+=float(lot.available_weight or 0)
+    out=sorted(({**c,'weight':round(c['weight'],3)} for c in groups.values()),key=lambda x:x['code'])
+    return {'medium_id':medium_id if medium_id!='BULK' else None,'medium_code':med.code if med else 'Χύμα','total_weight':round(sum(x['weight'] for x in out),3),'categories':out}
 
 def _transfer_number(db:Session)->str:
     year=datetime.now().year
