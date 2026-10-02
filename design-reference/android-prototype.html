@@ -1,0 +1,238 @@
+<title>Πρότυπο Android WEEE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=greek">
+<style>
+:root { --page: #e9ecf3; --page-fg: #1a1b20; --font: Roboto, system-ui, sans-serif; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0e1117; --page-fg: #e6e8ee; } }
+:root[data-theme="dark"] { --page: #0e1117; --page-fg: #e6e8ee; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font-family: var(--font); display: flex; justify-content: center; align-items: flex-start; padding: 16px; min-height: 100vh; }
+button { font-family: inherit; }
+:focus-visible { outline: 3px solid #2f5fc4; outline-offset: 2px; }
+
+/* Η εφαρμογή Android είναι μόνο φωτεινή – τα χρώματα του κινητού δεν αλλάζουν με το θέμα της σελίδας */
+.phone {
+  --bar: #14213d; --bar-fg: #ffffff;
+  --bg: #f2f4f9; --surface: #ffffff; --tonal: #e6ebf5; --tonal-fg: #1b2b4b;
+  --line: #c7cedd; --line-strong: #9aa4bb;
+  --fg: #1a1b20; --fg-2: #4a4f5c;
+  --primary: #1a5fd0; --primary-fg: #ffffff; --primary-soft: #d8e4ff; --primary-soft-fg: #0a2a63;
+  --card: #1b2638; --card-fg: #ffffff;
+  width: 100%; max-width: 412px; background: var(--bg); color: var(--fg);
+  border-radius: 28px; overflow: hidden; display: flex; flex-direction: column;
+  min-height: 840px; box-shadow: 0 8px 32px rgba(10,20,50,.25); font-size: 16px;
+}
+.appbar { background: var(--bar); color: var(--bar-fg); display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; }
+.appbar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+.server { height: 40px; padding: 0 16px; border-radius: 20px; border: 0; background: #dfe4ef; color: #1b2b4b; font-size: 14px; font-weight: 500; cursor: pointer; }
+.body { padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.userrow { display: flex; align-items: center; justify-content: space-between; }
+.userrow b { font-size: 16px; font-weight: 700; }
+.chips { display: flex; gap: 8px; align-items: center; }
+.chip { height: 32px; padding: 0 14px; border-radius: 16px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.chip.btn { cursor: pointer; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #2e9e5b; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.big { min-height: 52px; border-radius: 16px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 15px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+.big.sel { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+.mid { min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 12px; font-weight: 700; cursor: pointer; }
+.mid.sel { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
+.sheet { background: var(--surface); border-radius: 20px; padding: 18px 16px 18px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 14px; }
+.sheet-h { display: flex; align-items: center; justify-content: space-between; }
+.sheet-h h2 { margin: 0; font-size: 24px; font-weight: 500; }
+.sq { width: 48px; height: 48px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); display: grid; place-items: center; cursor: pointer; flex: none; }
+.sq svg, .back svg, .photo svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.grp { margin: 6px 0 0; padding-bottom: 6px; font-size: 14px; font-weight: 700; letter-spacing: .04em; color: var(--fg-2); border-bottom: 2px solid var(--line); }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.rc { text-align: left; border: 0; border-radius: 16px; background: var(--card); color: var(--card-fg); padding: 14px 16px; min-height: 76px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.rc:active { filter: brightness(1.25); }
+.rc .d { font-size: 12px; font-weight: 700; }
+.rc .n { font-size: 24px; font-weight: 700; line-height: 1.15; }
+.rc .n.company { font-size: 20px; }
+.rc .s { font-size: 15px; font-weight: 700; line-height: 1.25; }
+.rc .k { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.back { align-self: flex-start; height: 56px; padding: 0 18px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.meta { display: flex; flex-direction: column; gap: 4px; padding-top: 6px; }
+.meta .d { font-size: 12px; }
+.meta .n { font-size: 22px; font-weight: 700; }
+.meta .s { font-size: 15px; font-weight: 500; }
+.meta .k { font-size: 12px; font-weight: 500; }
+.sec-h { display: flex; align-items: center; justify-content: space-between; }
+.sec-h h3 { margin: 0; font-size: 18px; font-weight: 500; }
+.sec-h .sq svg { transition: transform .15s; }
+.sec-h .sq[aria-expanded="false"] svg { transform: rotate(180deg); }
+.fav { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fav button { min-height: 66px; border-radius: 14px; border: 0; background: var(--card); color: var(--card-fg); font-size: 14px; font-weight: 700; text-align: left; padding: 10px 12px; cursor: pointer; line-height: 1.2; }
+.fav button:active { filter: brightness(1.25); }
+.wide { min-height: 56px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 15px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+.tog { min-height: 56px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 14px; font-weight: 700; cursor: pointer; padding: 6px 10px; }
+.tog[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-soft-fg); }
+.lbl { font-size: 14px; font-weight: 500; margin: 2px 0 -6px; }
+.photo { min-height: 56px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.stub { padding: 40px 16px; text-align: center; color: var(--fg-2); }
+.stub b { color: var(--fg); font-weight: 500; }
+@media (prefers-reduced-motion: reduce) { .sec-h .sq svg { transition: none; } }
+
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld label{font-size:14px;font-weight:700}
+.sel-wrap{position:relative}
+.sel-wrap select{appearance:none;-webkit-appearance:none;width:100%;min-height:56px;border:0;border-radius:14px;background:var(--tonal);color:var(--fg);font:inherit;font-size:16px;font-weight:500;padding:0 44px 0 16px;cursor:pointer}
+.sel-wrap::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--fg-2);border-bottom:2px solid var(--fg-2);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.go{min-height:56px;border:0;border-radius:14px;background:#1b6b3d;color:#fff;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer}
+.stop{min-height:56px;border:0;border-radius:14px;background:#9b2226;color:#fff;font-size:15px;font-weight:700;letter-spacing:.02em;cursor:pointer}
+.note{font-size:12px;color:var(--fg-2);margin:0}
+.sheet h2.t{margin:0;font-size:22px;font-weight:500}
+.sheet h3.t{margin:0;font-size:18px;font-weight:500}
+.sheet-h .pill-t{font-size:15px;font-weight:700}
+.row2 .wide{min-height:64px}
+</style>
+
+<main class="phone">
+  <header class="appbar"><h1>WEEE Platform 2.5.41</h1><button class="server">SERVER</button></header>
+  <div class="body">
+    <div class="userrow">
+      <b>admin</b>
+      <div class="chips"><button class="chip btn">ΕΡΓΑΤΕΣ</button><span class="chip"><i class="dot"></i>ONLINE</span></div>
+    </div>
+    <div class="row2" id="prof">
+      <button class="big sel" aria-pressed="true">ΠΙΡΟΥΝΙΑ</button><button class="big" aria-pressed="false">ΠΛΑΚΕΣ</button>
+    </div>
+    <div class="row3" id="tabs">
+      <button class="mid sel" aria-pressed="true">ΠΑΡΑΛΑΒΕΣ</button><button class="mid" aria-pressed="false">ΠΑΡΑΓΩΓΗ</button><button class="mid" aria-pressed="false">ΦΟΡΤΩΣΕΙΣ</button>
+    </div>
+
+    <div class="row2" id="subtabs" style="display:none">
+      <button class="mid sel" aria-pressed="true">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button class="mid" aria-pressed="false">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button>
+    </div>
+
+    <!-- Λίστα Παραλαβών -->
+    <section class="sheet" id="v-list">
+      <div class="sheet-h"><h2>Παραλαβές</h2><button class="sq" aria-label="Ανανέωση"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg></button></div>
+      <div>
+        <h3 class="grp">ΚΑΡΟΤΣΑ (1)</h3>
+        <div class="list" style="margin-top:10px">
+          <button class="rc" data-d="21/9/2026" data-n="" data-s="ΟΡΓΑΝΙΣΜΟΣ ΤΗΛΕΠΙΚΟΙΝΩΝΙΩΝ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε." data-k="9.860 kg"><span class="d">21/9/2026</span><span class="n company">ΟΡΓΑΝΙΣΜΟΣ ΤΗΛΕΠΙΚΟΙΝΩΝΙΩΝ ΤΗΣ ΕΛΛΑΔΟΣ Α.Ε.</span><span class="k">9.860 kg</span></button>
+        </div>
+      </div>
+      <div>
+        <h3 class="grp">ΜΙΚΡΑ ΣΗΜΕΙΑ (3)</h3>
+        <div class="list" style="margin-top:10px">
+          <button class="rc" data-d="21/9/2026" data-n="811942" data-s="ΔΕΛΑΚΟΥΒΙΑΣ ΠΑΡ. & ΣΙΑ Ο.Ε." data-k="1.320 kg"><span class="d">21/9/2026</span><span class="n">811942</span><span class="s">ΔΕΛΑΚΟΥΒΙΑΣ ΠΑΡ. &amp; ΣΙΑ Ο.Ε.</span><span class="k">1.320 kg</span></button>
+          <button class="rc" data-d="21/9/2026" data-n="811453" data-s="ΧΑΛΥΒΟΥΡΓΙΑ ΕΛΛΑΔΟΣ Α.Ε." data-k="490 kg"><span class="d">21/9/2026</span><span class="n">811453</span><span class="s">ΧΑΛΥΒΟΥΡΓΙΑ ΕΛΛΑΔΟΣ Α.Ε.</span><span class="k">490 kg</span></button>
+          <button class="rc" data-d="21/9/2026" data-n="814854" data-s="DEDEMAN HELLAS ΜΟΝΟΠΡΟΣΩΠΗ Α.Ε." data-k="2.430 kg"><span class="d">21/9/2026</span><span class="n">814854</span><span class="s">DEDEMAN HELLAS ΜΟΝΟΠΡΟΣΩΠΗ Α.Ε.</span><span class="k">2.430 kg</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Οθόνη εργασίας Παραλαβής -->
+    <div id="v-work" style="display:none;flex-direction:column;gap:12px">
+      <section class="sheet">
+        <button class="back" id="back"><svg viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6l6 6"/></svg>ΠΑΡΑΛΑΒΕΣ</button>
+        <div class="meta"><span class="d" id="w-d"></span><span class="n" id="w-n"></span><span class="s" id="w-s"></span><span class="k" id="w-k"></span></div>
+      </section>
+      <section class="sheet">
+        <div class="sec-h"><h3>Συχνά</h3></div>
+        <div class="fav"><button>Τηλεοράσεις - LCD Full</button><button>Φωτιστικά είδη</button><button>Εκτυπωτές - fax - scanner</button></div>
+        <button class="wide">ΟΛΑ ΤΑ ΑΗΗΕ</button>
+      </section>
+      <section class="sheet">
+        <div class="sec-h"><h3>Στοιχεία ελέγχου</h3><button class="sq" id="coll" aria-expanded="true" aria-label="Σύμπτυξη"><svg viewBox="0 0 24 24"><path d="M6 15l6-6l6 6"/></svg></button></div>
+        <div id="chk" class="row2">
+          <button class="tog" aria-pressed="false">ΕΙΔΙΚΗΣ ΔΙΑΧΕΙΡΙΣΗΣ</button><button class="tog" aria-pressed="false">ΚΔΑΥ</button>
+          <button class="tog" aria-pressed="false">ΜΗ ΑΚΕΡΑΙΟ</button><button class="tog" aria-pressed="false">ΑΜΙΓΕΣ</button>
+        </div>
+        <div class="lbl">Φωτογραφίες</div>
+        <button class="photo"><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4zM12 17a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7"/></svg>ΦΩΤΟ</button>
+      </section>
+      <section class="sheet">
+        <div class="sheet-h"><h3 class="t">Καταχωρήσεις</h3><span class="pill-t">0 kg</span></div>
+        <div><p class="note">Νεότερη καταχώρηση πρώτη</p><p class="note">Καμία καταχώρηση.</p></div>
+        <button class="stop">ΟΛΟΚΛΗΡΩΣΑ ΤΗΝ ΤΑΞΙΝΟΜΗΣΗ</button>
+      </section>
+    </div>
+
+    <div id="v-pm" style="display:none;flex-direction:column;gap:12px">
+      <section class="sheet">
+        <h2 class="t">Καταχώρηση παραγωγής</h2>
+        <div class="fld"><label for="f1">Τμήμα</label><div class="sel-wrap"><select id="f1"><option>Επιλογή τμήματος</option></select></div></div>
+        <div class="fld"><label for="f2">Εργαζόμενος (προαιρετικό)</label><div class="sel-wrap"><select id="f2"><option>Συγκεντρωτικά τμήματος</option></select></div></div>
+        <div class="fld"><label for="f3">Κατηγορία ΑΗΗΕ</label><div class="sel-wrap"><select id="f3"><option>Επιλογή κατηγορίας</option></select></div></div>
+        <button class="go">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button>
+      </section>
+      <section class="sheet">
+        <h3 class="t">Σημερινές καταχωρήσεις</h3>
+        <p class="note">Καμία καταχώρηση σήμερα.</p>
+      </section>
+    </div>
+
+    <div id="v-pd" style="display:none;flex-direction:column;gap:12px">
+      <section class="sheet">
+        <div class="sheet-h"><h2 class="t">Δελτίο Παραγωγής</h2><div class="sel-wrap" style="width:160px"><select aria-label="Ημερομηνία"><option>10/02/2026</option></select></div></div>
+        <div class="row2"><button class="wide">ΕΡΓΑΖΟΜΕΝΟΙ</button><button class="wide">ΤΜΗΜΑΤΑ</button></div>
+      </section>
+      <section class="sheet">
+        <h3 class="t">Τοποθετημένοι σήμερα</h3>
+        <p class="note">Καμία τοποθέτηση.</p>
+      </section>
+    </div>
+
+    <div id="v-ld" style="display:none;flex-direction:column;gap:12px">
+      <section class="sheet">
+        <div class="sheet-h"><h2 class="t">Φορτώσεις</h2><button class="wide" style="min-width:150px">+ ΝΕΟ ΔΕΛΤΙΟ</button></div>
+        <div><p class="note">Δεν υπάρχουν ανοιχτά δελτία φόρτωσης.</p><p class="note">Το δελτίο ολοκληρώνεται ή ακυρώνεται μόνο από το Logistics ή τη διοίκηση.</p></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<script>
+var IDS = ["list", "work", "pm", "pd", "ld"];
+function view(v) {
+  IDS.forEach(function (id) {
+    var el = document.getElementById("v-" + id);
+    el.style.display = id === v ? "flex" : "none";
+  });
+}
+function group(id, onpick) {
+  var box = document.getElementById(id);
+  box.addEventListener("click", function (e) {
+    var b = e.target.closest("button");
+    if (!b) return;
+    Array.prototype.forEach.call(box.children, function (c) { var on = c === b; c.classList.toggle("sel", on); c.setAttribute("aria-pressed", String(on)); });
+    if (onpick) onpick(b);
+  });
+}
+var sub = document.getElementById("subtabs");
+function subView() { view(sub.children[0].classList.contains("sel") ? "pm" : "pd"); }
+group("prof");
+group("tabs", function (b) {
+  var t = b.textContent;
+  sub.style.display = t === "ΠΑΡΑΓΩΓΗ" ? "grid" : "none";
+  if (t === "ΠΑΡΑΛΑΒΕΣ") view("list");
+  else if (t === "ΠΑΡΑΓΩΓΗ") subView();
+  else view("ld");
+});
+group("subtabs", subView);
+document.getElementById("v-list").addEventListener("click", function (e) {
+  var c = e.target.closest(".rc");
+  if (!c) return;
+  document.getElementById("w-d").textContent = c.dataset.d;
+  var n = document.getElementById("w-n"); n.textContent = c.dataset.n; n.style.display = c.dataset.n ? "" : "none";
+  document.getElementById("w-s").textContent = c.dataset.s;
+  document.getElementById("w-k").textContent = c.dataset.k;
+  view("work");
+});
+document.getElementById("back").addEventListener("click", function () { view("list"); });
+document.getElementById("chk").addEventListener("click", function (e) {
+  var b = e.target.closest(".tog");
+  if (b) b.setAttribute("aria-pressed", String(b.getAttribute("aria-pressed") !== "true"));
+});
+document.getElementById("coll").addEventListener("click", function () {
+  var open = this.getAttribute("aria-expanded") !== "true";
+  this.setAttribute("aria-expanded", String(open));
+  var chk = document.getElementById("chk");
+  chk.style.display = open ? "" : "none";
+  chk.nextElementSibling.style.display = open ? "" : "none";
+  chk.nextElementSibling.nextElementSibling.style.display = open ? "" : "none";
+});
+</script>
