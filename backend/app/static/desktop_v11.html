@@ -1812,8 +1812,8 @@ function deltioNowIsoOnDate(dateStr,timeStr){let [h,m]=(timeStr||deltioTimeStr(n
 async function loadDeltio(){
   if(!$('deltioDate').value)$('deltioDate').value=deltioState.date||localISODate(new Date());
   let date=$('deltioDate').value;deltioState.date=date;
-  let [att,entries]=await Promise.all([api('/production/attendance?date='+date),api(`/production/work-entries?start=${date}&end=${date}`)]);
-  deltioState.attendance=att;deltioState.entries=entries.filter(e=>e.active!==false);
+  let [att,entries,intervals]=await Promise.all([api('/production/attendance?date='+date),api(`/production/work-entries?start=${date}&end=${date}`),api('/production/placement-intervals?date='+date).catch(()=>[])]);
+  deltioState.attendance=att;deltioState.entries=entries.filter(e=>e.active!==false);deltioState.intervals=intervals;
   $('deltioExistingNote').classList.toggle('hidden',!(att.length||deltioState.entries.length));
   renderDeltio();
 }
@@ -1848,7 +1848,7 @@ function renderDeltio(){
       let entry=deltioState.entries.find(x=>x.org_unit_id===u.id&&x.employee_id===e.id);
       let catOpts='<option value="">—</option>'+(prodState.cats||[]).filter(isProducedWeeeCat).map(c=>`<option value="${c.id}" ${entry&&entry.weee_category_id===c.id?'selected':''}>${esc(c.display_name||c.official_description||c.code)}</option>`).join('');
       return `<tr>
-        <td>${esc(e.full_name)}</td>
+        <td>${esc(e.full_name)} <button type="button" class="deltioIntervalBtn" data-emp="${e.id}" title="Τοποθετήσεις σήμερα">🕐</button></td>
         <td><input type="text" class="deltioPosInput" placeholder="—" data-emp="${e.id}" value="${esc(a.position_text||'')}"></td>
         <td><select class="deltioMatSelect" data-emp="${e.id}" data-unit="${u.id}">${catOpts}</select></td>
         <td><input type="number" step="0.01" class="deltioKgInput" data-emp="${e.id}" data-unit="${u.id}" value="${entry?Number(entry.weight_kg):''}"></td>
@@ -1864,7 +1864,18 @@ function renderDeltio(){
   }).join('');
   wireDeltio();
 }
+async function openDeltioIntervals(empId){
+  let emp=prodState.employees.find(x=>x.id===empId);
+  openFloat(`Τοποθετήσεις σήμερα · ${esc(emp?.full_name||'')}`,'<div class="muted">Φόρτωση...</div>');
+  let intervals;
+  try{intervals=await api('/production/placement-intervals?date='+deltioState.date)}catch(err){$('floatingEditorBody').innerHTML=`<div class="error">${esc(err.message)}</div>`;return}
+  deltioState.intervals=intervals;
+  let rows=intervals.filter(iv=>iv.employee_id===empId);
+  let html=rows.length?`<div class="tablewrap"><table><thead><tr><th>Τμήμα</th><th>Από</th><th>Έως</th><th>Διάρκεια</th></tr></thead><tbody>${rows.map(iv=>`<tr><td>${esc(iv.org_unit_name||'—')}</td><td>${deltioTimeStr(iv.started_at)}</td><td>${iv.ongoing?'σε εξέλιξη':deltioTimeStr(iv.ended_at)}</td><td>${Math.floor(iv.minutes/60)}ω ${iv.minutes%60}λ</td></tr>`).join('')}</tbody></table></div>`:'<div class="muted">Καμία καταγραφή μετακίνησης σήμερα.</div>';
+  $('floatingEditorBody').innerHTML=html;
+}
 function wireDeltio(){
+  document.querySelectorAll('.deltioIntervalBtn').forEach(b=>b.onclick=(e)=>{e.stopPropagation();openDeltioIntervals(b.dataset.emp)});
   let dragEmp=null;
   document.querySelectorAll('.deltioChip[draggable=true]').forEach(ch=>{
     ch.ondragstart=(e)=>{dragEmp=ch.dataset.emp;ch.classList.add('dragging');e.dataTransfer.setData('text/plain',ch.dataset.emp)};
