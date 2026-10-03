@@ -994,7 +994,7 @@ function presPaint(){
   let am={};presState.att.forEach(a=>am[a.employee_id]=a);let um=Object.fromEntries(presState.units.map(u=>[u.id,u.name_el]));
   $('presBody').innerHTML=presState.emps.map(e=>{
     let a=am[e.id]||{},st=a.status||'ABSENT',btn=(s,cls,l)=>`<button type="button" class="${cls}" data-e="${e.id}" data-s="${s}" aria-pressed="${st===s}">${l}</button>`;
-    let tm=(st!=='ABSENT'&&a.since_at)?new Date(a.since_at).toTimeString().slice(0,5):'—';
+    let tm=(st!=='ABSENT'&&a.since_at)?deltioTimeStr(a.since_at):'—';
     return `<tr><td>${esc(e.full_name)}</td><td><span class="presSeg">${btn('PRESENT','p','Παρών')}${btn('ABSENT','a','Απών')}${btn('LEFT','l','Έφυγε')}</span></td><td>${st==='PRESENT'?esc(um[a.org_unit_id]||'Χωρίς τμήμα'):'—'}</td><td>${tm}</td></tr>`;
   }).join('')||'<tr><td colspan="4" class="muted">Δεν υπάρχουν εργαζόμενοι.</td></tr>';
 }
@@ -1895,7 +1895,7 @@ async function loadProduction(){let r=prodRange();$('prodPeriodTitle').textConte
 // day's view, not a period report, so it hides the period/KPI/search chrome the other two tabs share.
 function prodPaintTabPanels(){$('productionWeeePanel').classList.toggle('hidden',prodState.tab!=='weee');$('productionPeoplePanel').classList.toggle('hidden',prodState.tab!=='people');$('productionDeltioPanel').classList.toggle('hidden',prodState.tab!=='deltio');$('productionPeriodBox').classList.toggle('hidden',prodState.tab==='deltio');$('productionKpis').classList.toggle('hidden',prodState.tab==='deltio');document.querySelector('.productionTools').classList.toggle('hidden',prodState.tab==='deltio')}
 let deltioState={date:'',attendance:[],entries:[]};
-function deltioTimeStr(iso){return iso?new Date(iso).toTimeString().slice(0,5):''}
+function deltioTimeStr(iso){return iso?new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+'Z').toTimeString().slice(0,5):''}
 function deltioNowIsoOnDate(dateStr,timeStr){let [h,m]=(timeStr||deltioTimeStr(new Date().toISOString())).split(':');let d=new Date(dateStr+'T00:00:00');d.setHours(Number(h||0),Number(m||0),0,0);return d.toISOString()}
 async function loadDeltio(){
   if(!$('deltioDate').value)$('deltioDate').value=deltioState.date||localISODate(new Date());

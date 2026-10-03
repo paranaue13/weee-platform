@@ -36,7 +36,13 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 .flToast{background:var(--card)}
 .flToast button{background:#dfe4ef;color:var(--tonal-fg)}
 .flLbl{color:var(--fg-2)}
-#topDeltioBtn.on{background:var(--primary);color:var(--primary-fg)}
+#topDeltioBtn.on{background:var(--primary);color:var(--primary-fg)}
+.dlCnt{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dlChip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:14px;font-size:13px;font-weight:700}.dlP{background:#d7efe0;color:#12532e}.dlA{background:#e6e8ee;color:#3b4150}.dlL{background:#fcebeb;color:#9b2226}
+.dlRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line,#c7cedd)}.dlRow:first-child{border-top:0}.dlNm{flex:1;min-width:0;font-weight:700;font-size:15px}.dlNm small{display:block;font-weight:500;font-size:12px;color:var(--fg-2,#4a4f5c)}
+.dlSt3{display:flex;gap:4px}.dlSt{min-height:48px;padding:0 8px;font-size:11px;border-radius:12px}.dlSt.p.on{background:#1b6b3d;border-color:#1b6b3d}.dlSt.a.on{background:#5b6275;border-color:#5b6275}.dlSt.l.on{background:#9b2226;border-color:#9b2226}
+.dlDept{margin-bottom:12px}.dlDept h3{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0}.dlDept h3 small{font-size:12px;font-weight:500;color:var(--fg-2,#4a4f5c)}.dlWk{width:100%;text-align:left;margin-bottom:6px;min-height:52px}.dlWk small{display:block;font-weight:500;font-size:11px;opacity:.85}
+.dlHe{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line,#c7cedd)}.dlHe:first-child{border-top:0}.dlTm{font-weight:700;font-size:13px;min-width:44px}.dlTx{flex:1;font-size:14px}.dlHe .btn{min-height:44px;padding:0 10px;font-size:11px}
+.dlScrim{position:fixed;inset:0;background:rgba(10,20,50,.45);z-index:40;display:flex;align-items:flex-end}.dlSheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 14px 20px;width:100%;max-height:85vh;overflow:auto}
 </style></head><body><div class="wrap">
 <div id="login" class="card"><h1>Ταξινόμηση</h1><p class="muted">Android UI 2.5.44</p><label>Χρήστης</label><input id="u" value="admin"><label>Κωδικός</label><input id="p" type="password" value="ChangeMe123!"><button id="loginBtn" class="btn" style="width:100%;margin-top:12px">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
 <div id="app" class="hidden"><div class="top"><div class="row space"><b id="who"></b><div class="row" style="gap:8px"><button id="topDeltioBtn" class="btn alt" style="min-height:44px;padding:6px 12px;font-size:12px">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button><span id="net" class="pill">● ONLINE</span></div></div><div class="modeBar"><button id="modeForks" class="btn choice on">ΠΙΡΟΥΝΙΑ</button><button id="modeClamp" class="btn choice">ΠΛΑΚΕΣ</button></div><div class="sectionBar"><button class="btn choice on secBtn" data-section="receiving">ΠΑΡΑΛΑΒΕΣ</button><button class="btn choice secBtn" data-section="production">ΠΑΡΑΓΩΓΗ</button><button class="btn choice secBtn" data-section="loading">ΦΟΡΤΩΣΕΙΣ</button></div></div><div id="secReceiving"><div id="loads" class="card"><div class="row space"><h2>Παραλαβές</h2><button id="reload" class="btn alt">↻</button></div><div id="loadList"></div></div>
@@ -51,8 +57,9 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 <div class="card"><div class="row space"><h3>Καταχωρήσεις</h3><b id="sum">0 kg</b></div><div class="muted">Νεότερη καταχώρηση πρώτη</div><div id="entries"></div><button id="confirm" class="btn danger" style="width:100%;margin-top:12px">ΟΛΟΚΛΗΡΩΣΑ ΤΗΝ ΤΑΞΙΝΟΜΗΣΗ</button><div id="workMsg" class="ok"></div></div></div></div><div id="secProduction" class="hidden"><div class="sectionBar" id="flowBar" style="margin-bottom:10px"><button type="button" class="btn choice flStart on" data-f="d">ΤΜΗΜΑ</button><button type="button" class="btn choice flStart" data-f="m">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button type="button" class="btn choice flStart" data-f="a">ΑΗΗΕ</button></div><div class="sectionBar" style="display:none"><button type="button" class="btn choice on" id="prodModeTransferBtn">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button type="button" class="btn choice" id="prodModeDeltioBtn">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button></div><div id="prodTransferPanel"><div class="card"><div id="flowArea"></div><div id="prodOldForm" class="hidden"><label>Μέσο συλλογής</label><button type="button" id="prodMediumBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή μέσου συλλογής</button><label>Κατηγορία ΑΗΗΕ</label><button type="button" id="prodCatBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή κατηγορίας</button><div id="prodStockWrap" class="hidden"><label>Διαθέσιμα μέσα συλλογής</label><div id="prodStockList"></div><div class="muted" id="prodStockTotal"></div></div><label>Τμήμα</label><button type="button" id="prodDeptBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή τμήματος</button><button id="prodSubmit" class="btn good" style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button></div><label>Εργαζόμενος (προαιρετικό)</label><button type="button" id="prodEmpBtn" class="btn alt" style="width:100%;text-align:left">Συγκεντρωτικά τμήματος</button><button id="flSend" class="btn good" disabled style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button><div id="prodMsg" class="error"></div></div><div class="card"><h3>Σημερινές καταχωρήσεις</h3><div id="prodTodayList" class="muted">Καμία καταχώρηση.</div></div></div>
 <div id="deltioPanel" class="hidden">
 <div class="card"><div class="row space"><h2>Δελτίο Παραγωγής</h2><input type="date" id="deltioDateInput" style="width:auto;min-height:40px"></div>
-<div class="two" style="margin-top:8px"><button type="button" id="deltioEmpBtn" class="btn alt">ΕΡΓΑΖΟΜΕΝΟΙ</button><button type="button" id="deltioDeptBtn" class="btn alt">ΤΜΗΜΑΤΑ</button></div></div>
+<div class="two" style="margin-top:8px"><button type="button" id="deltioEmpBtn" class="btn choice on">ΕΡΓΑΖΟΜΕΝΟΙ</button><button type="button" id="deltioDeptBtn" class="btn choice">ΤΜΗΜΑΤΑ</button></div><div id="dlCnt" class="dlCnt"></div></div><div class="card" id="dlMain"></div><div class="card"><h3>Ιστορικό</h3><div id="dlHist"></div></div>
 <div class="card"><h3>Τοποθετημένοι σήμερα</h3><div id="deltioSummary" class="muted">Καμία τοποθέτηση.</div></div>
+<div id="dlScrim" class="dlScrim hidden"><div id="dlSheet" class="dlSheet"></div></div>
 </div>
 </div>
 <div id="deltioEmpList" class="card hidden"><div class="panelHead"><h3>Εργαζόμενοι</h3><button id="deltioEmpListClose" class="btn alt closeX">×</button></div><div id="deltioEmpListBody"></div></div>
@@ -370,7 +377,7 @@ async function loadDeltioAndroid(){
   if(!$('deltioDateInput').value)$('deltioDateInput').value=deltioDate||new Date().toISOString().slice(0,10);
   deltioDate=$('deltioDateInput').value;
   try{let [att,entries]=await Promise.all([api('/production/attendance?date='+deltioDate),api(`/production/work-entries?start=${deltioDate}&end=${deltioDate}`)]);deltioAttendance=att;deltioEntries=entries}catch(err){}
-  renderDeltioSummary();
+  renderDeltioSummary();dlAfterLoad();
 }
 $('deltioDateInput').onchange=loadDeltioAndroid;
 function deltioAttByEmp(id){return deltioAttendance.find(a=>a.employee_id===id)}
@@ -450,7 +457,7 @@ function openDeltioEmpEdit(empId){
   $('deltioEmpPos').value=a?.position_text||'';
   $('deltioEmpCatBtn').textContent=deltioEditCat?dname(deltioEditCat):'Επιλογή κατηγορίας';
   $('deltioEmpKg').value=entry?Number(entry.weight_kg):'';
-  $('deltioEmpTime').value=a?.since_at?new Date(a.since_at).toTimeString().slice(0,5):new Date().toTimeString().slice(0,5);
+  $('deltioEmpTime').value=a?.since_at?utcDate(a.since_at).toTimeString().slice(0,5):new Date().toTimeString().slice(0,5);
   $('deltioEmpMsg').textContent='';
   if(deltioEditCat)deltioLoadStock();else{deltioStockGroups=[];$('deltioEmpStockWrap').classList.add('hidden')}
   $('deltioDeptView').classList.add('hidden');$('deltioEmpEdit').classList.remove('hidden');
@@ -570,4 +577,94 @@ document.querySelectorAll('[data-flag]').forEach(b=>b.onclick=async()=>{let k=b.
 $('ctrlToggle').onclick=()=>{let h=$('ctrlBody').classList.toggle('hidden');$('ctrlToggle').textContent=h?'▾':'▴'};
 $('confirm').onclick=async()=>{let btn=$('confirm');if(!btn.dataset.armed){btn.dataset.armed='1';btn.dataset.label=btn.textContent;btn.textContent='ΠΑΤΑ ΞΑΝΑ ΓΙΑ ΕΠΙΒΕΒΑΙΩΣΗ';setTimeout(()=>{if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=btn.dataset.label}},4000);return}delete btn.dataset.armed;try{await api('/sorting/'+cur.id+'/confirm',{method:'POST'});closePanels();$('work').classList.add('hidden');$('loads').classList.remove('hidden');cur=null;await loadLoads();window.scrollTo({top:0,behavior:'smooth'})}catch(e){$('workMsg').textContent=e.message;btn.textContent=btn.dataset.label}}
 window.appBack=()=>{if(!$('lightbox').classList.contains('hidden')){$('lbClose').onclick();return true}if(!$('entry').classList.contains('hidden')){$('cancel').onclick();return true}for(let id of ['bulkWash','bulkFridge','loadingPick','all'])if(!$(id).classList.contains('hidden')){closePanels();return true}if(!$('work').classList.contains('hidden')){$('back').onclick();return true}return false};
+// ===== Δελτίο ημέρας 3α: ΕΡΓΑΖΟΜΕΝΟΙ (παρουσίες) / ΤΜΗΜΑΤΑ (τοποθετήσεις) / Ιστορικό με ΑΚΥΡΩΣΗ -- σχέδιο: design-reference/android-tmimata.html =====
+// Η κατάσταση είναι ΜΙΑ και κοινή (server: /production/attendance) -- ό,τι αλλάζει από τα Windows φαίνεται εδώ (ανανέωση κάθε 8″).
+function utcDate(iso){return new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+'Z')}
+function dlT(iso){return iso?utcDate(iso).toTimeString().slice(0,5):''}
+let dlView='w',dlEvents=[],dlSheetEmp=null;
+function dlAtt(id){return deltioAttByEmp(id)||{}}
+function dlSorted(){return prodEmps.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'))}
+function dlUnitName(a){let u=a.org_unit_id?prodUnits.find(x=>x.id===a.org_unit_id):null;return u?u.name_el:null}
+function dlSub(a){
+  if(a.status==='PRESENT')return (dlUnitName(a)||'χωρίς τμήμα')+(a.since_at?' · από '+dlT(a.since_at):'');
+  if(a.status==='LEFT')return 'έφυγε '+dlT(a.since_at);
+  return 'δεν ήρθε';
+}
+function dlRender(){
+  if(!$('dlMain'))return;
+  let p=0,l=0;prodEmps.forEach(e=>{let s=dlAtt(e.id).status;if(s==='PRESENT')p++;else if(s==='LEFT')l++});
+  $('dlCnt').innerHTML=`<span class="dlChip dlP">Παρόντες ${p}</span><span class="dlChip dlA">Απόντες ${prodEmps.length-p-l}</span><span class="dlChip dlL">Έφυγαν ${l}</span>`;
+  $('deltioEmpBtn').classList.toggle('on',dlView==='w');$('deltioDeptBtn').classList.toggle('on',dlView==='d');
+  if(dlView==='w'){
+    $('dlMain').innerHTML=dlSorted().map(e=>{
+      let a=dlAtt(e.id),st=a.status||'ABSENT',b=(s,t,c)=>`<button type="button" class="btn choice dlSt ${c}${st===s?' on':''}" data-e="${e.id}" data-s="${s}">${t}</button>`;
+      return `<div class="dlRow"><div class="dlNm">${esc(e.full_name)}<small>${esc(dlSub(a))}</small></div><div class="dlSt3">${b('PRESENT','ΠΑΡΩΝ','p')}${b('ABSENT','ΑΠΩΝ','a')}${b('LEFT','ΕΦΥΓΕ','l')}</div></div>`;
+    }).join('')||'<div class="muted">Δεν υπάρχουν εργαζόμενοι.</div>';
+  }else dlRenderDepts();
+  $('dlHist').innerHTML=dlEvents.length?dlEvents.map(ev=>`<div class="dlHe"><span class="dlTm">${dlT(ev.time)}</span><span class="dlTx">${esc(ev.text)}</span>${ev.can_undo?`<button type="button" class="btn alt dlUndo" data-u="${ev.id}">ΑΚΥΡΩΣΗ</button>`:'<button type="button" class="btn alt" disabled>υπάρχει νεότερη</button>'}</div>`).join(''):'<div class="muted">Καμία αλλαγή σήμερα.</div>';
+}
+function dlWk(e){let a=dlAtt(e.id);return `<button type="button" class="btn alt dlWk" data-e="${e.id}">${esc(e.full_name)}<small>${a.status==='LEFT'?'έφυγε ':'από '}${dlT(a.since_at)}</small></button>`}
+function dlRenderDepts(){
+  let emps=dlSorted(),isIn=(e,f)=>f(dlAtt(e.id)),h='<button type="button" class="btn alt" id="dlPerm" style="width:100%;margin-bottom:10px">ΜΟΝΙΜΗ ΘΕΣΗ (ΕΡΓΑΤΕΣ)</button>';
+  prodUnits.forEach(u=>{let ids=emps.filter(e=>isIn(e,a=>a.status==='PRESENT'&&a.org_unit_id===u.id));h+=`<div class="dlDept"><h3>${esc(u.name_el)}<small>${ids.length} εργαζ.</small></h3>${ids.length?ids.map(dlWk).join(''):'<p class="muted">Κανείς στο τμήμα</p>'}</div>`});
+  let grp=(t,f)=>{let ids=emps.filter(e=>isIn(e,f));if(ids.length)h+=`<div class="dlDept"><h3>${t}<small>${ids.length}</small></h3>${ids.map(dlWk).join('')}</div>`};
+  grp('Χωρίς τμήμα',a=>a.status==='PRESENT'&&!dlUnitName(a));grp('Έφυγαν',a=>a.status==='LEFT');
+  $('dlMain').innerHTML=h;
+}
+async function dlAfterLoad(){try{dlEvents=await api('/production/attendance/events?date='+deltioDate)}catch(e){}dlRender()}
+async function dlChange(empId,patch,txt){
+  let e=prodEmps.find(x=>x.id===empId);
+  try{
+    let saved=await deltioSaveAttendance(empId,patch);
+    await dlAfterLoad();
+    if(saved.event_id){flToast(e.full_name+': '+txt+' ✓','ΑΚΥΡΩΣΗ',()=>dlUndo(saved.event_id));let m=$('flToastMsg').textContent;setTimeout(()=>{if($('flToastMsg').textContent===m)$('flToast').classList.add('hidden')},8000)}
+  }catch(err){flToast('Σφάλμα: '+(err?.message||err))}
+}
+async function dlUndo(id){
+  try{await api('/production/attendance/events/'+id+'/undo',{method:'POST'});$('flToast').classList.add('hidden')}
+  catch(err){flToast('Δεν έγινε ακύρωση: '+(err?.message||err))}
+  await loadDeltioAndroid();
+}
+$('deltioEmpBtn').onclick=()=>{dlView='w';dlRender()};
+$('deltioDeptBtn').onclick=()=>{dlView='d';dlRender()};
+$('dlMain').onclick=e=>{
+  let b=e.target.closest('button');if(!b)return;
+  if(b.id==='dlPerm'){openRoster();return}
+  if(b.classList.contains('dlWk')){dlOpenSheet(b.dataset.e);return}
+  if(b.classList.contains('dlSt')){
+    let id=b.dataset.e,s=b.dataset.s,a=dlAtt(id),cur=a.status||'ABSENT',now=new Date().toISOString();
+    if(cur===s)return;
+    // ΑΠΩΝ/ΕΦΥΓΕ βγάζει από το τμήμα· ΠΑΡΩΝ = «Χωρίς τμήμα» μέχρι την τοποθέτηση από τα ΤΜΗΜΑΤΑ.
+    if(s==='PRESENT')dlChange(id,{status:'PRESENT',org_unit_id:null,since_at:now},'παρών');
+    else if(s==='ABSENT')dlChange(id,{status:'ABSENT',org_unit_id:null,since_at:null},'απών');
+    else dlChange(id,{status:'LEFT',org_unit_id:null,since_at:now},'έφυγε');
+  }
+};
+$('dlHist').onclick=e=>{let b=e.target.closest('button[data-u]');if(b)dlUndo(b.dataset.u)};
+function dlOpenSheet(empId){
+  dlSheetEmp=empId;let e=prodEmps.find(x=>x.id===empId),a=dlAtt(empId),pres=a.status==='PRESENT',here=dlUnitName(a);
+  let h=`<h2>${esc(e.full_name)}</h2><p class="muted">${esc(dlSub(a))}</p>`;
+  if(pres)h+='<button type="button" class="btn danger" data-act="out" style="width:100%">ΕΦΥΓΕ</button>';
+  h+=`<div class="flLbl">${!pres?'ΕΠΙΣΤΡΟΦΗ ΣΕ':here?'ΜΕΤΑΚΙΝΗΣΗ ΣΕ':'ΤΟΠΟΘΕΤΗΣΗ ΣΕ'}</div><div class="flOpts">`+prodUnits.map(u=>{let cur=pres&&a.org_unit_id===u.id;return `<button type="button" class="btn alt flOpt" data-act="mv" data-u="${u.id}"${cur?' disabled':''}>${esc(u.name_el)}${cur?'<small>είναι εδώ</small>':''}</button>`}).join('')+'</div>';
+  if(pres&&here)h+='<button type="button" class="btn alt" data-act="det" style="width:100%;margin-top:10px">ΛΕΠΤΟΜΕΡΕΙΕΣ / ΥΛΙΚΟ</button>';
+  h+='<button type="button" class="btn alt" data-act="close" style="width:100%;margin-top:10px">ΚΛΕΙΣΙΜΟ</button>';
+  $('dlSheet').innerHTML=h;$('dlScrim').classList.remove('hidden');
+}
+$('dlScrim').onclick=e=>{
+  if(e.target===$('dlScrim')){$('dlScrim').classList.add('hidden');return}
+  let b=e.target.closest('button');if(!b)return;
+  let id=dlSheetEmp,a=dlAtt(id),act=b.dataset.act;
+  $('dlScrim').classList.add('hidden');
+  if(act==='out')dlChange(id,{status:'LEFT',org_unit_id:null,since_at:new Date().toISOString()},'έφυγε');
+  else if(act==='mv'){let u=prodUnits.find(x=>x.id===b.dataset.u),from=a.status==='PRESENT'?dlUnitName(a):null;
+    dlChange(id,{status:'PRESENT',org_unit_id:u.id,since_at:new Date().toISOString()},from?from+' → '+u.name_el:(a.status==='LEFT'?'επέστρεψε στο ':'τοποθετήθηκε στο ')+u.name_el)}
+  else if(act==='det'){
+    // Το υπάρχον φύλλο «θέση / ώρα / υλικό-μέσο συλλογής» (καταχώρηση παραγωγής) μένει αυτούσιο.
+    deltioCurrentDeptId=a.org_unit_id;$('deltioPanel').classList.add('hidden');
+    let mv=$('deltioEmpMoveBtn').parentElement;if(mv)mv.classList.add('hidden');
+    openDeltioEmpEdit(id);
+  }
+};
+$('deltioEmpEditClose').onclick=async()=>{await deltioSaveEmpEditFields();$('deltioEmpEdit').classList.add('hidden');$('deltioPanel').classList.remove('hidden');loadDeltioAndroid()};
+setInterval(()=>{if($('deltioPanel')&&$('deltioPanel').offsetParent&&$('dlScrim').classList.contains('hidden')&&!document.hidden)loadDeltioAndroid()},8000);
 </script></body></html>
