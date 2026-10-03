@@ -6,7 +6,7 @@ from sqlalchemy import select, inspect, text, update
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
-from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
+from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, ProductionPlacementInterval, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
 from .security import verify_password, make_token, current_user, require_permission
 from .seed import seed
 from .import_real_2026 import ensure_real_2026_import
@@ -632,6 +632,18 @@ def _employee_public(db:Session,e:Employee,p:Person):
     names=[u.name_el for u in sorted(units,key=lambda u:u.name_el)]
     return {"id":e.id,"employee_code":e.employee_code,"full_name":((p.first_name+" "+p.last_name).strip()),"phone":p.phone,"default_org_unit_id":e.default_org_unit_id,"org_unit_ids":ids,"org_unit_names":names,"active":bool(e.active and p.active)}
 
+def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,at:datetime|None=None):
+    """Closes any open placement interval for this employee today and opens a new one for
+    new_org_unit_id. No-op if the department isn't actually changing. Pure addition -- never read by
+    ProductionWorkEntry/ProductionAttendance or the reports built on them."""
+    now=at or datetime.now(timezone.utc)
+    day=datetime(now.year,now.month,now.day,tzinfo=timezone.utc)
+    open_row=db.scalar(select(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==employee_id,ProductionPlacementInterval.work_date==day,ProductionPlacementInterval.ended_at.is_(None)))
+    if open_row:
+        if open_row.org_unit_id==new_org_unit_id: return
+        open_row.ended_at=now
+    db.add(ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now))
+
 def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
     clean=[]
     for unit_id in ids or []:
@@ -640,7 +652,9 @@ def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
             clean.append(unit_id)
     db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
     for unit_id in clean: db.execute(employee_org_units.insert().values(employee_id=emp.id,org_unit_id=unit_id))
-    emp.default_org_unit_id=clean[0] if clean else None
+    new_default=clean[0] if clean else None
+    if new_default!=emp.default_org_unit_id: _log_placement_interval(db,emp.id,new_default)
+    emp.default_org_unit_id=new_default
 
 @app.get("/master/employees", response_model=list[schemas.EmployeeOut])
 def list_employees(include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -745,16 +759,38 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==data.employee_id))
     old=None
+    old_org_unit_id=obj.org_unit_id if obj else None
     if obj:
         old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
         obj.status=data.status; obj.org_unit_id=data.org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
     else:
         obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=data.org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
         db.add(obj)
+    if data.org_unit_id!=old_org_unit_id: _log_placement_interval(db,data.employee_id,data.org_unit_id,at=data.since_at)
     db.flush()
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
     db.commit(); db.refresh(obj); return obj
+
+@app.get("/production/placement-intervals")
+def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    day=datetime.fromisoformat(date)
+    rows=db.scalars(select(ProductionPlacementInterval).where(ProductionPlacementInterval.work_date==datetime(day.year,day.month,day.day)).order_by(ProductionPlacementInterval.employee_id,ProductionPlacementInterval.started_at)).all()
+    emps={e.id:e for e in db.scalars(select(Employee)).all()}
+    people={p.id:p for p in db.scalars(select(Person)).all()}
+    units={u.id:u for u in db.scalars(select(OrganizationalUnit)).all()}
+    out=[]
+    for r in rows:
+        emp=emps.get(r.employee_id); person=people.get(emp.person_id) if emp else None
+        unit=units.get(r.org_unit_id) if r.org_unit_id else None
+        # SQLite returns DateTime(timezone=True) values naive regardless of how they were stored, so
+        # the "still ongoing" fallback must be naive too or the subtraction below throws.
+        ended=r.ended_at or datetime.utcnow()
+        out.append({"id":r.id,"employee_id":r.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
+            "org_unit_id":r.org_unit_id,"org_unit_name":unit.name_el if unit else None,
+            "started_at":r.started_at.isoformat(),"ended_at":r.ended_at.isoformat() if r.ended_at else None,
+            "ongoing":r.ended_at is None,"minutes":round((ended-r.started_at).total_seconds()/60)})
+    return out
 
 @app.post("/production/day-material", response_model=schemas.ProductionWorkEntryOut)
 def upsert_production_day_material(data:schemas.ProductionDayMaterialIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
@@ -2464,10 +2500,49 @@ def weee_inventory(available_only:bool=True, db:Session=Depends(get_db), user=De
     if available_only: q=q.where(WEEEStockLot.available_weight>0)
     return [_lot_out(db,x) for x in db.scalars(q).all()]
 
-@app.get('/inventory/weee/by-medium/{medium_id}', response_model=list[schemas.WEEEStockLotOut])
+@app.get('/inventory/weee/media-with-stock')
+def weee_media_with_stock(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    # Mirror of weee_category_positions() (grouped by medium instead of by category) -- used by the
+    # Android ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ flow's "ΜΕΣΟ ΣΥΛΛΟΓΗΣ πρώτα" direction. Not filtered by processable/ΜΗ
+    # ΑΗΗΕ here -- the frontend already owns that decision via isProducedCat(), same as every other
+    # production category picker (see [[production_excludes_unprocessed_materials]]).
+    lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all()
+    groups={}
+    for lot in lots:
+        med=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+        mt=db.get(CollectionMediumType,med.type_id) if med else None
+        cat=db.get(WEEECategory,lot.weee_category_id)
+        key=lot.collection_medium_id or 'BULK'
+        g=groups.setdefault(key,{'medium_id':lot.collection_medium_id,'medium_type':mt.name_el if mt else 'Χύμα / χωρίς αριθμημένο μέσο','medium_code':med.code if med else 'Χύμα','total_weight':0.0,'categories':{}})
+        g['total_weight']+=float(lot.available_weight or 0)
+        c=g['categories'].setdefault(cat.id,{'category_id':cat.id,'code':cat.code,'description':cat.description_el,'weight':0.0})
+        c['weight']+=float(lot.available_weight or 0)
+    out=[]
+    for g in groups.values():
+        g['total_weight']=round(g['total_weight'],3)
+        g['categories']=sorted(({**c,'weight':round(c['weight'],3)} for c in g['categories'].values()),key=lambda x:x['code'])
+        out.append(g)
+    out.sort(key=lambda x:(x['medium_type'],x['medium_code']))
+    return out
+
+@app.get('/inventory/weee/by-medium/{medium_id}')
 def weee_inventory_medium(medium_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
-    rows=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)).all()
-    return [_lot_out(db,x) for x in rows]
+    # medium_id='BULK' is the synthetic "Χύμα" bucket (collection_medium_id IS NULL), matching the key
+    # weee_category_positions()/weee_media_with_stock() already use for it. Response shape mirrors
+    # weee_category_positions() (grouped by category instead of by medium) for frontend consistency.
+    if medium_id=='BULK':
+        med=None; lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id.is_(None),WEEEStockLot.available_weight>0)).all()
+    else:
+        med=db.get(CollectionMedium,medium_id)
+        if not med: raise HTTPException(404,'Το μέσο συλλογής δεν βρέθηκε')
+        lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)).all()
+    groups={}
+    for lot in lots:
+        cat=db.get(WEEECategory,lot.weee_category_id)
+        g=groups.setdefault(cat.id,{'category_id':cat.id,'code':cat.code,'description':cat.description_el,'weight':0.0})
+        g['weight']+=float(lot.available_weight or 0)
+    out=sorted(({**c,'weight':round(c['weight'],3)} for c in groups.values()),key=lambda x:x['code'])
+    return {'medium_id':medium_id if medium_id!='BULK' else None,'medium_code':med.code if med else 'Χύμα','total_weight':round(sum(x['weight'] for x in out),3),'categories':out}
 
 def _transfer_number(db:Session)->str:
     year=datetime.now().year

@@ -101,6 +101,22 @@ class ProductionAttendance(Base, TimestampMixin):
     created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     __table_args__ = (UniqueConstraint("work_date", "employee_id", name="uq_production_attendance_day_emp"),)
 
+
+class ProductionPlacementInterval(Base, TimestampMixin):
+    """Append-only log of which department an employee was in and when -- purely additive, never
+    read by the existing production reports (ανά ΑΗΗΕ / ανά Τμήμα-Άτομο / Δελτίο Παραγωγής), so their
+    numbers never change. One open row (ended_at=None) per employee at a time; a new placement closes
+    the previous open row and opens a new one. Fed by every place an employee's current department
+    changes "today": the permanent ΕΡΓΑΤΕΣ roster (_replace_employee_units) and the daily Δελτίο
+    Παρουσίας (production_attendance)."""
+    __tablename__ = "production_placement_intervals"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    employee_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), index=True)
+    work_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+
 class MaterialOutputEntry(Base, TimestampMixin):
     __tablename__ = "material_output_entries"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
