@@ -6,7 +6,7 @@ from sqlalchemy import select, inspect, text, update
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
-from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, ProductionPlacementInterval, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
+from .models import User, OrganizationalUnit, Organization, WEEECategory, Material, CollectionMediumType, CollectionMedium, AppSetting, Employee, Person, ProductionWorkEntry, ProductionAttendance, ProductionPlacementInterval, ProductionAttendanceEvent, MaterialOutputEntry, OrgUnitPosition, employee_org_units, EquipmentItem, ConsumableType, ConsumableLot, MaterialOpeningStock, ElectrocycleOrder, ElectrocycleSyncStatus
 from .security import verify_password, make_token, current_user, require_permission
 from .seed import seed
 from .import_real_2026 import ensure_real_2026_import
@@ -643,9 +643,11 @@ def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,
     day=datetime(now.year,now.month,now.day,tzinfo=timezone.utc)
     open_row=db.scalar(select(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==employee_id,ProductionPlacementInterval.work_date==day,ProductionPlacementInterval.ended_at.is_(None)))
     if open_row:
-        if open_row.org_unit_id==new_org_unit_id: return
+        if open_row.org_unit_id==new_org_unit_id: return (None,None)
         open_row.ended_at=now
-    db.add(ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now))
+    new_row=ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now)
+    db.add(new_row); db.flush()
+    return (open_row.id if open_row else None, new_row.id)
 
 def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
     clean=[]
@@ -763,17 +765,76 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==data.employee_id))
     old=None
     old_org_unit_id=obj.org_unit_id if obj else None
+    prev_snapshot=(True,obj.status,obj.org_unit_id,obj.since_at) if obj else (False,None,None,None)
+    # Κανόνας: ΑΠΩΝ / ΕΦΥΓΕ βγάζει τον εργαζόμενο από το τμήμα του.
+    new_org_unit_id=None if data.status in ("ABSENT","LEFT") else data.org_unit_id
     if obj:
         old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
-        obj.status=data.status; obj.org_unit_id=data.org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
+        obj.status=data.status; obj.org_unit_id=new_org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
     else:
-        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=data.org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
+        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=new_org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
         db.add(obj)
-    if data.org_unit_id!=old_org_unit_id: _log_placement_interval(db,data.employee_id,data.org_unit_id,at=data.since_at)
+    closed_id=opened_id=None
+    if new_org_unit_id!=old_org_unit_id: closed_id,opened_id=_log_placement_interval(db,data.employee_id,new_org_unit_id,at=data.since_at)
     db.flush()
+    event_id=None
+    if (not prev_snapshot[0]) or prev_snapshot[1]!=data.status or prev_snapshot[2]!=new_org_unit_id:
+        ev=ProductionAttendanceEvent(work_date=day,employee_id=data.employee_id,user_id=user.id,status=data.status,org_unit_id=new_org_unit_id,since_at=data.since_at,
+            prev_exists=prev_snapshot[0],prev_status=prev_snapshot[1],prev_org_unit_id=prev_snapshot[2],prev_since_at=prev_snapshot[3],closed_interval_id=closed_id,opened_interval_id=opened_id)
+        db.add(ev); db.flush(); event_id=ev.id
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
-    db.commit(); db.refresh(obj); return obj
+    db.commit(); db.refresh(obj)
+    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"event_id":event_id}
+
+def _short_name(person)->str:
+    if not person: return ""
+    last=(person.last_name or "").strip()
+    return f"{person.first_name} {last[0]}." if last else (person.first_name or "")
+
+@app.get("/production/attendance/events")
+def production_attendance_events(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Ιστορικό της ημέρας (η πιο πρόσφατη αλλαγή πρώτη). can_undo = δεν υπάρχει νεότερη αλλαγή του ίδιου εργαζομένου."""
+    day=datetime.fromisoformat(date); day=datetime(day.year,day.month,day.day)
+    evs=db.scalars(select(ProductionAttendanceEvent).where(ProductionAttendanceEvent.work_date==day).order_by(ProductionAttendanceEvent.created_at.desc(),ProductionAttendanceEvent.id.desc())).all()
+    emps={e.id:e for e in db.scalars(select(Employee)).all()}; people={p.id:p for p in db.scalars(select(Person)).all()}
+    units={u.id:u.name_el for u in db.scalars(select(OrganizationalUnit)).all()}; users={u.id:u.username for u in db.scalars(select(User)).all()}
+    seen=set(); out=[]
+    for ev in evs:
+        emp=emps.get(ev.employee_id); person=people.get(emp.person_id) if emp else None
+        nm=_short_name(person); new_u=units.get(ev.org_unit_id) if ev.org_unit_id else None; old_u=units.get(ev.prev_org_unit_id) if ev.prev_org_unit_id else None
+        if ev.status=="LEFT": tx="έφυγε"
+        elif ev.status=="ABSENT": tx="απών"
+        elif new_u and old_u and ev.prev_status=="PRESENT": tx=f"{old_u} → {new_u}"
+        elif new_u and ev.prev_status=="LEFT": tx=f"επέστρεψε στο {new_u}"
+        elif new_u: tx=f"τοποθετήθηκε στο {new_u}"
+        else: tx="παρών"
+        out.append({"id":ev.id,"time":ev.created_at.isoformat(),"employee_id":ev.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
+            "text":f"{nm}: {tx}","user":users.get(ev.user_id),"status":ev.status,"org_unit_id":ev.org_unit_id,"can_undo":ev.employee_id not in seen})
+        seen.add(ev.employee_id)
+    return out
+
+@app.post("/production/attendance/events/{event_id}/undo")
+def undo_production_attendance_event(event_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    """ΑΚΥΡΩΣΗ: μόνο αν δεν υπάρχει νεότερη αλλαγή του ΙΔΙΟΥ εργαζομένου. Επαναφέρει την προηγούμενη κατάσταση,
+    ΔΙΑΓΡΑΦΕΙ την εγγραφή ιστορικού και διορθώνει τα χρονικά διαστήματα τμήματος (σημείο 2)."""
+    ev=db.get(ProductionAttendanceEvent,event_id)
+    if not ev: raise HTTPException(404,"Η εγγραφή δεν βρέθηκε")
+    newer=db.scalar(select(ProductionAttendanceEvent).where(ProductionAttendanceEvent.employee_id==ev.employee_id,ProductionAttendanceEvent.work_date==ev.work_date,
+        (ProductionAttendanceEvent.created_at>ev.created_at)|((ProductionAttendanceEvent.created_at==ev.created_at)&(ProductionAttendanceEvent.id>ev.id))))
+    if newer: raise HTTPException(409,"Υπάρχει νεότερη αλλαγή του ίδιου εργαζομένου")
+    obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==ev.work_date,ProductionAttendance.employee_id==ev.employee_id))
+    if obj:
+        if ev.prev_exists: obj.status=ev.prev_status; obj.org_unit_id=ev.prev_org_unit_id; obj.since_at=ev.prev_since_at
+        else: db.delete(obj)
+    if ev.opened_interval_id:
+        iv=db.get(ProductionPlacementInterval,ev.opened_interval_id)
+        if iv: db.delete(iv)
+    if ev.closed_interval_id:
+        iv=db.get(ProductionPlacementInterval,ev.closed_interval_id)
+        if iv: iv.ended_at=None
+    write_audit(db,user,"production_attendance",ev.employee_id,"UNDO",old={"status":ev.status,"org_unit_id":ev.org_unit_id},new={"status":ev.prev_status,"org_unit_id":ev.prev_org_unit_id})
+    db.delete(ev); db.commit(); return {"ok":True}
 
 @app.get("/production/placement-intervals")
 def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
