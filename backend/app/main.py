@@ -937,6 +937,31 @@ def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_d
         ProductionWorkEntry.work_date>=day0,ProductionWorkEntry.work_date<day0+timedelta(days=1)).order_by(ProductionWorkEntry.created_at)).all()
     by_emp={}
     for r,o in zip(rows,out): by_emp.setdefault(r.employee_id,[]).append((r,o))
+    # Αρχικό «άρρητο» διάστημα: όποιος είναι στη θέση του από την αρχή της βάρδιας (δεν μετακινήθηκε ή μετακινήθηκε αργότερα)
+    # έχει διάστημα από την έναρξη βάρδιας μέχρι την πρώτη του μετακίνηση (ή όλη τη μέρα). Μόνο ανάγνωση -- δεν αποθηκεύεται τίποτα.
+    class _Iv:
+        def __init__(self,emp_id,started,ended): self.employee_id=emp_id; self.started_at=started; self.ended_at=ended
+    sh,sm=[int(x) for x in _shift_start(db).split(":")]
+    start_utc=datetime(day0.year,day0.month,day0.day,sh,sm).astimezone(timezone.utc).replace(tzinfo=None)
+    att_rows={a.employee_id:a for a in db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date==day0)).all()}
+    first_ev={}
+    for ev in db.scalars(select(ProductionAttendanceEvent).where(ProductionAttendanceEvent.work_date==day0).order_by(ProductionAttendanceEvent.created_at)).all(): first_ev.setdefault(ev.employee_id,ev)
+    for emp in emps.values():
+        if emp.active is False: continue
+        a=att_rows.get(emp.id)
+        if a and a.status=="ABSENT": continue
+        mine=by_emp.get(emp.id)
+        if mine:
+            if mine[0][0].started_at<=start_utc: continue
+            ev=first_ev.get(emp.id); org=ev.prev_org_unit_id if ev else None; end=mine[0][0].started_at
+        else:
+            org=a.org_unit_id if a else _last_known_unit(db,emp.id,day0); end=(a.since_at if a and a.status=="LEFT" else None)
+        if not org: continue
+        person=people.get(emp.person_id); unit=units.get(org); iv=_Iv(emp.id,start_utc,end)
+        o={"id":"implicit-"+emp.id,"employee_id":emp.id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
+            "org_unit_id":org,"org_unit_name":unit.name_el if unit else None,"started_at":start_utc.isoformat(),"ended_at":end.isoformat() if end else None,
+            "ongoing":end is None,"minutes":max(0,round(((end or datetime.utcnow())-start_utc).total_seconds()/60)),"kg":0.0,"entries":0,"implicit":True}
+        out.append(o); by_emp.setdefault(emp.id,[]).insert(0,(iv,o))
     for e in ents:
         mine=by_emp.get(e.employee_id)
         if not mine: continue
@@ -944,6 +969,7 @@ def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_d
         for r,o in mine:
             if r.started_at<=e.created_at and (r.ended_at is None or e.created_at<r.ended_at): target=o
         target["kg"]=round(target["kg"]+float(e.weight_kg or 0),3); target["entries"]+=1
+    out.sort(key=lambda o:(o["employee_id"],o["started_at"]))
     return out
 
 @app.post("/production/day-material", response_model=schemas.ProductionWorkEntryOut)
