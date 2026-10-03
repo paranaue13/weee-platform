@@ -73,10 +73,15 @@ class ProductionAttendanceUpsert(BaseModel):
     org_unit_id: str|None = None
     position_text: str|None = None
     since_at: datetime|None = None
+    late: bool|None = None  # True = ΑΡΓΟΠΟΡΙΑ, False = εγκαίρως, None = όπως είναι/αυτόματα
 
 class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str
     event_id: str|None = None
+    arrived_at: datetime|None = None
+
+class ShiftStartIn(BaseModel):
+    shift_start: str
 
 class ProductionDayMaterialIn(BaseModel):
     work_date: datetime

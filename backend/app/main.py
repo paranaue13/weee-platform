@@ -79,6 +79,15 @@ async def lifespan(app: FastAPI):
         if "production_work_entries" in tables:
             pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
             if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
+        if "production_attendance" in tables:
+            pa_cols={c["name"] for c in inspect(engine).get_columns("production_attendance")}
+            if "arrived_at" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN arrived_at DATETIME"))
+            if "late" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN late BOOLEAN DEFAULT 0"))
+        if "production_attendance_events" in tables:
+            pe_cols={c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
+            if "late" not in pe_cols: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN late BOOLEAN DEFAULT 0"))
+            if "prev_late" not in pe_cols: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN prev_late BOOLEAN DEFAULT 0"))
+            if "prev_arrived_at" not in pe_cols: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN prev_arrived_at DATETIME"))
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
@@ -757,35 +766,99 @@ def production_attendance_for_date(date:str=Query(...), db:Session=Depends(get_d
     rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=day,ProductionAttendance.work_date<day+timedelta(days=1))).all()
     return rows
 
+def _shift_start(db:Session)->str:
+    v=db.scalar(select(AppSetting.value).where(AppSetting.key=="production.shift_start"))
+    try:
+        h,m=[int(x) for x in (v or "").split(":")]
+        if 0<=h<24 and 0<=m<60: return f"{h:02d}:{m:02d}"
+    except Exception: pass
+    return "07:00"
+
+def _after_shift_start(db:Session, when_utc:datetime)->bool:
+    h,m=[int(x) for x in _shift_start(db).split(":")]
+    local=when_utc.replace(tzinfo=timezone.utc).astimezone()  # ώρα του υπολογιστή-server (Ελλάδα)
+    return (local.hour,local.minute)>(h,m)
+
+def _last_known_unit(db:Session, employee_id:str, day:datetime):
+    """Τελευταία γνωστή θέση: η πιο πρόσφατη τοποθέτηση σε προηγούμενη ημέρα, αλλιώς η μόνιμη (ΕΡΓΑΤΕΣ)."""
+    r=db.scalar(select(ProductionAttendance.org_unit_id).where(ProductionAttendance.employee_id==employee_id,ProductionAttendance.work_date<day,ProductionAttendance.org_unit_id.isnot(None)).order_by(ProductionAttendance.work_date.desc()).limit(1))
+    if r: return r
+    emp=db.get(Employee,employee_id); return emp.default_org_unit_id if emp else None
+
+@app.get("/production/shift-start")
+def get_shift_start(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    return {"shift_start":_shift_start(db)}
+
+@app.put("/production/shift-start")
+def set_shift_start(data:schemas.ShiftStartIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    try:
+        h,m=[int(x) for x in data.shift_start.split(":")]; assert 0<=h<24 and 0<=m<60
+    except Exception: raise HTTPException(422,"Η ώρα πρέπει να είναι της μορφής ΩΩ:ΛΛ")
+    val=f"{h:02d}:{m:02d}"; row=db.scalar(select(AppSetting).where(AppSetting.key=="production.shift_start"))
+    if row: row.value=val
+    else: db.add(AppSetting(key="production.shift_start",value=val))
+    write_audit(db,user,"app_setting","production.shift_start","UPDATE",new={"shift_start":val}); db.commit(); return {"shift_start":val}
+
+@app.get("/production/attendance/effective")
+def production_attendance_effective(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Η ΠΡΑΓΜΑΤΙΚΗ κατάσταση της ημέρας για ΚΑΘΕ ενεργό εργαζόμενο. Όποιος δεν έχει εγγραφή ξεκινά ΠΑΡΩΝ (εγκαίρως)
+    στην τελευταία γνωστή θέση του. ΑΠΩΝ/ΕΦΥΓΕ δεν αλλάζουν τη θέση· όταν γυρίσει παρών ξεκινά από εκεί."""
+    day=datetime.fromisoformat(date); day=datetime(day.year,day.month,day.day)
+    rows={r.employee_id:r for r in db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date==day)).all()}
+    last={}
+    for emp_id,org in db.execute(select(ProductionAttendance.employee_id,ProductionAttendance.org_unit_id).where(ProductionAttendance.work_date<day,ProductionAttendance.org_unit_id.isnot(None)).order_by(ProductionAttendance.work_date.desc())).all():
+        last.setdefault(emp_id,org)
+    out=[]
+    for e in db.scalars(select(Employee).where(Employee.active==True)).all():
+        r=rows.get(e.id)
+        if r:
+            out.append({"id":r.id,"work_date":r.work_date,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
+        else:
+            out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"since_at":None,"late":False,"arrived_at":None,"explicit":False})
+    return out
+
 @app.put("/production/attendance", response_model=schemas.ProductionAttendanceOut)
 def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
     if not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
     if data.org_unit_id and not db.get(OrganizationalUnit,data.org_unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
     day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==data.employee_id))
+    # Προηγούμενη ΠΡΑΓΜΑΤΙΚΗ κατάσταση (όποιος δεν έχει εγγραφή είναι παρών στην τελευταία γνωστή θέση)
+    if obj: p_exists,p_status,p_org,p_late,p_arr,p_since=True,(obj.status or "PRESENT"),obj.org_unit_id,bool(obj.late),obj.arrived_at,obj.since_at
+    else: p_exists,p_status,p_org,p_late,p_arr,p_since=False,"PRESENT",_last_known_unit(db,data.employee_id,day),False,None,None
+    status=data.status or "PRESENT"
+    # Η θέση ΔΕΝ αλλάζει με ΑΠΩΝ/ΕΦΥΓΕ -- όταν γυρίσει παρών ξεκινά από την τελευταία γνωστή.
+    new_org=data.org_unit_id
+    if new_org is None and (status in ("ABSENT","LEFT") or p_status in ("ABSENT","LEFT")): new_org=p_org  # επιστροφή = από την τελευταία γνωστή θέση
+    now=datetime.utcnow()
+    if status=="PRESENT":
+        if p_status=="ABSENT":   # ήρθε (ή ξαναήρθε) τώρα -- αργοπορία αν είναι μετά την έναρξη βάρδιας
+            arrived=now; late=True if data.late else (False if data.late is False else _after_shift_start(db,now))
+        elif p_status=="LEFT": arrived,late=p_arr,p_late  # επιστροφή από ΕΦΥΓΕ δεν αλλάζει την καθυστέρηση
+        elif data.late is True: late,arrived=True,(p_arr or now)
+        elif data.late is False: late,arrived=False,None
+        else: late,arrived=p_late,p_arr
+    elif status=="ABSENT": arrived,late=None,False  # απών = δεν ξεκίνησε ποτέ την ημέρα
+    else: arrived,late=p_arr,p_late
     old=None
-    old_org_unit_id=obj.org_unit_id if obj else None
-    prev_snapshot=(True,obj.status,obj.org_unit_id,obj.since_at) if obj else (False,None,None,None)
-    # Κανόνας: ΑΠΩΝ / ΕΦΥΓΕ βγάζει τον εργαζόμενο από το τμήμα του.
-    new_org_unit_id=None if data.status in ("ABSENT","LEFT") else data.org_unit_id
     if obj:
-        old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
-        obj.status=data.status; obj.org_unit_id=new_org_unit_id; obj.position_text=data.position_text; obj.since_at=data.since_at
+        old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
+        obj.status=status; obj.org_unit_id=new_org; obj.position_text=data.position_text; obj.since_at=data.since_at; obj.late=late; obj.arrived_at=arrived
     else:
-        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=data.status,org_unit_id=new_org_unit_id,position_text=data.position_text,since_at=data.since_at,created_by_user_id=user.id)
+        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=status,org_unit_id=new_org,position_text=data.position_text,since_at=data.since_at,late=late,arrived_at=arrived,created_by_user_id=user.id)
         db.add(obj)
     closed_id=opened_id=None
-    if new_org_unit_id!=old_org_unit_id: closed_id,opened_id=_log_placement_interval(db,data.employee_id,new_org_unit_id,at=data.since_at)
+    if new_org!=p_org: closed_id,opened_id=_log_placement_interval(db,data.employee_id,new_org,at=data.since_at)
     db.flush()
     event_id=None
-    if (not prev_snapshot[0]) or prev_snapshot[1]!=data.status or prev_snapshot[2]!=new_org_unit_id:
-        ev=ProductionAttendanceEvent(work_date=day,employee_id=data.employee_id,user_id=user.id,status=data.status,org_unit_id=new_org_unit_id,since_at=data.since_at,
-            prev_exists=prev_snapshot[0],prev_status=prev_snapshot[1],prev_org_unit_id=prev_snapshot[2],prev_since_at=prev_snapshot[3],closed_interval_id=closed_id,opened_interval_id=opened_id)
+    if (not p_exists) and (status!="PRESENT" or new_org!=p_org or late) or (p_exists and (p_status!=status or p_org!=new_org or p_late!=late)):
+        ev=ProductionAttendanceEvent(work_date=day,employee_id=data.employee_id,user_id=user.id,status=status,org_unit_id=new_org,since_at=data.since_at,late=late,
+            prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id)
         db.add(ev); db.flush(); event_id=ev.id
-    new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None}
+    new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
     db.commit(); db.refresh(obj)
-    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"event_id":event_id}
+    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"late":bool(obj.late),"arrived_at":obj.arrived_at,"event_id":event_id}
 
 def _short_name(person)->str:
     if not person: return ""
@@ -805,9 +878,11 @@ def production_attendance_events(date:str=Query(...), db:Session=Depends(get_db)
         nm=_short_name(person); new_u=units.get(ev.org_unit_id) if ev.org_unit_id else None; old_u=units.get(ev.prev_org_unit_id) if ev.prev_org_unit_id else None
         if ev.status=="LEFT": tx="έφυγε"
         elif ev.status=="ABSENT": tx="απών"
-        elif new_u and old_u and ev.prev_status=="PRESENT": tx=f"{old_u} → {new_u}"
-        elif new_u and ev.prev_status=="LEFT": tx=f"επέστρεψε στο {new_u}"
-        elif new_u: tx=f"τοποθετήθηκε στο {new_u}"
+        elif ev.prev_status in ("ABSENT","LEFT"):
+            tx=("επέστρεψε" if ev.prev_status=="LEFT" else ("άργησε" if ev.late else "παρών"))+(f" στο {new_u}" if new_u else "")
+        elif new_u and old_u and new_u!=old_u: tx=f"{old_u} → {new_u}"
+        elif new_u and new_u!=old_u: tx=f"τοποθετήθηκε στο {new_u}"
+        elif ev.late and not ev.prev_late: tx="αργοπορία"
         else: tx="παρών"
         out.append({"id":ev.id,"time":ev.created_at.isoformat(),"employee_id":ev.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
             "text":f"{nm}: {tx}","user":users.get(ev.user_id),"status":ev.status,"org_unit_id":ev.org_unit_id,"can_undo":ev.employee_id not in seen})
@@ -825,7 +900,7 @@ def undo_production_attendance_event(event_id:str, db:Session=Depends(get_db), u
     if newer: raise HTTPException(409,"Υπάρχει νεότερη αλλαγή του ίδιου εργαζομένου")
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==ev.work_date,ProductionAttendance.employee_id==ev.employee_id))
     if obj:
-        if ev.prev_exists: obj.status=ev.prev_status; obj.org_unit_id=ev.prev_org_unit_id; obj.since_at=ev.prev_since_at
+        if ev.prev_exists: obj.status=ev.prev_status; obj.org_unit_id=ev.prev_org_unit_id; obj.since_at=ev.prev_since_at; obj.late=bool(ev.prev_late); obj.arrived_at=ev.prev_arrived_at
         else: db.delete(obj)
     if ev.opened_interval_id:
         iv=db.get(ProductionPlacementInterval,ev.opened_interval_id)

@@ -99,6 +99,8 @@ class ProductionAttendance(Base, TimestampMixin):
     org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
     position_text: Mapped[str|None] = mapped_column(String(150), nullable=True)  # free text until OrgUnitPosition data is ready
     since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    arrived_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)  # πότε ήρθε (μόνο αν άργησε/ξαναήρθε)
+    late: Mapped[bool] = mapped_column(Boolean, default=False)  # ΑΡΓΟΠΟΡΙΑ = παρών με άφιξη μετά την έναρξη βάρδιας
     created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     __table_args__ = (UniqueConstraint("work_date", "employee_id", name="uq_production_attendance_day_emp"),)
 
@@ -120,6 +122,9 @@ class ProductionAttendanceEvent(Base):
     prev_status: Mapped[str|None] = mapped_column(String(10), nullable=True)
     prev_org_unit_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     prev_since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    late: Mapped[bool] = mapped_column(Boolean, default=False)
+    prev_late: Mapped[bool] = mapped_column(Boolean, default=False)
+    prev_arrived_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     opened_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
 

@@ -39,7 +39,7 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 #topDeltioBtn.on{background:var(--primary);color:var(--primary-fg)}
 .dlCnt{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dlChip{display:inline-flex;align-items:center;padding:4px 12px;border-radius:14px;font-size:13px;font-weight:700}.dlP{background:#d7efe0;color:#12532e}.dlA{background:#e6e8ee;color:#3b4150}.dlL{background:#fcebeb;color:#9b2226}
 .dlRow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line,#c7cedd)}.dlRow:first-child{border-top:0}.dlNm{flex:1;min-width:0;font-weight:700;font-size:15px}.dlNm small{display:block;font-weight:500;font-size:12px;color:var(--fg-2,#4a4f5c)}
-.dlSt3{display:flex;gap:4px}.dlSt{min-height:48px;padding:0 8px;font-size:11px;border-radius:12px}.dlSt.p.on{background:#1b6b3d;border-color:#1b6b3d}.dlSt.a.on{background:#5b6275;border-color:#5b6275}.dlSt.l.on{background:#9b2226;border-color:#9b2226}
+.dlRow{flex-direction:column;align-items:stretch}.dlSt4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:6px}.dlSt{min-height:48px;padding:0 2px;font-size:10px;border-radius:12px}.dlSt.t.on{background:#a15c00;border-color:#a15c00}.dlT{background:#ffe9c7;color:#7a4300}.dlSt.p.on{background:#1b6b3d;border-color:#1b6b3d}.dlSt.a.on{background:#5b6275;border-color:#5b6275}.dlSt.l.on{background:#9b2226;border-color:#9b2226}
 .dlDept{margin-bottom:12px}.dlDept h3{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0}.dlDept h3 small{font-size:12px;font-weight:500;color:var(--fg-2,#4a4f5c)}.dlWk{width:100%;text-align:left;margin-bottom:6px;min-height:52px}.dlWk small{display:block;font-weight:500;font-size:11px;opacity:.85}
 .dlHe{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line,#c7cedd)}.dlHe:first-child{border-top:0}.dlTm{font-weight:700;font-size:13px;min-width:44px}.dlTx{flex:1;font-size:14px}.dlHe .btn{min-height:44px;padding:0 10px;font-size:11px}
 .dlScrim{position:fixed;inset:0;background:rgba(10,20,50,.45);z-index:40;display:flex;align-items:flex-end}.dlSheet{background:#fff;border-radius:20px 20px 0 0;padding:16px 14px 20px;width:100%;max-height:85vh;overflow:auto}
@@ -376,7 +376,7 @@ async function loadDeltioAndroid(){
   if(!prodMastersLoaded){try{let [units,emps]=await Promise.all([api('/master/org-units'),api('/master/employees')]);prodUnits=units.filter(u=>u.active!==false&&u.code!=='MANAGEMENT_DEPT');prodEmps=emps.filter(androidEmpFilter(units));prodMastersLoaded=true}catch(err){}}
   if(!$('deltioDateInput').value)$('deltioDateInput').value=deltioDate||new Date().toISOString().slice(0,10);
   deltioDate=$('deltioDateInput').value;
-  try{let [att,entries]=await Promise.all([api('/production/attendance?date='+deltioDate),api(`/production/work-entries?start=${deltioDate}&end=${deltioDate}`)]);deltioAttendance=att;deltioEntries=entries}catch(err){}
+  try{let [att,entries]=await Promise.all([api('/production/attendance/effective?date='+deltioDate),api(`/production/work-entries?start=${deltioDate}&end=${deltioDate}`)]);deltioAttendance=att;deltioEntries=entries}catch(err){}
   renderDeltioSummary();dlAfterLoad();
 }
 $('deltioDateInput').onchange=loadDeltioAndroid;
@@ -586,29 +586,30 @@ function dlAtt(id){return deltioAttByEmp(id)||{}}
 function dlSorted(){return prodEmps.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'))}
 function dlUnitName(a){let u=a.org_unit_id?prodUnits.find(x=>x.id===a.org_unit_id):null;return u?u.name_el:null}
 function dlSub(a){
-  if(a.status==='PRESENT')return (dlUnitName(a)||'χωρίς τμήμα')+(a.since_at?' · από '+dlT(a.since_at):'');
+  if(a.status==='PRESENT'){let u=dlUnitName(a);return (a.late?'αργοπορία · ':'')+(u||'χωρίς τμήμα')+(a.since_at?' · από '+dlT(a.since_at):(a.late&&a.arrived_at?' · ήρθε '+dlT(a.arrived_at):''))}
   if(a.status==='LEFT')return 'έφυγε '+dlT(a.since_at);
   return 'δεν ήρθε';
 }
+function dlKind(a){return a.status==='PRESENT'?(a.late?'LATE':'PRESENT'):(a.status||'PRESENT')}
 function dlRender(){
   if(!$('dlMain'))return;
-  let p=0,l=0;prodEmps.forEach(e=>{let s=dlAtt(e.id).status;if(s==='PRESENT')p++;else if(s==='LEFT')l++});
-  $('dlCnt').innerHTML=`<span class="dlChip dlP">Παρόντες ${p}</span><span class="dlChip dlA">Απόντες ${prodEmps.length-p-l}</span><span class="dlChip dlL">Έφυγαν ${l}</span>`;
+  let c={PRESENT:0,LATE:0,ABSENT:0,LEFT:0};prodEmps.forEach(e=>{c[dlKind(dlAtt(e.id))]++});
+  $('dlCnt').innerHTML=`<span class="dlChip dlP">Παρόντες ${c.PRESENT}</span><span class="dlChip dlT">Αργοπορία ${c.LATE}</span><span class="dlChip dlA">Απόντες ${c.ABSENT}</span><span class="dlChip dlL">Έφυγαν ${c.LEFT}</span>`;
   $('deltioEmpBtn').classList.toggle('on',dlView==='w');$('deltioDeptBtn').classList.toggle('on',dlView==='d');
   if(dlView==='w'){
     $('dlMain').innerHTML=dlSorted().map(e=>{
-      let a=dlAtt(e.id),st=a.status||'ABSENT',b=(s,t,c)=>`<button type="button" class="btn choice dlSt ${c}${st===s?' on':''}" data-e="${e.id}" data-s="${s}">${t}</button>`;
-      return `<div class="dlRow"><div class="dlNm">${esc(e.full_name)}<small>${esc(dlSub(a))}</small></div><div class="dlSt3">${b('PRESENT','ΠΑΡΩΝ','p')}${b('ABSENT','ΑΠΩΝ','a')}${b('LEFT','ΕΦΥΓΕ','l')}</div></div>`;
+      let a=dlAtt(e.id),k=dlKind(a),b=(s,t,cl)=>`<button type="button" class="btn choice dlSt ${cl}${k===s?' on':''}" data-e="${e.id}" data-s="${s}">${t}</button>`;
+      return `<div class="dlRow"><div class="dlNm">${esc(e.full_name)}<small>${esc(dlSub(a))}</small></div><div class="dlSt4">${b('PRESENT','ΠΑΡΩΝ','p')}${b('LATE','ΑΡΓΟΠΟΡΙΑ','t')}${b('ABSENT','ΑΠΩΝ','a')}${b('LEFT','ΕΦΥΓΕ','l')}</div></div>`;
     }).join('')||'<div class="muted">Δεν υπάρχουν εργαζόμενοι.</div>';
   }else dlRenderDepts();
   $('dlHist').innerHTML=dlEvents.length?dlEvents.map(ev=>`<div class="dlHe"><span class="dlTm">${dlT(ev.time)}</span><span class="dlTx">${esc(ev.text)}</span>${ev.can_undo?`<button type="button" class="btn alt dlUndo" data-u="${ev.id}">ΑΚΥΡΩΣΗ</button>`:'<button type="button" class="btn alt" disabled>υπάρχει νεότερη</button>'}</div>`).join(''):'<div class="muted">Καμία αλλαγή σήμερα.</div>';
 }
-function dlWk(e){let a=dlAtt(e.id);return `<button type="button" class="btn alt dlWk" data-e="${e.id}">${esc(e.full_name)}<small>${a.status==='LEFT'?'έφυγε ':'από '}${dlT(a.since_at)}</small></button>`}
+function dlWk(e){let a=dlAtt(e.id);return `<button type="button" class="btn alt dlWk" data-e="${e.id}">${esc(e.full_name)}<small>${a.status==='PRESENT'?(a.late?'αργοπορία · ':'')+(a.since_at?'από '+dlT(a.since_at):'από την αρχή'):a.status==='LEFT'?'έφυγε '+dlT(a.since_at):'δεν ήρθε'}</small></button>`}
 function dlRenderDepts(){
   let emps=dlSorted(),isIn=(e,f)=>f(dlAtt(e.id)),h='<button type="button" class="btn alt" id="dlPerm" style="width:100%;margin-bottom:10px">ΜΟΝΙΜΗ ΘΕΣΗ (ΕΡΓΑΤΕΣ)</button>';
   prodUnits.forEach(u=>{let ids=emps.filter(e=>isIn(e,a=>a.status==='PRESENT'&&a.org_unit_id===u.id));h+=`<div class="dlDept"><h3>${esc(u.name_el)}<small>${ids.length} εργαζ.</small></h3>${ids.length?ids.map(dlWk).join(''):'<p class="muted">Κανείς στο τμήμα</p>'}</div>`});
   let grp=(t,f)=>{let ids=emps.filter(e=>isIn(e,f));if(ids.length)h+=`<div class="dlDept"><h3>${t}<small>${ids.length}</small></h3>${ids.map(dlWk).join('')}</div>`};
-  grp('Χωρίς τμήμα',a=>a.status==='PRESENT'&&!dlUnitName(a));grp('Έφυγαν',a=>a.status==='LEFT');
+  grp('Χωρίς τμήμα',a=>a.status==='PRESENT'&&!dlUnitName(a));grp('Απόντες',a=>a.status==='ABSENT');grp('Έφυγαν',a=>a.status==='LEFT');
   $('dlMain').innerHTML=h;
 }
 async function dlAfterLoad(){try{dlEvents=await api('/production/attendance/events?date='+deltioDate)}catch(e){}dlRender()}
@@ -617,7 +618,7 @@ async function dlChange(empId,patch,txt){
   try{
     let saved=await deltioSaveAttendance(empId,patch);
     await dlAfterLoad();
-    if(saved.event_id){flToast(e.full_name+': '+txt+' ✓','ΑΚΥΡΩΣΗ',()=>dlUndo(saved.event_id));let m=$('flToastMsg').textContent;setTimeout(()=>{if($('flToastMsg').textContent===m)$('flToast').classList.add('hidden')},8000)}
+    if(saved.event_id){if(saved.late&&txt==='παρών')txt='αργοπορία';flToast(e.full_name+': '+txt+' ✓','ΑΚΥΡΩΣΗ',()=>dlUndo(saved.event_id));let m=$('flToastMsg').textContent;setTimeout(()=>{if($('flToastMsg').textContent===m)$('flToast').classList.add('hidden')},8000)}
   }catch(err){flToast('Σφάλμα: '+(err?.message||err))}
 }
 async function dlUndo(id){
@@ -632,12 +633,14 @@ $('dlMain').onclick=e=>{
   if(b.id==='dlPerm'){openRoster();return}
   if(b.classList.contains('dlWk')){dlOpenSheet(b.dataset.e);return}
   if(b.classList.contains('dlSt')){
-    let id=b.dataset.e,s=b.dataset.s,a=dlAtt(id),cur=a.status||'ABSENT',now=new Date().toISOString();
+    let id=b.dataset.e,s=b.dataset.s,a=dlAtt(id),cur=dlKind(a),now=new Date().toISOString();
     if(cur===s)return;
-    // ΑΠΩΝ/ΕΦΥΓΕ βγάζει από το τμήμα· ΠΑΡΩΝ = «Χωρίς τμήμα» μέχρι την τοποθέτηση από τα ΤΜΗΜΑΤΑ.
-    if(s==='PRESENT')dlChange(id,{status:'PRESENT',org_unit_id:null,since_at:now},'παρών');
-    else if(s==='ABSENT')dlChange(id,{status:'ABSENT',org_unit_id:null,since_at:null},'απών');
-    else dlChange(id,{status:'LEFT',org_unit_id:null,since_at:now},'έφυγε');
+    // Η θέση ΔΕΝ αλλάζει με ΑΠΩΝ/ΕΦΥΓΕ· όταν γυρίσει παρών ξεκινά από την τελευταία γνωστή. Ο server κρατά τη θέση.
+    let back=a.status==='ABSENT'||a.status==='LEFT';
+    if(s==='PRESENT')dlChange(id,{status:'PRESENT',since_at:back?now:a.since_at,...(cur==='LATE'?{late:false}:{})},'παρών');
+    else if(s==='LATE')dlChange(id,{status:'PRESENT',since_at:back?now:a.since_at,late:true},'αργοπορία');
+    else if(s==='ABSENT')dlChange(id,{status:'ABSENT',since_at:null},'απών');
+    else dlChange(id,{status:'LEFT',since_at:now},'έφυγε');
   }
 };
 $('dlHist').onclick=e=>{let b=e.target.closest('button[data-u]');if(b)dlUndo(b.dataset.u)};
