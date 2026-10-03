@@ -692,6 +692,14 @@ body[data-theme="dark"] .prodSegment button.active{color:#001a41}
 .muted{color:var(--fg-3)}
 .error{color:var(--neg)}
 .negativeCell,.negKgCell{background:var(--neg-bg)!important;color:var(--neg)!important}
+
+/* ΚΑΝΟΝΑΣ: sticky στήλη/γραμμή = πάντα αδιαφανές φόντο + overflow:hidden, ώστε οι γειτονικές στήλες/γραμμές που κυλούν από κάτω να μην φαίνονται μέσα της */
+.prodTable td:first-child{background:var(--surface)!important;overflow:hidden;box-shadow:1px 0 0 var(--line-strong)}
+.prodTable tbody tr:nth-child(even) td:first-child{background:var(--stripe)!important}
+.prodTable tbody tr.selectableRow:hover td:first-child{background:var(--hover)!important}
+.prodTable thead th:first-child{background:var(--surface-2)!important;overflow:hidden;box-shadow:1px 0 0 var(--line-strong)}
+.prodTable tfoot td:first-child{background:var(--surface-2)!important}
+.prodTable tfoot td{background:var(--surface-2)!important}
 </style>
 </head><body>
 <div id="login" class="login"><h1>WEEE Platform</h1><p class="muted">Windows Unified Test Build 2.5.35 Intermediate</p><label>Χρήστης</label><input id="user" value="admin"><label>Κωδικός</label><input id="pass" type="password" value="ChangeMe123!"><button class="btn" id="loginBtn" style="width:100%">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
