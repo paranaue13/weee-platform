@@ -1920,7 +1920,7 @@ async function openDeltioIntervals(empId){
   try{intervals=await api('/production/placement-intervals?date='+deltioState.date)}catch(err){$('floatingEditorBody').innerHTML=`<div class="error">${esc(err.message)}</div>`;return}
   deltioState.intervals=intervals;
   let rows=intervals.filter(iv=>iv.employee_id===empId);
-  let html=rows.length?`<div class="tablewrap"><table><thead><tr><th>Τμήμα</th><th>Από</th><th>Έως</th><th>Διάρκεια</th></tr></thead><tbody>${rows.map(iv=>`<tr><td>${esc(iv.org_unit_name||'—')}</td><td>${deltioTimeStr(iv.started_at)}</td><td>${iv.ongoing?'σε εξέλιξη':deltioTimeStr(iv.ended_at)}</td><td>${Math.floor(iv.minutes/60)}ω ${iv.minutes%60}λ</td></tr>`).join('')}</tbody></table></div>`:'<div class="muted">Καμία καταγραφή μετακίνησης σήμερα.</div>';
+  let html=rows.length?`<div class="tablewrap"><table><thead><tr><th>Τμήμα</th><th>Από</th><th>Έως</th><th>Διάρκεια</th><th>Κιλά</th></tr></thead><tbody>${rows.map(iv=>`<tr><td>${esc(iv.org_unit_name||'—')}</td><td>${deltioTimeStr(iv.started_at)}</td><td>${iv.ongoing?'σε εξέλιξη':deltioTimeStr(iv.ended_at)}</td><td>${Math.floor(iv.minutes/60)}ω ${iv.minutes%60}λ</td><td style="text-align:right">${Number(iv.kg||0).toLocaleString('el-GR')}</td></tr>`).join('')}</tbody></table></div>`:'<div class="muted">Καμία καταγραφή μετακίνησης σήμερα.</div>';
   $('floatingEditorBody').innerHTML=html;
 }
 function wireDeltio(){

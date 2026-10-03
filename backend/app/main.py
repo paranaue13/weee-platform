@@ -792,7 +792,22 @@ def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_d
         out.append({"id":r.id,"employee_id":r.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
             "org_unit_id":r.org_unit_id,"org_unit_name":unit.name_el if unit else None,
             "started_at":r.started_at.isoformat(),"ended_at":r.ended_at.isoformat() if r.ended_at else None,
-            "ongoing":r.ended_at is None,"minutes":round((ended-r.started_at).total_seconds()/60)})
+            "ongoing":r.ended_at is None,"minutes":round((ended-r.started_at).total_seconds()/60),"kg":0.0,"entries":0})
+    # Κιλά ανά διάστημα: κάθε καταχώρηση παραγωγής του εργαζομένου (ίδια ημέρα) ανήκει στο διάστημα όπου
+    # βρισκόταν ΤΗΝ ΩΡΑ που καταχωρήθηκε (created_at). Καταχωρήσεις πριν από το πρώτο διάστημα πάνε στο πρώτο.
+    # ΜΟΝΟ ανάγνωση -- δεν αλλάζει καμία καταχώρηση ούτε οι υπάρχουσες αναφορές.
+    day0=datetime(day.year,day.month,day.day)
+    ents=db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True,ProductionWorkEntry.employee_id.isnot(None),
+        ProductionWorkEntry.work_date>=day0,ProductionWorkEntry.work_date<day0+timedelta(days=1)).order_by(ProductionWorkEntry.created_at)).all()
+    by_emp={}
+    for r,o in zip(rows,out): by_emp.setdefault(r.employee_id,[]).append((r,o))
+    for e in ents:
+        mine=by_emp.get(e.employee_id)
+        if not mine: continue
+        target=mine[0][1]
+        for r,o in mine:
+            if r.started_at<=e.created_at and (r.ended_at is None or e.created_at<r.ended_at): target=o
+        target["kg"]=round(target["kg"]+float(e.weight_kg or 0),3); target["entries"]+=1
     return out
 
 @app.post("/production/day-material", response_model=schemas.ProductionWorkEntryOut)
