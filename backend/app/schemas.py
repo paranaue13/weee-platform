@@ -46,6 +46,11 @@ class ProductionWorkEntryCreate(BaseModel):
     supplier_group: str = "OTHER"
     source: str = "WINDOWS"
     notes: str|None = None
+    transfer_id: str|None = None
+
+class TransferWeightIn(BaseModel):
+    weight: Decimal
+    reason: str|None = None
 
 class ProductionWorkEntryOut(ProductionWorkEntryCreate):
     id: str

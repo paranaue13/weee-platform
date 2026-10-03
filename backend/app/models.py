@@ -87,6 +87,7 @@ class ProductionWorkEntry(Base, TimestampMixin):
     created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    transfer_id: Mapped[str|None] = mapped_column(String(36), nullable=True, index=True)  # Android: ποια μεταφορά υλικού δημιούργησε την καταχώρηση (για αναίρεση/διόρθωση)
 
 
 class ProductionAttendance(Base, TimestampMixin):
