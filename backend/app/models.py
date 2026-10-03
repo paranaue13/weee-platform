@@ -103,6 +103,27 @@ class ProductionAttendance(Base, TimestampMixin):
     __table_args__ = (UniqueConstraint("work_date", "employee_id", name="uq_production_attendance_day_emp"),)
 
 
+class ProductionAttendanceEvent(Base):
+    """Ιστορικό αλλαγών παρουσίας/τμήματος (εργαζόμενος, νέα κατάσταση, προηγούμενη κατάσταση, ώρα, χρήστης).
+    Τροφοδοτείται από το PUT /production/attendance (Android + Windows) -- μία κοινή αποθήκευση. Επιτρέπει
+    ΑΚΥΡΩΣΗ της τελευταίας αλλαγής ενός εργαζομένου (επαναφέρει την προηγούμενη κατάσταση και τα διαστήματα του σημείου 2)."""
+    __tablename__ = "production_attendance_events"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    work_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    employee_id: Mapped[str] = mapped_column(String(36), ForeignKey("employees.id"), index=True)
+    user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    status: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    org_unit_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    prev_exists: Mapped[bool] = mapped_column(Boolean, default=False)
+    prev_status: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    prev_org_unit_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    prev_since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    closed_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    opened_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+
+
 class ProductionPlacementInterval(Base, TimestampMixin):
     """Append-only log of which department an employee was in and when -- purely additive, never
     read by the existing production reports (ανά ΑΗΗΕ / ανά Τμήμα-Άτομο / Δελτίο Παραγωγής), so their

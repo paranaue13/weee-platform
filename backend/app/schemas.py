@@ -76,6 +76,7 @@ class ProductionAttendanceUpsert(BaseModel):
 
 class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str
+    event_id: str|None = None
 
 class ProductionDayMaterialIn(BaseModel):
     work_date: datetime
