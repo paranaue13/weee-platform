@@ -36,6 +36,7 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 .flToast{background:var(--card)}
 .flToast button{background:#dfe4ef;color:var(--tonal-fg)}
 .flLbl{color:var(--fg-2)}
+#topDeltioBtn.on{background:var(--primary);color:var(--primary-fg)}
 </style></head><body><div class="wrap">
 <div id="login" class="card"><h1>Ταξινόμηση</h1><p class="muted">Android UI 2.5.44</p><label>Χρήστης</label><input id="u" value="admin"><label>Κωδικός</label><input id="p" type="password" value="ChangeMe123!"><button id="loginBtn" class="btn" style="width:100%;margin-top:12px">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
 <div id="app" class="hidden"><div class="top"><div class="row space"><b id="who"></b><div class="row" style="gap:8px"><button id="topDeltioBtn" class="btn alt" style="min-height:44px;padding:6px 12px;font-size:12px">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button><span id="net" class="pill">● ONLINE</span></div></div><div class="modeBar"><button id="modeForks" class="btn choice on">ΠΙΡΟΥΝΙΑ</button><button id="modeClamp" class="btn choice">ΠΛΑΚΕΣ</button></div><div class="sectionBar"><button class="btn choice on secBtn" data-section="receiving">ΠΑΡΑΛΑΒΕΣ</button><button class="btn choice secBtn" data-section="production">ΠΑΡΑΓΩΓΗ</button><button class="btn choice secBtn" data-section="loading">ΦΟΡΤΩΣΕΙΣ</button></div></div><div id="secReceiving"><div id="loads" class="card"><div class="row space"><h2>Παραλαβές</h2><button id="reload" class="btn alt">↻</button></div><div id="loadList"></div></div>
@@ -301,7 +302,10 @@ document.querySelectorAll('.flStart').forEach(b=>b.onclick=()=>{
   fl.f=b.dataset.f;flReset();
   $('prodModeTransferBtn').onclick();flRender();
 });
-$('topDeltioBtn').onclick=()=>{showSection('production');$('prodModeDeltioBtn').onclick();document.querySelectorAll('.flStart').forEach(x=>x.classList.remove('on'))};
+// Το ΔΕΛΤΙΟ ΗΜΕΡΑΣ γίνεται μπλε και μένει έτσι όσο δουλεύεις μέσα στο μενού του· γκρι ξανά όταν πας σε ΠΑΡΑΛΑΒΕΣ/ΠΑΡΑΓΩΓΗ/ΦΟΡΤΩΣΕΙΣ, ΠΙΡΟΥΝΙΑ/ΠΛΑΚΕΣ ή σε ροή μεταφοράς.
+let topDeltioOn=false;function setTopDeltio(on){topDeltioOn=on;$('topDeltioBtn').classList.toggle('on',on)}
+$('topDeltioBtn').onclick=()=>{showSection('production');$('prodModeDeltioBtn').onclick();document.querySelectorAll('.flStart').forEach(x=>x.classList.remove('on'));setTopDeltio(true)};
+document.querySelectorAll('.secBtn,#modeForks,#modeClamp,.flStart').forEach(b=>b.addEventListener('click',()=>{let was=topDeltioOn;setTopDeltio(false);if(was&&b.dataset.section==='production')$('prodModeTransferBtn').onclick()}));
 function flToast(msg,actLabel,actFn){
   let t=$('flToast');if(!t){t=document.createElement('div');t.id='flToast';t.className='flToast hidden';t.innerHTML='<span id="flToastMsg"></span><button type="button" id="flToastBtn" class="btn"></button><button type="button" id="flToastOk" class="btn">OK</button>';document.body.appendChild(t);$('flToastOk').onclick=()=>t.classList.add('hidden')}
   $('flToastMsg').textContent=msg;t.classList.remove('hidden');
