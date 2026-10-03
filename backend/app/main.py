@@ -76,6 +76,9 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_source VARCHAR(20)"))
                 for nm in ("ELECTRONET AE","MEGA ELECTRICS ΑΕΒΕ","ΑΚΤΙΒ ΚΟΜΠΙΟΥΤΕΡ ΣΥΣΤΕΜΣ%"):
                     conn.execute(text("UPDATE organizations SET supplier_source='PICKUP_POINT' WHERE legal_name LIKE :n"),{"n":nm})
+        if "production_work_entries" in tables:
+            pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
+            if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
@@ -2609,6 +2612,83 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
     _update_medium_lifecycle(db, medium_ids)
     write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'items':len(out)})
     db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out)
+
+def _reverse_transfer_item(db:Session, ti, qty, unit_id:str|None, user:User, reason:str|None):
+    """Επιστρέφει `qty` kg ενός στοιχείου μεταφοράς στο απόθεμα ΑΗΗΕ (αντίστροφο του _consume_lot)."""
+    lot=db.get(WEEEStockLot,ti.stock_lot_id)
+    lot.available_weight=lot.available_weight+qty
+    lot.status='AVAILABLE' if lot.available_weight>=lot.original_weight else 'PARTIAL'
+    bal=db.scalar(select(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id==ti.id))
+    if bal:
+        bal.initial_weight=bal.initial_weight-qty; bal.current_remaining_weight=bal.current_remaining_weight-qty
+        if bal.initial_weight<=0: bal.status='CANCELLED'
+    db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='CANCEL_TO_PRODUCTION',from_location_id=None,to_location_id=lot.location_id,
+        weight=qty,org_unit_id=unit_id,user_id=user.id,reason=reason))
+    return lot.collection_medium_id
+
+def _restore_medium_lifecycle(db:Session, medium_ids:set):
+    for mid in medium_ids:
+        if not mid: continue
+        medium=db.get(CollectionMedium,mid)
+        if medium and medium.status=='IN_PRODUCTION' and db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==mid,WEEEStockLot.available_weight>0)).first():
+            medium.status='AVAILABLE'
+
+def _transfer_items_checked(db:Session, transfer_id:str):
+    items=db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==transfer_id)).all()
+    bals={b.transfer_item_id:b for b in db.scalars(select(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id.in_([i.id for i in items]))).all()} if items else {}
+    return items,bals
+
+@app.post('/production/transfers/{transfer_id}/cancel')
+def cancel_production_transfer(transfer_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
+    """Αναίρεση μεταφοράς υλικού: το απόθεμα επιστρέφει στα ίδια μερίδια και η καταχώρηση παραγωγής ακυρώνεται."""
+    t=db.get(ProductionTransfer,transfer_id)
+    if not t: raise HTTPException(404,'Η μεταφορά δεν βρέθηκε')
+    if t.status=='CANCELLED': raise HTTPException(409,'Η μεταφορά έχει ήδη ακυρωθεί')
+    items,bals=_transfer_items_checked(db,t.id)
+    for ti in items:
+        b=bals.get(ti.id)
+        if b and b.current_remaining_weight<ti.weight: raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή -- δεν μπορεί να αναιρεθεί')
+    medium_ids=set()
+    for ti in items: medium_ids.add(_reverse_transfer_item(db,ti,ti.weight,t.destination_org_unit_id,user,'Αναίρεση μεταφοράς '+t.transfer_number))
+    _restore_medium_lifecycle(db,medium_ids)
+    t.status='CANCELLED'
+    for e in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.transfer_id==t.id,ProductionWorkEntry.active==True)).all(): e.active=False
+    write_audit(db,user,'production_transfer',t.id,'CANCEL',old={'status':'CONFIRMED'},new={'status':'CANCELLED','items':len(items)})
+    db.commit(); return {'ok':True,'transfer_number':t.transfer_number}
+
+@app.put('/production/transfers/{transfer_id}/weight')
+def set_production_transfer_weight(transfer_id:str, data:schemas.TransferWeightIn, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
+    """Διόρθωση kg μιας μεταφοράς: λιγότερα -> επιστρέφει τη διαφορά στο απόθεμα (από τα τελευταία μερίδια)· περισσότερα -> παίρνει επιπλέον από το διαθέσιμο απόθεμα της ίδιας κατηγορίας."""
+    from decimal import Decimal
+    t=db.get(ProductionTransfer,transfer_id)
+    if not t or t.status=='CANCELLED': raise HTTPException(404,'Η μεταφορά δεν βρέθηκε')
+    entry=db.scalar(select(ProductionWorkEntry).where(ProductionWorkEntry.transfer_id==t.id,ProductionWorkEntry.active==True))
+    if not entry: raise HTTPException(404,'Δεν βρέθηκε καταχώρηση παραγωγής για τη μεταφορά')
+    new=Decimal(data.weight)
+    if new<=0: raise HTTPException(422,'Τα κιλά πρέπει να είναι μεγαλύτερα από 0 (για διαγραφή χρησιμοποίησε αναίρεση)')
+    items,bals=_transfer_items_checked(db,t.id)
+    old=sum((i.weight for i in items),Decimal(0)); unit=db.get(OrganizationalUnit,t.destination_org_unit_id); medium_ids=set()
+    if new<old:
+        diff=old-new
+        for ti in reversed(items):
+            if diff<=0: break
+            take=min(ti.weight,diff); b=bals.get(ti.id)
+            if b and b.current_remaining_weight<take: raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή')
+            medium_ids.add(_reverse_transfer_item(db,ti,take,unit.id,user,'Διόρθωση kg μεταφοράς '+t.transfer_number)); ti.weight=ti.weight-take; diff-=take
+        _restore_medium_lifecycle(db,medium_ids)
+    elif new>old:
+        need=new-old
+        first=db.get(WEEEStockLot,items[0].stock_lot_id) if items else None
+        lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id==entry.weee_category_id,WEEEStockLot.available_weight>0).order_by(WEEEStockLot.created_at)).all()
+        if first: lots.sort(key=lambda l:(l.collection_medium_id!=first.collection_medium_id))
+        if sum((l.available_weight for l in lots),Decimal(0))<need: raise HTTPException(409,'Δεν υπάρχει αρκετό διαθέσιμο απόθεμα')
+        for lot in lots:
+            if need<=0: break
+            qty=min(lot.available_weight,need); _,mid=_consume_lot(db,t.id,lot,qty,unit,user,'Διόρθωση kg μεταφοράς'); medium_ids.add(mid); need-=qty
+        _update_medium_lifecycle(db,medium_ids)
+    entry.weight_kg=new
+    write_audit(db,user,'production_transfer',t.id,'WEIGHT_CHANGE',old={'weight':str(old)},new={'weight':str(new)},reason=data.reason)
+    db.commit(); return {'ok':True,'weight':str(new)}
 
 @app.get('/production/transfers', response_model=list[schemas.ProductionTransferOut])
 def production_transfers(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
