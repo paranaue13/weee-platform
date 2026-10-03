@@ -81,7 +81,8 @@ class ProductionAttendanceOut(ProductionAttendanceUpsert):
     arrived_at: datetime|None = None
 
 class ShiftStartIn(BaseModel):
-    shift_start: str
+    shift_start: str|None = None
+    shift_end: str|None = None
 
 class ProductionDayMaterialIn(BaseModel):
     work_date: datetime

@@ -785,19 +785,30 @@ def _last_known_unit(db:Session, employee_id:str, day:datetime):
     if r: return r
     emp=db.get(Employee,employee_id); return emp.default_org_unit_id if emp else None
 
+def _shift_end(db:Session)->str:
+    v=db.scalar(select(AppSetting.value).where(AppSetting.key=="production.shift_end"))
+    try:
+        h,m=[int(x) for x in (v or "").split(":")]
+        if 0<=h<24 and 0<=m<60: return f"{h:02d}:{m:02d}"
+    except Exception: pass
+    return "15:00"
+
 @app.get("/production/shift-start")
 def get_shift_start(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
-    return {"shift_start":_shift_start(db)}
+    return {"shift_start":_shift_start(db),"shift_end":_shift_end(db)}
 
 @app.put("/production/shift-start")
 def set_shift_start(data:schemas.ShiftStartIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
-    try:
-        h,m=[int(x) for x in data.shift_start.split(":")]; assert 0<=h<24 and 0<=m<60
-    except Exception: raise HTTPException(422,"Η ώρα πρέπει να είναι της μορφής ΩΩ:ΛΛ")
-    val=f"{h:02d}:{m:02d}"; row=db.scalar(select(AppSetting).where(AppSetting.key=="production.shift_start"))
-    if row: row.value=val
-    else: db.add(AppSetting(key="production.shift_start",value=val))
-    write_audit(db,user,"app_setting","production.shift_start","UPDATE",new={"shift_start":val}); db.commit(); return {"shift_start":val}
+    for key,raw in (("production.shift_start",data.shift_start),("production.shift_end",data.shift_end)):
+        if raw is None: continue
+        try:
+            h,m=[int(x) for x in raw.split(":")]; assert 0<=h<24 and 0<=m<60
+        except Exception: raise HTTPException(422,"Η ώρα πρέπει να είναι της μορφής ΩΩ:ΛΛ")
+        val=f"{h:02d}:{m:02d}"; row=db.scalar(select(AppSetting).where(AppSetting.key==key))
+        if row: row.value=val
+        else: db.add(AppSetting(key=key,value=val))
+        write_audit(db,user,"app_setting",key,"UPDATE",new={"value":val})
+    db.commit(); return {"shift_start":_shift_start(db),"shift_end":_shift_end(db)}
 
 @app.get("/production/attendance/effective")
 def production_attendance_effective(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
