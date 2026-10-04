@@ -3325,7 +3325,18 @@ def operations_dashboard(db:Session=Depends(get_db), user=Depends(require_permis
         weee_stock_kg=sum((x.available_weight for x in weee),Decimal('0')),
         production_open_kg=sum((x.current_remaining_weight for x in prod),Decimal('0')),
         ready_stock_kg=sum((x.net_weight for x in ready),Decimal('0')),
-        open_loadings=len(loadings),galaxy_pending=len(sync))
+        open_loadings=len(loadings),galaxy_pending=len(sync),**_today_orders_progress(db))
+
+def _today_orders_progress(db:Session)->dict:
+    """Παραλαβές ημέρας x/y: x = εντολές που παραλήφθηκαν σήμερα, y = x + όσες απομένουν στη ζωντανή ροή (Electrocycle).
+    Το y μεγαλώνει όσο ανοίγουν νέες εντολές μέσα στην ημέρα."""
+    now=datetime.now(); start=datetime(now.year,now.month,now.day)
+    active=InboundTrip.deleted_at.is_(None)
+    received={o for (o,) in db.execute(select(InboundLoad.order_number).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
+        .where(active,InboundLoad.order_number.is_not(None),InboundTrip.receipt_date>=start,InboundTrip.receipt_date<start+timedelta(days=1))).all()}
+    used={o for (o,) in db.execute(select(InboundLoad.order_number).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(active,InboundLoad.order_number.is_not(None))).all()}
+    feed={o for (o,) in db.execute(select(ElectrocycleOrder.order_no).where(ElectrocycleOrder.source_date==start.date().isoformat())).all()}
+    return {"today_received":len(received),"today_remaining":len(feed-used)}
 
 
 # ---- Equipment / PPE / Consumables ----

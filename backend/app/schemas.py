@@ -575,6 +575,8 @@ class OperationalDashboardOut(BaseModel):
     ready_stock_kg: Decimal
     open_loadings: int
     galaxy_pending: int
+    today_received: int = 0   # εντολές της σημερινής ημέρας που έχουν παραληφθεί
+    today_remaining: int = 0  # εντολές της ζωντανής ροής που απομένουν
 
 
 # ---- Equipment / PPE / Consumables ----

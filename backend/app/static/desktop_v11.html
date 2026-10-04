@@ -698,6 +698,7 @@ body[data-theme="dark"] .prodSegment button.active{color:#001a41}
 .muted{color:var(--fg-3)}
 .error{color:var(--neg)}
 .negativeCell,.negKgCell{background:var(--neg-bg)!important;color:var(--neg)!important}
+.dchip .dd[class*="stg-"]{background:var(--sb);color:var(--sf);border-radius:8px;padding:2px 10px;font-weight:500}.dchip .dcount{font-weight:500;color:var(--fg-2)}
 /* Χρώματα σταδίων (Παραλαβές + Ταξινόμηση): λίστα (σύννεφο κατάστασης) και ημερολόγιο */
 :root{--st1-bg:#E6E8EE;--st1-fg:#3B4150;--st2-bg:#D8E4FF;--st2-fg:#001A41;--st3-bg:#FFE3B8;--st3-fg:#5A3600;--st4-bg:#FCEBEB;--st4-fg:#A32D2D;--st5-bg:#D7EFE0;--st5-fg:#12532E}
 body[data-theme="dark"]{--st1-bg:#2A3040;--st1-fg:#C9CFDC;--st2-bg:#23365E;--st2-fg:#8FB0FF;--st3-bg:#4A3410;--st3-fg:#FFD9A0;--st4-bg:#3A1D1F;--st4-fg:#FF9D9D;--st5-bg:#16382A;--st5-fg:#9FE0B8}
@@ -1072,7 +1073,12 @@ $('presBody').onclick=async e=>{
   else{body.status='LEFT';body.since_at=now}
   try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){$('presMsg').textContent=err?.message||String(err)}
 };
-async function loadDashboard(){loadPresenceCounts();let d=await api('/dashboard/operations');let arr=[['Ανοιχτά φορτία',d.open_receipt_loads],['Ταξινόμηση σε εξέλιξη',d.sorting_in_progress],['Προγραμματισμένες φορτώσεις',d.open_loadings]];$('metrics').innerHTML=arr.map(x=>`<div class="card metric"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('');let days=await api('/workflow/day-status');let openDays=days.filter(x=>x.red>0||x.yellow>0);$('dashboardDayStatus').classList.toggle('hidden',!openDays.length);$('dayTabs').innerHTML=openDays.slice(0,14).map(x=>{let colorCls=x.color==='GREEN'?'green':x.color==='YELLOW'?'yellow':x.color==='RED'?'red':'gray';return `<button class="dchip dayDrill" data-day="${x.date}"><span class="dd ${colorCls}">${x.date}</span>${x.overdue?`<span><svg viewBox="0 0 24 24"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17.5v.01"/></svg>${x.overdue}</span>`:''}</button>`}).join('')||'<span class="muted">Δεν υπάρχουν ημέρες.</span>';document.querySelectorAll('.dayDrill').forEach(b=>b.onclick=async()=>{let day=b.dataset.day;jumpReceiptNavToDay(day);show('receipts');let q=$('receiptSearch');if(q)q.value='';setReceiptMode('days');try{await loadReceiptsV2()}catch{}jumpReceiptNavToDay(day)})}
+async function loadDashboard(){loadPresenceCounts();let d=await api('/dashboard/operations');let arr=[['Παραλαβές ημέρας',`${d.today_received||0}/${(d.today_received||0)+(d.today_remaining||0)}`],['Ταξινόμηση σε εξέλιξη',d.sorting_in_progress],['Προγραμματισμένες φορτώσεις',d.open_loadings]];$('metrics').innerHTML=arr.map(x=>`<div class="card metric"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('');let rq=[];try{rq=await api('/sorting/review-queue')}catch(e){}
+  let byDay={};rq.forEach(r=>{let st=stageStatus(r.status);if(st!=='CORRECTION'&&st!=='LOGISTICS_REVIEW')return;let day=String(r.receipt_date||'').slice(0,10);if(!day)return;let o=byDay[day]||(byDay[day]={fix:0,check:0});if(st==='CORRECTION')o.fix++;else o.check++});
+  // Μόνο ημέρες με εντολές «Προς Έλεγχο» ή «Προς Διόρθωση»· κόκκινο αν υπάρχει έστω μία προς διόρθωση, αλλιώς κεχριμπάρι
+  let openDays=Object.keys(byDay).sort().reverse();$('dashboardDayStatus').classList.toggle('hidden',!openDays.length);
+  $('dayTabs').innerHTML=openDays.map(day=>{let o=byDay[day],cls=o.fix?'stg-correct':'stg-review',n=o.fix+o.check;return `<button class="dchip dayDrill" data-day="${day}" title="${o.fix?o.fix+' προς διόρθωση':''}${o.fix&&o.check?' · ':''}${o.check?o.check+' προς έλεγχο':''}"><span class="dd ${cls}">${day}</span><span class="dcount">${n}</span></button>`}).join('');
+  document.querySelectorAll('.dayDrill').forEach(b=>b.onclick=()=>{let day=b.dataset.day;sortingNav.day=day;sortingNav.year=+day.slice(0,4);sortingNav.month=+day.slice(5,7);sortingCalCursor=new Date(sortingNav.year,sortingNav.month-1,1);show('sortingReview')})}
 document.querySelectorAll('#dashboardShortcuts [data-shortcut]').forEach(b=>b.onclick=()=>{
   if(b.dataset.shortcut==='receipt'){show('receipts');setTimeout(()=>$('newReceipt')?.click(),150)}
   else if(b.dataset.shortcut==='visitor'){show('visitorLog');setTimeout(()=>$('visitName')?.focus(),150)}
