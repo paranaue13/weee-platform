@@ -814,10 +814,10 @@ body[data-theme="dark"] .depConfirmActions>.btn.danger{color:#FF9D9D!important;b
 #fpDepSave:disabled{opacity:.45;cursor:not-allowed}
 </style>
 <style id="readyCorrLook">
-#readyCorrectionRow .corrCell{padding:0 4px}
-#readyCorrectionRow .readyCorrInput{width:100%;min-width:60px;height:34px;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;text-align:right;font:inherit;font-weight:500;color:inherit;padding:0 8px;-moz-appearance:textfield;appearance:textfield}
-#readyCorrectionRow .readyCorrInput:hover{background:var(--hover,#eaf0fd)!important}
-#readyCorrectionRow .readyCorrInput:focus{outline:2px solid var(--accent,#2F5FC4);outline-offset:-2px;background:var(--surface,#fff)!important}
+.prodShipRow .corrCell{padding:0 4px}
+.prodShipRow .readyCorrInput{width:100%;min-width:60px;height:34px;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;text-align:right;font:inherit;font-weight:500;color:inherit;padding:0 8px;-moz-appearance:textfield;appearance:textfield}
+.prodShipRow .readyCorrInput:hover{background:var(--hover,#eaf0fd)!important}
+.prodShipRow .readyCorrInput:focus{outline:2px solid var(--accent,#2F5FC4);outline-offset:-2px;background:var(--surface,#fff)!important}
 </style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
@@ -2006,7 +2006,8 @@ function renderReadyMaterials(){
  let head1=`<tr class="prodHeadMajor"><th>Ημερομηνία</th><th>Σύνολο (kg)</th>`+bodyCols.map(c=>`<th class="prodOfficialHead matColHead" draggable="true" data-material="${esc(c.label)}" title="${esc(c.label)}">${esc(c.label)}</th>`).join('')+'</tr>';
  $('readyMatHead').innerHTML=head1;
  const colValue=(arr,c)=>arr.filter(e=>inGroup(e)&&e.material_label===c.label).reduce((s,e)=>s+Number(e.weight_kg||0),0);
- const colBalance=(c)=>readyBalanceByName[c.label]||0;
+ const corrAll=(label,k)=>(readyState.corrTotals||[]).filter(x=>readyNorm(x.material_label)===readyNorm(label)).reduce((a,x)=>a+Number(x[k]||0),0);
+ const colBalance=(c)=>(readyBalanceByName[c.label]||0)+corrAll(c.label,'weight_kg');
  let buckets=readyDateBuckets();
  let groupLabel=isPlaketes?'Πλακέτες':MAT_GROUP_LABELS[g];
  let groupEntriesAll=entries.filter(inGroup);
@@ -2044,7 +2045,11 @@ function renderReadyMaterials(){
  let corrections=(readyState.corrections||[]).filter(x=>bodyCols.some(c=>readyNorm(c.label)===readyNorm(x.material_label)));
  const correctionKg=c=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)).reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
  let correctionTotal=corrections.reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
- let correctionRow=isMonthView?`<tr class="prodShipRow" id="readyCorrectionRow" style="cursor:pointer" title="Κλικ για αναλυτικά"><td>Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(αναλυτικά)</span>':''}</td><td>${corrections.length?prodVal(correctionTotal):''}</td>${bodyCols.map(c=>{let v=correctionKg(c);return `<td class="corrCell"><input type="number" step="1" class="readyCorrInput" data-label="${esc(c.label)}" data-cur="${v}" value="${v||''}" aria-label="Διόρθωση ${esc(c.label)}"></td>`}).join('')}</tr>`:'';
+ const corrPcKg=(c,k)=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)).reduce((s2,x)=>s2+Number(x[k]||0),0);
+ const corrCell=(c,k,kind)=>{let v=corrPcKg(c,k);return `<td class="corrCell"><input type="number" step="${kind==='pc'?1:'any'}" class="readyCorrInput" data-kind="${kind}" data-label="${esc(c.label)}" value="${v||''}" aria-label="${kind==='pc'?'Διόρθωση τεμαχίων':'Διόρθωση κιλών'} ${esc(c.label)}"></td>`};
+ let correctionPcTotal=corrections.reduce((s2,x)=>s2+Number(x.piece_delta||0),0);
+ let correctionRow=isMonthView?`<tr class="prodShipRow" id="readyCorrectionRow" style="cursor:pointer" title="Κλικ για το ιστορικό κινήσεων"><td>Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(ιστορικό)</span>':''}</td><td>${corrections.length?prodVal(correctionTotal):''}</td>${bodyCols.map(c=>corrCell(c,'weight_kg_delta','kg')).join('')}</tr>`
+   +`<tr class="prodShipRow" id="readyCorrectionPcRow" style="cursor:pointer" title="Κλικ για το ιστορικό κινήσεων"><td>Διορθώσεις τεμαχίων</td><td>${correctionPcTotal||''}</td>${bodyCols.map(c=>corrCell(c,'piece_delta','pc')).join('')}</tr>`:'';
  readyState.corrCols=bodyCols.map(c=>c.label);
 
  // Τεμάχια: count of ready-material lots WITH a storage medium (σακός/παλέτα) -- a lot without one
@@ -2053,7 +2058,7 @@ function renderReadyMaterials(){
  let periodLots=readyState.periodLots||[];
  let availLots=readyState.availLots||[];
  const piecesInPeriod=c=>periodLots.filter(l=>l.medium_code&&readyNorm(l.material_name)===readyNorm(c.label)).length;
- const piecesBalance=c=>availLots.filter(l=>l.medium_code&&readyNorm(l.material_name)===readyNorm(c.label)).length;
+ const piecesBalance=c=>availLots.filter(l=>l.medium_code&&readyNorm(l.material_name)===readyNorm(c.label)).length+corrAll(c.label,'pieces');
  let piecesPeriodTotal=bodyCols.reduce((s,c)=>s+piecesInPeriod(c),0);
  let piecesBalanceTotal=bodyCols.reduce((s,c)=>s+piecesBalance(c),0);
  let piecesPeriodRow=isMonthView?`<tr><td>Τεμάχια ${readyPW()}</td><td>${piecesPeriodTotal||''}</td>${bodyCols.map(c=>`<td>${piecesInPeriod(c)||''}</td>`).join('')}</tr>`:'';
@@ -2069,16 +2074,21 @@ function renderReadyMaterials(){
  readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
  document.querySelectorAll('.readyCorrInput').forEach(inp=>{
    inp.onclick=e=>e.stopPropagation();
-   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.blur()}};
+   // Στο κελί φαίνεται το σύνολο του μήνα· όταν το πατήσεις αδειάζει και ό,τι γράψεις (+ ή -) είναι ΝΕΑ κίνηση που προστίθεται στο απόθεμα
+   inp.onfocus=()=>{inp.dataset.shown=inp.value;inp.placeholder=inp.value||'+ / −';inp.value=''};
+   inp.onblur=()=>{if(inp.value===''&&inp.dataset.shown!==undefined)inp.value=inp.dataset.shown};
+   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.blur()}else if(e.key==='Escape'){inp.value='';inp.blur()}};
    inp.onchange=async()=>{
-     let cur=Number(inp.dataset.cur||0),nv=inp.value===''?0:Number(inp.value),delta=Math.round((nv-cur)*1000)/1000;
-     if(!Number.isFinite(delta)||!delta){inp.value=cur||'';return}
-     inp.disabled=true;
-     try{await readyCorrPost({work_date:readyCorrDate(),material_label:inp.dataset.label,weight_kg_delta:delta,piece_delta:0,reason:'Διόρθωση από τον πίνακα'});await loadReadyMaterials()}
-     catch(err){inp.disabled=false;inp.value=cur||'';alert(err?.message||String(err))}
+     let v=inp.value===''?0:Number(inp.value);
+     if(!Number.isFinite(v)||!v){inp.value=inp.dataset.shown||'';return}
+     let pc=inp.dataset.kind==='pc',shown=inp.dataset.shown||'';delete inp.dataset.shown;inp.disabled=true;
+     try{await readyCorrPost({work_date:readyCorrDate(),material_label:inp.dataset.label,weight_kg_delta:pc?0:v,piece_delta:pc?Math.round(v):0,reason:'Χειροκίνητη διόρθωση'});await loadReadyMaterials()}
+     catch(err){inp.disabled=false;inp.value=shown;alert(err?.message||String(err))}
    };
  });
- if(corrections.length&&$('readyCorrectionRow'))$('readyCorrectionRow').onclick=(e)=>{
+ let corrHist=(e)=>{if(e.target.closest('input'))return;if(corrections.length)readyCorrHistory(corrections)};
+ ['readyCorrectionRow','readyCorrectionPcRow'].forEach(id=>{if($(id))$(id).onclick=corrHist});
+ if(false)if(corrections.length&&$('readyCorrectionRow'))$('readyCorrectionRow').onclick=(e)=>{
    if(e.target.closest('input'))return;
    let rows=corrections.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td><b>${esc(x.material_label)}</b></td><td>${prodVal(Number(x.weight_kg_delta))}</td><td>${x.piece_delta||0}</td><td>${esc(x.reason||'')}</td><td>${esc(x.created_by||'')}</td></tr>`).join('');
    openFloat('Διορθώσεις υλικών '+readyPW(),`<div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Υλικό</th><th>Κιλά</th><th>Τεμάχια</th><th>Αιτιολογία</th><th>Χρήστης</th></tr></thead><tbody>${rows}</tbody></table></div>`);
@@ -2133,6 +2143,7 @@ async function loadReadyMaterials(){
  readyState.periodLots=periodLots;
  readyState.availLots=availLots;
  readyState.corrections=corrections;
+ try{readyState.corrTotals=await api('/inventory/material-corrections/totals')}catch(err){readyState.corrTotals=readyState.corrTotals||[]}
  let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
  if(closingMonth){let q=Math.floor(readyState.cursor.getMonth()/3)+1;try{readyState.countEntries=await api(`/inventory/count-entries?year=${readyState.cursor.getFullYear()}&quarter=${q}`)}catch{readyState.countEntries={}}}else{readyState.countEntries=null}
  renderReadyMaterials();renderReadyQuarterInventory();
@@ -2274,6 +2285,15 @@ function wireDeltio(){
 }
 if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
 // Διορθώσεις υλικών: ιστορικό αναίρεσης/επανάληψης της συνεδρίας (κάθε διόρθωση = μία εγγραφή στον server)
+function readyCorrHistory(list){
+  let isMgmt=(me?.roles||[]).includes('MANAGEMENT');
+  let sg=n=>{n=Number(n||0);return n>0?'+'+n.toLocaleString('el-GR'):n<0?'−'+Math.abs(n).toLocaleString('el-GR'):'0'};
+  let rows=list.slice().sort((a,b)=>String(a.created_at||a.work_date).localeCompare(String(b.created_at||b.work_date))).map(x=>`<tr><td>${esc(new Date(x.created_at||x.work_date).toLocaleString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}))}</td><td><b>${esc(x.material_label)}</b></td><td style="text-align:right;white-space:nowrap;${Number(x.weight_kg_delta)<0?'color:#A32D2D;font-weight:500':''}">${Number(x.weight_kg_delta)?sg(x.weight_kg_delta):'—'}</td><td style="text-align:right;white-space:nowrap;${Number(x.piece_delta)<0?'color:#A32D2D;font-weight:500':''}">${Number(x.piece_delta)?sg(x.piece_delta):'—'}</td><td>${esc(x.reason||'')}</td><td>${esc(x.created_by||'')}</td>${isMgmt?`<td><button type="button" class="btn danger corrHistDel" data-id="${x.id}" style="height:30px;padding:0 10px;font-size:13px;white-space:nowrap;border-radius:999px;background:transparent;color:#A32D2D;border:1.5px solid #A32D2D">Διαγραφή</button></td>`:''}</tr>`).join('');
+  openFloat('Ιστορικό διορθώσεων υλικών '+readyPW(),`<div class="tablewrap" style="max-height:60vh;min-width:min(800px,88vw);padding-right:6px"><table style="min-width:0;width:100%"><thead><tr><th>Ημερομηνία / ώρα</th><th>Υλικό</th><th>Κιλά</th><th>Τεμάχια</th><th>Αιτιολογία</th><th>Χρήστης</th>${isMgmt?'<th></th>':''}</tr></thead><tbody>${rows}</tbody></table></div>${isMgmt?'<div class="muted" id="corrHistMsg" style="margin-top:8px;font-size:12px"></div>':''}`);
+  document.querySelectorAll('.corrHistDel').forEach(b=>{let armed=false;b.onclick=async()=>{
+    if(!armed){armed=true;b.textContent='Σίγουρα; Πάτα ξανά';$('corrHistMsg').textContent='Η διαγραφή είναι οριστική και αλλάζει το απόθεμα.';setTimeout(()=>{armed=false;if(b.isConnected)b.textContent='Διαγραφή'},4000);return}
+    try{await api('/inventory/material-corrections/'+b.dataset.id+'/permanent',{method:'DELETE'});readyCorrUndo=readyCorrUndo.filter(o=>o.id!==b.dataset.id);$('floatingEditor').classList.add('hidden');await loadReadyMaterials()}catch(err){armed=false;b.textContent='Διαγραφή';$('corrHistMsg').textContent=err?.message||String(err)}}});
+}
 let readyCorrUndo=[],readyCorrRedo=[];
 function readyCorrDate(){let c=readyState.cursor||new Date(),n=new Date();return (c.getFullYear()===n.getFullYear()&&c.getMonth()===n.getMonth())?localISODate(n):localISODate(new Date(c.getFullYear(),c.getMonth()+1,0))}
 async function readyCorrPost(payload){let r=await api('/inventory/material-corrections',{method:'POST',body:JSON.stringify(payload)});readyCorrUndo.push({id:r.id,payload});readyCorrRedo=[];return r}

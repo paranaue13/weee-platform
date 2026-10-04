@@ -653,6 +653,7 @@ class MaterialCorrectionOut(BaseModel):
     piece_delta: int
     reason: str | None
     created_by: str | None
+    created_at: str | None = None
 
 class DeviceYieldCellIn(BaseModel):
     weee_category_id: str

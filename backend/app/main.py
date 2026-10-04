@@ -1296,10 +1296,16 @@ def set_inventory_row_her_group(row_id:str, data:schemas.InventoryRowHerGroupIn,
 @app.get("/inventory/material-corrections")
 def list_material_corrections(year:int=Query(...), month:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     start=datetime(year,month,1); end=datetime(year+1,1,1) if month==12 else datetime(year,month+1,1)
-    rows=db.scalars(select(models.MaterialCorrectionEntry).where(models.MaterialCorrectionEntry.work_date>=start,models.MaterialCorrectionEntry.work_date<end).order_by(models.MaterialCorrectionEntry.work_date)).all()
+    rows=db.scalars(select(models.MaterialCorrectionEntry).where(models.MaterialCorrectionEntry.work_date>=start,models.MaterialCorrectionEntry.work_date<end).order_by(models.MaterialCorrectionEntry.work_date,models.MaterialCorrectionEntry.created_at)).all()
     uids={r.created_by_user_id for r in rows if r.created_by_user_id}
     users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
-    return [schemas.MaterialCorrectionOut(id=r.id,work_date=r.work_date.date().isoformat(),material_label=r.material_label,weight_kg_delta=r.weight_kg_delta,piece_delta=r.piece_delta,reason=r.reason,created_by=users.get(r.created_by_user_id)) for r in rows]
+    return [schemas.MaterialCorrectionOut(id=r.id,work_date=r.work_date.date().isoformat(),material_label=r.material_label,weight_kg_delta=r.weight_kg_delta,piece_delta=r.piece_delta,reason=r.reason,created_by=users.get(r.created_by_user_id),created_at=r.created_at.isoformat() if r.created_at else None) for r in rows]
+
+@app.get("/inventory/material-corrections/totals")
+def material_corrections_totals(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Σύνολο ΟΛΩΝ των διορθώσεων (χειροκίνητες κινήσεις +/-) ανά υλικό -- μετράνε στο Τρέχον απόθεμα (κιλά και τεμάχια)."""
+    rows=db.execute(select(models.MaterialCorrectionEntry.material_label,func.sum(models.MaterialCorrectionEntry.weight_kg_delta),func.sum(models.MaterialCorrectionEntry.piece_delta)).group_by(models.MaterialCorrectionEntry.material_label)).all()
+    return [{"material_label":l,"weight_kg":float(w or 0),"pieces":int(p or 0)} for l,w,p in rows]
 
 @app.post("/inventory/material-corrections", response_model=schemas.MaterialCorrectionOut)
 def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
@@ -1308,13 +1314,27 @@ def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Dep
     db.add(obj); db.flush()
     write_audit(db,user,'material_correction',obj.id,'CREATE',new={'material':data.material_label,'kg':str(data.weight_kg_delta),'pieces':data.piece_delta,'reason':data.reason})
     db.commit(); db.refresh(obj)
-    return schemas.MaterialCorrectionOut(id=obj.id,work_date=obj.work_date.date().isoformat(),material_label=obj.material_label,weight_kg_delta=obj.weight_kg_delta,piece_delta=obj.piece_delta,reason=obj.reason,created_by=user.username)
+    return schemas.MaterialCorrectionOut(id=obj.id,work_date=obj.work_date.date().isoformat(),material_label=obj.material_label,weight_kg_delta=obj.weight_kg_delta,piece_delta=obj.piece_delta,reason=obj.reason,created_by=user.username,created_at=obj.created_at.isoformat() if obj.created_at else None)
 
 @app.delete("/inventory/material-corrections/{entry_id}")
 def delete_material_correction(entry_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    """Αναίρεση: μόνο η δική σου πρόσφατη (έως 12 ώρες) διόρθωση -- η οριστική διαγραφή ιστορικού είναι μόνο για τη Διοίκηση (/permanent)."""
     obj=db.get(models.MaterialCorrectionEntry,entry_id)
     if not obj: raise HTTPException(404,"Δεν βρέθηκε")
+    is_mgmt=any(r.code=="MANAGEMENT" for r in user.roles)
+    recent=obj.created_at and (datetime.utcnow()-obj.created_at.replace(tzinfo=None))<timedelta(hours=12)
+    if not is_mgmt and not (obj.created_by_user_id==user.id and recent): raise HTTPException(403,"Η διαγραφή ιστορικού επιτρέπεται μόνο στη Διοίκηση")
     write_audit(db,user,'material_correction',obj.id,'DELETE',old={'material':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta})
+    db.delete(obj); db.commit()
+    return {"ok":True}
+
+@app.delete("/inventory/material-corrections/{entry_id}/permanent")
+def delete_material_correction_permanent(entry_id:str, db:Session=Depends(get_db), user:User=Depends(current_user)):
+    """Οριστική διαγραφή κίνησης από το ιστορικό διορθώσεων -- ΜΟΝΟ Διοίκηση."""
+    if not any(r.code=="MANAGEMENT" for r in user.roles): raise HTTPException(403,"Μόνο η Διοίκηση μπορεί να διαγράψει ιστορικό")
+    obj=db.get(models.MaterialCorrectionEntry,entry_id)
+    if not obj: raise HTTPException(404,"Δεν βρέθηκε")
+    write_audit(db,user,'material_correction',obj.id,'DELETE_PERMANENT',old={'material':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta,'reason':obj.reason})
     db.delete(obj); db.commit()
     return {"ok":True}
 
