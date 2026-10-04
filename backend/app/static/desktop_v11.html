@@ -856,6 +856,12 @@ body[data-theme="dark"] #refresh{border-color:var(--line-strong)!important}
 /* Κάρτες Container / Καρότσα / Μικρά σημεία / Σύνολο: ένα ουδέτερο φόντο, τα χρώματα μένουν μόνο για κατάσταση */
 .sortingKpiCard{background:var(--pop-card)!important;border:0!important;border-radius:12px!important}
 .sortingKpiCard .sortingKpiIcon{background:var(--surface)!important;color:var(--fg-2)!important}
+/* Πίνακας καταχώρησης φόρμας ταξινόμησης: κελιά 14/400 */
+#sortingDetail .sortingCatTable td{font-size:14px!important}
+/* Σκούρο θέμα: διορθώσεις αναγνωσιμότητας (γραμμή ομάδας σημείων, κουμπιά ημερολογίου, κύριο κουμπί Νέα Παραλαβή) */
+body[data-theme="dark"] tr.groupRow,body[data-theme="dark"] tr.groupRow td{background:var(--surface-2)!important;color:var(--fg)!important}
+body[data-theme="dark"] .calendarNavBtn{background:var(--surface-2)!important;color:var(--fg)!important;border-color:var(--line-strong)!important}
+body[data-theme="dark"] #newReceipt{background:var(--accent)!important;color:#001A41!important;border-color:var(--accent)!important}
 /* Αρχική: περιθώριο 24px, ημερομηνία πάνω από τις κάρτες, Παρουσίες + Βιβλίο Επισκεπτών σε 2 στήλες */
 #dashboard{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-left:24px;padding-right:24px;align-content:start}
 #dashboard>.grid,#dashboard>.card,#dashboard>.homeDate{grid-column:1/-1}
