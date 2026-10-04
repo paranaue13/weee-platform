@@ -3011,6 +3011,8 @@ function makeDraggable(panel,handle){if(!panel||panel.dataset.dragBound)return;p
 // Ελαχιστοποίηση: η θέση μπαίνει με απλό inline style (όχι CSS !important) ώστε το ίδιο
 // makeDraggable να μπορεί να τη μετακινήσει μετά, όπως και στο κανονικό μέγεθος.
 function toggleMin(panel){let wasMin=panel.classList.contains('popupMin');panel.classList.remove('popupMax');panel.classList.toggle('popupMin');if(!wasMin){panel.style.transform='none';panel.style.left='248px';panel.style.top=(window.innerHeight-66)+'px'}else{panel.style.left='';panel.style.top='';panel.style.transform=''}}
+// ΚΑΝΟΝΑΣ: σφάλμα αποθήκευσης μέσα σε οποιοδήποτε παράθυρο επεξεργασίας (π.χ. «Ο κωδικός μέσου υπάρχει ήδη») εμφανίζεται μέσα στο παράθυρο -- ποτέ σιωπηλά.
+window.addEventListener('unhandledrejection',e=>{let p=document.getElementById('floatingEditor');if(!p||p.classList.contains('hidden'))return;let b=document.getElementById('floatingEditorBody');if(!b)return;let n=b.querySelector('.floatErr');if(!n){n=document.createElement('div');n.className='error floatErr';n.style.margin='10px 0 0';b.appendChild(n)}n.textContent=(e.reason&&e.reason.message)||String(e.reason||'Σφάλμα');e.preventDefault()});
 function openFloat(title,html){let p=$('floatingEditor');$('floatingEditorTitle').textContent=title;$('floatingEditorBody').innerHTML=html;p.classList.remove('hidden','popupMin','popupMax');p.style.left='50%';p.style.top='16%';p.style.transform='translateX(-50%)';p.scrollTop=0;makeDraggable(p,$('floatingEditorHandle'));return p}
 // Same panel as openFloat, but anchored at the click point (x,y) instead of centered -- for popups
 // triggered by clicking a specific row/item, so the popup opens where the user is looking, not
