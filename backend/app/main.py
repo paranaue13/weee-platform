@@ -2,7 +2,7 @@ import asyncio, logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from sqlalchemy import select, inspect, text, update
+from sqlalchemy import select, inspect, text, update, func
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
@@ -700,6 +700,30 @@ def update_employee(employee_id:str,data:schemas.EmployeeCreate,db:Session=Depen
     write_audit(db,user,"employee",emp.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)
+
+@app.delete("/master/employees/{employee_id}/permanent")
+def delete_employee_permanent(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
+    """Οριστική διαγραφή -- ΜΟΝΟ αν ο εργαζόμενος δεν έχει καμία εγγραφή ιστορικού (παρουσίες, παραγωγή, διαστήματα κ.λπ.).
+    Αλλιώς 409: το ιστορικό και οι αναφορές μένουν ανέγγιχτα και ο χρήστης χρησιμοποιεί «Μη ενεργό»."""
+    emp=db.get(Employee,employee_id)
+    if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    refs=[]
+    for t in Base.metadata.tables.values():
+        if t.name in ("employees","employee_org_units"): continue
+        for fk in t.foreign_keys:
+            if fk.column.table.name=="employees":
+                n=db.scalar(select(func.count()).select_from(t).where(fk.parent==emp.id)) or 0
+                if n: refs.append(f"{t.name} ({n})")
+    if refs: raise HTTPException(409,"Ο εργαζόμενος έχει ιστορικό ("+", ".join(refs)+") και δεν μπορεί να διαγραφεί οριστικά -- χρησιμοποίησε «Μη ενεργό».")
+    person_id=emp.person_id; name=emp.full_name if hasattr(emp,"full_name") else employee_id
+    db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
+    write_audit(db,user,"employee",emp.id,"DELETE",old={"person_id":person_id},new=None)
+    db.delete(emp); db.flush()
+    person=db.get(Person,person_id)
+    if person:
+        used=any(db.scalar(select(func.count()).select_from(t).where(fk.parent==person_id)) for t in Base.metadata.tables.values() if t.name!="persons" for fk in t.foreign_keys if fk.column.table.name=="persons")
+        if not used: db.delete(person)
+    db.commit(); return {"ok":True}
 
 @app.delete("/master/employees/{employee_id}")
 def delete_employee(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
