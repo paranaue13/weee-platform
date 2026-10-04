@@ -96,11 +96,11 @@ async def lifespan(app: FastAPI):
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
             if "profile" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN profile VARCHAR(20)"))
         if "production_attendance_events" in tables:
-            pe2={c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
+            pe2 = {c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
             if "unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN unit_ids TEXT"))
             if "prev_unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN prev_unit_ids TEXT"))
         if "production_placement_intervals" in tables:
-            pi_cols={c["name"] for c in inspect(engine).get_columns("production_placement_intervals")}
+            pi_cols = {c["name"] for c in inspect(engine).get_columns("production_placement_intervals")}
             if "org_unit_ids" not in pi_cols: conn.execute(text("ALTER TABLE production_placement_intervals ADD COLUMN org_unit_ids TEXT"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
@@ -169,7 +169,7 @@ def list_org_units(include_inactive:bool=Query(default=False), db:Session=Depend
     out=[]
     for u in units:
         poss=db.scalars(select(OrgUnitPosition).where(OrgUnitPosition.org_unit_id==u.id,OrgUnitPosition.active==True).order_by(OrgUnitPosition.sort_order,OrgUnitPosition.name)).all()
-        out.append({"id":u.id,"code":u.code,"name_el":u.name_el,"name_en":u.name_en,"parent_id":u.parent_id,"sort_order":u.sort_order,"position":u.position,"positions":[x.name for x in poss],"active":u.active})
+        out.append({"id":u.id,"code":u.code,"name_el":u.name_el,"name_en":u.name_en,"parent_id":u.parent_id,"sort_order":u.sort_order,"position":u.position,"positions":[x.name for x in poss],"active":u.active,"profile":u.profile})
     return out
 
 def _replace_org_positions(db:Session, unit_id:str, positions:list[str]):
@@ -193,6 +193,7 @@ def _replace_org_positions(db:Session, unit_id:str, positions:list[str]):
 @app.post("/master/org-units", response_model=schemas.OrgUnitOut)
 def create_org_unit(data:schemas.OrgUnitCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     if db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code==data.code)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη")
+    if data.profile not in (None,"PRODUCTION","SUPPORT","MANAGEMENT"): raise HTTPException(422,"Άγνωστο προφίλ τμήματος")
     payload=data.model_dump(exclude={"positions"}); obj=OrganizationalUnit(**payload); db.add(obj); db.flush(); _replace_org_positions(db,obj.id,data.positions)
     write_audit(db,user,"organizational_unit",obj.id,"CREATE",new=data.model_dump()); db.commit();
     rows=list_org_units(True,db,user); return next(x for x in rows if x["id"]==obj.id)
@@ -201,8 +202,11 @@ def create_org_unit(data:schemas.OrgUnitCreate, db:Session=Depends(get_db), user
 def update_org_unit(unit_id:str, data:schemas.OrgUnitCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(OrganizationalUnit,unit_id)
     if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
-    old={"code":obj.code,"name_el":obj.name_el,"name_en":obj.name_en,"parent_id":obj.parent_id,"sort_order":obj.sort_order,"position":obj.position}
-    for k,v in data.model_dump(exclude={"positions"}).items(): setattr(obj,k,v)
+    old={"code":obj.code,"name_el":obj.name_el,"name_en":obj.name_en,"parent_id":obj.parent_id,"sort_order":obj.sort_order,"position":obj.position,"profile":obj.profile}
+    if data.profile not in (None,"PRODUCTION","SUPPORT","MANAGEMENT"): raise HTTPException(422,"Άγνωστο προφίλ τμήματος")
+    for k,v in data.model_dump(exclude={"positions"}).items():
+        if k=="profile" and "profile" not in data.model_fields_set: continue  # παλιοί πελάτες δεν σβήνουν το προφίλ
+        setattr(obj,k,v)
     if "positions" in data.model_fields_set: _replace_org_positions(db,obj.id,data.positions)
     write_audit(db,user,"organizational_unit",obj.id,"UPDATE",old=old,new=data.model_dump(exclude={"positions"}))
     db.commit()
@@ -213,6 +217,42 @@ def delete_org_unit(unit_id:str, db:Session=Depends(get_db), user:User=Depends(r
     obj=db.get(OrganizationalUnit,unit_id)
     if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
     obj.active=False; write_audit(db,user,"organizational_unit",obj.id,"DEACTIVATE",old={"active":True},new={"active":False}); db.commit(); return {"ok":True}
+
+def _org_unit_usage(db:Session,unit_id:str)->dict:
+    """Πόσες εγγραφές ιστορικού/χρήσης αναφέρονται στο τμήμα (κιλά, παρουσίες, εργαζόμενοι, ιστορικό)."""
+    counts={"kg":0,"attendance":0,"employees":0,"history":0,"other":0}
+    for t in Base.metadata.tables.values():
+        if t.name in ("org_unit_positions","employee_org_units","organizational_units"): continue
+        for col in t.columns:
+            if col.name in ("org_unit_id","destination_org_unit_id","source_org_unit_id","prev_org_unit_id","default_org_unit_id"):
+                n=db.scalar(select(func.count()).select_from(t).where(col==unit_id)) or 0
+                if not n: continue
+                if t.name in ("production_work_entries","production_transfers"): counts["kg"]+=n
+                elif t.name=="production_attendance": counts["attendance"]+=n
+                elif t.name=="employees": counts["employees"]+=n
+                elif t.name in ("production_attendance_events","production_placement_intervals"): counts["history"]+=n
+                else: counts["other"]+=n
+    counts["employees"]+=db.scalar(select(func.count()).select_from(employee_org_units).where(employee_org_units.c.org_unit_id==unit_id)) or 0
+    counts["other"]+=db.scalar(select(func.count()).select_from(OrganizationalUnit).where(OrganizationalUnit.parent_id==unit_id)) or 0
+    counts["total"]=sum(counts.values())
+    return counts
+
+@app.get("/master/org-units/{unit_id}/usage")
+def org_unit_usage(unit_id:str, db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
+    if not db.get(OrganizationalUnit,unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    return _org_unit_usage(db,unit_id)
+
+@app.delete("/master/org-units/{unit_id}/permanent")
+def delete_org_unit_permanent(unit_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    """Οριστική διαγραφή -- ΜΟΝΟ αν το τμήμα δεν έχει καμία χρήση. Αλλιώς 409 (κρατιούνται τα στατιστικά· χρησιμοποίησε «Μη ενεργό»)."""
+    obj=db.get(OrganizationalUnit,unit_id)
+    if not obj: raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    u=_org_unit_usage(db,unit_id)
+    if u["total"]: raise HTTPException(409,"Το τμήμα έχει ιστορικό (κιλά, παρουσίες, εργαζόμενοι) και δεν μπορεί να διαγραφεί")
+    old={"code":obj.code,"name_el":obj.name_el,"profile":obj.profile}
+    db.execute(OrgUnitPosition.__table__.delete().where(OrgUnitPosition.org_unit_id==unit_id))
+    write_audit(db,user,"organizational_unit",obj.id,"DELETE",old=old,new=None)
+    db.delete(obj); db.commit(); return {"ok":True}
 
 @app.get("/master/organizations", response_model=list[schemas.OrganizationOut])
 def list_organizations(role:str|None=Query(default=None), include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -933,12 +973,17 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
         obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=status,org_unit_id=new_org,position_text=data.position_text,since_at=data.since_at,late=late,arrived_at=arrived,created_by_user_id=user.id)
         db.add(obj)
     closed_id=opened_id=None
-    if new_org!=p_org: closed_id,opened_id=_log_placement_interval(db,data.employee_id,new_org,at=data.since_at)
+    emp_row=db.get(Employee,data.employee_id); prev_ids=_emp_unit_ids(db,emp_row); new_ids=prev_ids
+    if new_org and new_org!=p_org:   # ΜΕΤΑΚΙΝΗΣΗ: φεύγει από το τρέχον τμήμα και μπαίνει στο νέο (τα υπόλοιπα τμήματά του μένουν)
+        new_ids=[new_org]+[i for i in prev_ids if i!=p_org and i!=new_org]
+        _apply_unit_set(db,emp_row,new_ids)
+    if new_org!=p_org: closed_id,opened_id=_log_placement_interval(db,data.employee_id,new_org,at=data.since_at,unit_ids=new_ids)
     db.flush()
     event_id=None
     if (not p_exists) and (status!="PRESENT" or new_org!=p_org or late) or (p_exists and (p_status!=status or p_org!=new_org or p_late!=late)):
         ev=ProductionAttendanceEvent(work_date=day,employee_id=data.employee_id,user_id=user.id,status=status,org_unit_id=new_org,since_at=data.since_at,late=late,
-            prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id)
+            prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id,
+            unit_ids=_json.dumps(new_ids),prev_unit_ids=_json.dumps(prev_ids))
         db.add(ev); db.flush(); event_id=ev.id
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
@@ -949,6 +994,40 @@ def _short_name(person)->str:
     if not person: return ""
     last=(person.last_name or "").strip()
     return f"{person.first_name} {last[0]}." if last else (person.first_name or "")
+
+@app.post("/production/attendance/units")
+def change_attendance_units(data:schemas.AttendanceUnitsIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
+    """«Προσθήκη και σε άλλο τμήμα» / «Αφαίρεση από τμήμα»: αλλάζει το κοινό σύνολο τμημάτων του εργαζομένου (Μητρώα + Δελτίο).
+    Η παρουσία (ΠΑΡΩΝ/ΑΠΩΝ/ΕΦΥΓΕ) μένει μία ανά εργαζόμενο -- δεν αλλάζει. Καταγράφεται στο Ιστορικό με ΑΚΥΡΩΣΗ."""
+    emp=db.get(Employee,data.employee_id)
+    if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    if data.action not in ("add","remove"): raise HTTPException(422,"Άγνωστη ενέργεια")
+    if not db.get(OrganizationalUnit,data.unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
+    day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
+    prev_ids=_emp_unit_ids(db,emp)
+    if data.action=="add":
+        if data.unit_id in prev_ids: raise HTTPException(409,"Ο εργαζόμενος ανήκει ήδη σε αυτό το τμήμα")
+        new_ids=prev_ids+[data.unit_id]
+    else:
+        if data.unit_id not in prev_ids: raise HTTPException(409,"Ο εργαζόμενος δεν ανήκει σε αυτό το τμήμα")
+        new_ids=[i for i in prev_ids if i!=data.unit_id]
+    obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==emp.id))
+    if obj: p_exists,p_status,p_org,p_late,p_arr,p_since=True,(obj.status or "PRESENT"),obj.org_unit_id,bool(obj.late),obj.arrived_at,obj.since_at
+    else: p_exists,p_status,p_org,p_late,p_arr,p_since=False,"PRESENT",_last_known_unit(db,emp.id,day),False,None,None
+    new_org=new_ids[0] if new_ids else None
+    _apply_unit_set(db,emp,new_ids)
+    if obj: obj.org_unit_id=new_org
+    else:
+        obj=ProductionAttendance(work_date=day,employee_id=emp.id,status="PRESENT",org_unit_id=new_org,late=False,created_by_user_id=user.id); db.add(obj)
+    closed_id,opened_id=_log_placement_interval(db,emp.id,new_org,unit_ids=new_ids)
+    db.flush()
+    ev=ProductionAttendanceEvent(work_date=day,employee_id=emp.id,user_id=user.id,status=obj.status,org_unit_id=new_org,since_at=obj.since_at,late=bool(obj.late),
+        prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id,
+        unit_ids=_json.dumps(new_ids),prev_unit_ids=_json.dumps(prev_ids))
+    db.add(ev); db.flush()
+    write_audit(db,user,"production_attendance",obj.id,"UNITS_"+data.action.upper(),old={"unit_ids":prev_ids},new={"unit_ids":new_ids})
+    db.commit()
+    return {"ok":True,"event_id":ev.id,"org_unit_ids":new_ids}
 
 @app.get("/production/attendance/events")
 def production_attendance_events(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
@@ -965,6 +1044,10 @@ def production_attendance_events(date:str=Query(...), db:Session=Depends(get_db)
         elif ev.status=="ABSENT": tx="απών"
         elif ev.prev_status in ("ABSENT","LEFT"):
             tx=("επέστρεψε" if ev.prev_status=="LEFT" else ("άργησε" if ev.late else "παρών"))+(f" στο {new_u}" if new_u else "")
+        elif ev.unit_ids is not None and ev.prev_unit_ids is not None and set(_json.loads(ev.unit_ids))!=set(_json.loads(ev.prev_unit_ids)):
+            _n,_p=_json.loads(ev.unit_ids),_json.loads(ev.prev_unit_ids)
+            add_=[units.get(i,"") for i in _n if i not in _p]; rem_=[units.get(i,"") for i in _p if i not in _n]
+            tx=(f"{', '.join(rem_)} → {', '.join(add_)}" if add_ and rem_ else (f"προσθήκη στο {', '.join(add_)}" if add_ else f"αφαίρεση από το {', '.join(rem_)}"))
         elif new_u and old_u and new_u!=old_u: tx=f"{old_u} → {new_u}"
         elif new_u and new_u!=old_u: tx=f"τοποθετήθηκε στο {new_u}"
         elif ev.late and not ev.prev_late: tx="αργοπορία"
@@ -987,6 +1070,9 @@ def undo_production_attendance_event(event_id:str, db:Session=Depends(get_db), u
     if obj:
         if ev.prev_exists: obj.status=ev.prev_status; obj.org_unit_id=ev.prev_org_unit_id; obj.since_at=ev.prev_since_at; obj.late=bool(ev.prev_late); obj.arrived_at=ev.prev_arrived_at
         else: db.delete(obj)
+    if ev.prev_unit_ids is not None:
+        emp_row=db.get(Employee,ev.employee_id)
+        if emp_row: _apply_unit_set(db,emp_row,[i for i in _json.loads(ev.prev_unit_ids) if db.get(OrganizationalUnit,i)])
     if ev.opened_interval_id:
         iv=db.get(ProductionPlacementInterval,ev.opened_interval_id)
         if iv: db.delete(iv)
@@ -1012,6 +1098,8 @@ def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_d
         ended=r.ended_at or datetime.utcnow()
         out.append({"id":r.id,"employee_id":r.employee_id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
             "org_unit_id":r.org_unit_id,"org_unit_name":unit.name_el if unit else None,
+            "org_unit_ids":(_json.loads(r.org_unit_ids) if r.org_unit_ids else ([r.org_unit_id] if r.org_unit_id else [])),
+            "org_unit_names":[units[i].name_el for i in (_json.loads(r.org_unit_ids) if r.org_unit_ids else ([r.org_unit_id] if r.org_unit_id else [])) if i in units],
             "started_at":r.started_at.isoformat(),"ended_at":r.ended_at.isoformat() if r.ended_at else None,
             "ongoing":r.ended_at is None,"minutes":round((ended-r.started_at).total_seconds()/60),"kg":0.0,"entries":0})
     # Κιλά ανά διάστημα: κάθε καταχώρηση παραγωγής του εργαζομένου (ίδια ημέρα) ανήκει στο διάστημα όπου
@@ -1044,7 +1132,8 @@ def production_placement_intervals(date:str=Query(...), db:Session=Depends(get_d
         if not org: continue
         person=people.get(emp.person_id); unit=units.get(org); iv=_Iv(emp.id,start_utc,end)
         o={"id":"implicit-"+emp.id,"employee_id":emp.id,"employee_name":(f"{person.first_name} {person.last_name}".strip() if person else ""),
-            "org_unit_id":org,"org_unit_name":unit.name_el if unit else None,"started_at":start_utc.isoformat(),"ended_at":end.isoformat() if end else None,
+            "org_unit_id":org,"org_unit_name":unit.name_el if unit else None,
+            "org_unit_ids":(_emp_unit_ids(db,emp) or [org]),"org_unit_names":[units[i].name_el for i in (_emp_unit_ids(db,emp) or [org]) if i in units],"started_at":start_utc.isoformat(),"ended_at":end.isoformat() if end else None,
             "ongoing":end is None,"minutes":max(0,round(((end or datetime.utcnow())-start_utc).total_seconds()/60)),"kg":0.0,"entries":0,"implicit":True}
         out.append(o); by_emp.setdefault(emp.id,[]).insert(0,(iv,o))
     for e in ents:
