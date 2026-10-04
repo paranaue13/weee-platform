@@ -1,0 +1,179 @@
+<title>Δελτίο ημέρας Android</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=greek">
+<style>
+:root { --page: #e9ecf3; --page-fg: #1a1b20; --page-card: #ffffff; --page-line: #c7cedd; --font: Roboto, system-ui, sans-serif; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0e1117; --page-fg: #e6e8ee; --page-card: #181c25; --page-line: #2a3040; color-scheme: dark; } }
+:root[data-theme="dark"] { --page: #0e1117; --page-fg: #e6e8ee; --page-card: #181c25; --page-line: #2a3040; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font-family: var(--font); padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: 100vh; }
+button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid #2f5fc4; outline-offset: 2px; }
+
+/* Πάνελ ελέγχου της σελίδας (ΔΕΝ είναι μέρος της εφαρμογής) */
+.ctl { width: 100%; max-width: 412px; background: var(--page-card); border: 1px solid var(--page-line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.ctl b { font-weight: 500; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vs button { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--page-line); background: transparent; color: inherit; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 8px; line-height: 1.25; }
+.vs button[aria-pressed="true"] { background: #1a5fd0; border-color: #1a5fd0; color: #fff; }
+.cnt { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; opacity: .9; }
+.cnt strong { font-weight: 700; }
+
+/* Εφαρμογή Android – μόνο φωτεινό */
+.phone {
+  --bar: #14213d; --bg: #f2f4f9; --surface: #ffffff; --tonal: #e6ebf5; --tonal-fg: #1b2b4b;
+  --line: #c7cedd; --line-strong: #9aa4bb; --fg: #1a1b20; --fg-2: #4a4f5c;
+  --primary: #1a5fd0; --primary-soft: #d8e4ff; --primary-soft-fg: #0a2a63; --green: #1b6b3d;
+  width: 100%; max-width: 412px; background: var(--bg); color: var(--fg); border-radius: 28px; overflow: hidden; box-shadow: 0 8px 32px rgba(10,20,50,.25); font-size: 16px; position: relative;
+}
+.appbar { background: var(--bar); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.appbar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+.server { height: 38px; padding: 0 16px; border-radius: 19px; border: 0; background: #dfe4ef; color: #1b2b4b; font-size: 14px; font-weight: 500; }
+.body { padding: 10px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.userrow { display: flex; align-items: center; justify-content: space-between; }
+.userrow b { font-weight: 700; }
+.chip { height: 30px; padding: 0 12px; border-radius: 15px; background: var(--tonal); color: var(--tonal-fg); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #2e9e5b; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.big { min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 14px; font-weight: 700; color: var(--fg); }
+.mid { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 11px; font-weight: 700; color: var(--fg); }
+.sel { background: var(--primary); border-color: var(--primary); color: #fff; }
+.sheet { background: var(--surface); border-radius: 20px; padding: 16px 14px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+.sheet h2 { margin: 0; font-size: 22px; font-weight: 500; }
+.lbl { font-size: 13px; font-weight: 700; color: var(--fg-2); letter-spacing: .02em; margin: 2px 0 6px; }
+.start { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.start button { min-height: 52px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 700; cursor: pointer; line-height: 1.15; }
+.start button[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-soft-fg); }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opts.one { grid-template-columns: 1fr; }
+.opt { position: relative; min-height: 60px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 15px; font-weight: 700; text-align: left; padding: 8px 12px; cursor: pointer; line-height: 1.2; display: flex; flex-direction: column; justify-content: center; }
+.opt small { font-weight: 500; font-size: 12px; opacity: .85; }
+.opt:active { filter: brightness(.94); }
+.opt .tag { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 700; letter-spacing: .04em; background: var(--primary); color: #fff; padding: 2px 7px; border-radius: 8px; }
+.opt.top { background: var(--primary-soft); color: var(--primary-soft-fg); outline: 2px solid var(--primary); }
+.picked { display: flex; align-items: center; gap: 8px; min-height: 52px; border-radius: 14px; background: var(--primary-soft); color: var(--primary-soft-fg); padding: 6px 6px 6px 12px; }
+.picked span { flex: 1; font-weight: 700; font-size: 15px; line-height: 1.2; }
+.picked small { display: block; font-weight: 500; font-size: 11px; opacity: .85; }
+.picked button { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: #fff; color: var(--primary-soft-fg); font-size: 12px; font-weight: 700; cursor: pointer; }
+.search { width: 100%; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); padding: 0 14px; font: inherit; font-size: 15px; color: var(--fg); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 13px; font-weight: 700; }
+.fake { min-height: 48px; border-radius: 14px; background: var(--tonal); padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-weight: 500; }
+.go { min-height: 60px; border: 0; border-radius: 14px; background: var(--green); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: .02em; line-height: 1.2; padding: 6px 10px; }
+.go[disabled] { background: #c9d2c9; color: #fff; cursor: default; }
+.go small { display: block; font-size: 12px; font-weight: 500; opacity: .92; margin-top: 2px; }
+.note { font-size: 12px; color: var(--fg-2); margin: 0; }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 12px; background: #1b2638; color: #fff; border-radius: 14px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.toast span { flex: 1; line-height: 1.25; }
+.toast button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 0; background: #dfe4ef; color: #1b2b4b; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.num{min-height:60px;border-radius:14px;border:0;background:var(--tonal);color:var(--tonal-fg);font-size:20px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.num small{font-size:10px;font-weight:500;opacity:.85;margin-top:2px;text-align:center}
+.backtype{min-height:44px;border-radius:12px;border:0;background:var(--tonal);color:var(--tonal-fg);font-size:13px;font-weight:700;padding:0 14px;cursor:pointer;align-self:flex-start}
+.chip.btn{border:0;cursor:pointer;height:38px;padding:0 14px;font-weight:700}
+.chip.btn.sel{background:var(--primary);color:#fff}
+
+.dept{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.dept h3{margin:0;font-size:16px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.dept h3 small{font-size:12px;font-weight:500;color:var(--fg-2)}
+.wk{min-height:56px;border-radius:14px;border:0;background:var(--tonal);color:var(--tonal-fg);display:flex;align-items:center;justify-content:space-between;padding:6px 14px;font-size:16px;font-weight:700;cursor:pointer;width:100%;text-align:left}
+.wk small{font-size:12px;font-weight:500;opacity:.85}
+.empty{font-size:13px;color:var(--fg-2);margin:0;padding:6px 2px}
+.dim .wk{background:#eceef3;color:var(--fg-2)}
+.scrim{position:absolute;inset:0;background:rgba(10,20,50,.45);display:flex;align-items:flex-end;z-index:5}
+.pane{background:var(--surface);width:100%;border-radius:24px 24px 0 0;padding:16px 14px 18px;display:flex;flex-direction:column;gap:10px;max-height:92%;overflow:auto}
+.pane h2{margin:0;font-size:22px;font-weight:500}
+.pane .sub{margin:0;font-size:13px;color:var(--fg-2)}
+.left{min-height:56px;border-radius:14px;border:2px solid #9b2226;background:#fbeaea;color:#7a1a1d;font-size:15px;font-weight:700;cursor:pointer}
+.cancel{min-height:48px;border-radius:14px;border:0;background:var(--tonal);color:var(--tonal-fg);font-size:14px;font-weight:700;cursor:pointer}
+.opt[disabled]{opacity:.45;cursor:default}
+.tabs2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.sub2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sub2 button{min-height:52px;border-radius:14px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--fg);font-size:14px;font-weight:700;cursor:pointer}
+.sub2 button[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:#fff}
+.cnts{display:flex;gap:6px;flex-wrap:wrap}
+.cnts .chip{height:32px;font-size:13px;font-weight:700}
+.c-p{background:#d7efe0;color:#12532e}.c-a{background:#e6e8ee;color:#3b4150}.c-l{background:#fbeaea;color:#7a1a1d}
+.arow{border:1px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--surface)}
+.arow .nm{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:16px;font-weight:700}
+.arow .nm small{font-size:12px;font-weight:500;color:var(--fg-2);text-align:right}
+.st3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.st3 button{min-height:48px;border-radius:12px;border:1.5px solid var(--line-strong);background:var(--surface);color:var(--fg-2);font-size:13px;font-weight:700;cursor:pointer}
+.st3 button[aria-pressed="true"].p{background:#1b6b3d;border-color:#1b6b3d;color:#fff}
+.st3 button[aria-pressed="true"].a{background:#4a4f5c;border-color:#4a4f5c;color:#fff}
+.st3 button[aria-pressed="true"].l{background:#9b2226;border-color:#9b2226;color:#fff}
+.hist{display:flex;flex-direction:column;gap:6px}
+.he{display:flex;align-items:center;gap:8px;border-radius:12px;background:var(--tonal);padding:6px 6px 6px 12px;min-height:52px}
+.he .tm{font-size:13px;font-weight:700;min-width:44px;color:var(--tonal-fg)}
+.he .tx{flex:1;font-size:14px;line-height:1.25;color:var(--tonal-fg)}
+.he button{min-height:44px;padding:0 10px;border-radius:10px;border:0;background:#fff;color:var(--primary-soft-fg);font-size:12px;font-weight:700;cursor:pointer}
+.he button[disabled]{background:transparent;color:var(--fg-2);font-weight:500;cursor:default;font-size:11px;max-width:84px;text-align:center}
+</style>
+<p class="ctl" style="padding:10px 14px;font-size:13px;opacity:.85">Ονόματα, τμήματα και ώρες είναι δείγματα. Δοκίμασε: αλλαγή παρουσίας, μετακίνηση σε τμήμα, και ΑΚΥΡΩΣΗ από το ιστορικό.</p>
+<main class="phone">
+  <header class="appbar"><h1>WEEE Platform 2.5.41</h1><button class="server">SERVER</button></header>
+  <div class="body">
+    <div class="userrow"><b>admin</b><div style="display:flex;gap:8px;align-items:center"><span class="chip btn sel" style="background:var(--primary);color:#fff">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</span><span class="chip"><i class="dot"></i>ONLINE</span></div></div>
+    <div class="row3"><button class="mid">ΠΑΡΑΛΑΒΕΣ</button><button class="mid sel">ΠΑΡΑΓΩΓΗ</button><button class="mid">ΦΟΡΤΩΣΕΙΣ</button></div>
+    <section class="sheet" style="padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><h2>Δελτίο Παραγωγής</h2><div class="fake" style="width:150px;min-height:44px">03/10/2026</div></div>
+      <div class="sub2" id="sub"><button data-v="w" aria-pressed="true">ΕΡΓΑΖΟΜΕΝΟΙ</button><button data-v="d" aria-pressed="false">ΤΜΗΜΑΤΑ</button></div>
+      <div class="cnts" id="cnt"></div>
+      <div id="main" style="display:flex;flex-direction:column;gap:10px"></div>
+    </section>
+    <section class="sheet" style="padding:12px"><h2 style="font-size:18px">Ιστορικό αλλαγών</h2><p class="note">Κάθε αλλαγή καταγράφεται με ώρα. Η ΑΚΥΡΩΣΗ δουλεύει όσο δεν υπάρχει νεότερη αλλαγή του ίδιου εργαζομένου.</p><div class="hist" id="hist"></div></section>
+  </div>
+  <div class="toast" id="toast" hidden><span id="tmsg"></span><button id="undo">ΑΚΥΡΩΣΗ</button></div>
+  <div class="scrim" id="scrim" hidden><div class="pane" id="pane"></div></div>
+</main>
+<script>
+/* ΔΕΙΓΜΑΤΑ – όχι πραγματικά δεδομένα */
+var DEPTS=["Εκτυπωτές","Οθόνες","Πλυντήρια","Φωτιστικά","Κλιματιστικά"];
+var W=[
+{n:"Αντώνης Δ.",s:"P",d:null,t:"07:40"},{n:"Γιάννης Κ.",s:"P",d:"Εκτυπωτές",t:"07:00"},{n:"Δημήτρης Α.",s:"P",d:"Πλυντήρια",t:"08:30"},
+{n:"Ελένη Τ.",s:"P",d:"Φωτιστικά",t:"07:00"},{n:"Κώστας Μ.",s:"P",d:"Φωτιστικά",t:"09:10"},{n:"Μαρία Σ.",s:"P",d:"Οθόνες",t:"07:15"},
+{n:"Νίκος Π.",s:"P",d:"Εκτυπωτές",t:"07:00"},{n:"Πέτρος Λ.",s:"L",d:null,t:"11:20"},{n:"Σοφία Β.",s:"A",d:null,t:""}];
+var LOG=[
+{id:1,i:2,tm:"08:30",tx:"Δημήτρης Α.: Εκτυπωτές → Πλυντήρια",prev:{s:"P",d:"Εκτυπωτές",t:"07:00"}},
+{id:2,i:4,tm:"09:10",tx:"Κώστας Μ.: Πλυντήρια → Φωτιστικά",prev:{s:"P",d:"Πλυντήρια",t:"07:00"}},
+{id:3,i:7,tm:"11:20",tx:"Πέτρος Λ.: έφυγε",prev:{s:"P",d:"Κλιματιστικά",t:"07:00"}}];
+var nid=4,view="w",toastT=null;
+function now(){var d=new Date();return("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)}
+function $(i){return document.getElementById(i)}
+function isLatest(e){for(var k=LOG.length-1;k>=0;k--){if(LOG[k].i===e.i)return LOG[k]===e}return false}
+function change(i,s,d,txt){var w=W[i];if(w.s===s&&w.d===d)return;LOG.push({id:nid++,i:i,tm:now(),tx:w.n+": "+txt,prev:{s:w.s,d:w.d,t:w.t}});w.s=s;w.d=d;w.t=s==="A"?"":now();render();toast(w.n+": "+txt+" ✓")}
+function undoEntry(id){var k=LOG.findIndex(function(e){return e.id===id});if(k<0)return;var e=LOG[k];if(!isLatest(e))return;var w=W[e.i];w.s=e.prev.s;w.d=e.prev.d;w.t=e.prev.t;LOG.splice(k,1);$("toast").hidden=true;render()}
+function counts(){var p=0,a=0,l=0;W.forEach(function(w){if(w.s==="P")p++;else if(w.s==="A")a++;else l++});
+  $("cnt").innerHTML='<span class="chip c-p">Παρόντες '+p+'</span><span class="chip c-a">Απόντες '+a+'</span><span class="chip c-l">Έφυγαν '+l+'</span>'}
+function viewW(){return W.map(function(w,i){var sub=w.s==="P"?(w.d?w.d+" · από "+w.t:"χωρίς τμήμα · από "+w.t):w.s==="L"?"έφυγε "+w.t:"δεν ήρθε";
+  function b(c,s,l){return '<button class="'+c+'" data-i="'+i+'" data-s="'+s+'" aria-pressed="'+(w.s===s)+'">'+l+'</button>'}
+  return '<div class="arow"><div class="nm">'+w.n+'<small>'+sub+'</small></div><div class="st3">'+b("p","P","ΠΑΡΩΝ")+b("a","A","ΑΠΩΝ")+b("l","L","ΕΦΥΓΕ")+'</div></div>'}).join("")}
+function wk(i){var w=W[i];return '<button class="wk" data-i="'+i+'">'+w.n+'<small>'+(w.s==="P"?"από "+w.t:"έφυγε "+w.t)+'</small></button>'}
+function viewD(){var h="";DEPTS.forEach(function(d){var ids=[];W.forEach(function(w,i){if(w.s==="P"&&w.d===d)ids.push(i)});
+  h+='<div class="dept"><h3>'+d+'<small>'+ids.length+' εργαζ.</small></h3>'+(ids.length?ids.map(wk).join(""):'<p class="empty">Κανείς στο τμήμα</p>')+'</div>'});
+  function grp(t,f,cls){var ids=[];W.forEach(function(w,i){if(f(w))ids.push(i)});if(ids.length)h+='<div class="dept '+(cls||"")+'"><h3>'+t+'<small>'+ids.length+'</small></h3>'+ids.map(wk).join("")+'</div>'}
+  grp("Χωρίς τμήμα",function(w){return w.s==="P"&&!w.d});grp("Έφυγαν",function(w){return w.s==="L"},"dim");return h}
+function hist(){var h="";for(var k=LOG.length-1;k>=0;k--){var e=LOG[k],ok=isLatest(e);
+  h+='<div class="he"><span class="tm">'+e.tm+'</span><span class="tx">'+e.tx+'</span>'+(ok?'<button data-u="'+e.id+'">ΑΚΥΡΩΣΗ</button>':'<button disabled>υπάρχει νεότερη</button>')+'</div>'}
+  $("hist").innerHTML=h||'<p class="empty">Καμία αλλαγή σήμερα.</p>'}
+function render(){counts();$("main").innerHTML=view==="w"?viewW():viewD();hist();
+  Array.prototype.forEach.call($("sub").children,function(b){b.setAttribute("aria-pressed",b.dataset.v===view)})}
+function openSheet(i){var w=W[i],h='<h2>'+w.n+'</h2><p class="sub">'+(w.s==="P"?(w.d?"Τώρα στο τμήμα "+w.d+" από "+w.t:"Παρών χωρίς τμήμα από "+w.t):"Έφυγε στις "+w.t)+'</p>';
+  if(w.s==="P")h+='<button class="left" data-act="out">ΕΦΥΓΕ</button>';
+  h+='<div class="lbl">'+(w.s==="P"?"ΜΕΤΑΚΙΝΗΣΗ ΣΕ":"ΕΠΙΣΤΡΟΦΗ ΣΕ")+'</div><div class="opts">'+DEPTS.map(function(d){return '<button class="opt" data-act="mv" data-d="'+d+'"'+(d===w.d&&w.s==="P"?" disabled":"")+'>'+d+(d===w.d&&w.s==="P"?"<small>είναι εδώ</small>":"")+'</button>'}).join("")+'</div><button class="cancel" data-act="x">ΑΚΥΡΟ</button>';
+  $("pane").innerHTML=h;$("pane").dataset.i=i;$("scrim").hidden=false}
+function toast(m){$("tmsg").textContent=m;var t=$("toast");t.hidden=false;clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true},6000)}
+$("sub").addEventListener("click",function(e){var b=e.target.closest("button");if(b){view=b.dataset.v;render()}});
+$("main").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;var i=+b.dataset.i;
+  if(b.classList.contains("wk")){openSheet(i);return}
+  var s=b.dataset.s,w=W[i];if(s==="P")change(i,"P",null,"παρών");else if(s==="A")change(i,"A",null,"απών");else change(i,"L",null,"έφυγε")});
+$("pane").addEventListener("click",function(e){var b=e.target.closest("button");if(!b||b.disabled)return;var i=+this.dataset.i,a=b.dataset.act,w=W[i];$("scrim").hidden=true;
+  if(a==="out")change(i,"L",null,"έφυγε");else if(a==="mv")change(i,"P",b.dataset.d,w.s==="P"&&w.d?w.d+" → "+b.dataset.d:"επέστρεψε στο "+b.dataset.d)});
+$("scrim").addEventListener("click",function(e){if(e.target===this)this.hidden=true});
+$("hist").addEventListener("click",function(e){var b=e.target.closest("button[data-u]");if(b)undoEntry(+b.dataset.u)});
+$("undo").addEventListener("click",function(){if(LOG.length){var e=LOG[LOG.length-1];undoEntry(e.id)}});
+render();
+</script>

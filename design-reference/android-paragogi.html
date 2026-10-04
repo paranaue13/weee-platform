@@ -1,0 +1,251 @@
+<title>Παραγωγή Android</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=greek">
+<style>
+:root { --page: #e9ecf3; --page-fg: #1a1b20; --page-card: #ffffff; --page-line: #c7cedd; --font: Roboto, system-ui, sans-serif; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --page: #0e1117; --page-fg: #e6e8ee; --page-card: #181c25; --page-line: #2a3040; color-scheme: dark; } }
+:root[data-theme="dark"] { --page: #0e1117; --page-fg: #e6e8ee; --page-card: #181c25; --page-line: #2a3040; color-scheme: dark; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--page); color: var(--page-fg); font-family: var(--font); padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; min-height: 100vh; }
+button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid #2f5fc4; outline-offset: 2px; }
+
+/* Πάνελ ελέγχου της σελίδας (ΔΕΝ είναι μέρος της εφαρμογής) */
+.ctl { width: 100%; max-width: 412px; background: var(--page-card); border: 1px solid var(--page-line); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+.ctl b { font-weight: 500; }
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vs button { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--page-line); background: transparent; color: inherit; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 8px; line-height: 1.25; }
+.vs button[aria-pressed="true"] { background: #1a5fd0; border-color: #1a5fd0; color: #fff; }
+.cnt { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; opacity: .9; }
+.cnt strong { font-weight: 700; }
+
+/* Εφαρμογή Android – μόνο φωτεινό */
+.phone {
+  --bar: #14213d; --bg: #f2f4f9; --surface: #ffffff; --tonal: #e6ebf5; --tonal-fg: #1b2b4b;
+  --line: #c7cedd; --line-strong: #9aa4bb; --fg: #1a1b20; --fg-2: #4a4f5c;
+  --primary: #1a5fd0; --primary-soft: #d8e4ff; --primary-soft-fg: #0a2a63; --green: #1b6b3d;
+  width: 100%; max-width: 412px; background: var(--bg); color: var(--fg); border-radius: 28px; overflow: hidden; box-shadow: 0 8px 32px rgba(10,20,50,.25); font-size: 16px; position: relative;
+}
+.appbar { background: var(--bar); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.appbar h1 { margin: 0; font-size: 18px; font-weight: 500; }
+.server { height: 38px; padding: 0 16px; border-radius: 19px; border: 0; background: #dfe4ef; color: #1b2b4b; font-size: 14px; font-weight: 500; }
+.body { padding: 10px 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.userrow { display: flex; align-items: center; justify-content: space-between; }
+.userrow b { font-weight: 700; }
+.chip { height: 30px; padding: 0 12px; border-radius: 15px; background: var(--tonal); color: var(--tonal-fg); font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #2e9e5b; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.row3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.big { min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 14px; font-weight: 700; color: var(--fg); }
+.mid { min-height: 44px; border-radius: 12px; border: 1.5px solid var(--line-strong); background: var(--surface); font-size: 11px; font-weight: 700; color: var(--fg); }
+.sel { background: var(--primary); border-color: var(--primary); color: #fff; }
+.sheet { background: var(--surface); border-radius: 20px; padding: 16px 14px; border: 1px solid var(--line); display: flex; flex-direction: column; gap: 12px; }
+.sheet h2 { margin: 0; font-size: 22px; font-weight: 500; }
+.lbl { font-size: 13px; font-weight: 700; color: var(--fg-2); letter-spacing: .02em; margin: 2px 0 6px; }
+.start { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.start button { min-height: 52px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--fg); font-size: 13px; font-weight: 700; cursor: pointer; line-height: 1.15; }
+.start button[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary-soft-fg); }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opts.one { grid-template-columns: 1fr; }
+.opt { position: relative; min-height: 60px; border-radius: 14px; border: 0; background: var(--tonal); color: var(--tonal-fg); font-size: 15px; font-weight: 700; text-align: left; padding: 8px 12px; cursor: pointer; line-height: 1.2; display: flex; flex-direction: column; justify-content: center; }
+.opt small { font-weight: 500; font-size: 12px; opacity: .85; }
+.opt:active { filter: brightness(.94); }
+.opt .tag { position: absolute; top: 6px; right: 8px; font-size: 10px; font-weight: 700; letter-spacing: .04em; background: var(--primary); color: #fff; padding: 2px 7px; border-radius: 8px; }
+.opt.top { background: var(--primary-soft); color: var(--primary-soft-fg); outline: 2px solid var(--primary); }
+.picked { display: flex; align-items: center; gap: 8px; min-height: 52px; border-radius: 14px; background: var(--primary-soft); color: var(--primary-soft-fg); padding: 6px 6px 6px 12px; }
+.picked span { flex: 1; font-weight: 700; font-size: 15px; line-height: 1.2; }
+.picked small { display: block; font-weight: 500; font-size: 11px; opacity: .85; }
+.picked button { min-height: 44px; padding: 0 12px; border-radius: 12px; border: 0; background: #fff; color: var(--primary-soft-fg); font-size: 12px; font-weight: 700; cursor: pointer; }
+.search { width: 100%; min-height: 48px; border-radius: 14px; border: 1.5px solid var(--line-strong); background: var(--surface); padding: 0 14px; font: inherit; font-size: 15px; color: var(--fg); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 13px; font-weight: 700; }
+.fake { min-height: 48px; border-radius: 14px; background: var(--tonal); padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-weight: 500; }
+.go { min-height: 60px; border: 0; border-radius: 14px; background: var(--green); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: .02em; line-height: 1.2; padding: 6px 10px; }
+.go[disabled] { background: #c9d2c9; color: #fff; cursor: default; }
+.go small { display: block; font-size: 12px; font-weight: 500; opacity: .92; margin-top: 2px; }
+.note { font-size: 12px; color: var(--fg-2); margin: 0; }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 12px; background: #1b2638; color: #fff; border-radius: 14px; padding: 10px 10px 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.toast span { flex: 1; line-height: 1.25; }
+.toast button { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 0; background: #dfe4ef; color: #1b2b4b; font-weight: 700; font-size: 13px; cursor: pointer; }
+
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.num{min-height:60px;border-radius:14px;border:0;background:var(--tonal);color:var(--tonal-fg);font-size:20px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
+.num small{font-size:10px;font-weight:500;opacity:.85;margin-top:2px;text-align:center}
+.backtype{min-height:44px;border-radius:12px;border:0;background:var(--tonal);color:var(--tonal-fg);font-size:13px;font-weight:700;padding:0 14px;cursor:pointer;align-self:flex-start}
+.chip.btn{border:0;cursor:pointer;height:38px;padding:0 14px;font-weight:700}
+.chip.btn.sel{background:var(--primary);color:#fff}
+</style>
+
+<p class="ctl" style="padding:10px 14px;font-size:13px;opacity:.85">Τα ονόματα μέσων, τμημάτων και εργαζομένων είναι δείγματα. Στην εφαρμογή θα έρχονται από τα πραγματικά δεδομένα και το ιστορικό.</p>
+
+<main class="phone">
+  <header class="appbar"><h1>WEEE Platform 2.5.41</h1><button class="server">SERVER</button></header>
+  <div class="body">
+    <div class="userrow"><b>admin</b><div style="display:flex;gap:8px;align-items:center"><button class="chip btn" id="dd">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button><span class="chip"><i class="dot"></i>ONLINE</span></div></div>
+    <div class="row2"><button class="big sel">ΠΙΡΟΥΝΙΑ</button><button class="big">ΠΛΑΚΕΣ</button></div>
+    <div class="row3"><button class="mid">ΠΑΡΑΛΑΒΕΣ</button><button class="mid sel" id="tabprod">ΠΑΡΑΓΩΓΗ</button><button class="mid">ΦΟΡΤΩΣΕΙΣ</button></div>
+    <div class="row3" id="start">
+      <button class="mid sel" data-f="d" aria-pressed="true">ΤΜΗΜΑ</button><button class="mid" data-f="m" aria-pressed="false">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button class="mid" data-f="a" aria-pressed="false">ΑΗΗΕ</button>
+    </div>
+
+    <section class="sheet" id="v-flow">
+      <div id="flow" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div class="field"><label>Εργαζόμενος (προαιρετικό)</label><div class="fake">Συγκεντρωτικά τμήματος</div></div>
+      <button class="go" id="send" disabled>ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button>
+    </section>
+    <div id="v-day" style="display:none;flex-direction:column;gap:10px">
+      <section class="sheet">
+        <div style="display:flex;align-items:center;justify-content:space-between"><h2>Δελτίο Παραγωγής</h2><div class="fake" style="width:150px;min-height:44px">10/02/2026</div></div>
+        <div class="row2"><button class="opt" style="align-items:center;min-height:64px">ΕΡΓΑΖΟΜΕΝΟΙ</button><button class="opt" style="align-items:center;min-height:64px">ΤΜΗΜΑΤΑ</button></div>
+      </section>
+      <section class="sheet"><h2 style="font-size:18px">Τοποθετημένοι σήμερα</h2><p class="note">Καμία τοποθέτηση.</p></section>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden><span id="tmsg"></span><button id="undo">ΑΚΥΡΩΣΗ</button></div>
+</main>
+
+
+<script>
+/* ΔΕΙΓΜΑΤΑ – όχι πραγματικά δεδομένα */
+var AHEE = ["Εκτυπωτές", "Τηλεοράσεις LCD", "Φωτιστικά", "Πλυντήρια", "Κουζίνες"];
+var GROUPS = [["Καλάθι μεγάλο", "Καλάθι μικρό"], ["Infocycle 1", "Infocycle 2"], ["Παλέτα", "Σάκος", "Χύμα"]];
+var SINGLE = ["Χύμα"];
+var TYPES = [].concat.apply([], GROUPS);
+var FULLNUM = { "Καλάθι μεγάλο": [3, 5, 8, 11, 12, 14, 17, 19], "Καλάθι μικρό": [2, 4, 7, 9, 13, 16, 21, 24, 28, 31], "Infocycle 1": [1, 3, 4, 7, 9], "Infocycle 2": [2, 5, 6, 8], "Παλέτα": [1, 6, 10, 15, 18, 20], "Σάκος": [2, 5, 9, 12] };
+var MEDIA = [];
+TYPES.forEach(function (t, ti) {
+  if (SINGLE.indexOf(t) > -1) { MEDIA.push({ id: t, t: t, n: t, mat: "διάφορα" }); return; }
+  FULLNUM[t].forEach(function (k, i) { MEDIA.push({ id: t + k, t: t, num: k, n: t + " " + k, mat: AHEE[(i + ti) % AHEE.length] }); });
+});
+var DEPTS = { "Εκτυπωτές": ["Εργαζ. Α", "Εργαζ. Β"], "Οθόνες": ["Εργαζ. Γ"], "Πλυντήρια": ["Εργαζ. Δ"], "Φωτιστικά": ["Εργαζ. Ε"], "Κλιματιστικά": [] };
+var DEPT_ALL = ["Εκτυπωτές", "Οθόνες", "Πλυντήρια", "Φωτιστικά", "Κλιματιστικά"];
+var DEPT_MATS = { "Εκτυπωτές": ["Εκτυπωτές"], "Οθόνες": ["Τηλεοράσεις LCD"], "Πλυντήρια": ["Πλυντήρια", "Κουζίνες"], "Φωτιστικά": ["Φωτιστικά"], "Κλιματιστικά": ["Κουζίνες", "Πλυντήρια"] };
+var MAT_DEPT = { "Εκτυπωτές": ["Εκτυπωτές", "Οθόνες", "Φωτιστικά"], "Φωτιστικά": ["Φωτιστικά", "Εκτυπωτές", "Οθόνες"], "Τηλεοράσεις LCD": ["Οθόνες", "Εκτυπωτές", "Κλιματιστικά"], "Πλυντήρια": ["Πλυντήρια", "Κλιματιστικά", "Οθόνες"], "Κουζίνες": ["Πλυντήρια", "Κλιματιστικά", "Οθόνες"], "διάφορα": DEPT_ALL };
+var WORKERS_ALL = ["Εργαζ. Α", "Εργαζ. Β", "Εργαζ. Γ"];
+var FLOWS = { d: ["Τμήμα", "Μέσο συλλογής"], m: ["Μέσο συλλογής", "Τμήμα"], a: ["ΑΗΗΕ", "Μέσο συλλογής", "Τμήμα"] };
+var st = { f: "d", sel: [], worker: null, mt: null, other: false, tick: null };
+
+function med(id) { return MEDIA.filter(function (m) { return m.id === id; })[0]; }
+function uniq(a) { return a.filter(function (x, i) { return a.indexOf(x) === i; }); }
+function label(kind, v) { if (kind === "Μέσο συλλογής") { var m = med(v); return { t: m.n, s: m.mat }; } return { t: v, s: "" }; }
+function suggestMedia(mats) {
+  var out = [];
+  mats.forEach(function (mt) { MEDIA.forEach(function (m) { if (m.mat === mt && out.indexOf(m.id) < 0) out.push(m.id); }); });
+  return out.slice(0, 4);
+}
+function deptOptions(i) {
+  var prev = st.sel[i - 1], k = FLOWS[st.f][i - 1];
+  if (i === 0) return DEPT_ALL;
+  var mat = k === "ΑΗΗΕ" ? prev : med(prev).mat;
+  return uniq((MAT_DEPT[mat] || DEPT_ALL).concat(DEPT_ALL));
+}
+function deptOf() { return st.sel[FLOWS[st.f].indexOf("Τμήμα")]; }
+
+function choose(step, val) { st.sel = st.sel.slice(0, step); st.sel[step] = val; st.worker = null; st.mt = null; st.other = false; render(); }
+function change(step) { st.sel = st.sel.slice(0, step); st.worker = null; st.mt = null; st.other = false; render(); }
+
+function mediumPicker(i, h) {
+  var suggest = st.f !== "m" && !st.other;
+  if (suggest) {
+    var ids = st.f === "d" ? suggestMedia(DEPT_MATS[st.sel[0]]) : suggestMedia([st.sel[0]]);
+    h += '<div class="opts">';
+    ids.forEach(function (id, j) { var m = med(id); h += '<button class="opt' + (j === 0 ? " top" : "") + '" data-step="' + i + '" data-val="' + id + '">' + (j === 0 ? '<span class="tag">ΠΙΘΑΝΟ</span>' : "") + m.n + "<small>" + m.mat + "</small></button>"; });
+    h += '<button class="opt" data-other="1" style="background:#fff;border:1.5px solid var(--line-strong)">ΑΛΛΟ ΜΕΣΟ<small>επιλογή τύπου</small></button></div>';
+    return h;
+  }
+  if (!st.mt) {
+    GROUPS.forEach(function (g, gi) {
+      h += '<div class="opts" style="' + (gi ? "margin-top:18px" : "") + '">';
+      g.forEach(function (t) {
+        var n = MEDIA.filter(function (m) { return m.t === t; }).length;
+        h += '<button class="opt" data-type="' + t + '">' + t + "<small>" + (SINGLE.indexOf(t) > -1 ? "επιλογή απευθείας" : n + " γεμάτα") + "</small></button>";
+      });
+      h += "</div>";
+    });
+    return h;
+  }
+  h += '<button class="backtype" data-type="">‹ ΑΛΛΟΣ ΤΥΠΟΣ</button><div class="grid4" style="margin-top:8px">';
+  MEDIA.filter(function (m) { return m.t === st.mt; }).forEach(function (m) { h += '<button class="num" data-step="' + i + '" data-val="' + m.id + '">' + m.num + "<small>" + m.mat + "</small></button>"; });
+  return h + "</div>";
+}
+
+function render() {
+  var steps = FLOWS[st.f], total = steps.length, done = st.sel.length === total, h = "";
+  for (var i = 0; i < total; i++) {
+    var k = steps[i], n = (i + 1) + ". " + k;
+    if (i < st.sel.length) {
+      var lb = label(k, st.sel[i]);
+      h += '<div><div class="lbl">' + n + '</div><div class="picked"><span>' + lb.t + (lb.s ? "<small>" + lb.s + "</small>" : "") + '</span><button data-chg="' + i + '">ΑΛΛΑΓΗ</button></div></div>';
+    } else if (i === st.sel.length) {
+      var head = '<div><div class="lbl">' + n + (k === "Τμήμα" && i > 0 ? " – πιθανότερα πρώτα" : "") + "</div>";
+      if (k === "Μέσο συλλογής") h += head + mediumPicker(i, "") + "</div>";
+      else {
+        var opts = k === "ΑΗΗΕ" ? AHEE : deptOptions(i);
+        h += head;
+        if (k === "ΑΗΗΕ") h += '<input class="search" placeholder="Αναζήτηση ΑΗΗΕ (μόνο αν δεν το βρίσκεις)" style="margin-bottom:8px">';
+        h += '<div class="opts">';
+        opts.forEach(function (v, j) {
+          var top = k === "Τμήμα" && i > 0 && j === 0;
+          h += '<button class="opt' + (top ? " top" : "") + '" data-step="' + i + '" data-val="' + v + '">' + (top ? '<span class="tag">ΠΙΘΑΝΟ</span>' : "") + v + "</button>";
+        });
+        h += "</div></div>";
+      }
+    }
+  }
+  var needW = false;
+  if (done) {
+    var d = deptOf();
+    if (DEPTS[d] && DEPTS[d].length === 0 && !st.worker) needW = true;
+    if (needW) {
+      h += '<div><div class="lbl">Το τμήμα «' + d + '» δεν έχει εργαζόμενο – ποιος πάει εκεί;</div><div class="opts">';
+      WORKERS_ALL.forEach(function (w) { h += '<button class="opt" data-w="' + w + '">' + w + "</button>"; });
+      h += "</div></div>";
+    } else if (st.worker) {
+      h += '<div><div class="lbl">Εργαζόμενος που μεταφέρεται</div><div class="picked"><span>' + st.worker + " → " + d + '</span><button data-chgw="1">ΑΛΛΑΓΗ</button></div></div>';
+    }
+  }
+  document.getElementById("flow").innerHTML = h;
+  var send = document.getElementById("send"), ready = done && !needW;
+  send.disabled = !ready;
+  if (ready) send.innerHTML = "ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ<small>" + st.sel.map(function (v, i) { return label(steps[i], v).t; }).join(" → ") + "</small>";
+  else send.textContent = "ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ";
+}
+
+document.getElementById("flow").addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.step !== undefined) choose(+b.dataset.step, b.dataset.val);
+  else if (b.dataset.chg !== undefined) change(+b.dataset.chg);
+  else if (b.dataset.w) { st.worker = b.dataset.w; render(); }
+  else if (b.dataset.chgw) { st.worker = null; render(); }
+  else if (b.dataset.other) { st.other = true; render(); }
+  else if (b.dataset.type !== undefined) {
+    if (SINGLE.indexOf(b.dataset.type) > -1) choose(st.sel.length, b.dataset.type);
+    else { st.mt = b.dataset.type || null; render(); }
+  }
+});
+document.getElementById("start").addEventListener("click", function (e) {
+  var b = e.target.closest("button");
+  if (!b) return;
+  Array.prototype.forEach.call(this.children, function (c) { var on = c === b; c.classList.toggle("sel", on); c.setAttribute("aria-pressed", String(on)); });
+  st.f = b.dataset.f; st.sel = []; st.worker = null; st.mt = null; st.other = false; showDay(false); render();
+});
+function showDay(on) {
+  document.getElementById("v-day").style.display = on ? "flex" : "none";
+  document.getElementById("v-flow").style.display = on ? "none" : "";
+  document.getElementById("start").style.display = on ? "none" : "";
+  document.getElementById("dd").classList.toggle("sel", on);
+  document.getElementById("tabprod").classList.toggle("sel", !on);
+}
+document.getElementById("dd").addEventListener("click", function () { showDay(true); });
+document.getElementById("tabprod").addEventListener("click", function () { showDay(false); });
+document.getElementById("send").addEventListener("click", function () {
+  var steps = FLOWS[st.f];
+  document.getElementById("tmsg").textContent = "Εστάλη ✓ " + st.sel.map(function (v, i) { return label(steps[i], v).t; }).join(" → ");
+  var t = document.getElementById("toast"); t.hidden = false;
+  st.sel = []; st.worker = null; st.mt = null; st.other = false; render();
+  clearTimeout(st.tick); st.tick = setTimeout(function () { t.hidden = true; }, 6000);
+});
+document.getElementById("undo").addEventListener("click", function () { document.getElementById("toast").hidden = true; });
+render();
+</script>
