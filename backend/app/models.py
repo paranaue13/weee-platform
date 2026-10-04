@@ -445,6 +445,7 @@ class SortingSession(Base, TimestampMixin):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     inbound_load_id: Mapped[str] = mapped_column(String(36), ForeignKey("inbound_loads.id", ondelete="CASCADE"), unique=True, index=True)
     status: Mapped[str] = mapped_column(String(40), default="NOT_STARTED", index=True)
+    correction: Mapped[bool] = mapped_column(Boolean, default=False)  # επιστράφηκε από τα Windows για διόρθωση ("Προς Διόρθωση") μέχρι να ξαναολοκληρωθεί από το Android
     started_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     started_by: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     sorting_confirmed_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)

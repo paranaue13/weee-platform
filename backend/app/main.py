@@ -79,6 +79,9 @@ async def lifespan(app: FastAPI):
         if "production_work_entries" in tables:
             pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
             if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
+        if "sorting_sessions" in tables:
+            ss_cols={c["name"] for c in inspect(engine).get_columns("sorting_sessions")}
+            if "correction" not in ss_cols: conn.execute(text("ALTER TABLE sorting_sessions ADD COLUMN correction BOOLEAN DEFAULT 0"))
         if "production_attendance" in tables:
             pa_cols={c["name"] for c in inspect(engine).get_columns("production_attendance")}
             if "arrived_at" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN arrived_at DATETIME"))
@@ -1784,6 +1787,8 @@ def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permis
         if effective_status=='IN_PROGRESS': effective_status='SORTING_IN_PROGRESS'
         # Opening a load starts its session, but it only counts as "in sorting" once at least one entry exists.
         if effective_status=='SORTING_IN_PROGRESS' and not (ses and entry_counts.get(ses.id)): effective_status='READY_FOR_SORTING'
+        # Επιστράφηκε από τα Windows (κουμπί «Προς Ταξινόμηση») -> «Προς Διόρθωση» μέχρι να ολοκληρωθεί ξανά από το Android
+        if ses and ses.correction and effective_status in ('SORTING_IN_PROGRESS','READY_FOR_SORTING'): effective_status='CORRECTION'
         out.append({'load_id':load.id,'session_id':ses.id if ses else None,'status':effective_status,'receipt_id':trip.id,'receipt_number':trip.receipt_number,
           'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''),
           'order_number':load.order_number,'dpp_number':load.dpp_number,'container_number':load.incoming_container_number,'net_weight':float(load.net_weight or 0),
@@ -1833,7 +1838,7 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
           'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat()})
     photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load.id).order_by(FileAttachment.created_at)).all()
     audits=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type.in_(['sorting_session','sorting_entry'])).order_by(models.AuditEvent.created_at.desc()).limit(100)).all()
-    return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
+    return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'correction':bool(ses.correction) if ses else False,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
       'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''), 'order_number':load.order_number,'net_weight':float(load.net_weight or 0),
       'sorting_weight':sum((r['approved_weight'] if r['approved_weight'] is not None else r['raw_weight']) for r in rows),'entries':rows,
       'dpp_number':load.dpp_number,'foreign_materials':(ses.foreign_materials if ses else None),'foreign_weight':(float(ses.foreign_weight) if ses and ses.foreign_weight is not None else 0),
@@ -2165,7 +2170,7 @@ def sorting_confirm(load_id:str, db:Session=Depends(get_db), user:User=Depends(r
     if not ses or ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
     entries=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
     if not entries: raise HTTPException(422,'Δεν υπάρχουν καταχωρημένα υλικά')
-    ses.status='LOGISTICS_REVIEW'; ses.sorting_confirmed_at=datetime.now(timezone.utc); ses.sorting_confirmed_by=user.id; load.status='SORTING_CONFIRMED'
+    ses.status='LOGISTICS_REVIEW'; ses.correction=False; ses.sorting_confirmed_at=datetime.now(timezone.utc); ses.sorting_confirmed_by=user.id; load.status='SORTING_CONFIRMED'
     write_audit(db,user,'sorting_session',ses.id,'SORTING_CONFIRM',new={'entries':len(entries)}); db.commit(); return _sorting_payload(db,load,ses)
 
 @app.post('/sorting/entries/{entry_id}/adjust', response_model=schemas.SortingEntryOut)
@@ -2204,7 +2209,7 @@ def logistics_review(load_id:str, data:schemas.LogisticsReviewCreate, db:Session
 def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή για διόρθωση'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Η ταξινόμηση δεν μπορεί να επιστραφεί σε αυτή την κατάσταση')
-    old=ses.status; ses.status='IN_PROGRESS'; load.status='SORTING_IN_PROGRESS'
+    old=ses.status; ses.status='IN_PROGRESS'; ses.correction=True; load.status='SORTING_IN_PROGRESS'
     write_audit(db,user,'sorting_session',ses.id,'REOPEN_TO_SORTING',old={'status':old},new={'status':'IN_PROGRESS'},reason=reason)
     db.commit(); return _sorting_payload(db,load,ses)
 
