@@ -739,6 +739,11 @@ body[data-theme="dark"]{--st1-bg:#2A3040;--st1-fg:#C9CFDC;--st2-bg:#23365E;--st2
 .prodTable tfoot td:first-child{background:var(--surface-2)!important}
 .prodTable tfoot td{background:var(--surface-2)!important}
 </style>
+<style id="stickyFootFix">
+/* Η sticky πρώτη στήλη του υποσυνόλου (tfoot) μένει πάνω από τα sticky-κάτω κελιά, ώστε οι στήλες που κυλούν να μην φαίνονται από κάτω της */
+.prodTable tfoot td:first-child{z-index:6!important;position:sticky;left:0;background:#eaf3ff!important}
+body[data-theme="dark"] .prodTable tfoot td:first-child{background:var(--surface-2,#1b2a3a)!important}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
