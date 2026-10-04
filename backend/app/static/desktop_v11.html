@@ -813,11 +813,47 @@ body[data-theme="dark"] .depConfirmActions>.btn.danger{color:#FF9D9D!important;b
 .deptPill{display:inline-flex;font-size:12px;font-weight:500;padding:2px 10px;border-radius:8px;background:var(--surface-2,#f0f3fa);color:var(--fg-2,#44474F)}
 #fpDepSave:disabled{opacity:.45;cursor:not-allowed}
 </style>
-<style id="readyCorrLook">
-.prodShipRow .corrCell{padding:0 4px}
-.prodShipRow .readyCorrInput{width:100%;min-width:60px;height:34px;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;text-align:right;font:inherit;font-weight:500;color:inherit;padding:0 8px;-moz-appearance:textfield;appearance:textfield}
-.prodShipRow .readyCorrInput:hover{background:var(--hover,#eaf0fd)!important}
-.prodShipRow .readyCorrInput:focus{outline:2px solid var(--accent,#2F5FC4);outline-offset:-2px;background:var(--surface,#fff)!important}
+<style id="corrLook">
+/* Διορθώσεις: γραμμές φόντο #FFF6E4 / κείμενο #7A4A00 (σκούρο θέμα προσαρμοσμένο) */
+.prodTable tfoot tr.corrRow td{background:#FFF6E4!important;color:#7A4A00!important;font-weight:500}
+body[data-theme="dark"] .prodTable tfoot tr.corrRow td{background:#3A2D14!important;color:#F2C987!important}
+.prodTable tfoot tr.corrRow td.negTot,.corrBtn.neg{color:#A32D2D!important}
+body[data-theme="dark"] .prodTable tfoot tr.corrRow td.negTot,body[data-theme="dark"] .corrBtn.neg{color:#FF9D9D!important}
+.corrCell{padding:0!important}
+.corrBtn{display:flex;align-items:center;justify-content:flex-end;gap:6px;width:100%;min-width:56px;height:100%;min-height:36px;padding:0 10px;border:0;background:transparent;color:inherit;font:inherit;font-weight:500;cursor:pointer;border-radius:0;box-shadow:none}
+.corrBtn:hover{outline:2px solid var(--pop-blue,#2F5FC4);outline-offset:-2px}
+.corrBtn[aria-expanded="true"]{background:#D8E2FF!important;color:#001A41}
+body[data-theme="dark"] .corrBtn[aria-expanded="true"]{background:#23365E!important;color:#DBE5FF}
+.corrBtn.neg[aria-expanded="true"]{color:#A32D2D}
+.corrCnt{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#D8E2FF;color:#001A41;font-size:11px;font-weight:500;line-height:1}
+body[data-theme="dark"] .corrCnt{background:#23365E;color:#DBE5FF}
+.corrPop{position:fixed;z-index:100000;width:340px;max-width:calc(100vw - 16px);box-sizing:border-box;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--line,#dfe3ea);border-radius:16px;box-shadow:0 8px 28px rgba(15,30,54,.22);padding:14px 14px 10px}
+.corrPop .cpTitle{font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.corrPop .cpSub{font-size:12px;color:var(--fg-2,#74777F);margin-bottom:6px}
+.corrPop .cpList{max-height:190px;overflow:auto;margin-bottom:8px}
+.corrPop .cpRow{display:flex;align-items:center;gap:8px;height:38px;border-top:1px solid var(--line,#e5e8ee)}
+.corrPop .cpRow:first-child{border-top:0}
+.corrPop .cpDate{width:40px;font-size:13px;color:var(--fg-2,#44474F);flex:none}
+.corrPop .cpAmt{font-weight:500;font-size:14px;flex:none;min-width:56px;text-align:right}
+.corrPop .neg{color:#A32D2D}
+body[data-theme="dark"] .corrPop .neg{color:#FF9D9D}
+.corrPop .cpNote{flex:1;min-width:0;font-size:12px;color:var(--fg-2,#74777F);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.corrPop .cpDel{flex:none;min-width:32px;height:32px;border-radius:999px;border:0;background:transparent;color:var(--fg-2,#44474F);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font:inherit;font-size:12px;font-weight:500}
+.corrPop .cpDel:hover{background:var(--surface-2,#f0f3fa)}
+.corrPop .cpDel.arm{background:#A32D2D;color:#fff;padding:0 10px}
+.corrPop .cpEmpty{font-size:13px;color:var(--fg-2,#74777F);padding:8px 0}
+.corrPop .cpLbl{font-size:12px;color:var(--fg-2,#44474F);margin:2px 0 4px}
+.corrPop .cpFields{display:flex;gap:8px}
+.corrPop .cpFields input{height:40px;border-radius:12px;border:1px solid var(--line-strong,#b9bdc9);background:var(--surface,#fff);color:inherit;padding:0 12px;font:inherit;font-size:14px;min-width:0;box-sizing:border-box}
+.corrPop #cpNum{flex:0 0 118px}.corrPop #cpNote{flex:1}
+.corrPop #cpNum.bad{border-color:#C42B1C;background:#FCEBEB}
+body[data-theme="dark"] .corrPop #cpNum.bad{background:#3A1D1F}
+.corrPop .cpFoot{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.corrPop .cpTot{font-size:13px;font-weight:500}
+.corrPop .cpAdd{height:36px;padding:0 20px;border-radius:999px;border:0;background:#2F5FC4;color:#fff;font:inherit;font-size:14px;font-weight:500;cursor:pointer}
+body[data-theme="dark"] .corrPop .cpAdd{background:#8FB0FF;color:#001A41}
+.corrPop .cpAdd:disabled{opacity:.5}
+.corrPop .cpHint{font-size:11px;color:var(--fg-2,#74777F);margin-top:6px}
 </style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
@@ -892,6 +928,25 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 #sortingDetail :is(#sortReopenBtn,#sortMarkReview,#sortCorrectionBtn,#sortCompleteBtn){background:var(--k-bg)!important;color:var(--k-fg)!important;border:1px solid var(--k-fg)!important}
 #sortingDetail :is(#sortReopenBtn,#sortMarkReview,#sortCorrectionBtn,#sortCompleteBtn):disabled{opacity:.4}
 #sortingDetail:has(.sortingPopupTitleBlock .stg-sorting) #sortReopenBtn,#sortingDetail:has(.sortingPopupTitleBlock .stg-review) #sortMarkReview,#sortingDetail:has(.sortingPopupTitleBlock .stg-correct) #sortCorrectionBtn,#sortingDetail:has(.sortingPopupTitleBlock .stg-done) #sortCompleteBtn{opacity:1!important}
+</style>
+<style id="winBar">
+/* ΚΟΙΝΗ γραμμή τίτλου όλων των παραθύρων: 56px, τίτλος αριστερά (flex:1 + …), 3 εικονίδια 46x56 κολλημένα στην πάνω δεξιά γωνία */
+:is(#floatingEditor,#receiptForm,#sortingDetail){overflow:auto;resize:both;min-width:min(360px,calc(100vw - 16px));min-height:120px;padding:16px}
+#floatingEditor{width:max-content;min-width:min(760px,calc(100vw - 48px));max-width:calc(100vw - 16px);max-height:calc(100vh - 80px)}
+:is(.floatPanelHeader,.receiptPopupHeader){margin:-16px -16px 14px!important;padding:0 0 0 20px!important;position:sticky;top:-16px;z-index:30;height:56px;min-height:56px;gap:0!important;flex-wrap:nowrap}
+:is(.floatPanelHeader,.receiptPopupHeader)>h3{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(.floatPanelHeader,.receiptPopupHeader)>div:last-child,#sortingDetail .sortingPopupTopRow>div:last-child:has(.winCtl),#sortingDetail .winCtl:first-child{gap:0}
+:is(.floatPanelHeader,.receiptPopupHeader)>div:last-child{display:flex!important;flex:none;gap:0!important;margin:0!important;align-self:stretch}
+:is(#floatingEditor,#receiptForm,#sortingDetail) .winCtl{width:46px!important;min-width:46px!important;height:56px!important;border-radius:0!important;margin:0!important;flex:none}
+:is(#floatingEditor,#receiptForm,#sortingDetail) .winCtl::before{width:20px;height:20px}
+/* sorting: η γραμμή τίτλου του #sortingDetail */
+#sortingDetail .sortingPopupHeader{margin:-16px -16px 14px!important;padding:0 0 14px 20px!important;position:sticky;top:-16px;z-index:30}
+#sortingDetail .sortingPopupTopRow{display:flex;align-items:flex-start;min-height:56px}
+#sortingDetail .sortingPopupTopRow>*:not(.winCtl){align-self:center}
+#sortingDetail .sortingPopupTopRow>div:last-child{align-self:flex-start!important;display:flex;gap:0;flex:none;margin:0}
+#sortingDetail .sortingPopupTitleBlock{flex:1 1 auto;min-width:0}
+.popupMin :is(.floatPanelHeader,.receiptPopupHeader){padding:0 0 0 12px!important;margin:0!important}
+.popupMin .winCtl{width:40px!important;min-width:40px!important;height:46px!important}
 </style>
 </head><body>
 <div id="login" class="login"><h1>WEEE Platform</h1><p class="muted">Windows Unified Test Build 2.5.35 Intermediate</p><label>Χρήστης</label><input id="user" value="admin"><label>Κωδικός</label><input id="pass" type="password" value="ChangeMe123!"><button class="btn" id="loginBtn" style="width:100%">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
@@ -2045,11 +2100,13 @@ function renderReadyMaterials(){
  let corrections=(readyState.corrections||[]).filter(x=>bodyCols.some(c=>readyNorm(c.label)===readyNorm(x.material_label)));
  const correctionKg=c=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)).reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
  let correctionTotal=corrections.reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
- const corrPcKg=(c,k)=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)).reduce((s2,x)=>s2+Number(x[k]||0),0);
- const corrCell=(c,k,kind)=>{let v=corrPcKg(c,k);return `<td class="corrCell"><input type="number" step="${kind==='pc'?1:'any'}" class="readyCorrInput" data-kind="${kind}" data-label="${esc(c.label)}" value="${v||''}" aria-label="${kind==='pc'?'Διόρθωση τεμαχίων':'Διόρθωση κιλών'} ${esc(c.label)}"></td>`};
+ const corrItems=(c,k)=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)&&Number(x[k]));
+ const corrFmt=n=>(n<0?'−':'')+Math.abs(n).toLocaleString('el-GR',{maximumFractionDigits:3});
+ const corrCell=(c,k,kind)=>{let it=corrItems(c,k),v=it.reduce((s2,x)=>s2+Number(x[k]),0);return `<td class="corrCell"><button type="button" class="corrBtn${v<0?' neg':''}" data-autoclose-trigger data-kind="${kind}" data-label="${esc(c.label)}" aria-expanded="false" title="Κινήσεις διόρθωσης">${it.length>1?`<span class="corrCnt">${it.length}</span>`:''}<span class="corrVal">${it.length?corrFmt(v):''}</span></button></td>`};
+ let correctionTotal2=corrections.reduce((s2,x)=>s2+Number(x.weight_kg_delta||0),0);
  let correctionPcTotal=corrections.reduce((s2,x)=>s2+Number(x.piece_delta||0),0);
- let correctionRow=isMonthView?`<tr class="prodShipRow" id="readyCorrectionRow" style="cursor:pointer" title="Κλικ για το ιστορικό κινήσεων"><td>Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(ιστορικό)</span>':''}</td><td>${corrections.length?prodVal(correctionTotal):''}</td>${bodyCols.map(c=>corrCell(c,'weight_kg_delta','kg')).join('')}</tr>`
-   +`<tr class="prodShipRow" id="readyCorrectionPcRow" style="cursor:pointer" title="Κλικ για το ιστορικό κινήσεων"><td>Διορθώσεις τεμαχίων</td><td>${correctionPcTotal||''}</td>${bodyCols.map(c=>corrCell(c,'piece_delta','pc')).join('')}</tr>`:'';
+ let correctionRow=isMonthView?`<tr class="prodShipRow corrRow" id="readyCorrectionRow"><td><span id="readyCorrHistLink" style="cursor:pointer">Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(ιστορικό)</span>':''}</span></td><td class="${correctionTotal2<0?'negTot':''}">${corrections.some(x=>Number(x.weight_kg_delta))?corrFmt(correctionTotal2):''}</td>${bodyCols.map(c=>corrCell(c,'weight_kg_delta','kg')).join('')}</tr>`
+   +`<tr class="prodShipRow corrRow" id="readyCorrectionPcRow"><td>Διορθώσεις τεμαχίων</td><td class="${correctionPcTotal<0?'negTot':''}">${corrections.some(x=>Number(x.piece_delta))?corrFmt(correctionPcTotal):''}</td>${bodyCols.map(c=>corrCell(c,'piece_delta','pc')).join('')}</tr>`:'';
  readyState.corrCols=bodyCols.map(c=>c.label);
 
  // Τεμάχια: count of ready-material lots WITH a storage medium (σακός/παλέτα) -- a lot without one
@@ -2072,27 +2129,8 @@ function renderReadyMaterials(){
   +piecesBalanceRow
   +invRow;
  readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
- document.querySelectorAll('.readyCorrInput').forEach(inp=>{
-   inp.onclick=e=>e.stopPropagation();
-   // Στο κελί φαίνεται το σύνολο του μήνα· όταν το πατήσεις αδειάζει και ό,τι γράψεις (+ ή -) είναι ΝΕΑ κίνηση που προστίθεται στο απόθεμα
-   inp.onfocus=()=>{inp.dataset.shown=inp.value;inp.placeholder=inp.value||'+ / −';inp.value=''};
-   inp.onblur=()=>{if(inp.value===''&&inp.dataset.shown!==undefined)inp.value=inp.dataset.shown};
-   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.blur()}else if(e.key==='Escape'){inp.value='';inp.blur()}};
-   inp.onchange=async()=>{
-     let v=inp.value===''?0:Number(inp.value);
-     if(!Number.isFinite(v)||!v){inp.value=inp.dataset.shown||'';return}
-     let pc=inp.dataset.kind==='pc',shown=inp.dataset.shown||'';delete inp.dataset.shown;inp.disabled=true;
-     try{await readyCorrPost({work_date:readyCorrDate(),material_label:inp.dataset.label,weight_kg_delta:pc?0:v,piece_delta:pc?Math.round(v):0,reason:'Χειροκίνητη διόρθωση'});await loadReadyMaterials()}
-     catch(err){inp.disabled=false;inp.value=shown;alert(err?.message||String(err))}
-   };
- });
- let corrHist=(e)=>{if(e.target.closest('input'))return;if(corrections.length)readyCorrHistory(corrections)};
- ['readyCorrectionRow','readyCorrectionPcRow'].forEach(id=>{if($(id))$(id).onclick=corrHist});
- if(false)if(corrections.length&&$('readyCorrectionRow'))$('readyCorrectionRow').onclick=(e)=>{
-   if(e.target.closest('input'))return;
-   let rows=corrections.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td><b>${esc(x.material_label)}</b></td><td>${prodVal(Number(x.weight_kg_delta))}</td><td>${x.piece_delta||0}</td><td>${esc(x.reason||'')}</td><td>${esc(x.created_by||'')}</td></tr>`).join('');
-   openFloat('Διορθώσεις υλικών '+readyPW(),`<div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Υλικό</th><th>Κιλά</th><th>Τεμάχια</th><th>Αιτιολογία</th><th>Χρήστης</th></tr></thead><tbody>${rows}</tbody></table></div>`);
- };
+ document.querySelectorAll('.corrBtn').forEach(btn=>{btn.onclick=e=>{e.stopPropagation();openCorrPopover(btn)}});
+ if($('readyCorrHistLink'))$('readyCorrHistLink').onclick=()=>{if(corrections.length)readyCorrHistory(corrections)};
  stickyStackFooter('readyMatFoot');
  // Drag-and-drop: dragging a material header onto the group tabs (wired separately) reclassifies
  // it; dragging it onto another material's header in this same list reorders both within the group.
@@ -2285,6 +2323,42 @@ function wireDeltio(){
 }
 if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
 // Διορθώσεις υλικών: ιστορικό αναίρεσης/επανάληψης της συνεδρίας (κάθε διόρθωση = μία εγγραφή στον server)
+function corrPopClose(){document.querySelectorAll('.corrPop').forEach(x=>x.remove());document.querySelectorAll('.corrBtn[aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'))}
+function openCorrPopover(btn){
+  let was=document.querySelector('.corrPop');let same=was&&was.dataset.label===btn.dataset.label&&was.dataset.kind===btn.dataset.kind;corrPopClose();if(same)return;
+  let label=btn.dataset.label,pc=btn.dataset.kind==='pc',k=pc?'piece_delta':'weight_kg_delta',unit=pc?'τεμ.':'kg';
+  let items=(readyState.corrections||[]).filter(x=>readyNorm(x.material_label)===readyNorm(label)&&Number(x[k])).sort((a,b)=>String(a.created_at||a.work_date).localeCompare(String(b.created_at||b.work_date)));
+  let fmt=n=>(n<0?'−':'')+Math.abs(n).toLocaleString('el-GR',{maximumFractionDigits:3}),total=items.reduce((a,x)=>a+Number(x[k]),0);
+  let m=(readyState.cursor||new Date()).toLocaleDateString('el-GR',{month:'long',year:'numeric'});m=m.charAt(0).toUpperCase()+m.slice(1);
+  let pop=document.createElement('div');pop.className='corrPop autoCloseMenu';pop.dataset.label=label;pop.dataset.kind=btn.dataset.kind;
+  pop.innerHTML=`<div class="cpTitle">${pc?'Διορθώσεις τεμαχίων':'Διορθώσεις'} – ${esc(label)}</div><div class="cpSub">${esc(m)}</div>
+  <div class="cpList">${items.length?items.map(x=>`<div class="cpRow"><span class="cpDate">${esc(String(x.work_date).slice(8,10)+'/'+String(x.work_date).slice(5,7))}</span><b class="cpAmt${Number(x[k])<0?' neg':''}">${fmt(Number(x[k]))}</b><span class="cpNote" title="${esc(x.reason||'')}">${esc(x.reason||'')}</span><button type="button" class="cpDel" data-id="${x.id}" aria-label="Διαγραφή κίνησης" title="Διαγραφή"><svg viewBox="0 -960 960 960" width="18" height="18"><path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg></button></div>`).join(''):'<div class="cpEmpty">Καμία διόρθωση αυτόν τον μήνα.</div>'}</div>
+  <div class="cpNew"><div class="cpLbl">Νέα διόρθωση</div><div class="cpFields"><input type="text" inputmode="decimal" id="cpNum" placeholder="${pc?'5 ή −2':'500 ή −200'}" autocomplete="off"><input type="text" id="cpNote" placeholder="Σημείωση" autocomplete="off"></div></div>
+  <div class="cpFoot"><span class="cpTot${total<0?' neg':''}">Σύνολο: ${items.length?fmt(total):'0'} ${unit}</span><button type="button" class="cpAdd" id="cpAdd">Προσθήκη</button></div>
+  <div class="cpHint">Χωρίς πρόσημο = θετικό. Με «−» αφαιρείται.</div>`;
+  document.body.appendChild(pop);btn.setAttribute('aria-expanded','true');
+  let r=btn.getBoundingClientRect(),ph=pop.offsetHeight,left=Math.max(8,Math.min(r.left,innerWidth-340-12)),top=r.bottom+6;
+  if(top+ph>innerHeight-8)top=Math.max(8,r.top-ph-6);
+  pop.style.left=left+'px';pop.style.top=top+'px';
+  let reopen=async()=>{await loadReadyMaterials();corrPopClose();let nb=[...document.querySelectorAll('.corrBtn')].find(b=>b.dataset.label===label&&b.dataset.kind===btn.dataset.kind);if(nb)openCorrPopover(nb)};
+  let add=async()=>{
+    let raw=$('cpNum').value.trim().replace(/[−–—]/g,'-').replace(/\s+/g,'').replace(',','.');
+    let v=raw===''?NaN:Number(raw);if(pc&&Number.isFinite(v)&&!Number.isInteger(v))v=NaN;
+    if(!Number.isFinite(v)||v===0){$('cpNum').classList.add('bad');$('cpNum').focus();return}
+    $('cpAdd').disabled=true;
+    try{await readyCorrPost({work_date:readyCorrDate(),material_label:label,weight_kg_delta:pc?0:v,piece_delta:pc?v:0,reason:$('cpNote').value.trim()||null});await reopen()}
+    catch(err){$('cpAdd').disabled=false;$('cpNum').classList.add('bad');alert(err?.message||String(err))}
+  };
+  $('cpAdd').onclick=add;
+  $('cpNum').oninput=()=>$('cpNum').classList.remove('bad');
+  [$('cpNum'),$('cpNote')].forEach(i=>i.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();add()}});
+  pop.querySelectorAll('.cpDel').forEach(d=>{let armed=false;d.onclick=async()=>{
+    if(!armed){armed=true;d.classList.add('arm');d.textContent='Σίγουρα;';setTimeout(()=>{if(d.isConnected&&armed){armed=false;d.classList.remove('arm');d.innerHTML='<svg viewBox="0 -960 960 960" width="18" height="18"><path fill="currentColor" d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>'}},4000);return}
+    try{await api('/inventory/material-corrections/'+d.dataset.id,{method:'DELETE'});readyCorrUndo=readyCorrUndo.filter(o=>o.id!==d.dataset.id);await reopen()}catch(err){armed=false;alert(err?.message||String(err))}}});
+  const onKey=e=>{if(e.key==='Escape'){corrPopClose()}};document.addEventListener('keydown',onKey);
+  const mo=new MutationObserver(()=>{if(!pop.isConnected){mo.disconnect();document.removeEventListener('keydown',onKey);btn.setAttribute('aria-expanded','false')}});mo.observe(document.body,{childList:true});
+  setTimeout(()=>$('cpNum')?.focus(),0);
+}
 function readyCorrHistory(list){
   let isMgmt=(me?.roles||[]).includes('MANAGEMENT');
   let sg=n=>{n=Number(n||0);return n>0?'+'+n.toLocaleString('el-GR'):n<0?'−'+Math.abs(n).toLocaleString('el-GR'):'0'};
@@ -3306,6 +3380,20 @@ function openFloatAt(title,html,x,y){
  });
  return p;
 }
+// Παράθυρα: προσαρμογή στο περιεχόμενο· ρυθμιζόμενο πλάτος/ύψος· θυμούνται το τελευταίο μέγεθος που διάλεξε ο χρήστης (ανά τύπο παραθύρου)
+(function(){
+  const KEY='popupSizes1',MONTHS='Ιανουαρίου|Φεβρουαρίου|Μαρτίου|Απριλίου|Μαΐου|Ιουνίου|Ιουλίου|Αυγούστου|Σεπτεμβρίου|Οκτωβρίου|Νοεμβρίου|Δεκεμβρίου';
+  const load=()=>{try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}}};
+  const save=(k,w,h)=>{try{let o=load();o[k]={w,h};localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}};
+  const keyOf=t=>String(t||'').replace(new RegExp('\\s*('+MONTHS+')\\s*','g'),' ').replace(/[0-9]+/g,'').replace(/[·:\-–].*$/,'').replace(/\s+/g,' ').trim();
+  window.popupApplySize=function(p,k){p.dataset.sizeKey=k;p.style.width='';p.style.height='';let s=load()[k];if(s){p.style.width=Math.min(s.w,innerWidth-16)+'px';p.style.height=Math.min(s.h,innerHeight-16)+'px'}};
+  const base=openFloat;
+  openFloat=function(title,html){let p=base(title,html);p.style.top='max(64px,5vh)';popupApplySize(p,'float:'+keyOf(title));return p};
+  [['receiptForm','receipt'],['sortingDetail','sorting']].forEach(([id,k])=>{let p=document.getElementById(id);if(!p)return;new MutationObserver(()=>{if(!p.classList.contains('hidden')&&!p.dataset.sized){p.dataset.sized='1';popupApplySize(p,'win:'+k)}else if(p.classList.contains('hidden'))delete p.dataset.sized}).observe(p,{attributes:true,attributeFilter:['class']})});
+  let drag=null;
+  document.addEventListener('pointerdown',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(e.clientX>r.right-24&&e.clientY>r.bottom-24)drag={p,w:r.width,h:r.height}},true);
+  document.addEventListener('pointerup',()=>{if(!drag)return;let {p,w,h}=drag;drag=null;setTimeout(()=>{let r=p.getBoundingClientRect();if(Math.abs(r.width-w)>2||Math.abs(r.height-h)>2)save(p.dataset.sizeKey||('win:'+p.id),Math.round(r.width),Math.round(r.height))},0)},true);
+})();
 $('floatingEditorClose').onclick=()=>$('floatingEditor').classList.add('hidden');
 $('floatingEditorMax').onclick=()=>{let f=$('floatingEditor');f.classList.remove('popupMin');f.classList.toggle('popupMax')};
 $('floatingEditorMin').onclick=()=>toggleMin($('floatingEditor'));

@@ -1318,12 +1318,9 @@ def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Dep
 
 @app.delete("/inventory/material-corrections/{entry_id}")
 def delete_material_correction(entry_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
-    """Αναίρεση: μόνο η δική σου πρόσφατη (έως 12 ώρες) διόρθωση -- η οριστική διαγραφή ιστορικού είναι μόνο για τη Διοίκηση (/permanent)."""
+    """Διαγραφή κίνησης διόρθωσης από το παράθυρο κινήσεων / Αναίρεση. Η «οριστική διαγραφή από το ιστορικό» είναι ξεχωριστή και μόνο για τη Διοίκηση (/permanent)."""
     obj=db.get(models.MaterialCorrectionEntry,entry_id)
     if not obj: raise HTTPException(404,"Δεν βρέθηκε")
-    is_mgmt=any(r.code=="MANAGEMENT" for r in user.roles)
-    recent=obj.created_at and (datetime.utcnow()-obj.created_at.replace(tzinfo=None))<timedelta(hours=12)
-    if not is_mgmt and not (obj.created_by_user_id==user.id and recent): raise HTTPException(403,"Η διαγραφή ιστορικού επιτρέπεται μόνο στη Διοίκηση")
     write_audit(db,user,'material_correction',obj.id,'DELETE',old={'material':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta})
     db.delete(obj); db.commit()
     return {"ok":True}
