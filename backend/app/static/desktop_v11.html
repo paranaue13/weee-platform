@@ -813,6 +813,12 @@ body[data-theme="dark"] .depConfirmActions>.btn.danger{color:#FF9D9D!important;b
 .deptPill{display:inline-flex;font-size:12px;font-weight:500;padding:2px 10px;border-radius:8px;background:var(--surface-2,#f0f3fa);color:var(--fg-2,#44474F)}
 #fpDepSave:disabled{opacity:.45;cursor:not-allowed}
 </style>
+<style id="readyCorrLook">
+#readyCorrectionRow .corrCell{padding:0 4px}
+#readyCorrectionRow .readyCorrInput{width:100%;min-width:60px;height:34px;border:0!important;background:transparent!important;box-shadow:none!important;border-radius:0!important;text-align:right;font:inherit;font-weight:500;color:inherit;padding:0 8px;-moz-appearance:textfield;appearance:textfield}
+#readyCorrectionRow .readyCorrInput:hover{background:var(--hover,#eaf0fd)!important}
+#readyCorrectionRow .readyCorrInput:focus{outline:2px solid var(--accent,#2F5FC4);outline-offset:-2px;background:var(--surface,#fff)!important}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -968,7 +974,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 <div class="periodPickerDropdown hidden" id="readyPeriodDropdown"><div class="periodPickerYears" id="readyPeriodYears"></div><div class="periodPickerGrid" id="readyPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="readyPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
 </div>
-<div id="readyStockOnlyWrap" class="toggleRow" style="margin-bottom:12px;justify-content:space-between"><label class="toggleSwitch"><input type="checkbox" id="readyStockOnlyToggle"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span><button class="btn alt" id="readyExportBtn" style="margin-left:auto">+ Εξαγωγή υλικών</button></div>
+<div id="readyStockOnlyWrap" class="toggleRow" style="margin-bottom:12px;justify-content:space-between"><label class="toggleSwitch"><input type="checkbox" id="readyStockOnlyToggle"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span><span id="readyCorrBtns" class="hidden" style="margin-left:auto;display:inline-flex;gap:8px;align-items:center"><span id="readyCorrMsg" class="muted" style="font-size:13px"></span><button class="btn alt" id="readyCorrAddBtn" title="Νέα διόρθωση υλικού">+ Προσθήκη</button><button class="btn alt" id="readyCorrUndoBtn" title="Αναίρεση της τελευταίας διόρθωσης" disabled>↶ Αναίρεση</button><button class="btn alt" id="readyCorrRedoBtn" title="Επανάληψη της διόρθωσης που αναιρέθηκε" disabled>↷ Επανάληψη</button></span><button class="btn alt" id="readyExportBtn">+ Εξαγωγή υλικών</button></div>
 <div id="readyQuarterInventoryCard" class="card hidden"><h3>Φυσική απογραφή</h3><div id="readyQuarterInventoryBody"></div></div>
 <div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
 <div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
@@ -2038,7 +2044,8 @@ function renderReadyMaterials(){
  let corrections=(readyState.corrections||[]).filter(x=>bodyCols.some(c=>readyNorm(c.label)===readyNorm(x.material_label)));
  const correctionKg=c=>corrections.filter(x=>readyNorm(x.material_label)===readyNorm(c.label)).reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
  let correctionTotal=corrections.reduce((s,x)=>s+Number(x.weight_kg_delta||0),0);
- let correctionRow=isMonthView?`<tr class="prodShipRow" id="readyCorrectionRow" style="cursor:pointer" title="Κλικ για αναλυτικά"><td><button type="button" class="linkLike" id="readyAddCorrectionBtn" title="Νέα διόρθωση" style="margin-right:6px;font-weight:800">+</button>Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(αναλυτικά)</span>':''}</td><td>${corrections.length?prodVal(correctionTotal):''}</td>${bodyCols.map(c=>`<td>${corrections.some(x=>readyNorm(x.material_label)===readyNorm(c.label))?prodVal(correctionKg(c)):''}</td>`).join('')}</tr>`:'';
+ let correctionRow=isMonthView?`<tr class="prodShipRow" id="readyCorrectionRow" style="cursor:pointer" title="Κλικ για αναλυτικά"><td>Διορθώσεις${corrections.length?' <span style="text-decoration:underline">(αναλυτικά)</span>':''}</td><td>${corrections.length?prodVal(correctionTotal):''}</td>${bodyCols.map(c=>{let v=correctionKg(c);return `<td class="corrCell"><input type="number" step="1" class="readyCorrInput" data-label="${esc(c.label)}" data-cur="${v}" value="${v||''}" aria-label="Διόρθωση ${esc(c.label)}"></td>`}).join('')}</tr>`:'';
+ readyState.corrCols=bodyCols.map(c=>c.label);
 
  // Τεμάχια: count of ready-material lots WITH a storage medium (σακός/παλέτα) -- a lot without one
  // is χύμα and isn't counted as a "piece". "<period>" mirrors Σύνολο's own scoping; the balance
@@ -2059,9 +2066,20 @@ function renderReadyMaterials(){
   +`<tr class="prodBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
   +piecesBalanceRow
   +invRow;
- if($('readyAddCorrectionBtn'))$('readyAddCorrectionBtn').onclick=(e)=>{e.stopPropagation();openReadyCorrectionModal(bodyCols.map(c=>c.label))};
+ readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
+ document.querySelectorAll('.readyCorrInput').forEach(inp=>{
+   inp.onclick=e=>e.stopPropagation();
+   inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();inp.blur()}};
+   inp.onchange=async()=>{
+     let cur=Number(inp.dataset.cur||0),nv=inp.value===''?0:Number(inp.value),delta=Math.round((nv-cur)*1000)/1000;
+     if(!Number.isFinite(delta)||!delta){inp.value=cur||'';return}
+     inp.disabled=true;
+     try{await readyCorrPost({work_date:readyCorrDate(),material_label:inp.dataset.label,weight_kg_delta:delta,piece_delta:0,reason:'Διόρθωση από τον πίνακα'});await loadReadyMaterials()}
+     catch(err){inp.disabled=false;inp.value=cur||'';alert(err?.message||String(err))}
+   };
+ });
  if(corrections.length&&$('readyCorrectionRow'))$('readyCorrectionRow').onclick=(e)=>{
-   if(e.target.id==='readyAddCorrectionBtn')return;
+   if(e.target.closest('input'))return;
    let rows=corrections.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td><b>${esc(x.material_label)}</b></td><td>${prodVal(Number(x.weight_kg_delta))}</td><td>${x.piece_delta||0}</td><td>${esc(x.reason||'')}</td><td>${esc(x.created_by||'')}</td></tr>`).join('');
    openFloat('Διορθώσεις υλικών '+readyPW(),`<div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Υλικό</th><th>Κιλά</th><th>Τεμάχια</th><th>Αιτιολογία</th><th>Χρήστης</th></tr></thead><tbody>${rows}</tbody></table></div>`);
  };
@@ -2255,6 +2273,19 @@ function wireDeltio(){
   document.querySelectorAll('.deltioKgInput').forEach(inp=>{inp.onchange=()=>saveDeltioMaterial(inp.dataset.emp,inp.dataset.unit)});
 }
 if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
+// Διορθώσεις υλικών: ιστορικό αναίρεσης/επανάληψης της συνεδρίας (κάθε διόρθωση = μία εγγραφή στον server)
+let readyCorrUndo=[],readyCorrRedo=[];
+function readyCorrDate(){let c=readyState.cursor||new Date(),n=new Date();return (c.getFullYear()===n.getFullYear()&&c.getMonth()===n.getMonth())?localISODate(n):localISODate(new Date(c.getFullYear(),c.getMonth()+1,0))}
+async function readyCorrPost(payload){let r=await api('/inventory/material-corrections',{method:'POST',body:JSON.stringify(payload)});readyCorrUndo.push({id:r.id,payload});readyCorrRedo=[];return r}
+function syncReadyCorrBtns(show){let w=$('readyCorrBtns');if(!w)return;let on=show&&!$('readyMatPanel').classList.contains('hidden');w.classList.toggle('hidden',!on);$('readyCorrUndoBtn').disabled=!readyCorrUndo.length;$('readyCorrRedoBtn').disabled=!readyCorrRedo.length}
+async function readyCorrStep(kind){
+  let msg=$('readyCorrMsg');msg.textContent='';
+  try{
+    if(kind==='undo'){let op=readyCorrUndo.pop();if(!op)return;await api('/inventory/material-corrections/'+op.id,{method:'DELETE'});readyCorrRedo.push({payload:op.payload});msg.textContent='Αναιρέθηκε: '+op.payload.material_label}
+    else{let op=readyCorrRedo.pop();if(!op)return;let r=await api('/inventory/material-corrections',{method:'POST',body:JSON.stringify(op.payload)});readyCorrUndo.push({id:r.id,payload:op.payload});msg.textContent='Επαναλήφθηκε: '+op.payload.material_label}
+    await loadReadyMaterials();
+  }catch(err){msg.textContent=err?.message||String(err)}
+}
 function openReadyCorrectionModal(materialLabels){
   let opts=materialLabels.map(l=>`<option value="${esc(l)}">${esc(l)}</option>`).join('');
   openFloat('Νέα διόρθωση υλικού',`<div class="formgrid">
@@ -2268,7 +2299,7 @@ function openReadyCorrectionModal(materialLabels){
     let kg=Number($('corrKg').value||0),pc=Number($('corrPieces').value||0);
     if(!kg&&!pc){$('corrMsg').textContent='Βάλε τουλάχιστον κιλά ή τεμάχια διαφορετικά από το μηδέν';return}
     try{
-      await api('/inventory/material-corrections',{method:'POST',body:JSON.stringify({work_date:$('corrDate').value,material_label:$('corrMaterial').value,weight_kg_delta:kg,piece_delta:pc,reason:$('corrReason').value||null})});
+      await readyCorrPost({work_date:$('corrDate').value,material_label:$('corrMaterial').value,weight_kg_delta:kg,piece_delta:pc,reason:$('corrReason').value||null});
       $('floatingEditor').classList.add('hidden');
       await loadReadyMaterials();
     }catch(e){$('corrMsg').textContent=e.message}
@@ -2331,6 +2362,7 @@ async function openReadyExportModal(){
   };
 }
 if($('readyExportBtn'))$('readyExportBtn').onclick=openReadyExportModal;
+if($('readyCorrAddBtn')){$('readyCorrAddBtn').onclick=()=>openReadyCorrectionModal(readyState.corrCols||[]);$('readyCorrUndoBtn').onclick=()=>readyCorrStep('undo');$('readyCorrRedoBtn').onclick=()=>readyCorrStep('redo');new MutationObserver(()=>syncReadyCorrBtns(readyState.corrMonth)).observe($('readyMatPanel'),{attributes:true,attributeFilter:['class']})}
 async function loadReady(){let rows=await api('/inventory/ready-materials');$('readyRows').innerHTML=rows.map(x=>`<tr><td><b>${esc(x.lot_number)}</b></td><td>${esc(x.material_name||x.material_id)}</td><td>${esc(x.output_form||'')}</td><td>${kg(x.net_weight)}</td><td>${pill(x.status)}</td></tr>`).join('')||'<tr><td colspan="5" class="muted">Δεν υπάρχουν έτοιμα υλικά.</td></tr>';await loadReadyMaterials()}
 
 let equipmentCache={tools:[],ppe:[],consumables:[],employees:[],alerts:null};
