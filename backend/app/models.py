@@ -53,6 +53,7 @@ class OrganizationalUnit(Base, TimestampMixin):
     parent_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
     sort_order: Mapped[int] = mapped_column(default=0)
     position: Mapped[str|None] = mapped_column(String(150), nullable=True)
+    profile: Mapped[str|None] = mapped_column(String(20), nullable=True)  # PRODUCTION | SUPPORT | MANAGEMENT | None = δεν έχει οριστεί
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 class Employee(Base, TimestampMixin):
@@ -127,6 +128,8 @@ class ProductionAttendanceEvent(Base):
     prev_arrived_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     closed_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     opened_interval_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    unit_ids: Mapped[str|None] = mapped_column(Text, nullable=True)  # JSON: σύνολο τμημάτων του εργαζομένου μετά την αλλαγή
+    prev_unit_ids: Mapped[str|None] = mapped_column(Text, nullable=True)  # JSON: σύνολο πριν την αλλαγή (για ΑΚΥΡΩΣΗ)
 
 
 class ProductionPlacementInterval(Base, TimestampMixin):
@@ -143,6 +146,7 @@ class ProductionPlacementInterval(Base, TimestampMixin):
     org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    org_unit_ids: Mapped[str|None] = mapped_column(Text, nullable=True)  # JSON: λίστα ΟΛΩΝ των τμημάτων του εργαζομένου στο διάστημα
 
 class MaterialOutputEntry(Base, TimestampMixin):
     __tablename__ = "material_output_entries"

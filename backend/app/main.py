@@ -94,6 +94,14 @@ async def lifespan(app: FastAPI):
         if "organizational_units" in tables:
             org_cols={c["name"] for c in inspect(engine).get_columns("organizational_units")}
             if "position" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN position VARCHAR(150)"))
+            if "profile" not in org_cols: conn.execute(text("ALTER TABLE organizational_units ADD COLUMN profile VARCHAR(20)"))
+        if "production_attendance_events" in tables:
+            pe2={c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
+            if "unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN unit_ids TEXT"))
+            if "prev_unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN prev_unit_ids TEXT"))
+        if "production_placement_intervals" in tables:
+            pi_cols={c["name"] for c in inspect(engine).get_columns("production_placement_intervals")}
+            if "org_unit_ids" not in pi_cols: conn.execute(text("ALTER TABLE production_placement_intervals ADD COLUMN org_unit_ids TEXT"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
             if "her_description" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN her_description VARCHAR(300)"))
@@ -119,6 +127,7 @@ async def lifespan(app: FastAPI):
             if name and not db.scalar(select(OrgUnitPosition).where(OrgUnitPosition.org_unit_id==unit.id,OrgUnitPosition.name==name)):
                 db.add(OrgUnitPosition(org_unit_id=unit.id,name=name,sort_order=0,active=True))
         db.commit()
+        _reconcile_unit_sets(db)
         seed(db)
         ensure_real_2026_import(db)
         ensure_real_production_2026_import(db)
@@ -641,23 +650,58 @@ def activate_weee_master(item_id:str,db:Session=Depends(get_db),user:User=Depend
     x.active=True; write_audit(db,user,"weee_category",x.id,"ACTIVATE",old={"active":False},new={"active":True}); db.commit(); return {"ok":True}
 
 
+import json as _json
+
+def _emp_unit_ids(db:Session,emp:Employee)->list[str]:
+    """Τα τμήματα του εργαζομένου (κοινό σύνολο Μητρώων + Δελτίου). Πρώτο το κύριο (default)."""
+    ids=[r[0] for r in db.execute(select(employee_org_units.c.org_unit_id).where(employee_org_units.c.employee_id==emp.id)).all()]
+    if not ids: return []
+    order={u.id:(u.sort_order,u.name_el) for u in db.scalars(select(OrganizationalUnit).where(OrganizationalUnit.id.in_(ids))).all()}
+    ids=sorted([i for i in ids if i in order],key=lambda i:order[i])
+    if emp.default_org_unit_id in ids: ids=[emp.default_org_unit_id]+[i for i in ids if i!=emp.default_org_unit_id]
+    return ids
+
+def _apply_unit_set(db:Session,emp:Employee,ids:list[str]):
+    clean=[]
+    for i in ids or []:
+        if i and i not in clean: clean.append(i)
+    db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
+    for i in clean: db.execute(employee_org_units.insert().values(employee_id=emp.id,org_unit_id=i))
+    emp.default_org_unit_id=clean[0] if clean else None
+
+def _reconcile_unit_sets(db:Session):
+    """Μία φορά: το κοινό σύνολο τμημάτων ακολουθεί την πραγματική τελευταία θέση του Δελτίου (παλιά η θέση του Δελτίου
+    δεν άλλαζε το μητρώο). Δεν χάνεται κανένα τμήμα εκτός από το αρχικό (κύριο) που αντικαθίσταται από τη θέση."""
+    key="migr.unit_sets_v1"
+    if db.scalar(select(AppSetting).where(AppSetting.key==key)): return
+    for emp in db.scalars(select(Employee)).all():
+        last=db.scalar(select(ProductionAttendance.org_unit_id).where(ProductionAttendance.employee_id==emp.id,ProductionAttendance.org_unit_id.isnot(None)).order_by(ProductionAttendance.work_date.desc()).limit(1))
+        if not last: continue
+        ids=_emp_unit_ids(db,emp)
+        if last in ids and ids and ids[0]==last: continue
+        _apply_unit_set(db,emp,[last]+[i for i in ids if i!=emp.default_org_unit_id and i!=last])
+    db.add(AppSetting(key=key,value="1")); db.commit()
+
 def _employee_public(db:Session,e:Employee,p:Person):
     ids=[r[0] for r in db.execute(select(employee_org_units.c.org_unit_id).where(employee_org_units.c.employee_id==e.id)).all()]
     units=db.scalars(select(OrganizationalUnit).where(OrganizationalUnit.id.in_(ids))).all() if ids else []
     names=[u.name_el for u in sorted(units,key=lambda u:u.name_el)]
     return {"id":e.id,"employee_code":e.employee_code,"full_name":((p.first_name+" "+p.last_name).strip()),"phone":p.phone,"default_org_unit_id":e.default_org_unit_id,"org_unit_ids":ids,"org_unit_names":names,"active":bool(e.active and p.active)}
 
-def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,at:datetime|None=None):
+def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,at:datetime|None=None,unit_ids:list[str]|None=None):
     """Closes any open placement interval for this employee today and opens a new one for
     new_org_unit_id. No-op if the department isn't actually changing. Pure addition -- never read by
     ProductionWorkEntry/ProductionAttendance or the reports built on them."""
     now=at or datetime.now(timezone.utc)
     day=datetime(now.year,now.month,now.day,tzinfo=timezone.utc)
     open_row=db.scalar(select(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==employee_id,ProductionPlacementInterval.work_date==day,ProductionPlacementInterval.ended_at.is_(None)))
+    ids_json=_json.dumps(unit_ids if unit_ids is not None else ([new_org_unit_id] if new_org_unit_id else []))
     if open_row:
-        if open_row.org_unit_id==new_org_unit_id: return (None,None)
+        old_set=set(_json.loads(open_row.org_unit_ids)) if open_row.org_unit_ids else ({open_row.org_unit_id} if open_row.org_unit_id else set())
+        new_set=set(unit_ids) if unit_ids is not None else ({new_org_unit_id} if new_org_unit_id else set())
+        if open_row.org_unit_id==new_org_unit_id and (old_set==new_set or unit_ids is None): return (None,None)
         open_row.ended_at=now
-    new_row=ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now)
+    new_row=ProductionPlacementInterval(employee_id=employee_id,work_date=day,org_unit_id=new_org_unit_id,started_at=now,org_unit_ids=ids_json)
     db.add(new_row); db.flush()
     return (open_row.id if open_row else None, new_row.id)
 
@@ -670,7 +714,7 @@ def _replace_employee_units(db:Session,emp:Employee,ids:list[str]):
     db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
     for unit_id in clean: db.execute(employee_org_units.insert().values(employee_id=emp.id,org_unit_id=unit_id))
     new_default=clean[0] if clean else None
-    if new_default!=emp.default_org_unit_id: _log_placement_interval(db,emp.id,new_default)
+    if new_default!=emp.default_org_unit_id or True: _log_placement_interval(db,emp.id,new_default,unit_ids=clean)
     emp.default_org_unit_id=new_default
 
 @app.get("/master/employees", response_model=list[schemas.EmployeeOut])

@@ -18,6 +18,7 @@ class OrgUnitCreate(BaseModel):
     sort_order: int = 0
     position: str|None = None  # legacy single-position field; kept for compatibility
     positions: list[str] = []
+    profile: str|None = None  # PRODUCTION | SUPPORT | MANAGEMENT
 
 class OrgUnitOut(OrgUnitCreate):
     model_config = ConfigDict(from_attributes=True)
@@ -75,6 +76,12 @@ class ProductionAttendanceUpsert(BaseModel):
     since_at: datetime|None = None
     late: bool|None = None  # True = ΑΡΓΟΠΟΡΙΑ, False = εγκαίρως, None = όπως είναι/αυτόματα
     arrived_at: datetime|None = None  # χειροκίνητη ώρα άφιξης (Παρουσιολόγιο Windows)
+
+class AttendanceUnitsIn(BaseModel):
+    work_date: datetime
+    employee_id: str
+    action: str  # add | remove
+    unit_id: str
 
 class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str
