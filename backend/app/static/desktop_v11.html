@@ -981,11 +981,13 @@ if(loader) Promise.resolve().then(loader).catch(e=>{console.error('View load fai
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));$('loginBtn').onclick=login;$('refresh').onclick=()=>show(document.querySelector('.nav button.active').dataset.view);
 // ===== Παρουσίες (Αρχική -> κουμπί «Παρουσίες») -- ίδια κοινή αποθήκευση με το Δελτίο ημέρας του Android (/production/attendance) =====
 // Καταστάσεις: Παρών, Αργοπορία (παρών με άφιξη μετά την έναρξη βάρδιας), Απών, Έφυγε. Όλοι ξεκινούν Παρόντες στην τελευταία γνωστή θέση.
+// Αλφαβητικά με βάση το ΕΠΙΘΕΤΟ (το full_name είναι «Όνομα Επίθετο»)
+function surnameKey(n){let p=String(n||'').trim().split(/\s+/);return (p.length>1?p.slice(1).join(' '):p[0])+' '+p[0]}
 let presState={emps:[],units:[],att:[],shiftEnd:'15:00'},presTimer=null;
 async function presLoad(){
   let [emps,units,att]=await Promise.all([api('/master/employees'),api('/master/org-units'),api('/production/attendance/effective?date='+localISODate(new Date()))]);
   let ss={};try{ss=await api('/production/shift-start')}catch(err){}
-  presState={emps:emps.filter(e=>e.active!==false).sort((a,b)=>a.full_name.localeCompare(b.full_name,'el')),units,att,shiftEnd:ss.shift_end||'15:00'};
+  presState={emps:emps.filter(e=>e.active!==false).sort((a,b)=>surnameKey(a.full_name).localeCompare(surnameKey(b.full_name),'el')),units,att,shiftEnd:ss.shift_end||'15:00'};
 }
 function presKind(a){return a.status==='PRESENT'?(a.late?'LATE':'PRESENT'):(a.status||'PRESENT')}
 function presCounts(){let m={};presState.att.forEach(a=>m[a.employee_id]=a);let c={P:0,T:0,A:0,L:0};presState.emps.forEach(e=>{let k=presKind(m[e.id]||{status:'PRESENT'});if(k==='PRESENT')c.P++;else if(k==='LATE')c.T++;else if(k==='ABSENT')c.A++;else c.L++});return c}

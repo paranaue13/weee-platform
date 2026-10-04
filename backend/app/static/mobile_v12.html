@@ -583,7 +583,9 @@ function utcDate(iso){return new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+
 function dlT(iso){return iso?utcDate(iso).toTimeString().slice(0,5):''}
 let dlView='w',dlEvents=[],dlSheetEmp=null;
 function dlAtt(id){return deltioAttByEmp(id)||{}}
-function dlSorted(){return prodEmps.slice().sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'))}
+// Αλφαβητικά με βάση το ΕΠΙΘΕΤΟ (το full_name είναι «Όνομα Επίθετο»)
+function surnameKey(n){let p=String(n||'').trim().split(/\s+/);return (p.length>1?p.slice(1).join(' '):p[0])+' '+p[0]}
+function dlSorted(){return prodEmps.slice().sort((a,b)=>surnameKey(a.full_name).localeCompare(surnameKey(b.full_name),'el'))}
 function dlUnitName(a){let u=a.org_unit_id?prodUnits.find(x=>x.id===a.org_unit_id):null;return u?u.name_el:null}
 function dlSub(a){
   if(a.status==='PRESENT'){let u=dlUnitName(a);return (a.late?'αργοπορία · ':'')+(u||'χωρίς τμήμα')+(a.since_at?' · από '+dlT(a.since_at):(a.late&&a.arrived_at?' · ήρθε '+dlT(a.arrived_at):''))}
