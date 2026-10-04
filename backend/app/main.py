@@ -1787,8 +1787,8 @@ def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permis
         if effective_status=='IN_PROGRESS': effective_status='SORTING_IN_PROGRESS'
         # Opening a load starts its session, but it only counts as "in sorting" once at least one entry exists.
         if effective_status=='SORTING_IN_PROGRESS' and not (ses and entry_counts.get(ses.id)): effective_status='READY_FOR_SORTING'
-        # Επιστράφηκε από τα Windows (κουμπί «Προς Ταξινόμηση») -> «Προς Διόρθωση» μέχρι να ολοκληρωθεί ξανά από το Android
-        if ses and ses.correction and effective_status in ('SORTING_IN_PROGRESS','READY_FOR_SORTING'): effective_status='CORRECTION'
+        # «Προς Διόρθωση»: προσωρινή κατάσταση όσο γίνονται διορθώσεις στον έλεγχο (Windows), μέχρι την Ολοκλήρωση
+        if ses and ses.correction and effective_status in ('LOGISTICS_REVIEW','MANAGEMENT_REVIEW','SORTING_CONFIRMED'): effective_status='CORRECTION'
         out.append({'load_id':load.id,'session_id':ses.id if ses else None,'status':effective_status,'receipt_id':trip.id,'receipt_number':trip.receipt_number,
           'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''),
           'order_number':load.order_number,'dpp_number':load.dpp_number,'container_number':load.incoming_container_number,'net_weight':float(load.net_weight or 0),
@@ -2182,7 +2182,7 @@ def sorting_adjust(entry_id:str, data:schemas.SortingAdjustmentCreate, db:Sessio
     if ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Δεν επιτρέπεται διόρθωση σε αυτή την κατάσταση')
     old=e.approved_weight if e.approved_weight is not None else e.raw_weight
     db.add(SortingAdjustment(sorting_entry_id=e.id,old_weight=old,new_weight=data.new_weight,reason=data.reason,changed_by=user.id))
-    e.approved_weight=data.new_weight
+    e.approved_weight=data.new_weight; ses.correction=True  # διόρθωση στον έλεγχο -> «Προς Διόρθωση» μέχρι την Ολοκλήρωση
     write_audit(db,user,'sorting_entry',e.id,'ADJUST',old={'weight':str(old)},new={'weight':str(data.new_weight)},reason=data.reason); db.commit(); db.refresh(e); return e
 
 @app.post('/sorting/{load_id}/logistics-review', response_model=schemas.SortingSessionOut)
@@ -2199,7 +2199,7 @@ def logistics_review(load_id:str, data:schemas.LogisticsReviewCreate, db:Session
     if data.requires_management_approval:
         ses.status='MANAGEMENT_REVIEW'; load.status='MANAGEMENT_REVIEW'
     else:
-        ses.status='CLOSED'; load.status='CLOSED'
+        ses.status='CLOSED'; ses.correction=False; load.status='CLOSED'
         _materialize_weee_stock(db, load, ses, user)
     write_audit(db,user,'sorting_session',ses.id,'LOGISTICS_REVIEW',new={'requires_management':data.requires_management_approval,'final_weight':str(final)})
     db.commit(); return _sorting_payload(db,load,ses)
@@ -2209,7 +2209,7 @@ def logistics_review(load_id:str, data:schemas.LogisticsReviewCreate, db:Session
 def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή για διόρθωση'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Η ταξινόμηση δεν μπορεί να επιστραφεί σε αυτή την κατάσταση')
-    old=ses.status; ses.status='IN_PROGRESS'; ses.correction=True; load.status='SORTING_IN_PROGRESS'
+    old=ses.status; ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'
     write_audit(db,user,'sorting_session',ses.id,'REOPEN_TO_SORTING',old={'status':old},new={'status':'IN_PROGRESS'},reason=reason)
     db.commit(); return _sorting_payload(db,load,ses)
 
@@ -2217,7 +2217,7 @@ def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή γ�
 def management_approve(load_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status!='MANAGEMENT_REVIEW': raise HTTPException(409,'Δεν υπάρχει εκκρεμής έγκριση Διοίκησης')
-    ses.status='CLOSED'; ses.management_confirmed_at=datetime.now(timezone.utc); ses.management_confirmed_by=user.id; load.status='CLOSED'
+    ses.status='CLOSED'; ses.correction=False; ses.management_confirmed_at=datetime.now(timezone.utc); ses.management_confirmed_by=user.id; load.status='CLOSED'
     _materialize_weee_stock(db, load, ses, user)
     write_audit(db,user,'sorting_session',ses.id,'MANAGEMENT_APPROVE',new={'status':'CLOSED'}); db.commit(); return _sorting_payload(db,load,ses)
 

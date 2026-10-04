@@ -2761,7 +2761,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   let canMarkReview=st==='IN_PROGRESS';
   let canCompleteSort=st==='LOGISTICS_REVIEW';
   let canReopenSort=st==='LOGISTICS_REVIEW'||st==='MANAGEMENT_REVIEW';
-  let stMeta=statusMeta(d.correction&&st==='IN_PROGRESS'?'CORRECTION':(st==='IN_PROGRESS'&&!(d.entries||[]).length?'READY_FOR_SORTING':st));
+  let stMeta=statusMeta(d.correction&&(st==='LOGISTICS_REVIEW'||st==='MANAGEMENT_REVIEW')?'CORRECTION':(st==='IN_PROGRESS'&&!(d.entries||[]).length?'READY_FOR_SORTING':st));
   let diff=Number(d.net_weight||0)-Number(d.sorting_weight||0);
   const NO_MEDIUM_LABEL='— χωρίς μέσο —';
   let medLabel=m=>m?esc(m.code)+(m.tare_weight!=null?' · '+Math.round(Number(m.tare_weight))+' kg':''):NO_MEDIUM_LABEL;
@@ -2779,7 +2779,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   ${editable?`<div class="card sortEntriesCard" style="background:#f6fbf9"><b>Καταχώρηση ανά κατηγορία ΑΗΗΕ</b><div class="sortingCatWrap" style="margin-top:10px"><table class="sortingCatTable"><thead><tr><th>Κωδικός</th><th>Περιγραφή</th><th>Μέσο βάρος</th><th>Βάρος (kg)</th><th>Τεμάχια</th><th>Μέσο συλλογής</th></tr></thead><tbody>${allCatRows}</tbody></table></div><div id="sortEntryMsg"></div></div>`:''}`;
   const sortWrap=sd.querySelector(':scope > .tablewrap'); if(sortWrap)sortWrap.scrollTop=0;
   makeDraggable(sd,$('sortingPopupHandle'));sd.querySelector('[data-win="max"]')?.addEventListener('click',()=>{sd.classList.remove('popupMin');sd.classList.toggle('popupMax')});sd.querySelector('[data-win="min"]')?.addEventListener('click',()=>toggleMin(sd));
-  $('closeSortDetail').onclick=()=>sd.classList.add('hidden');if(canReopenSort)$('sortReopenBtn').onclick=async()=>{if(!confirm('Η ταξινόμηση θα εμφανιστεί ξανά στο Android ως «Προς Διόρθωση». Συνέχεια;'))return;try{await api('/sorting/'+loadId+'/reopen?reason='+encodeURIComponent('Προς Ταξινόμηση από Windows'),{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
+  $('closeSortDetail').onclick=()=>sd.classList.add('hidden');if(canReopenSort)$('sortReopenBtn').onclick=async()=>{if(!confirm('Η ταξινόμηση θα εμφανιστεί ξανά στο Android. Συνέχεια;'))return;try{await api('/sorting/'+loadId+'/reopen?reason='+encodeURIComponent('Προς Ταξινόμηση από Windows'),{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   if(canMarkReview)$('sortMarkReview').onclick=async()=>{try{await api('/sorting/'+loadId+'/confirm',{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   if(canCompleteSort)$('sortCompleteBtn').onclick=async()=>{if(!confirm('Ολοκλήρωση ταξινόμησης; Η εγγραφή κλείνει και ενημερώνεται το απόθεμα ΑΗΗΕ.'))return;try{await api('/sorting/'+loadId+'/logistics-review',{method:'POST',body:JSON.stringify({requires_management_approval:false,notes:null})});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   $('exportSortDetail').onclick=(e)=>{e.stopPropagation();$('sortExportChoices').classList.toggle('open')};
