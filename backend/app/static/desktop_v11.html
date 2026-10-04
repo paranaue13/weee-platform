@@ -972,7 +972,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="readyQuarterInventoryCard" class="card hidden"><h3>Φυσική απογραφή</h3><div id="readyQuarterInventoryBody"></div></div>
 <div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
 <div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
-<div class="card" style="margin-top:16px"><h3>Αποθήκη υλικών προς φόρτωση</h3></div><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Υλικό</th><th>Μορφή</th><th>kg</th><th>Status</th></tr></thead><tbody id="readyRows"></tbody></table></div>
+<div class="hidden"><table><tbody id="readyRows"></tbody></table></div>
 </section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div><div class="tablewrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt iconOnly" id="loadingEcMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
@@ -1969,7 +1969,15 @@ function stickyStackFooter(tfootId){
   rows[i].querySelectorAll('td').forEach(td=>{td.style.bottom=cum+'px'});
   cum+=h;
  }
+ // Αν οι κολλημένες γραμμές συνόλων πιάνουν πάνω από το μισό ύψος του πίνακα, δεν κολλάνε (αλλιώς σκεπάζουν τις γραμμές ημερών).
+ let wrap=tfoot.closest('.prodTableWrap');
+ if(wrap){let tooTall=cum>wrap.clientHeight*0.5&&wrap.clientHeight>0;rows.forEach(r=>r.querySelectorAll('td').forEach(td=>{td.style.position=tooTall?'static':''}))}
+ // Τα ύψη αλλάζουν (πλάτος στηλών, γραμματοσειρές, μέγεθος παραθύρου): ξαναϋπολογισμός ώστε να μην πέφτουν κελιά μέσα σε άλλα
+ if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
+// Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
+function fitProdWraps(){document.querySelectorAll('.prodTableWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY;w.style.maxHeight=Math.max(220,window.innerHeight-top-24)+'px'})}
+(function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 function renderReadyMaterials(){
  let entries=readyState.entries||[];
  let g=readyState.activeGroup;
