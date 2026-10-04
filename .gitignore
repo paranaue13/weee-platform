@@ -23,3 +23,8 @@ Thumbs.db
 
 # Claude Code harness-internal state (not project code)
 .claude/scheduled_tasks.lock
+
+# Windows EXE build artifacts
+backend/build/
+backend/dist/
+backend/*.spec
