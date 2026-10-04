@@ -1656,6 +1656,8 @@ def delete_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends
     trip=db.get(InboundTrip,receipt_id)
     if not trip: raise HTTPException(404,"Η παραλαβή δεν βρέθηκε")
     trip.deleted_at=datetime.now(timezone.utc)
+    # Το απόθεμα της διαγραμμένης παραλαβής δεν υπολογίζεται πουθενά (ό,τι έχει ήδη καταναλωθεί στην παραγωγή μένει ως έχει)
+    for lot in db.scalars(select(WEEEStockLot).join(InboundLoad,InboundLoad.id==WEEEStockLot.inbound_load_id).where(InboundLoad.trip_id==receipt_id)).all(): _retire_lot(db,lot)
     write_audit(db,user,"receipt",receipt_id,"SOFT_DELETE",old={"receipt_number":trip.receipt_number},new={"deleted":True})
     db.commit(); return {"status":"archived","id":receipt_id}
 
@@ -1677,7 +1679,9 @@ def restore_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depend
         year=trip.receipt_date.year
         clash=db.scalar(select(InboundLoad.id).join(InboundTrip,InboundTrip.id==InboundLoad.trip_id).where(InboundLoad.dpp_number==l.dpp_number,InboundLoad.trip_id!=receipt_id,InboundTrip.deleted_at.is_(None),InboundTrip.receipt_date>=datetime(year,1,1),InboundTrip.receipt_date<datetime(year+1,1,1)).limit(1))
         if clash: l.dpp_number=_next_dpp_numbers(db,year,1,exclude_load_ids={l.id})[0]; db.flush()
-    trip.deleted_at=None; write_audit(db,user,"receipt",receipt_id,"RESTORE",new={"deleted":False}); db.commit()
+    trip.deleted_at=None
+    for e in db.scalars(select(SortingEntry).join(SortingSession,SortingSession.id==SortingEntry.session_id).join(InboundLoad,InboundLoad.id==SortingSession.inbound_load_id).where(InboundLoad.trip_id==receipt_id)).all(): _sync_entry_stock(db,e,user)
+    write_audit(db,user,"receipt",receipt_id,"RESTORE",new={"deleted":False}); db.commit()
     return {"status":"restored","id":receipt_id}
 
 @app.post("/receipts/{receipt_id}/ready-for-sorting", response_model=schemas.ReceiptStatusOut)
@@ -1927,7 +1931,7 @@ def list_media(db:Session=Depends(get_db), user=Depends(require_permission('mast
 def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     _nonneg(data.raw_weight,'Βάρος'); _nonneg(data.piece_count,'Τεμάχια')
     load,ses=_session_for_load(db,load_id,True,user)
-    if ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
+    if ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
     cat=db.get(WEEECategory,data.weee_category_id)
     if not cat: raise HTTPException(422,'Άγνωστη κατηγορία ΑΗΗΕ')
     if data.collection_medium_id and not db.get(CollectionMedium,data.collection_medium_id): raise HTTPException(422,'Άγνωστο μέσο συλλογής')
@@ -1948,7 +1952,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
         raw=Decimal(data.piece_count)*cat.average_weight
     obj=SortingEntry(session_id=ses.id,weee_category_id=data.weee_category_id,collection_medium_id=data.collection_medium_id,
       entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes)
-    db.add(obj); db.flush(); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count})
+    db.add(obj); db.flush(); _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count})
     db.commit(); db.refresh(obj); return obj
 
 @app.put('/sorting/entries/{entry_id}', response_model=schemas.SortingEntryOut)
@@ -1957,7 +1961,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     e=db.get(SortingEntry,entry_id)
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
-    if not ses or ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση έχει ήδη επιβεβαιωθεί')
+    if not ses or ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση έχει ήδη ολοκληρωθεί')
     cat=db.get(WEEECategory,data.weee_category_id)
     if not cat: raise HTTPException(422,'Άγνωστη κατηγορία ΑΗΗΕ')
     old={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count}
@@ -1966,6 +1970,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     if data.entry_type=='BULK' and data.piece_count is not None:
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         e.raw_weight=Decimal(data.piece_count)*cat.average_weight
+    db.flush(); _sync_entry_stock(db,e,user)
     write_audit(db,user,'sorting_entry',e.id,'EDIT_DRAFT',old=old,new={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count})
     db.commit(); db.refresh(e); return e
 
@@ -2020,7 +2025,9 @@ def sorting_delete_entry(entry_id:str, db:Session=Depends(get_db), user:User=Dep
     e=db.get(SortingEntry,entry_id)
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
-    if ses.status!='IN_PROGRESS': raise HTTPException(409,'Η ταξινόμηση έχει ήδη επιβεβαιωθεί')
+    if ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση έχει ήδη ολοκληρωθεί')
+    lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
+    if lot: _retire_lot(db,lot,strict=True)
     write_audit(db,user,'sorting_entry',e.id,'DELETE_DRAFT',old={'weight':str(e.raw_weight),'category_id':e.weee_category_id}); db.delete(e); db.flush()
     # Deleting the only/last entry leaves an empty IN_PROGRESS session with the load stuck showing
     # "Σε ταξινόμηση" even though nothing is left to sort -- reset back to the pre-start state so the
@@ -2182,7 +2189,7 @@ def sorting_adjust(entry_id:str, data:schemas.SortingAdjustmentCreate, db:Sessio
     if ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Δεν επιτρέπεται διόρθωση σε αυτή την κατάσταση')
     old=e.approved_weight if e.approved_weight is not None else e.raw_weight
     db.add(SortingAdjustment(sorting_entry_id=e.id,old_weight=old,new_weight=data.new_weight,reason=data.reason,changed_by=user.id))
-    e.approved_weight=data.new_weight; ses.correction=True  # διόρθωση στον έλεγχο -> «Προς Διόρθωση» μέχρι την Ολοκλήρωση
+    e.approved_weight=data.new_weight; db.flush(); _sync_entry_stock(db,e,user)
     write_audit(db,user,'sorting_entry',e.id,'ADJUST',old={'weight':str(old)},new={'weight':str(data.new_weight)},reason=data.reason); db.commit(); db.refresh(e); return e
 
 @app.post('/sorting/{load_id}/logistics-review', response_model=schemas.SortingSessionOut)
@@ -2204,6 +2211,14 @@ def logistics_review(load_id:str, data:schemas.LogisticsReviewCreate, db:Session
     write_audit(db,user,'sorting_session',ses.id,'LOGISTICS_REVIEW',new={'requires_management':data.requires_management_approval,'final_weight':str(final)})
     db.commit(); return _sorting_payload(db,load,ses)
 
+
+@app.post('/sorting/{load_id}/mark-correction', response_model=schemas.SortingSessionOut)
+def sorting_mark_correction(load_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
+    """«Προς Διόρθωση»: αλλάζει ΜΟΝΟ την κατάσταση (χρώμα) -- μένει στα Windows μέχρι την Ολοκλήρωση ή το «Προς Ταξινόμηση»."""
+    load,ses=_session_for_load(db,load_id,False)
+    if not ses or ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Διαθέσιμο μόνο όταν η ταξινόμηση είναι προς έλεγχο')
+    ses.correction=True
+    write_audit(db,user,'sorting_session',ses.id,'MARK_CORRECTION',new={'correction':True}); db.commit(); return _sorting_payload(db,load,ses)
 
 @app.post('/sorting/{load_id}/reopen', response_model=schemas.SortingSessionOut)
 def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή για διόρθωση'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
@@ -2306,6 +2321,55 @@ def _weee_main_location(db: Session) -> InventoryLocation:
     if not loc:
         loc=InventoryLocation(code='WEEE_MAIN',name_el='Αποθήκη ΑΗΗΕ προς ανακύκλωση',domain='WEEE'); db.add(loc); db.flush()
     return loc
+
+def _medium_release(db:Session, medium_id):
+    """Αν ένα μέσο δεν έχει πια διαθέσιμο απόθεμα ΑΗΗΕ, επιστρέφει σε «διαθέσιμο»."""
+    if not medium_id: return
+    m=db.get(CollectionMedium,medium_id)
+    if m and m.status=='WEEE_STORAGE' and not db.scalar(select(func.count()).select_from(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)):
+        m.status='AVAILABLE'
+
+def _retire_lot(db:Session, lot, strict:bool=False):
+    """Αφαιρεί ένα μερίδιο αποθέματος. Αν έχει ήδη καταναλωθεί (παραγωγή): strict -> σφάλμα 409, αλλιώς μένει μόνο το καταναλωμένο μέρος."""
+    consumed=Decimal(lot.original_weight)-Decimal(lot.available_weight); medium_id=lot.collection_medium_id
+    if consumed>0:
+        if strict: raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή -- δεν μπορεί να αλλάξει ή να διαγραφεί')
+        lot.original_weight=consumed; lot.available_weight=Decimal(0); lot.status='CONSUMED'
+    else:
+        db.execute(StockMovement.__table__.delete().where(StockMovement.lot_id==lot.id)); db.delete(lot)
+    db.flush(); _medium_release(db,medium_id)
+
+def _sync_entry_stock(db:Session, e:SortingEntry, user:User):
+    """ΖΩΝΤΑΝΟ απόθεμα: το μερίδιο ΑΗΗΕ κάθε καταχώρησης ταξινόμησης δημιουργείται/ενημερώνεται (κιλά, κατηγορία, μέσο συλλογής)
+    αμέσως, με κάθε καταχώρηση/διόρθωση -- όχι μόνο στην Ολοκλήρωση. Μερίδιο που έχει ήδη καταναλωθεί στην παραγωγή δεν αλλάζει κατηγορία/μέσο
+    και δεν μειώνεται κάτω από το καταναλωμένο (409)."""
+    ses=db.get(SortingSession,e.session_id); load=db.get(InboundLoad,ses.inbound_load_id)
+    w=e.approved_weight if e.approved_weight is not None else e.raw_weight
+    w=Decimal(w) if w is not None else Decimal(0)
+    lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
+    if w<=0:
+        if lot: _retire_lot(db,lot,strict=True)
+        return
+    loc=_weee_main_location(db)
+    if not lot:
+        lot=WEEEStockLot(source_sorting_entry_id=e.id,inbound_load_id=load.id,weee_category_id=e.weee_category_id,collection_medium_id=e.collection_medium_id,
+            location_id=loc.id,original_weight=w,available_weight=w,piece_count=e.piece_count,status='AVAILABLE')
+        db.add(lot); db.flush()
+        db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='SORTING_IN',from_location_id=None,to_location_id=loc.id,weight=w,user_id=user.id,reason=None))
+    else:
+        consumed=Decimal(lot.original_weight)-Decimal(lot.available_weight); delta=w-Decimal(lot.original_weight)
+        retarget=(lot.weee_category_id!=e.weee_category_id) or (lot.collection_medium_id!=e.collection_medium_id)
+        if consumed>0 and (retarget or w<consumed): raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή -- δεν μπορεί να αλλάξει')
+        old_medium=lot.collection_medium_id
+        lot.weee_category_id=e.weee_category_id; lot.collection_medium_id=e.collection_medium_id; lot.piece_count=e.piece_count
+        lot.original_weight=w; lot.available_weight=Decimal(lot.available_weight)+delta
+        lot.status='AVAILABLE' if lot.available_weight==lot.original_weight else ('PARTIAL' if lot.available_weight>0 else 'CONSUMED')
+        if delta!=0: db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='SORTING_ADJUST',from_location_id=None,to_location_id=lot.location_id,weight=delta,user_id=user.id,reason=None))
+        db.flush()
+        if old_medium!=lot.collection_medium_id: _medium_release(db,old_medium)
+    if e.collection_medium_id:
+        medium=db.get(CollectionMedium,e.collection_medium_id)
+        if medium: medium.status='WEEE_STORAGE'
 
 def _materialize_weee_stock(db: Session, load: InboundLoad, ses: SortingSession, user: User):
     """Create immutable source lots once a sorting session becomes CLOSED. Idempotent by source_sorting_entry_id."""
