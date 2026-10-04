@@ -232,7 +232,7 @@ function flMediumPicker(){
     let groups=FL_TYPE_GROUPS.concat(extra.length?[extra]:[]);
     return groups.map(gr=>'<div class="flOpts flGroup">'+gr.map(t=>{let n=cnt[t.k]||0;return `<button type="button" class="btn alt flOpt" data-type="${esc(t.k)}"${t.k==='BULK'?' data-bulk="1"':''}${n?'':' disabled'}>${esc(t.l)}<small>${t.k==='BULK'?(n?'χωρίς μέσο':'δεν υπάρχει'):n+' γεμάτα'}</small></button>`}).join('')+'</div>').join('');
   }
-  return '<button type="button" class="btn alt" data-type="" style="min-height:44px;font-size:13px;margin-bottom:8px">‹ ΑΛΛΟΣ ΤΥΠΟΣ</button><div class="flGrid4">'+list.filter(g=>g.medium_id&&flTypeKey(g)===fl.type).map(g=>`<button type="button" class="btn alt flNum" data-k="medium" data-v="${g.medium_id}">${esc(g.medium_code)}<small>${esc(fl.f==='a'?(Number(g.categories.find(c=>c.category_id===fl.cat.id).weight).toLocaleString('el-GR')+' kg'):flMat(g))}</small></button>`).join('')+'</div>';
+  return '<button type="button" class="btn alt" data-type="" style="min-height:44px;font-size:13px;margin-bottom:8px">‹ ΑΛΛΟΣ ΤΥΠΟΣ</button><div class="flGrid4">'+list.filter(g=>g.medium_id&&flTypeKey(g)===fl.type).sort((a,b)=>String(a.medium_code).localeCompare(String(b.medium_code),'el',{numeric:true})).map(g=>`<button type="button" class="btn alt flNum" data-k="medium" data-v="${g.medium_id}">${esc(g.medium_code)}<small>${esc(fl.f==='a'?(Number(g.categories.find(c=>c.category_id===fl.cat.id).weight).toLocaleString('el-GR')+' kg'):flMat(g))}</small></button>`).join('')+'</div>';
 }
 function flCatOptsHtml(){
   let seen={},all=[];flMedia.forEach(g=>g.categories.forEach(c=>{if(!seen[c.category_id]){seen[c.category_id]=1;let o=flCat(c.category_id);if(o)all.push(o)}}));
