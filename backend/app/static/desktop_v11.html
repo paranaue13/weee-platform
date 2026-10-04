@@ -702,6 +702,10 @@ body[data-theme="dark"] .prodSegment button.active{color:#001a41}
 .dchip .dd[class*="stg-"]{background:var(--sb);color:var(--sf);border-radius:8px;padding:2px 10px;font-weight:500}.dchip .dcount{font-weight:500;color:var(--fg-2)}
 /* Λίστες Παραλαβών/Ταξινόμησης: χωράνε στο διαθέσιμο πλάτος, η στήλη Κατάσταση δεν κόβεται στην άκρη */
 :is(#receiptDailyTable,#sortingDailyTable){overflow-x:hidden!important;scrollbar-gutter:auto!important}
+/* Κανόνας: κανένας πίνακας δεν δεσμεύει κενό scrollbar στα δεξιά όταν δεν υπάρχει scrollbar· τα κείμενα στις κάρτες συνόλων δεν κόβονται */
+.tablewrap,#ecTableWrap{scrollbar-gutter:auto!important}
+#ecRefreshBtn,#ecMinimizeBtn{flex:none!important;white-space:nowrap}#ecStatus{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sortingKpiText b{line-height:1.45;padding:1px 0 2px;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
 :is(#receiptDailyTable,#sortingDailyTable) table{min-width:0!important;width:100%!important;table-layout:auto}
 :is(#receiptDailyTable,#sortingDailyTable) :is(th,td){padding-left:8px!important;padding-right:8px!important}
 :is(#receiptDailyTable,#sortingDailyTable) td:last-child,:is(#receiptDailyTable,#sortingDailyTable) th:last-child{padding-right:14px!important}
