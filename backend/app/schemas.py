@@ -74,6 +74,7 @@ class ProductionAttendanceUpsert(BaseModel):
     position_text: str|None = None
     since_at: datetime|None = None
     late: bool|None = None  # True = ΑΡΓΟΠΟΡΙΑ, False = εγκαίρως, None = όπως είναι/αυτόματα
+    arrived_at: datetime|None = None  # χειροκίνητη ώρα άφιξης (Παρουσιολόγιο Windows)
 
 class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str

@@ -849,6 +849,9 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
         elif data.late is True: late,arrived=True,(p_arr or now)
         elif data.late is False: late,arrived=False,None
         else: late,arrived=p_late,p_arr
+        if "arrived_at" in data.model_fields_set:  # χειροκίνητη διόρθωση ώρας άφιξης από το Παρουσιολόγιο
+            arrived=data.arrived_at.replace(tzinfo=None) if data.arrived_at and data.arrived_at.tzinfo is None else (data.arrived_at.astimezone(timezone.utc).replace(tzinfo=None) if data.arrived_at else None)
+            late=bool(arrived) if data.late is None else data.late
     elif status=="ABSENT": arrived,late=None,False  # απών = δεν ξεκίνησε ποτέ την ημέρα
     else: arrived,late=p_arr,p_late
     old=None
