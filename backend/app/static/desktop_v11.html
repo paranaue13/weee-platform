@@ -882,6 +882,35 @@ body[data-theme="dark"] #ready .prodTable tbody tr:hover,body[data-theme="dark"]
 #ready .prodTable .negKgCell{display:inline-block;height:20px;line-height:20px;padding:0 7px;vertical-align:middle}
 #readyBalanceRow td{z-index:3}
 </style>
+<style id="prodLook">
+/* Παραγωγή: πίνακες, κάρτες, εργαλειοθήκη -- μόνο εμφάνιση */
+#production .prodTable :is(th,td):first-child{min-width:190px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important}
+#productionWeeePanel .prodTable :is(th,td):not(:first-child){text-align:right!important;padding-right:14px!important}
+#productionPeoplePanel .prodTable :is(th,td):nth-child(n+3){text-align:right!important;padding-right:14px!important}
+#production .prodMajorHead{text-align:right!important;white-space:nowrap}
+#production .prodMajorHead .chev{margin-left:6px}
+#production .prodTable tfoot td{height:40px;padding-top:0!important;padding-bottom:0!important}
+#production .prodTable tbody td{height:34px;box-sizing:border-box;padding-top:0!important;padding-bottom:0!important;line-height:20px}
+#production .prodTable tbody tr{height:34px}
+#production .prodTable .negKgCell{display:inline-block;height:20px;line-height:20px;padding:0 7px;vertical-align:middle}
+.prodGroupStart{border-left:2px solid #C5D3F5!important}
+body[data-theme="dark"] .prodGroupStart{border-left-color:#3D4659!important}
+#prodCorrectionRow td{background:#FFF6E4!important;color:#7A4A00!important;font-weight:500}
+#prodCorrectionRow td span{color:inherit!important}
+body[data-theme="dark"] #prodCorrectionRow td{background:#2B2416!important;color:#FFD9A0!important}
+.productionKpis .prodKpi{padding:14px 18px}
+.productionKpis .prodKpi small{font-size:13px;font-weight:400;color:#44474F;margin-bottom:4px}
+.productionKpis .prodKpi b{font-size:24px;font-weight:500}
+body[data-theme="dark"] .productionKpis .prodKpi small{color:var(--fg-2,#B4B9C6)}
+#productionSearch{min-width:420px}
+/* εργαλειοθήκες: όλα τα στοιχεία 40px */
+.prodSegment,.prodPeriodNav{height:40px;min-height:40px;box-sizing:border-box;align-items:stretch}
+.prodSegment button,.prodPeriodNav button,.prodPeriodNav .periodPickerBtn{height:100%;padding-top:0!important;padding-bottom:0!important;display:inline-flex;align-items:center;justify-content:center}
+:is(.productionTop,.productionTools,#readyStockOnlyWrap) .btn,#productionSearch{height:40px;min-height:40px;box-sizing:border-box;padding-top:0;padding-bottom:0}
+.productionSearch{display:flex;align-items:center;gap:10px}
+/* σταθερή πρώτη στήλη: σκιά όταν ο πίνακας έχει scroll οριζόντια */
+.prodTableWrap.hs .prodTable :is(th,td):first-child{box-shadow:4px 0 6px -4px rgba(0,0,0,.15)}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -3421,6 +3450,7 @@ function openFloatAt(title,html,x,y){
   document.addEventListener('pointerdown',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(e.clientX>r.right-24&&e.clientY>r.bottom-24)drag={p,w:r.width,h:r.height}},true);
   document.addEventListener('pointerup',()=>{if(!drag)return;let {p,w,h}=drag;drag=null;setTimeout(()=>{let r=p.getBoundingClientRect();if(Math.abs(r.width-w)>2||Math.abs(r.height-h)>2)save(p.dataset.sizeKey||('win:'+p.id),Math.round(r.width),Math.round(r.height))},0)},true);
 })();
+document.addEventListener('scroll',e=>{let w=e.target;if(w&&w.classList&&w.classList.contains('prodTableWrap'))w.classList.toggle('hs',w.scrollLeft>0)},true);
 $('floatingEditorClose').onclick=()=>$('floatingEditor').classList.add('hidden');
 $('floatingEditorMax').onclick=()=>{let f=$('floatingEditor');f.classList.remove('popupMin');f.classList.toggle('popupMax')};
 $('floatingEditorMin').onclick=()=>toggleMin($('floatingEditor'));
