@@ -3124,6 +3124,25 @@ def set_production_transfer_weight(transfer_id:str, data:schemas.TransferWeightI
     write_audit(db,user,'production_transfer',t.id,'WEIGHT_CHANGE',old={'weight':str(old)},new={'weight':str(new)},reason=data.reason)
     db.commit(); return {'ok':True,'weight':str(new)}
 
+@app.get('/production/transfer-history')
+def production_transfer_history(days:int=Query(default=60,ge=1,le=365), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Ιστορικό μεταφορών υλικού ανά τμήμα (τελευταίες N ημέρες): τμήμα προορισμού, κατηγορία ΑΗΗΕ, τύπος μέσου, πλήθος, πιο πρόσφατη.
+    Μόνο ανάγνωση -- τροφοδοτεί τα «Προτεινόμενα μέσα» της Μεταφοράς υλικού στο Android."""
+    since=datetime.utcnow()-timedelta(days=days)
+    rows=db.execute(select(models.ProductionTransfer.destination_org_unit_id,models.WEEEStockLot.weee_category_id,models.CollectionMediumType.code,models.ProductionTransfer.created_at)
+        .join(models.ProductionTransferItem,models.ProductionTransferItem.transfer_id==models.ProductionTransfer.id)
+        .join(models.WEEEStockLot,models.WEEEStockLot.id==models.ProductionTransferItem.stock_lot_id)
+        .outerjoin(models.CollectionMedium,models.CollectionMedium.id==models.WEEEStockLot.collection_medium_id)
+        .outerjoin(models.CollectionMediumType,models.CollectionMediumType.id==models.CollectionMedium.type_id)
+        .where(models.ProductionTransfer.created_at>=since,models.ProductionTransfer.status!='CANCELLED')).all()
+    agg={}
+    for unit,cat,tcode,at in rows:
+        k=(unit,cat,tcode or 'BULK'); d=agg.setdefault(k,{"unit_id":unit,"category_id":cat,"medium_type_code":tcode or 'BULK',"n":0,"last_at":None})
+        d["n"]+=1
+        iso=at.isoformat() if at else None
+        if iso and (d["last_at"] is None or iso>d["last_at"]): d["last_at"]=iso
+    return list(agg.values())
+
 @app.get('/production/transfers', response_model=list[schemas.ProductionTransferOut])
 def production_transfers(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     rows=db.scalars(select(ProductionTransfer).order_by(ProductionTransfer.created_at.desc())).all(); result=[]

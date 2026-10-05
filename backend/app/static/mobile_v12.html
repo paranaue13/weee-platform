@@ -1,6 +1,7 @@
 <!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><meta name="theme-color" content="#14213d"><title>WEEE Sorting 2.0.1</title><style>
 :root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f3f5f6;color:#14191d}*{box-sizing:border-box}body{margin:0}.wrap{max-width:760px;margin:auto;padding:8px}.card{background:#fff;border:1px solid #d7dde1;border-radius:15px;padding:14px;margin:9px 0}.top{position:sticky;top:0;background:#f3f5f6;z-index:3;padding:6px 0}.row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.space{justify-content:space-between}.btn{min-height:58px;border:0;border-radius:14px;padding:12px 14px;background:#18242f;color:#fff;font-size:17px;font-weight:800;touch-action:manipulation}.btn.alt{background:#e6ebee;color:#16212b}.btn.good{background:#17683a}.btn.warn{background:#8a5a00}.btn.danger{background:#9a2828}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{min-height:82px;text-align:left}.hidden{display:none!important}.muted{color:#66727b;font-size:13px}.pill{padding:5px 9px;border-radius:999px;background:#e8ecef;font-size:12px}.count{font-size:30px;font-weight:900;min-width:42px;text-align:center}input,select{width:100%;min-height:54px;border:1px solid #bcc7ce;border-radius:12px;padding:10px;font-size:18px;background:#fff}label{font-weight:800;display:block;margin:8px 0 5px}.entry{padding:12px 0;border-top:1px solid #edf0f2}.error{color:#9a2828;font-weight:700}.ok{color:#17683a;font-weight:700}.category{min-height:72px}.bulkline{border-top:1px solid #eee;padding:10px 0}.bulkgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.bulkcell{border:1px solid #e1e6e9;border-radius:12px;padding:9px}.loadPrimary{font-size:22px;font-weight:900;line-height:1.15}.loadSecondary{font-size:17px;font-weight:800;margin-top:5px}.closeX{float:right;min-height:42px;padding:7px 12px}.panelHead{display:flex;justify-content:space-between;align-items:center;gap:8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.choice{border:2px solid #d7dde1;background:#fff;color:#18242f}.choice.on{border-color:#17683a;background:#17683a;color:#fff}.groupHead{font-weight:900;font-size:15px;letter-spacing:.5px;margin:18px 0 4px;padding-bottom:4px;border-bottom:2px solid #c3ccd2;color:#3b4852}.suggest{border:2px solid #17683a}.groupGap{height:24px;position:relative}.groupGap:after{content:"";position:absolute;left:4%;right:4%;top:50%;border-top:2px solid #c3ccd2}.mediumSep{grid-column:1/-1;height:20px;position:relative}.mediumSep:after{content:"";position:absolute;left:5%;right:5%;top:50%;border-top:1px solid #cbd4da}.tag{font-size:11px;background:#dff1e6;border-radius:999px;padding:3px 7px}.inputError{border-color:#c0392b!important;background:#fff1f0!important}#app[data-opmode="clamp"] .forkOnly{display:none!important}#app[data-opmode="forks"] .clampOnly{display:none!important}.modeBar{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:6px 0 0}.modeBar button{min-height:44px;font-size:14px;border-radius:12px}.sectionBar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:8px 0 2px}.sectionBar button{min-height:42px;font-size:12.5px;border-radius:12px}.modeBar .choice.on,.sectionBar .choice.on{background:#1a5fd0;border-color:#1a5fd0}@media(min-width:600px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-.flOpts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flOpt{position:relative;min-height:60px;text-align:left;font-size:15px;line-height:1.2;display:flex;flex-direction:column;justify-content:center}.flOpt small,.flNum small{font-weight:500;font-size:12px;opacity:.85}.flTop{outline:2px solid #0872dc;background:#d8e4ff;color:#0a2a63}.flTag{position:absolute;top:5px;right:7px;font-size:10px;font-weight:800;background:#0872dc;color:#fff;border-radius:8px;padding:2px 7px}.flGroup{margin-bottom:14px}.flOpt[disabled]{opacity:.45}.flGrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.flNum{min-height:60px;padding:6px 4px;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;text-align:center}.flNum small{font-size:10px}.flPicked{display:flex;align-items:center;gap:8px;min-height:52px;border-radius:14px;background:#d8e4ff;color:#0a2a63;padding:6px 6px 6px 12px;font-weight:800}.flPicked span{flex:1}.flPicked small{display:block;font-weight:500;font-size:11px}.flPicked button{min-height:44px;padding:0 12px;font-size:12px;background:#fff;color:#0a2a63;border:0;border-radius:12px;font-weight:800}.flLbl{font-size:13px;font-weight:800;color:#4a4f5c;margin:8px 0 6px}.flToast{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:#1b2638;color:#fff;border-radius:14px;padding:10px 10px 10px 14px;display:flex;align-items:center;gap:10px;font-size:14px}.flToast span{flex:1;line-height:1.25}.flToast button{min-height:44px;padding:0 14px;font-size:13px;background:#dfe4ef;color:#1b2b4b}#flSend[disabled]{background:#9fb3a8}</style><style id="androidTokens">
+.flOpts{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flSug{margin-bottom:6px}.flSugT{font-size:14px;font-weight:500;margin:2px 0}.flSugS{font-size:12px;color:var(--fg-2,#4a4f5c);margin-bottom:8px}
+.flOpt{position:relative;min-height:60px;text-align:left;font-size:15px;line-height:1.2;display:flex;flex-direction:column;justify-content:center}.flOpt small,.flNum small{font-weight:500;font-size:12px;opacity:.85}.flTop{outline:2px solid #0872dc;background:#d8e4ff;color:#0a2a63}.flTag{position:absolute;top:5px;right:7px;font-size:10px;font-weight:800;background:#0872dc;color:#fff;border-radius:8px;padding:2px 7px}.flGroup{margin-bottom:14px}.flOpt[disabled]{opacity:.45}.flGrid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.flNum{min-height:60px;padding:6px 4px;font-size:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1;text-align:center}.flNum small{font-size:10px}.flPicked{display:flex;align-items:center;gap:8px;min-height:52px;border-radius:14px;background:#d8e4ff;color:#0a2a63;padding:6px 6px 6px 12px;font-weight:800}.flPicked span{flex:1}.flPicked small{display:block;font-weight:500;font-size:11px}.flPicked button{min-height:44px;padding:0 12px;font-size:12px;background:#fff;color:#0a2a63;border:0;border-radius:12px;font-weight:800}.flLbl{font-size:13px;font-weight:800;color:#4a4f5c;margin:8px 0 6px}.flToast{position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:#1b2638;color:#fff;border-radius:14px;padding:10px 10px 10px 14px;display:flex;align-items:center;gap:10px;font-size:14px}.flToast span{flex:1;line-height:1.25}.flToast button{min-height:44px;padding:0 14px;font-size:13px;background:#dfe4ef;color:#1b2b4b}#flSend[disabled]{background:#9fb3a8}</style><style id="androidTokens">
 /* Θέμα εμφάνισης Android (design-reference/android-prototype.html + DESIGN.md). ΜΟΝΟ εμφάνιση -- καμία λειτουργία δεν αλλάζει. Μόνο φωτεινό.
    Κεντρικό σημείο: όλα τα χρώματα/γωνίες/ύψη/μεγέθη ορίζονται εδώ και ισχύουν σε όλες τις οθόνες. */
 :root{--bar:#14213d;--bg:#f2f4f9;--surface:#ffffff;--tonal:#e6ebf5;--tonal-fg:#1b2b4b;--line:#c7cedd;--line-strong:#9aa4bb;--fg:#1a1b20;--fg-2:#4a4f5c;--primary:#1a5fd0;--primary-fg:#ffffff;--primary-soft:#d8e4ff;--primary-soft-fg:#0a2a63;--green:#1b6b3d;--red:#9b2226;--card:#1b2638;--r-btn:14px;--r-card:16px;--r-ctl:14px;--font:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;color-scheme:light;background:var(--bg);color:var(--fg);font-family:var(--font)}
@@ -195,7 +196,7 @@ $('prodTodayList').onclick=async e=>{
 // ===== ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ: 3 ροές (ΤΜΗΜΑ / ΜΕΣΟ ΣΥΛΛΟΓΗΣ / ΑΗΗΕ) -- Σημείο 1 ΑΛΛΑΓΕΣ.md =====
 // Χρησιμοποιεί ΜΟΝΟ τα υπάρχοντα endpoints/υπολογισμούς αποθέματος: στο τέλος γεμίζει τα prodForm/prodStockGroups/
 // prodSelectedGroups και καλεί το ίδιο $('prodSubmit').onclick (/production/transfers + /production/work-entries).
-let fl={f:'d',unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null},flMedia=[],flHist={dc:{},cd:{},cc:{}},flLoadedAt=0,flTimer=null;
+let fl={f:'d',unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null},flMedia=[],flTH=[],flHist={dc:{},cd:{},cc:{}},flLoadedAt=0,flTimer=null;
 const FL_ORDER={d:['unit','medium','cat'],m:['medium','cat','unit'],a:['cat','medium','unit']};
 const FL_LBL={unit:'Τμήμα',medium:'Μέσο συλλογής',cat:'ΑΗΗΕ'};
 function flReset(){fl={f:fl.f,unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null};prodForm.unit=null;prodForm.emp=null;prodForm.cat=null;$('prodEmpBtn').textContent='Συγκεντρωτικά τμήματος'}
@@ -204,8 +205,8 @@ const FL_TYPE_GROUPS=[[{k:'BASKET_LARGE',l:'Καλάθι μεγάλο'},{k:'BASK
 function flTypeKey(g){let c=g.medium_type_code||(g.medium_id?g.medium_type:'BULK');return (c==='SACK_1KG'||c==='SACK_2KG_UN')?'SACK':c}
 function flCat(id){return cats.find(x=>x.id===id)}
 function flMat(g){let n=g.categories.map(c=>{let o=flCat(c.category_id);return o?dname(o):c.description});return n[0]+(n.length>1?' +'+(n.length-1):'')}
-try{let c=JSON.parse(localStorage.getItem('flCache1')||'null');if(c){flMedia=c.media||[];flHist=c.hist||flHist;if(!prodUnits.length)prodUnits=c.units||[];if(!prodEmps.length)prodEmps=c.emps||[]}}catch(e){}
-function flSaveCache(){try{localStorage.setItem('flCache1',JSON.stringify({media:flMedia,hist:flHist,units:prodUnits,emps:prodEmps}))}catch(e){}}
+try{let c=JSON.parse(localStorage.getItem('flCache1')||'null');if(c){flMedia=c.media||[];flHist=c.hist||flHist;flTH=c.th||[];if(!prodUnits.length)prodUnits=c.units||[];if(!prodEmps.length)prodEmps=c.emps||[]}}catch(e){}
+function flSaveCache(){try{localStorage.setItem('flCache1',JSON.stringify({media:flMedia,hist:flHist,th:flTH,units:prodUnits,emps:prodEmps}))}catch(e){}}
 async function flLoad(force){
   if(flMedia.length||prodUnits.length)flRender();
   if(!force&&Date.now()-flLoadedAt<30000)return;
@@ -214,16 +215,43 @@ async function flLoad(force){
     let end=new Date().toISOString().slice(0,10),start=new Date(Date.now()-90*864e5).toISOString().slice(0,10),recent=new Date(Date.now()-14*864e5).toISOString().slice(0,10);
     let [m,he]=await Promise.all([api('/inventory/weee/media-with-stock'),api(`/production/work-entries?start=${start}&end=${end}`)]);
     flMedia=m.map(g=>({...g,categories:g.categories.filter(c=>isProducedCat(flCat(c.category_id)||{}))})).filter(g=>g.categories.length);
-    flHist={dc:{},cd:{},cc:{}};
+    flHist={dc:{},cd:{},cc:{}};try{flTH=await api('/production/transfer-history?days=60')}catch(e){}
     he.forEach(r=>{let w=String(r.work_date||'').slice(0,10)>=recent?3:1,u=r.org_unit_id,c=r.weee_category_id;(flHist.dc[u]=flHist.dc[u]||{})[c]=((flHist.dc[u]||{})[c]||0)+w;(flHist.cd[c]=flHist.cd[c]||{})[u]=((flHist.cd[c]||{})[u]||0)+w;flHist.cc[c]=(flHist.cc[c]||0)+w});
     flLoadedAt=Date.now();flSaveCache();
   }catch(err){if(flMedia.length&&prodUnits.length){$('prodMsg').className='muted';$('prodMsg').textContent='Χωρίς σύνδεση με τον server – εμφανίζεται η τελευταία γνωστή λίστα.'}else{$('prodMsg').className='error';$('prodMsg').textContent='Σφάλμα φόρτωσης: '+(err?.message||err)}}
   flRender();
 }
 function flOpt(attrs,title,sub,top){return `<button type="button" class="btn alt flOpt${top?' flTop':''}" ${attrs}>${top?'<span class="flTag">ΠΙΘΑΝΟ</span>':''}${esc(title)}${sub?`<small>${esc(sub)}</small>`:''}</button>`}
+// ---- Προτεινόμενα μέσα ανά τμήμα (μόνο ροή ΤΜΗΜΑ, μόνο τμήματα Παραγωγής): όνομα τμήματος -> ομάδα ΑΗΗΕ + ιστορικό μεταφορών 60 ημερών
+function flCatGroup(c){let code=(c&&c.code)||'';return /^\d/.test(code)?code[0]:(/^INT-(\d)/.exec(code)||[])[1]||''}
+function flNameMatch(unit,cat){
+  let n=unit.name_el||'',c=(cat&&cat.code)||'',g=flCatGroup(cat);
+  if(/Τηλεπικοινων/.test(n))return g==='6';
+  if(/Τηλεόρασ/.test(n))return g==='2';
+  if(/Θερμοσιφ|Κλιματιστ/.test(n))return g==='1'||c.startsWith('4Α3');
+  if(/Μεγάλων Συσκευών/.test(n))return g==='4';
+  return false;   // Πάγκων / Ταξινόμησης / Εξωτερικών κ.λπ.: δεν μαντεύουμε, μόνο ιστορικό
+}
+function flSuggest(list){
+  if(!fl.unit||fl.unit.profile!=='PRODUCTION')return null;
+  let rows=flTH.filter(r=>r.unit_id===fl.unit.id),now=Date.now(),out=[];
+  list.forEach(g=>{
+    let a=!!g.medium_id&&g.categories.some(c=>flNameMatch(fl.unit,flCat(c.category_id))),b=0;
+    rows.forEach(r=>{let age=Math.max(0,(now-new Date(r.last_at||now).getTime())/864e5),w=r.n*(1+Math.max(0,60-age)/60);
+      if(g.categories.some(c=>c.category_id===r.category_id))b+=w;
+      if(r.medium_type_code===(g.medium_id?(g.medium_type_code||''):'BULK')||(flTypeKey(g)==='SACK'&&/^SACK/.test(r.medium_type_code)))b+=w*0.5});
+    let s=(a?3:0)+b;if(s>0)out.push({g,s,a,b:b>0,kg:Math.max(...g.categories.map(c=>Number(c.weight)||0))});
+  });
+  if(!out.length)return null;
+  out.sort((x,y)=>(y.s-x.s)||(y.kg-x.kg));out=out.slice(0,6);
+  let hasA=out.some(x=>x.a),hasB=out.some(x=>x.b);
+  return {items:out.map(x=>x.g),why:hasA&&hasB?'Βάσει ονόματος και ιστορικού':hasA?'Βάσει ονόματος τμήματος':'Βάσει ιστορικού'};
+}
 function flMediumPicker(){
   let list=fl.f==='a'?flMedia.filter(g=>g.categories.some(c=>c.category_id===fl.cat.id)):flMedia;
-  if(fl.f!=='m'&&!fl.other&&!fl.type){
+  let sug=(fl.f==='d'&&!fl.type)?flSuggest(list):null,pre='';
+  if(sug)pre=`<div class="flSug"><div class="flSugT">Προτεινόμενα για ${esc(fl.unit.name_el)}</div><div class="flSugS">${esc(sug.why)}</div><div class="flOpts">`+sug.items.map(g=>flOpt(`data-k="medium" data-v="${g.medium_id||'BULK'}"`,g.medium_code,flMat(g),false)).join('')+'</div></div><div class="flSugT" style="margin-top:14px">Όλα τα υπόλοιπα</div>';
+  if(fl.f!=='m'&&!fl.other&&!fl.type&&!sug){
     let ranked=fl.f==='d'
       ?list.map(g=>({g,s:Math.max(0,...g.categories.map(c=>(flHist.dc[fl.unit.id]||{})[c.category_id]||0))})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s)
       :list.map(g=>({g,s:g.categories.find(c=>c.category_id===fl.cat.id).weight})).sort((a,b)=>b.s-a.s);
@@ -236,7 +264,7 @@ function flMediumPicker(){
     let cnt={};list.forEach(g=>{let k=flTypeKey(g);cnt[k]=(cnt[k]||0)+1});
     let known=new Set(FL_TYPE_GROUPS.flat().map(t=>t.k)),extra=Object.keys(cnt).filter(k=>!known.has(k)).map(k=>({k,l:(list.find(g=>flTypeKey(g)===k)||{}).medium_type||k}));
     let groups=FL_TYPE_GROUPS.concat(extra.length?[extra]:[]);
-    return groups.map(gr=>'<div class="flOpts flGroup">'+gr.map(t=>{let n=cnt[t.k]||0;return `<button type="button" class="btn alt flOpt" data-type="${esc(t.k)}"${t.k==='BULK'?' data-bulk="1"':''}${n?'':' disabled'}>${esc(t.l)}<small>${t.k==='BULK'?(n?'χωρίς μέσο':'δεν υπάρχει'):n+' γεμάτα'}</small></button>`}).join('')+'</div>').join('');
+    return pre+groups.map(gr=>'<div class="flOpts flGroup">'+gr.map(t=>{let n=cnt[t.k]||0;return `<button type="button" class="btn alt flOpt" data-type="${esc(t.k)}"${t.k==='BULK'?' data-bulk="1"':''}${n?'':' disabled'}>${esc(t.l)}<small>${t.k==='BULK'?(n?'χωρίς μέσο':'δεν υπάρχει'):n+' γεμάτα'}</small></button>`}).join('')+'</div>').join('');
   }
   return '<button type="button" class="btn alt" data-type="" style="min-height:44px;font-size:13px;margin-bottom:8px">‹ ΑΛΛΟΣ ΤΥΠΟΣ</button><div class="flGrid4">'+list.filter(g=>g.medium_id&&flTypeKey(g)===fl.type).sort((a,b)=>String(a.medium_code).localeCompare(String(b.medium_code),'el',{numeric:true})).map(g=>`<button type="button" class="btn alt flNum" data-k="medium" data-v="${g.medium_id}">${esc(g.medium_code)}<small>${esc(fl.f==='a'?(Number(g.categories.find(c=>c.category_id===fl.cat.id).weight).toLocaleString('el-GR')+' kg'):flMat(g))}</small></button>`).join('')+'</div>';
 }
