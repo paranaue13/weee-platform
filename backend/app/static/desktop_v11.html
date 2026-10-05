@@ -870,6 +870,17 @@ body[data-theme="dark"] #ready .prodTable thead th{color:var(--fg-2,#B4B9C6)!imp
 .topbar #who{line-height:1;margin:0}
 .topbar #refresh{margin:0;flex:none}
 #viewTitle{font-size:18px!important;font-weight:500!important;line-height:1.2}
+
+/* Υλικά: λεπτά διαχωριστικά 1px στις γραμμές συνόλων (η χοντρή 2px μόνο μία φορά, πάνω από την πρώτη), hover γραμμής ημέρας, ύψος ημερών 34px */
+#ready .prodTable tfoot td{border-top:1px solid var(--line,#e1e7ef)!important}
+#ready .prodTable tfoot tr:first-child td{border-top:2px solid #aebfcb!important}
+body[data-theme="dark"] #ready .prodTable tfoot tr:first-child td{border-top-color:var(--line-strong,#465967)!important}
+#ready .prodTable tbody tr:hover,#ready .prodTable tbody tr:hover td{background:#EAF0FD!important}
+body[data-theme="dark"] #ready .prodTable tbody tr:hover,body[data-theme="dark"] #ready .prodTable tbody tr:hover td{background:#222B40!important}
+#ready .prodTable tbody tr{height:34px}
+#ready .prodTable tbody td{height:34px;box-sizing:border-box;padding-top:0!important;padding-bottom:0!important;line-height:20px}
+#ready .prodTable .negKgCell{display:inline-block;height:20px;line-height:20px;padding:0 7px;vertical-align:middle}
+#readyBalanceRow td{z-index:3}
 </style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
@@ -2048,7 +2059,7 @@ function stickyStackFooter(tfootId){
  }
  // Αν οι κολλημένες γραμμές συνόλων πιάνουν πάνω από το μισό ύψος του πίνακα, δεν κολλάνε (αλλιώς σκεπάζουν τις γραμμές ημερών).
  let wrap=tfoot.closest('.prodTableWrap');
- if(wrap){let tooTall=cum>wrap.clientHeight*0.5&&wrap.clientHeight>0;rows.forEach(r=>r.querySelectorAll('td').forEach(td=>{td.style.position=tooTall?'static':''}))}
+ if(wrap){let tooTall=cum>wrap.clientHeight*0.5&&wrap.clientHeight>0;rows.forEach(r=>{let keep=tooTall&&r.id==='readyBalanceRow';r.querySelectorAll('td').forEach(td=>{td.style.position=keep?'sticky':(tooTall?'static':'');if(keep)td.style.bottom='0px'})})}
  // Τα ύψη αλλάζουν (πλάτος στηλών, γραμματοσειρές, μέγεθος παραθύρου): ξαναϋπολογισμός ώστε να μην πέφτουν κελιά μέσα σε άλλα
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
@@ -2141,7 +2152,7 @@ function renderReadyMaterials(){
   +`<tr><td>Σύνολο ${readyPW()}</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(groupEntries,c))}</td>`).join('')}</tr>`
   +piecesPeriodRow
   +`<tr class="prodShipRow"><td>Αποστολές ${readyPW()}</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(shipGroupEntries,c))}</td>`).join('')}</tr>`
-  +`<tr class="prodBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
+  +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
   +piecesBalanceRow
   +invRow;
  readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
