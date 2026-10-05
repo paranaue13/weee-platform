@@ -855,6 +855,22 @@ body[data-theme="dark"] .corrPop .cpAdd{background:#8FB0FF;color:#001A41}
 .corrPop .cpAdd:disabled{opacity:.5}
 .corrPop .cpHint{font-size:11px;color:var(--fg-2,#74777F);margin-top:6px}
 </style>
+<style id="readyAlign">
+/* Υλικά - πίνακες: αριθμοί και επικεφαλίδες δεξιά (14px κενό), πρώτη στήλη 210px σε μία γραμμή, γραμμές συνόλων 40px */
+#ready .prodTable :is(th,td){text-align:right!important;padding-right:14px!important}
+#ready .prodTable :is(th,td):first-child{text-align:left!important;min-width:210px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important}
+#ready .prodTable thead th{font-size:12px!important;font-weight:500!important;text-transform:uppercase;color:#44474F!important;line-height:1.25}
+body[data-theme="dark"] #ready .prodTable thead th{color:var(--fg-2,#B4B9C6)!important}
+#ready .prodTable tfoot td{height:40px;padding-top:0!important;padding-bottom:0!important}
+#ready .prodTable .negKgCell{margin-right:-8px}
+#ready .corrBtn{padding-right:14px}
+/* μπάρα τίτλου: ύψος ≥56px, όλα κάθετα στο κέντρο */
+.topbar{min-height:58px;height:auto!important;box-sizing:border-box;padding-top:9px!important;padding-bottom:9px!important;align-items:center!important}
+.topbar>div{display:flex;align-items:center;gap:10px;min-width:0}
+.topbar #who{line-height:1;margin:0}
+.topbar #refresh{margin:0;flex:none}
+#viewTitle{font-size:18px!important;font-weight:500!important;line-height:1.2}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -1700,7 +1716,7 @@ function prodShift(n){if(prodState.period==='custom')return;let d=prodState.curs
 // entirely. ΜΗ ΑΗΗΕ codes are plain 6-digit numbers (e.g. "109991") -- same test the Android app's
 // mGroup() uses for its own A/B grouping.
 function isProducedWeeeCat(c){return c.active!==false&&c.processable!==false&&!/^\d{6}$/.test(c.official_code||c.code||'')}
-function prodTop(code){let m=String(code||'').match(/^([1-6])/);return m?m[1]:''}function prodTopName(n){return {'1':'Κλιματιστικά','2':'Οθόνες','3':'Λαμπτήρες','4':'Μεγ. Συσκευές & Λοιπά','5':'Μικρές Συσκευές','6':'Πληροφορική & Τηλεπικοινωνίες'}[n]||n}function prodVal(v){v=Number(v||0);if(Math.abs(v)<.0005)return'';let s=Math.round(v).toLocaleString('el-GR');if(v<0){flagNegativeKg();return`<span class="negKgCell" title="Αρνητικό απόθεμα -- ελέγξτε τα δεδομένα">${s}</span>`}return s}
+function prodTop(code){let m=String(code||'').match(/^([1-6])/);return m?m[1]:''}function prodTopName(n){return {'1':'Κλιματιστικά','2':'Οθόνες','3':'Λαμπτήρες','4':'Μεγ. Συσκευές & Λοιπά','5':'Μικρές Συσκευές','6':'Πληροφορική & Τηλεπικοινωνίες'}[n]||n}function prodVal(v){v=Number(v||0);if(Math.abs(v)<.0005)return'';let s=Math.round(v).toLocaleString('el-GR').replace('-','−');if(v<0){flagNegativeKg();return`<span class="negKgCell" title="Αρνητικό απόθεμα -- ελέγξτε τα δεδομένα">${s}</span>`}return s}
 function prodFilteredEntries(){let q=($('productionSearch')?.value||'').trim().toLocaleLowerCase('el');return prodState.entries.filter(e=>(prodState.group==='ALL'||e.supplier_group===prodState.group)&&(!q||[e.code,e.description,e.unit_name,e.employee_name].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)))}
 function renderProductionKpis(){let a=prodFilteredEntries(),sum=a.reduce((s,e)=>s+Number(e.weight_kg||0),0),h=prodState.entries.filter(e=>e.supplier_group==='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),o=prodState.entries.filter(e=>e.supplier_group!=='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),days=new Set(a.map(e=>(e.work_date||'').slice(0,10))).size;let units=new Set(a.map(e=>e.org_unit_id).filter(Boolean)).size,emps=new Set(a.map(e=>e.employee_id).filter(Boolean)).size;$('productionKpis').innerHTML=prodState.tab==='weee'?`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>HERMES</small><b>${prodVal(h)||'0'} kg</b></div><div class="prodKpi"><small>Λοιποί προμηθευτές</small><b>${prodVal(o)||'0'} kg</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`:`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>Τμήματα</small><b>${units}</b></div><div class="prodKpi"><small>Άτομα</small><b>${emps}</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`}
 function prodDateBuckets(){let {start,end}=prodRange(),out=[];if(prodState.period==='day')out=[new Date(start)];else if(prodState.period==='month'){for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))out.push(new Date(d))}else if(prodState.period==='quarter'||prodState.period==='half'||prodState.period==='nine'){for(let d=new Date(start);d<=end;d.setMonth(d.getMonth()+1))out.push(new Date(d.getFullYear(),d.getMonth(),1))}else{for(let m=0;m<12;m++)out.push(new Date(start.getFullYear(),m,1))}return out}
