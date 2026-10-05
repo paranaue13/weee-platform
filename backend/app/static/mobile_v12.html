@@ -603,12 +603,14 @@ function sortRevealStep(el){
   window.scrollTo({top:Math.max(0,top),behavior:'smooth'});
 }
 // Χύμα Πλυντήρια / Ψυγεία: ΙΔΙΑ θέση οθόνης και για τα δύο (τα κουμπιά Χύμα ακριβώς κάτω από την πάνω μπάρα)· αν το πλαίσιο δεν χωράει, scroll μέχρι να φαίνεται ολόκληρο.
+let bulkHmax=560;   // ύψος του ψηλότερου πλαισίου Χύμα (Πλυντήρια/Ψυγεία)· ίδιο scroll και για τα δύο
 function sortRevealBulk(panel){
   sortSaveScroll();
   let sy=window.scrollY,vh=window.innerHeight,bar=document.querySelector('#app .top'),inset=bar?bar.offsetHeight:0,q=$('qw')||$('qf');
   if(!q){sortRevealStep(panel);return}
-  let qa=q.getBoundingClientRect().top+sy,tb=panel.getBoundingClientRect().bottom+sy;
-  window.scrollTo({top:Math.max(0,qa-inset-12,tb+12-vh),behavior:'smooth'});
+  bulkHmax=Math.max(bulkHmax,panel.offsetHeight);
+  let qa=q.getBoundingClientRect().top+sy,pt=panel.getBoundingClientRect().top+sy;
+  window.scrollTo({top:Math.max(0,qa-inset-12,pt+bulkHmax+12-vh),behavior:'smooth'});
 }
 function chooseMedium(id){$('medium').value=id;$('weighStep').classList.remove('hidden');$('modeScale').classList.remove('hidden');updateHint();sortRevealStep($('weighStep'))}
 function setMode(x){mode=x;$('modeScale').classList.toggle('on',x==='SCALE_GROSS');$('modeNet').classList.toggle('on',x==='MEDIUM');$('weightLabel').textContent=x==='SCALE_GROSS'?'Τι γράφει η ζυγαριά;':'Καθαρό βάρος υλικού';updateHint()}$('modeScale').onclick=()=>setMode('SCALE_GROSS');$('modeNet').onclick=()=>setMode('MEDIUM');$('medium').onchange=updateHint;function updateHint(){let m=media.find(x=>x.id===$('medium').value);$('calcHint').textContent=mode==='SCALE_GROSS'?(m?.tare_weight!=null?`Το πρόγραμμα θα αφαιρέσει αυτόματα απόβαρο ${m.tare_weight} kg και το ήδη καταχωρημένο περιεχόμενο.`:'Το επιλεγμένο μέσο χρειάζεται απόβαρο στο Μητρώο.'):'Θα καταχωρηθεί απευθείας το καθαρό βάρος που δίνεις.'}
