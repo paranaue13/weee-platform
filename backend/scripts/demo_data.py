@@ -1,0 +1,176 @@
+"""DEMO δεδομένα για το Android (εικονικά κιλά σε καλάθια / παλέτες / σάκους / χύμα).
+
+  Δημιουργία :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py create
+  Σβήσιμο    :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py delete
+  Κατάσταση  :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py status
+
+Ετικέτα DEMO: μία παραλαβή «DEMO-0001» (εντολή «DEMO», σημείωση «DEMO») με ταξινόμηση ΚΛΕΙΣΤΗ· όλα τα εικονικά
+κιλά είναι μερίδια αποθέματος αυτής της ταξινόμησης (ίδιος τρόπος με την Ταξινόμηση). Τα νέα μέσα (Infocycle 1,
+παλέτες, σάκοι) έχουν κωδικό που αρχίζει από «DEMO-». Το σβήσιμο αφαιρεί ΜΟΝΟ αυτά και ξαναγυρίζει τα υπάρχοντα
+καλάθια του Μητρώου σε «διαθέσιμο». Δεν αλλάζει δομή βάσης ούτε αγγίζει πραγματικές εγγραφές.
+Αν έχεις ήδη περάσει DEMO κιλά στην Παραγωγή, το σβήσιμο σταματά και ζητά  delete --and-transfers.
+"""
+import sys, os
+from datetime import datetime, timezone
+from decimal import Decimal
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from sqlalchemy import select, delete as sa_delete, func
+from app.db import SessionLocal
+from app import models
+from app.models import (User, Organization, InboundTrip, InboundLoad, SortingSession, SortingEntry, WEEEStockLot, StockMovement,
+    CollectionMedium, CollectionMediumType, WEEECategory, ProductionTransfer, ProductionTransferItem, ProductionInputBalance,
+    ProductionWorkEntry)
+from app import main as appmain
+
+TAG = 'DEMO'
+RECEIPT = 'DEMO-0001'
+CATS = ['2Β1000', '2Β2000', '4Λ0000', '6Γ0000', '6Ε0000', '4Ε0000', '4Ζ0000', '4Κ2000', '5Δ0000', '4Δ0000',
+        '6Α0000', '5Ζ0000', '4Β0000', '5Β0000', '4Η0000', '5Η0000', '4Ι0000', '5Ε0000', '2Β4000', '4Θ0000', '6Β0000', '5Α0000']
+BASKET_KG = [[45, 96, 128, 172, 33], [58, 110, 150, 21, 180], [67, 84, 139, 24, 163], [52, 101, 119, 175, 38]]
+PALLETS = [(22, 250), (25, 380), (28, 520), (30, 690)]
+SACK1 = [15, 28, 41, 60]
+SACK2 = [18, 33, 47, 55]
+BULK = [('4Α2110', 85), ('4Α1000', 140)]
+
+
+def demo_trip(db):
+    return db.scalar(select(InboundTrip).where(InboundTrip.receipt_number == RECEIPT))
+
+
+def create(db):
+    if demo_trip(db):
+        print('Υπάρχουν ήδη DEMO δεδομένα. Τρέξε πρώτα:  demo_data.py delete'); return
+    user = db.scalar(select(User).where(User.username == 'admin')) or db.scalar(select(User))
+    sup = db.scalar(select(InboundLoad.supplier_id).limit(1)) or db.scalar(select(Organization.id).limit(1))
+    types = {t.code: t for t in db.scalars(select(CollectionMediumType)).all()}
+    cats = {c.code: c for c in db.scalars(select(WEEECategory)).all()}
+    now = datetime.now(timezone.utc)
+    plan = []  # (medium, category_code, net_kg, entry_type)
+    # --- καλάθια: 5 ΥΠΑΡΧΟΝΤΑ ανά τύπο (τα Infocycle 1 δεν υπήρχαν: 5 νέα DEMO μέσα)
+    ci = 0
+    for ti, code in enumerate(['BASKET_LARGE', 'BASKET_SMALL', 'INFOCYCLE_1', 'INFOCYCLE_2']):
+        t = types[code]
+        if code == 'INFOCYCLE_1':
+            media = []
+            for n in range(1, 6):
+                m = CollectionMedium(type_id=t.id, code=f'DEMO-IC1-{n}', tare_weight=None, status='AVAILABLE', active=True)
+                db.add(m); media.append(m)
+            db.flush()
+        else:
+            ms = db.scalars(select(CollectionMedium).where(CollectionMedium.type_id == t.id, CollectionMedium.status == 'AVAILABLE', CollectionMedium.active == True)).all()
+            ms.sort(key=lambda m: (len(m.code), m.code))
+            media = ms[-5:]  # τα τελευταία (λιγότερο πιθανό να χρησιμοποιούνται)
+        for m, kg in zip(media, BASKET_KG[ti]):
+            plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
+    # --- παλέτες (custom αποβαρό)
+    for n, (tare, kg) in enumerate(PALLETS, 1):
+        m = CollectionMedium(type_id=types['PALLET'].id, code=f'DEMO-P{n}', tare_weight=Decimal(tare), status='AVAILABLE', active=True)
+        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
+    # --- σάκοι 1kg / 2kg (σταθερό αποβαρό)
+    for n, kg in enumerate(SACK1, 1):
+        m = CollectionMedium(type_id=types['SACK_1KG'].id, code=f'DEMO-S1-{n}', tare_weight=Decimal(1), status='AVAILABLE', active=True)
+        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
+    for n, kg in enumerate(SACK2, 1):
+        m = CollectionMedium(type_id=types['SACK_2KG_UN'].id, code=f'DEMO-S2-{n}', tare_weight=Decimal(2), status='AVAILABLE', active=True)
+        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
+    # --- χύμα
+    for code, kg in BULK:
+        plan.append((None, code, kg, 'BULK'))
+    db.flush()
+    total = sum(p[2] for p in plan)
+    trip = InboundTrip(receipt_number=RECEIPT, receipt_type='CURTAIN_TRAILER', receipt_date=now, status='CLOSED', created_by=user.id, notes=TAG)
+    db.add(trip); db.flush()
+    load = InboundLoad(trip_id=trip.id, load_sequence=1, supplier_id=sup, order_number=TAG, status='CLOSED', net_weight=Decimal(total), notes=TAG, ready_for_sorting_at=now)
+    db.add(load); db.flush()
+    ses = SortingSession(inbound_load_id=load.id, status='CLOSED', started_at=now, started_by=user.id, final_sorting_weight=Decimal(total), final_difference=Decimal(0))
+    db.add(ses); db.flush()
+    counts = {}
+    for m, ccode, kg, et in plan:
+        e = SortingEntry(session_id=ses.id, weee_category_id=cats[ccode].id, collection_medium_id=m.id if m else None, entry_type=et,
+                         raw_weight=Decimal(kg), created_by=user.id, notes=TAG)
+        db.add(e); db.flush()
+        appmain._sync_entry_stock(db, e, user)
+        key = (types_by_id(types, m.type_id) if m else 'BULK')
+        counts[key] = counts.get(key, 0) + 1
+    db.commit()
+    print('Δημιουργήθηκαν DEMO εγγραφές ανά κατηγορία:')
+    names = {'BASKET_LARGE': 'Καλάθι μεγάλο', 'BASKET_SMALL': 'Καλάθι μικρό', 'INFOCYCLE_1': 'Infocycle 1 (νέα DEMO μέσα)', 'INFOCYCLE_2': 'Infocycle 2',
+             'PALLET': 'Παλέτες (νέα DEMO μέσα)', 'SACK_1KG': 'Σάκοι 1 kg (νέα DEMO μέσα)', 'SACK_2KG_UN': 'Σάκοι 2 kg (νέα DEMO μέσα)', 'BULK': 'Χύμα'}
+    for k, v in counts.items(): print(f'  {names.get(k, k)}: {v}')
+    print(f'Σύνολο {sum(counts.values())} εγγραφές, {total} kg καθαρά.')
+
+
+def types_by_id(types, tid):
+    for c, t in types.items():
+        if t.id == tid: return c
+    return '?'
+
+
+def demo_ids(db):
+    trip = demo_trip(db)
+    if not trip: return None
+    loads = db.scalars(select(InboundLoad.id).where(InboundLoad.trip_id == trip.id)).all()
+    sess = db.scalars(select(SortingSession.id).where(SortingSession.inbound_load_id.in_(loads))).all()
+    ents = db.scalars(select(SortingEntry.id).where(SortingEntry.session_id.in_(sess))).all()
+    lots = db.scalars(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id.in_(ents))).all()
+    return trip, loads, sess, ents, lots
+
+
+def status(db):
+    d = demo_ids(db)
+    if not d: print('Δεν υπάρχουν DEMO δεδομένα.'); return
+    trip, loads, sess, ents, lots = d
+    media = db.scalars(select(CollectionMedium).where(CollectionMedium.code.like('DEMO-%'))).all()
+    cons = [l for l in lots if Decimal(l.available_weight) < Decimal(l.original_weight)]
+    print(f'DEMO: {len(lots)} lots ({sum(float(l.original_weight) for l in lots)} kg), {len(media)} νέα DEMO μέσα, {len(cons)} lots που έχουν περάσει (μερικώς) στην Παραγωγή.')
+
+
+def delete(db, with_transfers=False):
+    d = demo_ids(db)
+    media_demo = db.scalars(select(CollectionMedium).where(CollectionMedium.code.like('DEMO-%'))).all()
+    if not d and not media_demo: print('Δεν υπάρχουν DEMO δεδομένα.'); return
+    trip, loads, sess, ents, lots = d if d else (None, [], [], [], [])
+    lot_ids = [l.id for l in lots]
+    items = db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.stock_lot_id.in_(lot_ids))).all() if lot_ids else []
+    if items and not with_transfers:
+        print(f'Σταματάω: {len(items)} μεταφορές DEMO κιλών έχουν περάσει στην Παραγωγή. Για να σβηστούν και αυτές τρέξε:  demo_data.py delete --and-transfers'); return
+    if items:
+        outs = db.scalar(select(func.count()).select_from(models.DirectProcessingEvent).where(models.DirectProcessingEvent.source_stock_lot_id.in_(lot_ids))) if hasattr(models, 'DirectProcessingEvent') else 0
+        if outs:
+            print('Σταματάω: υπάρχουν έτοιμα υλικά που προήλθαν από DEMO κιλά (δεν σβήνονται αυτόματα).'); return
+        tids = {i.transfer_id for i in items}
+        item_ids = [i.id for i in items]
+        db.execute(sa_delete(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id.in_(item_ids)))
+        db.execute(sa_delete(ProductionWorkEntry).where(ProductionWorkEntry.transfer_id.in_(tids)))
+        db.execute(sa_delete(ProductionTransferItem).where(ProductionTransferItem.id.in_(item_ids)))
+        for tid in tids:
+            if not db.scalar(select(func.count()).select_from(ProductionTransferItem).where(ProductionTransferItem.transfer_id == tid)):
+                db.execute(sa_delete(ProductionTransfer).where(ProductionTransfer.id == tid))
+    used_media = {l.collection_medium_id for l in lots if l.collection_medium_id}
+    if lot_ids:
+        db.execute(sa_delete(StockMovement).where(StockMovement.lot_id.in_(lot_ids)))
+        db.execute(sa_delete(WEEEStockLot).where(WEEEStockLot.id.in_(lot_ids)))
+    if ents:
+        db.execute(sa_delete(models.SortingAdjustment).where(models.SortingAdjustment.sorting_entry_id.in_(ents)))
+        db.execute(sa_delete(SortingEntry).where(SortingEntry.id.in_(ents)))
+    if sess: db.execute(sa_delete(SortingSession).where(SortingSession.id.in_(sess)))
+    if loads: db.execute(sa_delete(InboundLoad).where(InboundLoad.id.in_(loads)))
+    if trip: db.execute(sa_delete(InboundTrip).where(InboundTrip.id == trip.id))
+    n_media = 0
+    for m in media_demo:
+        db.delete(m); n_media += 1
+    db.flush()
+    for mid in used_media:  # υπάρχοντα καλάθια του Μητρώου -> ξανά «διαθέσιμα»
+        m = db.get(CollectionMedium, mid)
+        if m and m.status == 'WEEE_STORAGE' and not db.scalar(select(func.count()).select_from(WEEEStockLot).where(WEEEStockLot.collection_medium_id == mid, WEEEStockLot.available_weight > 0)):
+            m.status = 'AVAILABLE'
+    db.commit()
+    print(f'Σβήστηκαν: {len(lot_ids)} DEMO lots, {len(ents)} εγγραφές ταξινόμησης, 1 DEMO παραλαβή, {n_media} DEMO μέσα. Τα υπάρχοντα καλάθια ξαναγύρισαν σε «διαθέσιμο».')
+
+
+if __name__ == '__main__':
+    cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
+    with SessionLocal() as db:
+        if cmd == 'create': create(db)
+        elif cmd == 'delete': delete(db, with_transfers='--and-transfers' in sys.argv)
+        else: status(db)
