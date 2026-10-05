@@ -24,13 +24,45 @@ from app import main as appmain
 
 TAG = 'DEMO'
 RECEIPT = 'DEMO-0001'
-CATS = ['2Β1000', '2Β2000', '4Λ0000', '6Γ0000', '6Ε0000', '4Ε0000', '4Ζ0000', '4Κ2000', '5Δ0000', '4Δ0000',
-        '6Α0000', '5Ζ0000', '4Β0000', '5Β0000', '4Η0000', '5Η0000', '4Ι0000', '5Ε0000', '2Β4000', '4Θ0000', '6Β0000', '5Α0000']
-BASKET_KG = [[45, 96, 128, 172, 33], [58, 110, 150, 21, 180], [67, 84, 139, 24, 163], [52, 101, 119, 175, 38]]
-PALLETS = [(22, 250), (25, 380), (28, 520), (30, 690)]
-SACK1 = [15, 28, 41, 60]
-SACK2 = [18, 33, 47, 55]
-BULK = [('4Α2110', 85), ('4Α1000', 140)]
+N_BASKET = 8      # ανά τύπο καλαθιού
+N_PALLET = 6
+PALLET_TARES = [22, 25, 28, 30, 26, 24]
+N_SACK1, N_SACK2 = 4, 4
+BULK = [('4Α2110', 140), ('4Α1000', 95)]
+# Βάρος ανά είδος: βαριά / μεσαία / ελαφριά (0..1) -> ρεαλιστικά κιλά ανά τύπο υλικού
+HEAVY = ('Κλιματιστικά', 'Πλυντήρια', 'Κουζίνες', 'Θερμοσίφωνες', 'ψύξη', 'Αφυγραντήρες', 'Τηλεοράσεις', 'Οθόνες', 'Αυτόματοι Διανομείς',
+         'PC - Server', 'Φωτοτυπικά', 'έλαια', 'ρευστά', 'Σκούπες - Σίδερα')
+LIGHT = ('Laptops', 'Tablets', 'Κινητά', 'Φωτιστικά', 'Παιχνίδ', 'Ιατρικά', 'Ανιχνευτές', 'Ταμειακές', 'Πληκτρολόγια', 'Modem', 'Εκτυπωτές',
+         'Scanner', 'Projectors', 'UPS', 'Καλώδια', 'Ηχεία')
+GROUP_PICK = {'1': 4, '2': 7, '4': 12, '5': 7, '6': 8}   # πόσες διαφορετικές κατηγορίες από κάθε ομάδα
+
+
+def weight_class(desc, i):
+    jit = ((i * 37) % 11) / 100.0
+    if any(k.lower() in desc.lower() for k in HEAVY): return 0.78 + jit
+    if any(k.lower() in desc.lower() for k in LIGHT): return 0.04 + jit * 1.5
+    return 0.38 + jit
+
+
+def pick_categories(db):
+    """Διαφορετικές κατηγορίες ΑΗΗΕ από ΟΛΕΣ τις ομάδες (1,2,4,5,6), υπάρχοντα ονόματα/κωδικοί, interleaved ώστε οι γειτονικές να διαφέρουν."""
+    rows = db.scalars(select(WEEECategory).where(WEEECategory.active == True, WEEECategory.processable == True).order_by(WEEECategory.code)).all()
+    groups = {}
+    for c in rows:
+        code = c.code or ''
+        if len(code) == 6 and code.isdigit(): continue
+        g = code[0] if code[:1].isdigit() else (code.split('-')[1][0] if code.startswith('INT-') else None)
+        if g in GROUP_PICK: groups.setdefault(g, []).append(c)
+    chosen = {}
+    for g, n in GROUP_PICK.items():
+        lst = groups.get(g, [])
+        step = max(1, len(lst) // n)
+        chosen[g] = (lst[::step])[:n]
+    order, i = [], 0
+    while any(chosen.values()):
+        for g in sorted(chosen):
+            if chosen[g]: order.append(chosen[g].pop(0))
+    return order
 
 
 def demo_trip(db):
@@ -45,37 +77,40 @@ def create(db):
     types = {t.code: t for t in db.scalars(select(CollectionMediumType)).all()}
     cats = {c.code: c for c in db.scalars(select(WEEECategory)).all()}
     now = datetime.now(timezone.utc)
-    plan = []  # (medium, category_code, net_kg, entry_type)
-    # --- καλάθια: 5 ΥΠΑΡΧΟΝΤΑ ανά τύπο (τα Infocycle 1 δεν υπήρχαν: 5 νέα DEMO μέσα)
+    cat_list = pick_categories(db)
+    plan = []  # (medium, category, net_kg, entry_type)
     ci = 0
-    for ti, code in enumerate(['BASKET_LARGE', 'BASKET_SMALL', 'INFOCYCLE_1', 'INFOCYCLE_2']):
+    def kg_for(cat, lo, hi, n):
+        f = min(1.0, weight_class(cat.her_description or cat.description_el or '', n))
+        return int(round(lo + f * (hi - lo)))
+    def add(m, lo, hi):
+        nonlocal ci
+        cat = cat_list[ci % len(cat_list)]
+        plan.append((m, cat, kg_for(cat, lo, hi, ci), 'MEDIUM')); ci += 1
+    for code in ['BASKET_LARGE', 'BASKET_SMALL', 'INFOCYCLE_1', 'INFOCYCLE_2']:
         t = types[code]
         if code == 'INFOCYCLE_1':
             media = []
-            for n in range(1, 6):
+            for n in range(1, N_BASKET + 1):
                 m = CollectionMedium(type_id=t.id, code=f'DEMO-IC1-{n}', tare_weight=None, status='AVAILABLE', active=True)
                 db.add(m); media.append(m)
             db.flush()
         else:
             ms = db.scalars(select(CollectionMedium).where(CollectionMedium.type_id == t.id, CollectionMedium.status == 'AVAILABLE', CollectionMedium.active == True)).all()
             ms.sort(key=lambda m: (len(m.code), m.code))
-            media = ms[-5:]  # τα τελευταία (λιγότερο πιθανό να χρησιμοποιούνται)
-        for m, kg in zip(media, BASKET_KG[ti]):
-            plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
-    # --- παλέτες (custom αποβαρό)
-    for n, (tare, kg) in enumerate(PALLETS, 1):
+            media = ms[-N_BASKET:]  # τα τελευταία (λιγότερο πιθανό να χρησιμοποιούνται)
+        for m in media: add(m, 20, 180)
+    for n, tare in enumerate(PALLET_TARES[:N_PALLET], 1):
         m = CollectionMedium(type_id=types['PALLET'].id, code=f'DEMO-P{n}', tare_weight=Decimal(tare), status='AVAILABLE', active=True)
-        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
-    # --- σάκοι 1kg / 2kg (σταθερό αποβαρό)
-    for n, kg in enumerate(SACK1, 1):
+        db.add(m); add(m, 200, 700)
+    for n in range(1, N_SACK1 + 1):
         m = CollectionMedium(type_id=types['SACK_1KG'].id, code=f'DEMO-S1-{n}', tare_weight=Decimal(1), status='AVAILABLE', active=True)
-        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
-    for n, kg in enumerate(SACK2, 1):
+        db.add(m); add(m, 15, 60)
+    for n in range(1, N_SACK2 + 1):
         m = CollectionMedium(type_id=types['SACK_2KG_UN'].id, code=f'DEMO-S2-{n}', tare_weight=Decimal(2), status='AVAILABLE', active=True)
-        db.add(m); plan.append((m, CATS[ci % len(CATS)], kg, 'MEDIUM')); ci += 1
-    # --- χύμα
+        db.add(m); add(m, 15, 60)
     for code, kg in BULK:
-        plan.append((None, code, kg, 'BULK'))
+        plan.append((None, cats[code], kg, 'BULK'))
     db.flush()
     total = sum(p[2] for p in plan)
     trip = InboundTrip(receipt_number=RECEIPT, receipt_type='CURTAIN_TRAILER', receipt_date=now, status='CLOSED', created_by=user.id, notes=TAG)
@@ -85,8 +120,8 @@ def create(db):
     ses = SortingSession(inbound_load_id=load.id, status='CLOSED', started_at=now, started_by=user.id, final_sorting_weight=Decimal(total), final_difference=Decimal(0))
     db.add(ses); db.flush()
     counts = {}
-    for m, ccode, kg, et in plan:
-        e = SortingEntry(session_id=ses.id, weee_category_id=cats[ccode].id, collection_medium_id=m.id if m else None, entry_type=et,
+    for m, cat, kg, et in plan:
+        e = SortingEntry(session_id=ses.id, weee_category_id=cat.id, collection_medium_id=m.id if m else None, entry_type=et,
                          raw_weight=Decimal(kg), created_by=user.id, notes=TAG)
         db.add(e); db.flush()
         appmain._sync_entry_stock(db, e, user)
@@ -97,7 +132,7 @@ def create(db):
     names = {'BASKET_LARGE': 'Καλάθι μεγάλο', 'BASKET_SMALL': 'Καλάθι μικρό', 'INFOCYCLE_1': 'Infocycle 1 (νέα DEMO μέσα)', 'INFOCYCLE_2': 'Infocycle 2',
              'PALLET': 'Παλέτες (νέα DEMO μέσα)', 'SACK_1KG': 'Σάκοι 1 kg (νέα DEMO μέσα)', 'SACK_2KG_UN': 'Σάκοι 2 kg (νέα DEMO μέσα)', 'BULK': 'Χύμα'}
     for k, v in counts.items(): print(f'  {names.get(k, k)}: {v}')
-    print(f'Σύνολο {sum(counts.values())} εγγραφές, {total} kg καθαρά.')
+    print(f'Σύνολο {sum(counts.values())} εγγραφές, {total} kg καθαρά, {len({p[1].id for p in plan})} διαφορετικές κατηγορίες ΑΗΗΕ.')
 
 
 def types_by_id(types, tid):
