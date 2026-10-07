@@ -49,21 +49,9 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(243,245,246));
 
-        LinearLayout bar = new LinearLayout(this);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setPadding(12,10,12,10);
-        TextView status = new TextView(this);
-        status.setText("WEEE Platform " + VERSION);
-        status.setTextSize(16);
-        status.setTextColor(Color.WHITE);
-        status.setPadding(8,12,8,12);
-        bar.setBackgroundColor(Color.rgb(24,36,47));
-        Button cfg = new Button(this);
-        cfg.setText("SERVER");
-        cfg.setOnClickListener(v -> editServer());
-        bar.addView(status, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
-        bar.addView(cfg, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(bar);
+        // Η επάνω μπάρα (τίτλος/έκδοση, admin, ΔΕΛΤΙΟ ΗΜΕΡΑΣ, ONLINE) σχεδιάζεται πλέον μέσα στη σελίδα (/mobile)· το κουμπί ONLINE
+        // καλεί το editServer() (πρώην κουμπί SERVER) μέσω του WeeeNative.
+        getWindow().setStatusBarColor(Color.rgb(24,36,47));
 
         web = new WebView(this);
         WebSettings ws = web.getSettings();
@@ -72,6 +60,10 @@ public class MainActivity extends Activity {
         ws.setCacheMode(WebSettings.LOAD_NO_CACHE);
         ws.setAllowFileAccess(true);
         ws.setMediaPlaybackRequiresUserGesture(false);
+        web.addJavascriptInterface(new Object() {
+            @android.webkit.JavascriptInterface public void editServer() { runOnUiThread(() -> MainActivity.this.editServer()); }
+            @android.webkit.JavascriptInterface public String version() { return VERSION; }
+        }, "WeeeNative");
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient() {
             // <input type="file"> in /mobile: offer camera or gallery, results go back to the page which uploads them to the load.
