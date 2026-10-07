@@ -3124,6 +3124,23 @@ def set_production_transfer_weight(transfer_id:str, data:schemas.TransferWeightI
     write_audit(db,user,'production_transfer',t.id,'WEIGHT_CHANGE',old={'weight':str(old)},new={'weight':str(new)},reason=data.reason)
     db.commit(); return {'ok':True,'weight':str(new)}
 
+@app.get('/production/transfer-media')
+def production_transfer_media(days:int=Query(default=3,ge=1,le=60), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Ποιο μέσο συλλογής χρησιμοποιήθηκε σε κάθε μεταφορά υλικού (τελευταίες N ημέρες) -- για τη λίστα «Σημερινές καταχωρήσεις» του Android. Μόνο ανάγνωση."""
+    since=datetime.utcnow()-timedelta(days=days)
+    rows=db.execute(select(models.ProductionTransferItem.transfer_id,models.CollectionMediumType.code,models.CollectionMedium.code)
+        .join(models.ProductionTransfer,models.ProductionTransfer.id==models.ProductionTransferItem.transfer_id)
+        .join(models.WEEEStockLot,models.WEEEStockLot.id==models.ProductionTransferItem.stock_lot_id)
+        .outerjoin(models.CollectionMedium,models.CollectionMedium.id==models.WEEEStockLot.collection_medium_id)
+        .outerjoin(models.CollectionMediumType,models.CollectionMediumType.id==models.CollectionMedium.type_id)
+        .where(models.ProductionTransfer.created_at>=since)).all()
+    out={}
+    for tid,tcode,mcode in rows:
+        it={"type_code":tcode or 'BULK',"code":mcode}
+        lst=out.setdefault(tid,[])
+        if it not in lst: lst.append(it)
+    return out
+
 @app.get('/production/transfer-history')
 def production_transfer_history(days:int=Query(default=60,ge=1,le=365), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     """Ιστορικό μεταφορών υλικού ανά τμήμα (τελευταίες N ημέρες): τμήμα προορισμού, κατηγορία ΑΗΗΕ, τύπος μέσου, πλήθος, πιο πρόσφατη.
