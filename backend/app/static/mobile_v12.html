@@ -133,6 +133,18 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 .mtLine{font-size:14px;color:#44474F;margin:2px 0 6px}.mtLine:empty{display:none}.mtCode b{color:#1A1B20}
 .mtSummary{font-size:13px;color:#44474F;margin:10px 0 8px}.mtSummary:empty{display:none}
 .mtMain{width:100%;margin-top:6px}
+
+.mtStk{font-variant-numeric:tabular-nums}
+.mtStkHead,.mtStkRow,.mtStkTotal{display:grid;grid-template-columns:1fr 48px 90px;align-items:center;gap:6px}
+.mtStkHead{font-size:11px;font-weight:500;letter-spacing:.04em;color:#44474F;padding:4px 4px 6px;border-bottom:1px solid #DFE2EA}
+.mtStkRow{min-height:38px;padding:0 4px;border-bottom:1px solid #E3E5EC;font-size:14px;cursor:pointer}
+.mtStkRow.open{background:#EAF0FD}
+.mtStkN{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mtStkP,.mtStkK{text-align:right}
+.mtStkK{font-weight:500}
+.mtStkSub{display:flex;justify-content:space-between;min-height:34px;align-items:center;margin:0 0 0 14px;padding:0 8px;background:#EAF0FD;border-bottom:1px solid #DFE2EA;font-size:13px;color:#44474F}
+.mtStkTotal{position:sticky;bottom:0;min-height:40px;padding:0 4px;background:#fff;border-top:2px solid #DFE2EA;font-weight:500;font-size:14px}
+.mtStkNote{font-size:12px;color:#74777F;margin-top:8px}
 </style></head><body><div class="wrap">
 <div id="login" class="card"><h1>Ταξινόμηση</h1><p class="muted">Android UI 2.5.44</p><label>Χρήστης</label><input id="u" value="admin"><label>Κωδικός</label><input id="p" type="password" value="ChangeMe123!"><button id="loginBtn" class="btn" style="width:100%;margin-top:12px">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
 <div id="app" class="hidden"><div class="top"><div class="topDark"><div class="tdRow"><b id="appTitle" class="tdTitle">WEEE Platform 2.5.41</b><div class="tdRight"><b id="who"></b><button id="refreshBtn" type="button" class="tdRefresh" aria-label="Ανανέωση" title="Ανανέωση"><svg viewBox="0 -960 960 960" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg></button></div></div><div class="tdBtns"><button id="topDeltioBtn" type="button" class="tdBtn tdDeltio">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button><button id="net" type="button" class="tdBtn tdNet" title="Διεύθυνση server"><i class="netDot"></i><span id="netTxt">ONLINE</span></button></div></div><div class="profBar"><div class="modeBar"><button id="modeForks" class="btn choice on">ΠΙΡΟΥΝΙΑ</button><button id="modeClamp" class="btn choice">ΠΛΑΚΕΣ</button></div></div><div class="secRow"><div class="sectionBar"><button class="btn choice on secBtn" data-section="receiving">ΠΑΡΑΛΑΒΕΣ</button><button class="btn choice secBtn" data-section="production">ΠΑΡΑΓΩΓΗ</button><button class="btn choice secBtn" data-section="materials">ΥΛΙΚΑ</button><button class="btn choice secBtn" data-section="loading">ΦΟΡΤΩΣΕΙΣ</button></div></div></div><div id="secReceiving"><div id="loads" class="card"><div class="oldHead" style="display:none"><h2>Παραλαβές</h2><button id="reload" class="btn alt">↻</button></div><div id="loadList"></div></div>
@@ -878,7 +890,7 @@ function mtRender(){
   if(mt.tab==='export')$('matArea').innerHTML=mtWizHtml();
   else if(mt.tab==='stock')mtStockRender();
   else mtCountRender();
-  mtBind();
+  if(mt.tab!=='stock')mtBind();
 }
 function mtPicked(label,text,chg){return `<div><div class="flLbl">${label}</div><div class="flPicked"><span>${esc(text)}</span><button type="button" data-chg="${chg}">ΑΛΛΑΓΗ</button></div></div>`}
 function mtMat(){return mt.catalog.materials.find(m=>m.id===mt.w.mat)}
@@ -973,7 +985,16 @@ async function mtSend(){
     }else await mtCountSend(r);
   }catch(err){$('mtMsg').textContent=err?.message||String(err);$('mtSend').disabled=false}
 }
-function mtStockRender(){$('matArea').innerHTML='<div class="muted">Αποθήκη…</div>'}
+async function mtStockRender(){
+  let box=$('matArea');box.innerHTML='<div class="muted">Φόρτωση…</div>';
+  let d;try{d=await api('/mat/warehouse')}catch(e){box.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}
+  if(mt.tab!=='stock')return;
+  mt.stock=d;let open=mt.stockOpen||(mt.stockOpen=new Set());
+  let rows=d.materials.map(g=>`<div class="mtStkRow${open.has(g.material_id)?' open':''}" data-mid="${g.material_id}"><span class="mtStkN">${esc(g.material)}</span><span class="mtStkP">${g.pieces||''}</span><span class="mtStkK">${mtKg(g.kg)}</span></div>`
+    +(open.has(g.material_id)?g.items.map(i=>`<div class="mtStkSub"><span>${esc(i.label)}${i.code?' '+esc(i.code):''}</span><span class="mtStkK">${mtKg(i.kg)}</span></div>`).join(''):'')).join('');
+  box.innerHTML=`<div class="mtStk"><div class="mtStkHead"><span>ΥΛΙΚΟ</span><span class="mtStkP">ΤΕΜ.</span><span class="mtStkK">ΚΙΛΑ</span></div>${rows||'<div class="muted" style="padding:10px 0">Η αποθήκη είναι άδεια.</div>'}<div class="mtStkTotal"><span>Σύνολο</span><span class="mtStkP">${d.pieces}</span><span class="mtStkK">${mtKg(d.kg)}</span></div><div class="mtStkNote">Δεν περιλαμβάνονται οι ποσότητες της απογραφής.</div></div>`;
+  box.onclick=e=>{let r=e.target.closest('.mtStkRow');if(!r)return;let id=r.dataset.mid;if(open.has(id))open.delete(id);else open.add(id);mtStockRender()};
+}
 function mtCountRender(){$('matArea').innerHTML='<div class="muted">Απογραφή…</div>'}
 async function mtCountSend(r){}
 
