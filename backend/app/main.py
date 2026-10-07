@@ -3504,7 +3504,11 @@ def _today_orders_progress(db:Session)->dict:
     received={o for (o,) in db.execute(select(InboundLoad.order_number).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
         .where(active,InboundLoad.order_number.is_not(None),InboundTrip.receipt_date>=start,InboundTrip.receipt_date<start+timedelta(days=1))).all()}
     used={o for (o,) in db.execute(select(InboundLoad.order_number).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(active,InboundLoad.order_number.is_not(None))).all()}
-    feed={o for (o,) in db.execute(select(ElectrocycleOrder.order_no).where(ElectrocycleOrder.source_date==start.date().isoformat())).all()}
+    feed={o for (o,) in db.execute(select(ElectrocycleOrder.order_no).where(ElectrocycleOrder.source_date==start.date().isoformat(),
+        ~func.coalesce(ElectrocycleOrder.sender,'').like('%ΠΡ00959%'))).all()}
+    # Μόνο η ζωντανή ροή των Παραλαβών: οι εντολές του αποστολέα ΠΡ00959 ανήκουν στη ζωντανή ροή των Φορτώσεων και δεν μετράνε εδώ.
+    loading_orders={o for (o,) in db.execute(select(ElectrocycleOrder.order_no).where(func.coalesce(ElectrocycleOrder.sender,'').like('%ΠΡ00959%'))).all()}
+    received-=loading_orders
     return {"today_received":len(received),"today_remaining":len(feed-used)}
 
 
