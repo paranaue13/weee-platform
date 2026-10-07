@@ -219,7 +219,6 @@ class MaterialCreate(BaseModel):
 
 class StorageGroupIn(BaseModel):
     name: str
-    parent_id: str|None = None
     active: bool = True
 
 class StorageGroupAssignIn(BaseModel):
