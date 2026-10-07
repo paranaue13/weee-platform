@@ -105,6 +105,10 @@ async def lifespan(app: FastAPI):
         if "materials" in tables:
             mat2={c["name"] for c in inspect(engine).get_columns("materials")}
             if "storage_group_id" not in mat2: conn.execute(text("ALTER TABLE materials ADD COLUMN storage_group_id VARCHAR(36)"))
+        if "ready_material_lots" in tables:
+            rl={c["name"] for c in inspect(engine).get_columns("ready_material_lots")}
+            for col,typ in [("entry_type","VARCHAR(20) DEFAULT 'EXPORT'"),("period_year","INTEGER"),("period_quarter","INTEGER"),("period_month","INTEGER"),("counted_kg","NUMERIC(14,3)"),("storage_group_id","VARCHAR(36)"),("source_inventory_id","VARCHAR(36)"),("is_demo","BOOLEAN DEFAULT 0")]:
+                if col not in rl: conn.execute(text(f"ALTER TABLE ready_material_lots ADD COLUMN {col} {typ}"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
             if "her_description" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN her_description VARCHAR(300)"))
@@ -143,6 +147,8 @@ async def lifespan(app: FastAPI):
     ec_task.cancel()
 
 app = FastAPI(title="WEEE Operations Platform API", version="2.5.35", lifespan=lifespan)
+from .mat_warehouse import router as _mat_router
+app.include_router(_mat_router)
 
 @app.get("/health")
 def health(): return {"status":"ok","version":"2.5.35"}
@@ -3338,6 +3344,7 @@ def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_d
 def ready_materials(available_only:bool=True, start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
     q=select(ReadyMaterialLot).order_by(ReadyMaterialLot.created_at.desc())
     if available_only: q=q.where(ReadyMaterialLot.status=='AVAILABLE')
+    q=q.where(ReadyMaterialLot.status!='DEMO')   # τα DEMO δεν μπαίνουν ποτέ στα πραγματικά ισοζύγια/λίστες
     if start: q=q.where(ReadyMaterialLot.created_at>=datetime.fromisoformat(start))
     if end: q=q.where(ReadyMaterialLot.created_at<datetime.fromisoformat(end)+timedelta(days=1))
     return [_ready_out(db,x) for x in db.scalars(q).all()]

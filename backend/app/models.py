@@ -607,6 +607,34 @@ class ReadyMaterialLot(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(40), default="AVAILABLE", index=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    # Android ΥΛΙΚΑ → Εξαγωγή: τύπος εγγραφής, περίοδος (για ισοζύγια μάζας), καταμετρούμενα κιλά περιόδου, ετικέτα DEMO
+    entry_type: Mapped[str] = mapped_column(String(20), default="EXPORT")          # EXPORT | INVENTORY
+    period_year: Mapped[int|None] = mapped_column(Integer, nullable=True, index=True)
+    period_quarter: Mapped[int|None] = mapped_column(Integer, nullable=True)
+    period_month: Mapped[int|None] = mapped_column(Integer, nullable=True)
+    counted_kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)   # τα κιλά που καταμετρώνται στην περίοδο (≠ φυσικό βάρος όταν η εξαγωγή γίνεται από μέσο απογραφής)
+    storage_group_id: Mapped[str|None] = mapped_column(String(36), nullable=True)    # κατηγορία αποθήκης την ώρα της εξαγωγής
+    source_inventory_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+
+class MaterialInventoryEntry(Base, TimestampMixin):
+    """Ζύγιση απογραφής (τριμηνιαία): μέσο αποθήκευσης (παλέτα/σάκος/χύμα) με καθαρά κιλά υλικού. ΔΕΝ προσμετράται στα «διαθέσιμα προς αποστολή»."""
+    __tablename__ = "material_inventory_entries"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    material_id: Mapped[str] = mapped_column(String(36), ForeignKey("materials.id"), index=True)
+    storage_group_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    collection_medium_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("collection_media.id"), nullable=True, index=True)
+    form: Mapped[str] = mapped_column(String(20))                       # PALLET | SACK_1KG | SACK_2KG | BULK
+    gross_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    tare_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    net_weight: Mapped[Decimal] = mapped_column(Numeric(14,3))
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    quarter: Mapped[int] = mapped_column(Integer)
+    month: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="COUNTED")   # COUNTED | EXPORTED
+    exported_lot_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_by: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
 
 class ReadyMaterialMovement(Base):
     __tablename__ = "ready_material_movements"

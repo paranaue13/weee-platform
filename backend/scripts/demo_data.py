@@ -2,6 +2,7 @@
 
   Δημιουργία :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py create
   Σβήσιμο    :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py delete
+  Μόνο ΥΛΙΚΑ DEMO :  backend\.venv\Scripts\python.exe backend\scripts\demo_data.py delete-materials
   Κατάσταση  :  backend\\.venv\\Scripts\\python.exe backend\\scripts\\demo_data.py status
 
 Ετικέτα DEMO: μία παραλαβή «DEMO-0001» (εντολή «DEMO», σημείωση «DEMO») με ταξινόμηση ΚΛΕΙΣΤΗ· όλα τα εικονικά
@@ -160,10 +161,29 @@ def status(db):
     print(f'DEMO: {len(lots)} lots ({sum(float(l.original_weight) for l in lots)} kg), {len(media)} νέα DEMO μέσα, {len(cons)} lots που έχουν περάσει (μερικώς) στην Παραγωγή.')
 
 
+def delete_materials_demo(db):
+    """Σβήνει ΜΟΝΟ τα DEMO του Android → ΥΛΙΚΑ (εξαγωγές, ζυγίσεις απογραφής, μέσα DEMO-P-/DEMO-S-). Τα DEMO καλάθια/παραλαβή μένουν."""
+    mlots = db.scalars(select(models.ReadyMaterialLot).where(models.ReadyMaterialLot.is_demo == True)).all()
+    mids = [l.id for l in mlots]
+    if mids:
+        db.execute(sa_delete(models.ReadyMaterialMovement).where(models.ReadyMaterialMovement.lot_id.in_(mids)))
+        db.execute(sa_delete(models.ReadyMaterialLot).where(models.ReadyMaterialLot.id.in_(mids)))
+    n_inv = db.execute(sa_delete(models.MaterialInventoryEntry).where(models.MaterialInventoryEntry.is_demo == True)).rowcount or 0
+    db.execute(sa_delete(models.AppSetting).where(models.AppSetting.key.like('matmedium.seq.DEMO-%')))
+    db.flush()
+    n_media = 0
+    for m in db.scalars(select(CollectionMedium).where((CollectionMedium.code.like('DEMO-P-%')) | (CollectionMedium.code.like('DEMO-S-%')))).all():
+        db.delete(m); n_media += 1
+    db.commit()
+    print(f'Σβήστηκαν (ΥΛΙΚΑ DEMO): {len(mids)} εξαγωγές, {n_inv} ζυγίσεις απογραφής, {n_media} DEMO μέσα.')
+
+
 def delete(db, with_transfers=False):
+    delete_materials_demo(db)
     d = demo_ids(db)
     media_demo = db.scalars(select(CollectionMedium).where(CollectionMedium.code.like('DEMO-%'))).all()
-    if not d and not media_demo: print('Δεν υπάρχουν DEMO δεδομένα.'); return
+    has_mat = db.scalar(select(func.count()).select_from(models.ReadyMaterialLot).where(models.ReadyMaterialLot.is_demo == True)) or db.scalar(select(func.count()).select_from(models.MaterialInventoryEntry).where(models.MaterialInventoryEntry.is_demo == True))
+    if not d and not media_demo and not has_mat: print('Δεν υπάρχουν DEMO δεδομένα.'); return
     trip, loads, sess, ents, lots = d if d else (None, [], [], [], [])
     lot_ids = [l.id for l in lots]
     items = db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.stock_lot_id.in_(lot_ids))).all() if lot_ids else []
@@ -208,4 +228,5 @@ if __name__ == '__main__':
     with SessionLocal() as db:
         if cmd == 'create': create(db)
         elif cmd == 'delete': delete(db, with_transfers='--and-transfers' in sys.argv)
+        elif cmd == 'delete-materials': delete_materials_demo(db)
         else: status(db)
