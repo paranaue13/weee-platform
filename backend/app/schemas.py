@@ -215,6 +215,16 @@ class MaterialCreate(BaseModel):
     reptool_description: str|None = None
     is_precious: bool = False
     export_step_kg: Decimal = Decimal("0.500")
+    storage_group_id: str|None = None   # Ομάδα αποθήκης (προαιρετικό)
+
+class StorageGroupIn(BaseModel):
+    name: str
+    parent_id: str|None = None
+    active: bool = True
+
+class StorageGroupAssignIn(BaseModel):
+    material_ids: list[str]
+    storage_group_id: str|None = None
 
 class MaterialOut(MaterialCreate):
     model_config = ConfigDict(from_attributes=True)

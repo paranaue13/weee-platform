@@ -357,6 +357,17 @@ class Material(Base, TimestampMixin):
     is_precious: Mapped[bool] = mapped_column(Boolean, default=False)
     export_step_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=Decimal("0.500"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    storage_group_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("storage_groups.id"), nullable=True, index=True)  # «Ομάδα αποθήκης» (προαιρετικό)
+
+class StorageGroup(Base, TimestampMixin):
+    """Ομάδες αποθήκης σε δύο επίπεδα: Κατηγορία (parent_id = None, π.χ. Μέταλλα) και Ομάδα μέσα σε αυτήν (π.χ. Χαλκός).
+    Κάθε υλικό ανήκει σε ΜΙΑ ομάδα (Material.storage_group_id)."""
+    __tablename__ = "storage_groups"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    name: Mapped[str] = mapped_column(String(150))
+    parent_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("storage_groups.id"), nullable=True, index=True)
+    sort_order: Mapped[int] = mapped_column(default=0)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 class CollectionMediumType(Base, TimestampMixin):
     __tablename__ = "collection_medium_types"

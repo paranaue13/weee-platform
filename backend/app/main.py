@@ -102,6 +102,9 @@ async def lifespan(app: FastAPI):
         if "production_placement_intervals" in tables:
             pi_cols = {c["name"] for c in inspect(engine).get_columns("production_placement_intervals")}
             if "org_unit_ids" not in pi_cols: conn.execute(text("ALTER TABLE production_placement_intervals ADD COLUMN org_unit_ids TEXT"))
+        if "materials" in tables:
+            mat2={c["name"] for c in inspect(engine).get_columns("materials")}
+            if "storage_group_id" not in mat2: conn.execute(text("ALTER TABLE materials ADD COLUMN storage_group_id VARCHAR(36)"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
             if "her_description" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN her_description VARCHAR(300)"))
@@ -618,10 +621,81 @@ def update_material_master(item_id:str,data:schemas.MaterialCreate,db:Session=De
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     old={"internal_name":x.internal_name,"galaxy_code":x.galaxy_code,"galaxy_description":x.galaxy_description,"genre":x.genre,"official_description":x.official_description,"her_description":x.her_description,"eka_code":x.eka_code,"reptool_code":x.reptool_code,"reptool_description":x.reptool_description}
-    for k,v in data.model_dump().items(): setattr(x,k,v)
+    old["storage_group_id"]=x.storage_group_id
+    if "storage_group_id" in data.model_fields_set and data.storage_group_id and not _storage_group_ok(db,data.storage_group_id,allow_inactive_id=x.storage_group_id): raise HTTPException(422,"Μη έγκυρη ομάδα αποθήκης")
+    for k,v in data.model_dump().items():
+        if k=="storage_group_id" and "storage_group_id" not in data.model_fields_set: continue   # παλιοί πελάτες δεν σβήνουν την ομάδα
+        setattr(x,k,v)
     _apply_material_rules(x)
-    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump())
+    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump(exclude=None if "storage_group_id" in data.model_fields_set else {"storage_group_id"}))
     db.commit(); db.refresh(x); return x
+
+def _storage_group_ok(db:Session,gid:str,allow_inactive_id:str|None=None)->bool:
+    """Στο υλικό μπαίνει μόνο ΟΜΑΔΑ (επίπεδο 2), ενεργή· μια ήδη ανατεθειμένη μη ενεργή ομάδα διατηρείται."""
+    g=db.get(models.StorageGroup,gid)
+    if not g or not g.parent_id: return False
+    return bool(g.active) or gid==allow_inactive_id
+
+@app.get("/master/storage-groups")
+def list_storage_groups(include_inactive:bool=Query(default=True), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
+    """Επίπεδη λίστα: κατηγορίες (parent_id=None) και ομάδες, με πλήθος υλικών/ομάδων."""
+    rows=db.scalars(select(models.StorageGroup).order_by(models.StorageGroup.sort_order,models.StorageGroup.name)).all()
+    if not include_inactive: rows=[r for r in rows if r.active]
+    counts=dict(db.execute(select(Material.storage_group_id,func.count()).where(Material.storage_group_id.is_not(None)).group_by(Material.storage_group_id)).all())
+    kids={}
+    for r in rows:
+        if r.parent_id: kids[r.parent_id]=kids.get(r.parent_id,0)+1
+    return [{"id":r.id,"name":r.name,"parent_id":r.parent_id,"active":r.active,"sort_order":r.sort_order,"material_count":int(counts.get(r.id,0)),"children_count":int(kids.get(r.id,0))} for r in rows]
+
+def _storage_group_check(db:Session,data:schemas.StorageGroupIn,self_id:str|None=None):
+    name=(data.name or '').strip()
+    if not name: raise HTTPException(422,"Συμπλήρωσε όνομα")
+    if data.parent_id:
+        p=db.get(models.StorageGroup,data.parent_id)
+        if not p or p.parent_id: raise HTTPException(422,"Η κατηγορία δεν είναι έγκυρη")
+    cond=(models.StorageGroup.parent_id==data.parent_id) if data.parent_id else models.StorageGroup.parent_id.is_(None)
+    for sib in db.scalars(select(models.StorageGroup).where(cond)).all():   # σύγκριση στην Python (το lower() της SQLite δεν χειρίζεται ελληνικά)
+        if sib.id!=self_id and (sib.name or '').strip().casefold()==name.casefold(): raise HTTPException(409,"Υπάρχει ήδη με αυτό το όνομα")
+    return name
+
+@app.post("/master/storage-groups")
+def create_storage_group(data:schemas.StorageGroupIn, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    name=_storage_group_check(db,data)
+    g=models.StorageGroup(name=name,parent_id=data.parent_id,active=True); db.add(g); db.flush()
+    write_audit(db,user,"storage_group",g.id,"CREATE",new={"name":name,"parent_id":data.parent_id}); db.commit()
+    return {"id":g.id,"name":g.name,"parent_id":g.parent_id,"active":g.active}
+
+@app.put("/master/storage-groups/{gid}")
+def update_storage_group(gid:str, data:schemas.StorageGroupIn, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    g=db.get(models.StorageGroup,gid)
+    if not g: raise HTTPException(404,"Δεν βρέθηκε")
+    if (g.parent_id is None)!=(data.parent_id is None): raise HTTPException(422,"Δεν αλλάζει το επίπεδο (κατηγορία/ομάδα)")
+    name=_storage_group_check(db,data,self_id=gid)
+    old={"name":g.name,"parent_id":g.parent_id,"active":g.active}
+    g.name=name; g.parent_id=data.parent_id; g.active=bool(data.active)
+    write_audit(db,user,"storage_group",g.id,"UPDATE",old=old,new={"name":name,"parent_id":g.parent_id,"active":g.active}); db.commit()
+    return {"id":g.id,"name":g.name,"parent_id":g.parent_id,"active":g.active}
+
+@app.delete("/master/storage-groups/{gid}")
+def delete_storage_group(gid:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    g=db.get(models.StorageGroup,gid)
+    if not g: raise HTTPException(404,"Δεν βρέθηκε")
+    if db.scalar(select(func.count()).select_from(Material).where(Material.storage_group_id==gid)): raise HTTPException(409,"Έχει υλικά -- ορίστε την «Μη ενεργή»")
+    if db.scalar(select(func.count()).select_from(models.StorageGroup).where(models.StorageGroup.parent_id==gid)): raise HTTPException(409,"Έχει ομάδες -- διέγραψε/μετακίνησέ τες πρώτα")
+    write_audit(db,user,"storage_group",g.id,"DELETE",old={"name":g.name,"parent_id":g.parent_id}); db.delete(g); db.commit()
+    return {"ok":True}
+
+@app.post("/master/materials/storage-group")
+def assign_storage_group(data:schemas.StorageGroupAssignIn, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    """Μαζική ανάθεση «Ομάδας αποθήκης» σε επιλεγμένα υλικά (None = Χωρίς ομάδα)."""
+    if data.storage_group_id and not _storage_group_ok(db,data.storage_group_id): raise HTTPException(422,"Μη έγκυρη ομάδα αποθήκης")
+    n=0
+    for mid in data.material_ids:
+        x=db.get(Material,mid)
+        if not x or x.storage_group_id==data.storage_group_id: continue
+        write_audit(db,user,"material",x.id,"UPDATE",old={"storage_group_id":x.storage_group_id},new={"storage_group_id":data.storage_group_id})
+        x.storage_group_id=data.storage_group_id; n+=1
+    db.commit(); return {"ok":True,"updated":n}
 
 @app.get("/master/materials/{item_id}/history")
 def material_history(item_id:str, db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -630,7 +704,7 @@ def material_history(item_id:str, db:Session=Depends(get_db), user=Depends(requi
     users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
     return [{"action":e.action,"old_values":json.loads(e.old_values) if e.old_values else None,"new_values":json.loads(e.new_values) if e.new_values else None,"reason":e.reason,"user":users.get(e.user_id),"created_at":e.created_at.isoformat()} for e in events]
 
-MASTER_HISTORY_ENTITY_TYPES={"container","collection_medium","material","weee_category","organizational_unit","employee"}
+MASTER_HISTORY_ENTITY_TYPES={"container","collection_medium","material","weee_category","organizational_unit","employee","storage_group"}
 @app.get("/master/history/{entity_type}")
 def master_tab_history(entity_type:str, limit:int=Query(default=300,le=1000), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
     if entity_type not in MASTER_HISTORY_ENTITY_TYPES: raise HTTPException(404,"Άγνωστος τύπος ιστορικού")
