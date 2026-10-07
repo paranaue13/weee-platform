@@ -193,6 +193,21 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
             "forms": forms, "period": {"year": y, "quarter": q, "month": m, "month_name": MONTHS[m - 1], "quarter_month_name": MONTHS[QUARTER_MONTH[q] - 1]}}
 
 
+@router.get("/next-code")
+def next_code_preview(form: str, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
+    """Ο κωδικός που θα δοθεί στο επόμενο μέσο μιας χρήσης (προεπισκόπηση, δεν δεσμεύεται)."""
+    if form not in ("PALLET", "SACK_1KG", "SACK_2KG"):
+        return {"code": None}
+    prefix = ("DEMO-" if is_demo(x_demo) else "") + ("P" if form == "PALLET" else "S")
+    row = db.scalar(select(AppSetting).where(AppSetting.key == f"matmedium.seq.{prefix}"))
+    n = int(row.value or 0) if row else 0
+    while True:
+        n += 1
+        code = f"{prefix}-{n:06d}"
+        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
+            return {"code": code}
+
+
 @router.post("/export")
 def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move")), x_demo: str | None = Header(default=None)):
     demo = is_demo(x_demo)
