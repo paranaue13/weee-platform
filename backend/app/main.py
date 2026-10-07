@@ -3061,11 +3061,12 @@ def _reverse_transfer_item(db:Session, ti, qty, unit_id:str|None, user:User, rea
     return lot.collection_medium_id
 
 def _restore_medium_lifecycle(db:Session, medium_ids:set):
+    db.flush()   # τα επιστρεφόμενα κιλά των μεριδίων πρέπει να φαίνονται στο ερώτημα παρακάτω
     for mid in medium_ids:
         if not mid: continue
         medium=db.get(CollectionMedium,mid)
         if medium and medium.status=='IN_PRODUCTION' and db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==mid,WEEEStockLot.available_weight>0)).first():
-            medium.status='AVAILABLE'
+            medium.status='WEEE_STORAGE'   # ξαναγεμάτο μέσο = όπως όταν γέμισε από την Ταξινόμηση (όχι «διαθέσιμο/άδειο»)
 
 def _transfer_items_checked(db:Session, transfer_id:str):
     items=db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==transfer_id)).all()
