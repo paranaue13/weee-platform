@@ -1219,7 +1219,7 @@ function quickDriver(){let cid=$('carrier').value;if(!cid)return alert('Επίλ
 function quickVehicle(){let cid=$('carrier').value;if(!cid)return alert('Επίλεξε πρώτα Μεταφορέα');openFloat('Νέα Πινακίδα',`${field('Πινακίδα','fpVehicle','')}<div class="floatPanelActions"><button class="btn" id="fpVehicleSave">Αποθήκευση</button></div>`);$('fpVehicleSave').onclick=async()=>{let n=$('fpVehicle').value.trim().toUpperCase();if(!n)return;await api('/master/carriers/'+cid+'/vehicles',{method:'POST',body:JSON.stringify({plate_number:n,active:true})});$('floatingEditor').classList.add('hidden');await refreshDrivers();$('vehicle').value=n}}
 function quickContainer(target){editContainerPopup(null);let save=$('fpCtrSave');let old=save.onclick;save.onclick=async()=>{await old();setTimeout(async()=>{await preload();let c=containerRegistry.find(x=>ctrLabel(x)===$('fpCtrNo')?.value);},0)}}
 async function showReceiptPhotos(){if(!editingReceiptId)return alert('Οι φωτογραφίες είναι διαθέσιμες αφού αποθηκευτεί η Παραλαβή.');let r=await api('/receipts/'+editingReceiptId),loads=r.loads||[],photos=[];for(let l of loads){let a=await api('/sorting/'+l.id+'/photos');photos.push(...a.map(x=>({...x,load_id:l.id,order:l.order_number||''})))}openFloat('Φωτογραφίες Ταξινόμησης',photos.length?`<div class="photoGrid">${photos.map(x=>`<a class="photoCard" href="/sorting/photos/${x.id}/file?token=${encodeURIComponent(token)}" target="_blank"><b>${esc(x.filename)}</b><small>${esc(x.order||'')}</small></a>`).join('')}</div>`:'<div class="notice">Δεν υπάρχουν συνδεδεμένες φωτογραφίες στην Ταξινόμηση.</div>')}
-let ecPollTimer=null,ecOrders=[];
+let ecPollTimer=null,ecOrders=[],ecOrdersDay='';
 // Sender ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959, matched by that code) is excluded from the
 // live feed entirely -- table and the Αριθμός εντολής search alike -- per explicit request.
 const EC_HIDDEN_SENDER=/ΠΡ00959/i;
@@ -1247,7 +1247,8 @@ async function loadElectrocycle(){
    el.style.color=(st&&!st.ok)?'#a53629':(staleMins!=null&&staleMins>staleCutoff)?'#a26a00':'';
   }
   let all=d.orders||[];
-  ecOrders=all.filter(o=>!EC_HIDDEN_SENDER.test(o.sender||''));
+  ecOrders=all.filter(o=>!EC_HIDDEN_SENDER.test(o.sender||''));ecOrdersDay=targetDay;
+  if($('receiptStats')&&Array.isArray(receiptRowsAll)&&receiptRowsAll.length&&typeof receiptNav!=='undefined'&&receiptNav.day)renderCompactReceiptStats(selectedReceiptRows(receiptRowsAll));
   const ecRow=(o,i)=>`<tr class="ecRow" data-i="${i}"><td>${esc(o.order_no)}</td><td>${esc(o.sender||'—')}</td><td>${esc(o.pickup_point||'—')}</td><td>${esc(o.city||'—')}</td><td>${esc(o.carrier||'—')}</td><td>${esc(o.collection_medium||'—')}</td></tr>`;
   if($('ecFeedDate'))$('ecFeedDate').textContent=targetDay===todayIso?'':(' · '+new Date(targetDay+'T12:00:00').toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long'}));
   if($('ecOrderRows')){
@@ -3410,9 +3411,16 @@ function renderCompactReceiptStats(rows){
   // A receipt (trip) can bundle several Μικρά Σημεία order numbers under one row -- each order
   // number is its own "σημείο", so points count loads, not receipts (a Container/Καρότσα receipt
   // always has exactly 1 load, so this doesn't change those two).
-  ],count=t=>rows.filter(r=>r.receipt_type===t).reduce((a,r)=>a+(r.loads?.length||1),0),sum=t=>rows.filter(r=>!t||r.receipt_type===t).reduce((a,r)=>a+receiptNet(r),0),pts=n=>`${n} ${n===1?'σημείο':'σημεία'}`,totalPts=rows.reduce((a,r)=>a+(r.loads?.length||1),0);
-  $('receiptStats').innerHTML=specs.map(([t,n,cls,icon])=>{let c=count(t);return `<div class="sortingKpiCard ${cls} statFilterCard" data-type="${t}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="sortingKpiText"><small>${n}</small><b>${pts(c)} · ${kg(sum(t))}</b></span></div>`}).join('')
-  +`<div class="sortingKpiCard k4 statFilterCard" data-type=""><span class="sortingKpiIcon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="sortingKpiText"><small>Σύνολο ημέρας</small><b>${pts(totalPts)} · ${kg(sum())}</b></span></div>`;
+  ],sum=t=>rows.filter(r=>!t||r.receipt_type===t).reduce((a,r)=>a+receiptNet(r),0);
+  // X/Y: σημεία παραλαβής (όχι εντολές). X = σημεία που έχουν ήδη παραληφθεί, Y = X + σημεία που απομένουν στη ζωντανή ροή της ημέρας.
+  const ptKey=o=>{let s=null;try{s=feedOrderSupplier(o)}catch(e){}let id=s&&(s.org?.id||s.senderOrg?.id);return id?'o:'+id:'t:'+String(o.pickup_point||o.sender||o.order_no||'').trim().toLocaleLowerCase('el')};
+  const feedOk=typeof ecOrdersDay!=='undefined'&&ecOrdersDay===receiptNav.day;
+  const xy=t=>{let rec=new Set();rows.filter(r=>r.receipt_type===t).forEach(r=>{(r.loads?.length?r.loads:[{}]).forEach((l,i)=>rec.add(l.supplier_id?'o:'+l.supplier_id:'r:'+r.id+':'+i))});
+    let all=new Set(rec);if(feedOk)ecOrders.filter(o=>detectReceiptTypeFromOrder(o)===t).forEach(o=>all.add(ptKey(o)));return [rec.size,all.size]};
+  let tot=[0,0];
+  const cardTxt=(a,b,k)=>`${a}/${b} · ${kg(k)}`;
+  $('receiptStats').innerHTML=specs.map(([t,n,cls,icon])=>{let [a,b]=xy(t);tot[0]+=a;tot[1]+=b;return `<div class="sortingKpiCard ${cls} statFilterCard" data-type="${t}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="sortingKpiText"><small>${n}</small><b>${cardTxt(a,b,sum(t))}</b></span></div>`}).join('')
+  +`<div class="sortingKpiCard k4 statFilterCard" data-type=""><span class="sortingKpiIcon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span><span class="sortingKpiText"><small>Σύνολο ημέρας</small><b>${cardTxt(tot[0],tot[1],specs.reduce((a,x)=>a+sum(x[0]),0))}</b></span></div>`;
   document.querySelectorAll('#receiptStats .statFilterCard').forEach(card=>card.onclick=()=>{
     let type=card.dataset.type,active=card.classList.contains('statFilterActive');
     document.querySelectorAll('#receiptStats .statFilterCard').forEach(c=>c.classList.remove('statFilterActive'));
