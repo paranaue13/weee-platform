@@ -223,10 +223,48 @@ def delete(db, with_transfers=False):
     print(f'Σβήστηκαν: {len(lot_ids)} DEMO lots, {len(ents)} εγγραφές ταξινόμησης, 1 DEMO παραλαβή, {n_media} DEMO μέσα. Τα υπάρχοντα καλάθια ξαναγύρισαν σε «διαθέσιμο».')
 
 
+
+def create_warehouse_demo(db):
+    """DEMO για Windows → Υλικά → Αποθήκη: εξαγωγές (παλέτες/σάκοι/χύμα), ζυγίσεις απογραφής και ένα μέσο απογραφής που εξήχθη (280 → 310 kg)."""
+    from app import mat_warehouse as mw
+    from decimal import Decimal as D
+    if db.scalar(select(func.count()).select_from(models.ReadyMaterialLot).where(models.ReadyMaterialLot.is_demo == True)):
+        print('Υπάρχουν ήδη DEMO υλικά. Σβήσε πρώτα (κουμπί «Σβήσιμο DEMO» ή delete-materials).'); return
+    user = db.scalars(select(User)).first()
+    mats, seen = [], set()
+    for m in db.scalars(select(models.Material).where(models.Material.storage_group_id.is_not(None)).order_by(models.Material.internal_name)).all():
+        if m.storage_group_id not in seen:
+            seen.add(m.storage_group_id); mats.append(m)
+        if len(mats) >= 4: break
+    y, q, mo = mw._period(); loc = mw._location(db)
+    def lot(m, form, net, tare=None, inv=None, counted=None):
+        md = mw._new_medium(db, form, tare, True, 'READY_STORAGE') if form != 'BULK' else None
+        l = models.ReadyMaterialLot(lot_number=mw._lot_number(db, m, True), material_id=m.id, output_form=('CONTAINER' if md else 'BULK'), collection_medium_id=md.id if md else None,
+            tare_weight=tare, net_weight=D(str(net)), location_id=loc.id, status='DEMO', created_by=user.id, notes='DEMO', entry_type='EXPORT',
+            period_year=y, period_quarter=q, period_month=mo, counted_kg=D(str(counted if counted is not None else net)), storage_group_id=m.storage_group_id,
+            source_inventory_id=inv, is_demo=True)
+        db.add(l); db.flush()
+        db.add(models.ReadyMaterialMovement(lot_id=l.id, movement_type='PRODUCTION_OUT', weight=D(str(net)), user_id=user.id, reason='DEMO'))
+        return l, md
+    def inv(m, form, net, tare=None):
+        md = mw._new_medium(db, form, tare, True, 'READY_STORAGE') if form != 'BULK' else None
+        e = models.MaterialInventoryEntry(material_id=m.id, storage_group_id=m.storage_group_id, collection_medium_id=md.id if md else None, form=form, tare_weight=tare,
+            net_weight=D(str(net)), year=y, quarter=q, month=mo, status='COUNTED', is_demo=True, created_by=user.id)
+        db.add(e); db.flush(); return e
+    for i, m in enumerate(mats):
+        lot(m, 'PALLET', 410 + 35 * i, 25); lot(m, 'PALLET', 520 - 20 * i, 25)
+        lot(m, 'SACK_1KG', 18 + i, 1); lot(m, 'SACK_2KG', 37 + i, 2); lot(m, 'BULK', 60 + 10 * i)
+        inv(m, 'PALLET', 300 + 15 * i, 25); inv(m, 'SACK_1KG', 20, 1)
+    m0 = mats[0]; e = inv(m0, 'PALLET', 280, 25); e.status = 'EXPORTED'
+    l, _ = lot(m0, 'PALLET', 310, 25, inv=e.id, counted=30); e.exported_lot_id = l.id; e.collection_medium_id = l.collection_medium_id
+    db.commit()
+    print(f'DEMO υλικά αποθήκης για {len(mats)} υλικά ({", ".join((m.official_description or m.internal_name) for m in mats)}).')
+
 if __name__ == '__main__':
     cmd = sys.argv[1] if len(sys.argv) > 1 else 'status'
     with SessionLocal() as db:
         if cmd == 'create': create(db)
         elif cmd == 'delete': delete(db, with_transfers='--and-transfers' in sys.argv)
         elif cmd == 'delete-materials': delete_materials_demo(db)
+        elif cmd == 'warehouse-demo': create_warehouse_demo(db)
         else: status(db)

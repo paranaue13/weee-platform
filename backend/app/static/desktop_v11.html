@@ -962,6 +962,43 @@ body[data-theme="dark"] .sgSel{background-image:url("data:image/svg+xml;utf8,<sv
 #master .registryTable thead th.sortAsc::before{content:"▲"}
 #master .registryTable thead th.sortDesc::before{content:"▼"}
 </style>
+<style id="whLook">
+:root{--wh-inv-bg:var(--sg-amber);--wh-inv-fg:var(--sg-on-amber)}
+#readyWarehousePanel .whBar{display:flex;align-items:center;gap:12px;background:var(--wh-inv-bg);color:var(--wh-inv-fg);border-radius:12px;padding:10px 14px;margin:0 0 12px;font-weight:500}
+#readyWarehousePanel .whSpacer{flex:1}
+#readyWarehousePanel .whGrid{display:grid;grid-template-columns:minmax(0,1fr) 470px;gap:14px;align-items:start}
+@media(max-width:1100px){#readyWarehousePanel .whGrid{grid-template-columns:1fr}}
+.whTable,.whItems{min-width:0!important}
+.whTable{width:100%;border-collapse:separate;border-spacing:0;background:var(--surface)}
+.whTable th{position:sticky;top:0;z-index:2;background:var(--surface);font-size:12px;font-weight:500;text-transform:uppercase;color:var(--fg-2);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+.whTable td{padding:0 14px;height:34px;border-bottom:1px solid var(--line);font-size:14px;color:var(--fg)}
+.whTable .num,.whItems .num{text-align:right;font-variant-numeric:tabular-nums}
+.whTable th.num{text-align:right}
+.whTable tr.whCat td{background:var(--accent-bg);color:var(--accent-fg);font-weight:500;height:36px}
+.whTable tr.whMat{cursor:pointer}
+.whTable tr.whMat:hover td{background:var(--hover)}
+.whTable tr.whMat.sel td{background:var(--accent-bg);color:var(--accent-fg)}
+.whTable tr.whSub td{background:var(--surface-2);font-weight:500;border-bottom:2px solid var(--line-strong)}
+.whTable tr.whTotal td{background:var(--surface-2);font-weight:500;border-top:2px solid var(--line-strong)}
+.whInvTag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:8px;background:var(--wh-inv-bg);color:var(--wh-inv-fg);font-size:12px}
+.whDetail{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card,16px);padding:16px;position:sticky;top:8px}
+.whDetail h3{margin:0 0 2px;font-size:18px;font-weight:500}
+.whCatName{color:var(--fg-3);font-size:13px;margin-bottom:10px}
+.whEmpty{color:var(--fg-3);padding:24px 0;text-align:center}
+.whItems{width:100%;border-collapse:collapse;font-size:13px}
+.whItems th{text-align:left;font-size:12px;font-weight:500;color:var(--fg-2);padding:6px 6px;border-bottom:1px solid var(--line)}
+.whItems th.num{text-align:right}
+.whItems td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+.whCounted{display:block;color:var(--fg-3);font-size:12px}
+.whInvSec{margin-top:12px;background:var(--wh-inv-bg);color:var(--wh-inv-fg);border-radius:12px;padding:10px 12px}
+.whInvSec .whItems th,.whInvSec .whItems td{color:var(--wh-inv-fg);border-color:rgba(0,0,0,.12)}
+.whInvSum{text-align:right;font-weight:500;margin-top:6px}
+.whSum{display:flex;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:2px solid var(--line-strong);font-size:14px}
+#whDemoDelete{background:var(--accent-bg);color:var(--accent-fg);border:0;border-radius:999px;height:36px;padding:0 18px;font-weight:500;cursor:pointer}
+.whItems td,.whItems th{white-space:nowrap}
+.whDetail{overflow-x:auto}
+.whDemo{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--st3-bg);color:var(--st3-fg)}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -1129,6 +1166,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <button class="readyGroupTab" data-readygroup="PLAKETES">Πλακέτες</button>
 <button class="readyGroupTab" data-readygroup="APORRIPSI">Υλικά προς Απόρριψη</button>
 <button class="readyGroupTab" data-readygroup="PRESS">Πρέσα</button>
+<button class="readyGroupTab" data-readygroup="WAREHOUSE">Αποθήκη</button>
 </div>
 <div class="productionPeriod">
 <div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-readyperiod="day">Ημέρα</button><button data-readyperiod="month" class="active">Μήνας</button><button data-readyperiod="quarter">Τρίμηνο</button><button data-readyperiod="year">Έτος</button><button type="button" id="readyRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div></div>
@@ -1141,6 +1179,11 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
 <div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
 <div class="hidden"><table><tbody id="readyRows"></tbody></table></div>
+<div id="readyWarehousePanel" class="hidden">
+<div class="whBar"><label class="toggleSwitch"><input type="checkbox" id="whInvToggle"><span class="slider"></span></label><span>Συμπερίληψη ποσοτήτων απογραφής</span><span class="whSpacer"></span><button type="button" class="btn" id="whDemoDelete" hidden>Σβήσιμο DEMO</button></div>
+<div class="whGrid"><div class="prodTableWrap whListWrap"><table class="whTable"><thead><tr><th>ΥΛΙΚΟ</th><th class="num">ΤΕΜ.</th><th class="num">ΚΙΛΑ</th></tr></thead><tbody id="whBody"></tbody></table></div>
+<aside class="whDetail" id="whDetail"></aside></div>
+</div>
 </section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div><div class="tablewrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt iconOnly" id="loadingEcMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
@@ -2296,7 +2339,7 @@ async function loadReadyMaterials(){
  document.querySelectorAll('[data-readyperiod]').forEach(b=>b.classList.toggle('active',b.dataset.readyperiod===readyState.period));
  document.querySelectorAll('#readyGroupTabs [data-readygroup]').forEach(b=>b.classList.toggle('active',b.dataset.readygroup===readyState.activeGroup));
 }
-function readyRefreshActive(){readyState.activeGroup==='PRESS'?loadReadyPress():loadReadyMaterials()}
+function readyRefreshActive(){readyState.activeGroup==='WAREHOUSE'?loadWarehouse():readyState.activeGroup==='PRESS'?loadReadyPress():loadReadyMaterials()}
 if($('readyPrev'))$('readyPrev').onclick=()=>readyShift(-1);
 if($('readyNext'))$('readyNext').onclick=()=>readyShift(1);
 if($('readyRangeBtn'))$('readyRangeBtn').onclick=()=>{let r=readyRange();openDateRangePicker(r.startISO,r.endISO,(from,to)=>{readyState.period='custom';readyState.customRange={start:from,end:to};document.querySelectorAll('[data-readyperiod]').forEach(x=>x.classList.remove('active'));readyRefreshActive()})};
@@ -2305,15 +2348,19 @@ document.querySelectorAll('#readyGroupTabs [data-readygroup]').forEach(b=>{
   b.onclick=()=>{
     readyState.activeGroup=b.dataset.readygroup;
     document.querySelectorAll('#readyGroupTabs [data-readygroup]').forEach(x=>x.classList.toggle('active',x===b));
-    let isPress=readyState.activeGroup==='PRESS';
-    $('readyMatPanel').classList.toggle('hidden',isPress);
+    let isPress=readyState.activeGroup==='PRESS',isWh=readyState.activeGroup==='WAREHOUSE';
+    $('readyMatPanel').classList.toggle('hidden',isPress||isWh);
     $('readyPressPanel').classList.toggle('hidden',!isPress);
-    if($('readyStockOnlyWrap'))$('readyStockOnlyWrap').classList.toggle('hidden',isPress);
+    $('readyWarehousePanel').classList.toggle('hidden',!isWh);
+    document.querySelector('#ready .productionPeriod')?.classList.toggle('hidden',isWh);
+    if($('readyStockOnlyWrap'))$('readyStockOnlyWrap').classList.toggle('hidden',isPress||isWh);
+    if(isWh){$('readyQuarterInventoryCard')?.classList.add('hidden');loadWarehouse();return}
+    $('readyQuarterInventoryCard')&&renderReadyQuarterInventory();
     isPress?loadReadyPress():renderReadyMaterials();
   };
   // PRESS and PLAKETES aren't real category_group values (just display-only tabs), so they're not
   // valid drop targets for material reclassification -- skip wiring drag/drop on those two buttons.
-  if(b.dataset.readygroup==='PRESS'||b.dataset.readygroup==='PLAKETES')return;
+  if(b.dataset.readygroup==='PRESS'||b.dataset.readygroup==='PLAKETES'||b.dataset.readygroup==='WAREHOUSE')return;
   b.ondragover=(e)=>{e.preventDefault();b.classList.add('dragTarget')};
   b.ondragleave=()=>b.classList.remove('dragTarget');
   b.ondrop=async(e)=>{e.preventDefault();b.classList.remove('dragTarget');let raw=e.dataTransfer.getData('text/material-label');if(!raw)return;let labelsArr=JSON.parse(raw);await Promise.all(labelsArr.map(lb=>setMatGroupOverride(lb,b.dataset.readygroup,0)));await loadReadyMaterials()};
@@ -4506,7 +4553,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     $('sgfOff').onclick=async()=>{try{await api('/master/storage-groups/'+item.id,{method:'PUT',body:JSON.stringify({name:item.name,active:!item.active})});await done()}catch(e){msg(e?.message||String(e))}};
     if(canDelete){let armed=false;$('sgfDel').onclick=async()=>{if(!armed){armed=true;$('sgfDel').textContent='Σίγουρα; Πάτα ξανά';setTimeout(()=>{armed=false;if($('sgfDel'))$('sgfDel').textContent='Διαγραφή'},4000);return}try{await api('/master/storage-groups/'+item.id,{method:'DELETE'});await done()}catch(e){armed=false;$('sgfDel').textContent='Διαγραφή';msg(e?.message||String(e))}}}
   }
-  if($('sgManageBtn'))$('sgManageBtn').onclick=openStorageGroupManager;
+  if($('sgManageBtn'))$('sgManageBtn').onclick=openStorageGroupManager;
   const MATERIAL_HISTORY_FIELD_LABELS={her_description:'Περιγραφή HER',eka_code:'Κωδικός ΕΚΑ',reptool_code:'Κωδικός Reptool',genre:'Γένος',official_description:'Επίσημη περιγραφή',galaxy_code:'Κωδικός ERP',storage_group_id:'Κατηγορία αποθήκης'};
   async function materialLoadHistory(obj){
     if(!$('fpMatHistory'))return;
@@ -4752,5 +4799,48 @@ let o=OBS.get(table);if(o)o.takeRecords();busy=false;
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
+</script>
+<script id="whScript">
+// Υλικά → Αποθήκη: διαθέσιμα προς αποστολή ανά Κατηγορία αποθήκης (ίδια δεδομένα με το Android). Απογραφή: μόνο με τον διακόπτη.
+let whState={inv:false,data:null,sel:null,confirmDel:false};
+const whNum=n=>Number(n||0).toLocaleString('el-GR',{maximumFractionDigits:2});
+const whDate=iso=>iso?new Date(iso).toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+async function loadWarehouse(){
+  try{whState.data=await api('/mat/warehouse-desktop?include_inventory='+(whState.inv?'true':'false'))}catch(e){$('whBody').innerHTML='<tr><td colspan="3" class="muted">Σφάλμα φόρτωσης: '+esc(e.message||e)+'</td></tr>';return}
+  renderWarehouse();
+}
+function whAllMaterials(){return (whState.data?.categories||[]).flatMap(c=>c.materials)}
+function renderWarehouse(){
+  let d=whState.data;if(!d)return;
+  if($('whInvToggle'))$('whInvToggle').checked=whState.inv;
+  let del=$('whDemoDelete');if(del){del.hidden=!(d.demo_count>0);del.textContent=whState.confirmDel?'Επιβεβαίωση σβησίματος;':'Σβήσιμο DEMO'}
+  let rows=d.categories.map(c=>`<tr class="whCat"><td colspan="3">${esc(c.category)}</td></tr>`
+    +c.materials.map(m=>`<tr class="whMat${whState.sel===m.material_id?' sel':''}" data-mid="${m.material_id}"><td>${esc(m.material)}</td><td class="num">${m.total_pieces||''}${m.inv_pieces?`<span class="whInvTag">+${m.inv_pieces}</span>`:''}</td><td class="num">${whNum(m.total_kg)}${m.inv_kg?`<span class="whInvTag">+${whNum(m.inv_kg)}</span>`:''}</td></tr>`).join('')
+    +`<tr class="whSub"><td>Σύνολο ${esc(c.category)}</td><td class="num">${c.total_pieces}</td><td class="num">${whNum(c.total_kg)}</td></tr>`).join('');
+  $('whBody').innerHTML=(rows||'<tr><td colspan="3" class="muted">Δεν υπάρχουν διαθέσιμες ποσότητες.</td></tr>')
+    +(d.categories.length?`<tr class="whTotal"><td>Σύνολο · ${d.n_categories} κατηγορίες / ${d.n_materials} υλικά</td><td class="num">${d.total_pieces}</td><td class="num">${whNum(d.total_kg)}</td></tr>`:'');
+  $('whBody').querySelectorAll('tr.whMat').forEach(tr=>tr.onclick=()=>{whState.sel=tr.dataset.mid;renderWarehouse()});
+  renderWarehouseDetail();
+}
+function renderWarehouseDetail(){
+  let box=$('whDetail'),m=whAllMaterials().find(x=>x.material_id===whState.sel);
+  if(!m){box.innerHTML='<div class="whEmpty">Επίλεξε υλικό</div>';return}
+  const row=it=>{
+    let kgTxt=`${whNum(it.kg)} kg`+(it.counted_kg!=null&&Math.abs(it.counted_kg-it.kg)>0.0005?`<small class="whCounted">στον μήνα: ${whNum(it.counted_kg)} kg</small>`:'');
+    return `<tr class="${it.kind==='inventory'?'whInvRow':''}"><td>${esc(it.label)}${it.demo?' <span class="whDemo">DEMO</span>':''}</td><td>${esc(it.code||'—')}</td><td class="num">${kgTxt}</td><td>${whDate(it.date)}</td></tr>`};
+  let main=m.items.filter(i=>i.kind!=='inventory'),inv=m.items.filter(i=>i.kind==='inventory');
+  const tbl=(list,cls)=>`<table class="whItems ${cls||''}"><thead><tr><th>Μέσο</th><th>Κωδικός</th><th class="num">Κιλά</th><th>Ημερομηνία</th></tr></thead><tbody>${list.map(row).join('')}</tbody></table>`;
+  box.innerHTML=`<h3>${esc(m.material)}</h3><div class="whCatName">${esc(m.category)}${m.erp?' · '+esc(m.erp):''}</div>`
+    +(main.length?tbl(main):'')
+    +(inv.length?`<div class="whInvSec"><b>Απογραφή</b>${tbl(inv,'whInvTbl')}<div class="whInvSum">${m.inv_pieces} τεμ. · ${whNum(m.inv_kg)} kg</div></div>`:'')
+    +`<div class="whSum"><span>Σύνολο</span><b>${m.total_pieces} τεμ. · ${whNum(m.total_kg)} kg</b></div>`;
+}
+if($('whInvToggle'))$('whInvToggle').onchange=e=>{whState.inv=e.target.checked;loadWarehouse()};
+if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
+  if(!whState.confirmDel){whState.confirmDel=true;renderWarehouse();setTimeout(()=>{if(whState.confirmDel){whState.confirmDel=false;renderWarehouse()}},4000);return}
+  whState.confirmDel=false;
+  try{await api('/mat/demo/delete',{method:'POST'})}catch(e){}
+  whState.sel=null;loadWarehouse();
+};
 </script>
 </body></html>

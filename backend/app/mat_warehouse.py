@@ -326,3 +326,102 @@ def warehouse(db: Session = Depends(get_db), user=Depends(require_permission("pr
         g["items"].append({"label": label, "code": md.code if md else None, "kg": float(l.net_weight), "demo": bool(l.is_demo)})
     groups = sorted(out.values(), key=lambda g: g["material"])
     return {"materials": groups, "pieces": sum(g["pieces"] for g in groups), "kg": round(sum(g["kg"] for g in groups), 3)}
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Windows → Υλικά → Αποθήκη (προβολή). Ίδια δεδομένα με το Android, ομαδοποιημένα ανά Κατηγορία αποθήκης.
+# ---------------------------------------------------------------------------------------------------------------------
+_TYPE_LABELS = {"PALLET": "Παλέτα", "SACK_1KG": "Σάκος 1 kg", "SACK_2KG_UN": "Σάκος 2 kg"}
+
+
+@router.get("/warehouse-desktop")
+def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Διαθέσιμα προς αποστολή = εξαγωγές (παλέτες/σάκοι/χύμα) + υπόλοιπο ισοζυγίου που δεν έχει μέσο (θεωρείται Χύμα).
+    Οι ποσότητες απογραφής προστίθενται ΜΟΝΟ με include_inventory=true."""
+    lots = db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status.in_(["AVAILABLE", "DEMO"]), ReadyMaterialLot.entry_type == "EXPORT").order_by(ReadyMaterialLot.created_at)).all()
+    invs = db.scalars(select(MaterialInventoryEntry).where(MaterialInventoryEntry.status == "COUNTED").order_by(MaterialInventoryEntry.created_at)).all() if include_inventory else []
+    mats = db.scalars(select(Material)).all()
+    mat_by_id = {m.id: m for m in mats}
+    avail = available_by_material(db, mats)
+    media_ids = [x.collection_medium_id for x in list(lots) + list(invs) if x.collection_medium_id]
+    media = {m.id: m for m in db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(media_ids))).all()} if media_ids else {}
+    types = {t.id: t for t in _types(db).values()}
+    groups = {g.id: g for g in db.scalars(select(StorageGroup)).all()}
+
+    def label_of(md):
+        t = types.get(md.type_id) if md else None
+        return _TYPE_LABELS.get(t.code if t else "", "Χύμα")
+
+    out: dict = {}
+
+    def entry(mid):
+        m = mat_by_id[mid]
+        return out.setdefault(mid, {"material_id": mid, "material": m.official_description or m.internal_name, "erp": m.galaxy_code,
+                                    "category_id": m.storage_group_id, "category": (groups[m.storage_group_id].name if m.storage_group_id in groups else "Χωρίς κατηγορία"),
+                                    "pieces": 0, "kg": 0.0, "inv_kg": 0.0, "inv_pieces": 0, "items": []})
+    # ποσότητα χωρίς δεδομένα μέσου = Χύμα· μία φορά ανά ετικέτα υλικού (πολλά υλικά μπορεί να μοιράζονται το ίδιο ισοζύγιο)
+    seen: set = set()
+    for m in sorted(mats, key=lambda m: (m.storage_group_id is None, m.id)):
+        key = _norm(m.official_description or m.internal_name)
+        kg = avail.get(m.id, 0.0)
+        if kg >= 0.01 and key not in seen:
+            seen.add(key)
+            g = entry(m.id); g["kg"] = round(g["kg"] + kg, 3)
+            g["items"].append({"kind": "bulk", "label": "Χύμα", "code": None, "kg": kg, "counted_kg": None, "date": None, "demo": False})
+    for l in lots:
+        if l.material_id not in mat_by_id:
+            continue
+        g = entry(l.material_id); md = media.get(l.collection_medium_id) if l.collection_medium_id else None
+        g["kg"] = round(g["kg"] + float(l.net_weight), 3)
+        if md:
+            g["pieces"] += 1
+        counted = float(l.counted_kg) if l.source_inventory_id and l.counted_kg is not None else None
+        g["items"].append({"kind": "export", "label": label_of(md), "code": md.code if md else None, "kg": float(l.net_weight), "counted_kg": counted,
+                           "date": l.created_at.isoformat() if l.created_at else None, "demo": bool(l.is_demo)})
+    for i in invs:
+        if i.material_id not in mat_by_id:
+            continue
+        g = entry(i.material_id); md = media.get(i.collection_medium_id) if i.collection_medium_id else None
+        g["inv_kg"] = round(g["inv_kg"] + float(i.net_weight), 3)
+        if md:
+            g["inv_pieces"] += 1
+        g["items"].append({"kind": "inventory", "label": label_of(md), "code": md.code if md else None, "kg": float(i.net_weight), "counted_kg": None,
+                           "date": i.created_at.isoformat() if i.created_at else None, "demo": bool(i.is_demo)})
+    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0]
+    for g in rows:
+        g["total_pieces"] = g["pieces"] + g["inv_pieces"]
+        g["total_kg"] = round(g["kg"] + g["inv_kg"], 3)
+    cats: dict = {}
+    for g in rows:
+        c = cats.setdefault(g["category"], {"category": g["category"], "sort": groups[g["category_id"]].sort_order if g["category_id"] in groups else 9999, "materials": []})
+        c["materials"].append(g)
+    result = []
+    for c in sorted(cats.values(), key=lambda c: (c["sort"], c["category"])):
+        c["materials"].sort(key=lambda g: g["material"])
+        c["pieces"] = sum(g["pieces"] for g in c["materials"]); c["kg"] = round(sum(g["kg"] for g in c["materials"]), 3)
+        c["inv_pieces"] = sum(g["inv_pieces"] for g in c["materials"]); c["inv_kg"] = round(sum(g["inv_kg"] for g in c["materials"]), 3)
+        c["total_pieces"] = c["pieces"] + c["inv_pieces"]; c["total_kg"] = round(c["kg"] + c["inv_kg"], 3)
+        result.append(c)
+    return {"include_inventory": include_inventory, "categories": result,
+            "n_categories": len(result), "n_materials": len(rows),
+            "pieces": sum(c["pieces"] for c in result), "kg": round(sum(c["kg"] for c in result), 3),
+            "inv_pieces": sum(c["inv_pieces"] for c in result), "inv_kg": round(sum(c["inv_kg"] for c in result), 3),
+            "total_pieces": sum(c["total_pieces"] for c in result), "total_kg": round(sum(c["total_kg"] for c in result), 3),
+            "demo_count": sum(1 for g in rows for it in g["items"] if it["demo"])}
+
+
+@router.post("/demo/delete")
+def delete_demo(db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
+    """«Σβήσιμο DEMO»: σβήνει ΜΟΝΟ τα DEMO των ΥΛΙΚΩΝ (εξαγωγές, ζυγίσεις απογραφής, μέσα DEMO-P-/DEMO-S-)."""
+    lot_ids = [l.id for l in db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.is_demo == True)).all()]
+    if lot_ids:
+        db.execute(models.ReadyMaterialMovement.__table__.delete().where(ReadyMaterialMovement.lot_id.in_(lot_ids)))
+        db.execute(ReadyMaterialLot.__table__.delete().where(ReadyMaterialLot.id.in_(lot_ids)))
+    n_inv = db.execute(MaterialInventoryEntry.__table__.delete().where(MaterialInventoryEntry.is_demo == True)).rowcount or 0
+    db.execute(AppSetting.__table__.delete().where(AppSetting.key.like("matmedium.seq.DEMO-%")))
+    db.flush()
+    n_media = 0
+    for m in db.scalars(select(CollectionMedium).where((CollectionMedium.code.like("DEMO-P-%")) | (CollectionMedium.code.like("DEMO-S-%")))).all():
+        db.delete(m); n_media += 1
+    db.commit()
+    return {"lots": len(lot_ids), "inventory": n_inv, "media": n_media}
