@@ -1028,6 +1028,11 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #ecOrderRows tr.ecTypeGap,#ecOrderRows tr.ecTypeGap:hover{background:var(--bg,#f6f7fa)!important}
 #ecOrderRows tr.ecTypeGap td{background:var(--bg,#f6f7fa)!important;border:0!important;box-shadow:none!important;padding:0!important;height:6px}
 </style>
+<style id="dayTableLook">
+/* Παραλαβές → Ημέρες: ίδιες γραμμές με τη Ζωντανή ροή (χωρίς κάθετες, οριζόντιες με το ίδιο token) */
+#receiptDailyTable table tr>*{border-left:0!important;border-right:0!important}
+#receiptDailyTable tbody tr td{border-bottom:1px solid var(--line,#e3e5ec);border-top:0}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
