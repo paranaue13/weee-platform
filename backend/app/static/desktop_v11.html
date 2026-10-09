@@ -38,7 +38,7 @@ body[data-theme="dark"] .cp{background:#16382a;color:#9fe0b8}body[data-theme="da
 body[data-theme="dark"] .ecRow:hover{background:#1a2733}
 /* Blank row between Container/Καρότσα/Μικρά Σημεία groups in the ζωντανή ροή -- a visible gap, not a
    real data row (no border, no hover, can't be clicked). */
-.ecTypeGap td{height:14px;padding:0;border:0!important;background:transparent!important;cursor:default}
+.ecTypeGap td{height:6px;line-height:0;font-size:0;padding:0;border:0!important;background:transparent!important;cursor:default}
 /* Small click-point-anchored dropdown menu (Ζωντανή ροή row actions, per-tab περιγραφή pickers) --
    matches the app's popup background/radius instead of a default browser-ish menu. */
 .weeeDescMenu{position:fixed;z-index:140;background:#fffdfb;border:1px solid #cfd9e2;border-radius:var(--r-sm);box-shadow:0 12px 35px rgba(21,32,43,.18);padding:5px;min-width:150px}
@@ -3481,11 +3481,11 @@ function renderCompactReceiptStats(rows){
   // number is its own "σημείο", so points count loads, not receipts (a Container/Καρότσα receipt
   // always has exactly 1 load, so this doesn't change those two).
   ],sum=t=>rows.filter(r=>!t||r.receipt_type===t).reduce((a,r)=>a+receiptNet(r),0);
-  // X/Y: σημεία παραλαβής (όχι εντολές). X = σημεία που έχουν ήδη παραληφθεί, Y = X + σημεία που απομένουν στη ζωντανή ροή της ημέρας.
-  const ptKey=o=>{let s=null;try{s=feedOrderSupplier(o)}catch(e){}let id=s&&(s.org?.id||s.senderOrg?.id);return id?'o:'+id:'t:'+String(o.pickup_point||o.sender||o.order_no||'').trim().toLocaleLowerCase('el')};
+  // X/Y: εντολές. Κάθε εντολή = ένα φορτίο = ΕΝΑ σημείο (το «1/2 CONTAINER» του μέσου συλλογής δεν μετράει).
+  // X = εντολές που έχουν ήδη παραληφθεί, Y = X + εντολές που απομένουν στη ζωντανή ροή της ημέρας.
   const feedOk=typeof ecOrdersDay!=='undefined'&&ecOrdersDay===receiptNav.day;
-  const xy=t=>{let rec=new Set();rows.filter(r=>r.receipt_type===t).forEach(r=>{(r.loads?.length?r.loads:[{}]).forEach((l,i)=>rec.add(l.supplier_id?'o:'+l.supplier_id:'r:'+r.id+':'+i))});
-    let all=new Set(rec);if(feedOk)ecOrders.filter(o=>detectReceiptTypeFromOrder(o)===t).forEach(o=>all.add(ptKey(o)));return [rec.size,all.size]};
+  const xy=t=>{let rec=rows.filter(r=>r.receipt_type===t).reduce((a,r)=>a+(r.loads?.length||1),0);
+    let rem=feedOk?new Set(ecOrders.filter(o=>detectReceiptTypeFromOrder(o)===t).map(o=>o.order_no)).size:0;return [rec,rec+rem]};
   let tot=[0,0];
   const cardTxt=(a,b,k)=>`${a}/${b} · ${kg(k)}`;
   $('receiptStats').innerHTML=specs.map(([t,n,cls,icon])=>{let [a,b]=xy(t);tot[0]+=a;tot[1]+=b;return `<div class="sortingKpiCard ${cls} statFilterCard" data-type="${t}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="sortingKpiText"><small>${n}</small><b>${cardTxt(a,b,sum(t))}</b></span></div>`}).join('')
