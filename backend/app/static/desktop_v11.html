@@ -1083,6 +1083,10 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #shipHistRows tr.shipDraftRow td{background:var(--sg-amber,#FFF6E4)}
 .draftPill{display:inline-flex;align-items:center;font-size:13px;font-weight:500;line-height:1.2;padding:3px 12px;border-radius:999px;background:var(--sg-amber,#FFF6E4);color:var(--sg-on-amber,#7A4A00);border:1px solid color-mix(in srgb,var(--sg-on-amber,#7A4A00) 30%,transparent);white-space:nowrap}
 </style>
+<style id="loadingOrdersLook">
+/* Φορτώσεις: χωρίς κενή γραμμή πάνω από τις επικεφαλίδες του πίνακα φορτώσεων (όπως στη Ζωντανή ροή) */
+#loadingOrdersWrap thead th{top:0!important}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
