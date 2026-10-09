@@ -999,6 +999,28 @@ body[data-theme="dark"] .sgSel{background-image:url("data:image/svg+xml;utf8,<sv
 .whDetail{overflow-x:auto}
 .whDemo{font-size:11px;padding:1px 6px;border-radius:6px;background:var(--st3-bg);color:var(--st3-fg)}
 </style>
+<style id="pinLook">
+:root{--pin:#D97757;--pin-bg:var(--surface,#fff);--col-sep:rgba(100,112,135,.2)}
+body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
+/* απαλές κάθετες γραμμές ανάμεσα στις στήλες, σε όλους τους πίνακες (εκτός από τις λωρίδες απόκρυψης) */
+.content table tr>*+*:not(.pinColHide){border-left:1px solid var(--col-sep)}
+.pinColHide>*,.pinRowHideCell>*{display:none!important}
+.pinHot{outline:2px solid var(--pin);outline-offset:-2px}
+.pinColHide.pinHot,.pinRowHideCell.pinHot{filter:brightness(1.12)}
+.pinBar{display:flex;align-items:center;gap:12px;margin:0 0 8px;font-size:13px;color:var(--fg-2,#44474f)}
+.pinBar .pinCount{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:14px;background:color-mix(in srgb,var(--pin) 16%,transparent);color:var(--fg,#1a1b20);font-weight:500}
+.pinBar .pinAll{height:30px;padding:0 16px;border:0;border-radius:999px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font:inherit;font-weight:500;cursor:pointer}
+.pinBar .pinAll:hover{filter:brightness(.96)}
+.pinLayer{position:fixed;left:0;top:0;width:0;height:0;z-index:9500;pointer-events:none}
+.pinLayer .pinBtn{position:fixed;display:block;cursor:pointer;pointer-events:auto;user-select:none}
+.pinLayer .pinIcon{display:block;line-height:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));transition:transform .08s}
+.pinLayer .pinBtn:hover .pinIcon,.pinLayer .pinBtn.pinOn .pinIcon{transform:scale(1.12)}
+.pinLayer .pinLabel{position:absolute;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px;padding:0 8px;border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--pin);max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.pinLayer .pinCol .pinLabel{left:100%;top:2px;margin-left:4px}
+.pinLayer .pinRow .pinLabel{right:100%;top:3px;margin-right:4px}
+.pinLayer .pinBtn.pinOn .pinLabel{background:var(--pin);color:#fff}
+.pinLayer .pinLine{position:fixed;background:var(--pin);opacity:.75;pointer-events:none;border-radius:1px}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -4842,5 +4864,302 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   try{await api('/mat/demo/delete',{method:'POST'})}catch(e){}
   whState.sel=null;loadWarehouse();
 };
+</script>
+<script id="pinTable">
+// ΚΟΙΝΟ component «PinTable»: απόκρυψη/εμφάνιση στηλών και γραμμών σε ΟΛΟΥΣ τους πίνακες με καρφίτσα στο hover.
+// Δεν αγγίζει δεδομένα/φόρτωση/ταξινόμηση: δουλεύει μόνο με κλάσεις και inline στυλ πάνω στα ήδη ζωγραφισμένα κελιά και
+// ξαναεφαρμόζεται μόνο του όταν ο πίνακας ξαναζωγραφιστεί. Κατάσταση: localStorage ανά χρήστη/πίνακα (γραμμές: ανά «scope», π.χ. μήνα).
+(function(){
+  const NS='weee.pin.v1:';
+  const PROPS=['width','min-width','max-width','height','max-height','padding','font-size','line-height','overflow','background','background-color','box-shadow','border','color'];
+  const STRIP=7,SKIP='#floatingEditor,[class*="opup"],.cellFmtMenu,.sgMenu,.periodPickerDropdown,.pinLayer,.whItems';
+  const configs=[];                       // {match(table), id(table), rowScope(table)}
+  const cache=new Map();                  // storage key -> {cols:[],rows:{scope:[]}}
+  let busy=false,hot=null,hideT=null;
+  const norm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
+  const user=()=>{try{return (typeof me!=='undefined'&&me&&(me.username||me.id))||'local'}catch(e){return 'local'}};
+  const eligibleTable=t=>t&&t.tHead&&t.tHead.rows.length&&!t.closest(SKIP);
+
+  // ---- ταυτότητα πίνακα / στήλης / γραμμής ----
+  function cfgOf(t){return configs.find(c=>{try{return c.match(t)}catch(e){return false}})}
+  function tableId(t){
+    let c=cfgOf(t);if(c&&c.id){let v=c.id(t);if(v)return v}
+    if(t.dataset.pinId)return t.dataset.pinId;
+    let host=t.id?t:t.parentElement&&t.parentElement.closest('[id]');
+    if(!host)return 'anon';
+    if(host===t)return t.id;
+    let all=[...host.querySelectorAll('table')];
+    return host.id+':T'+all.indexOf(t);
+  }
+  function rowScope(t){let c=cfgOf(t);try{return c&&c.rowScope?String(c.rowScope(t)||''):''}catch(e){return ''}}
+  const skey=t=>NS+user()+':'+tableId(t);
+  function load(t){
+    let k=skey(t);if(cache.has(k))return cache.get(k);
+    let v={cols:[],rows:{}};
+    try{let raw=localStorage.getItem(k);if(raw){let o=JSON.parse(raw);if(o&&Array.isArray(o.cols))v.cols=o.cols;if(o&&o.rows&&typeof o.rows==='object')v.rows=o.rows}}catch(e){}
+    cache.set(k,v);return v;
+  }
+  function save(t){
+    let v=load(t),k=skey(t);
+    try{if(!v.cols.length&&!Object.values(v.rows).some(a=>a.length))localStorage.removeItem(k);else localStorage.setItem(k,JSON.stringify(v))}catch(e){}
+  }
+  const hasState=t=>{let v=load(t);return v.cols.length>0||Object.values(v.rows).some(a=>a.length>0)};
+
+  // ---- μοντέλο πίνακα: στήλες (ids) και γραμμές (ids) ----
+  function colsSupported(t){
+    for(const r of t.tHead.rows)for(const c of r.cells)if(c.colSpan>1||c.rowSpan>1)return false;
+    for(const s of [...t.tBodies,t.tFoot])if(s)for(const r of s.rows)for(const c of r.cells)if(c.rowSpan>1)return false;
+    return true;
+  }
+  function isSticky(c){let cs=getComputedStyle(c);return cs.position==='sticky'&&cs.left!=='auto'}
+  function model(t){
+    let m=t._pinModel;
+    let hr=t.tHead.rows[t.tHead.rows.length-1],cols=[],seen={};
+    if(colsSupported(t)){
+      [...hr.cells].forEach((th,i)=>{
+        let name=norm(th.dataset.pinCol||th.dataset.material||th.dataset.wcol||th.textContent);
+        let ok=!!name&&!th.querySelector('input,button,select')&&!isSticky(th);
+        let id=name;seen[id]=(seen[id]||0)+1;if(seen[id]>1)id+='#'+seen[id];
+        cols.push({i,th,name,id,ok});
+      });
+    }
+    let rows=[],rseen={};
+    for(const tb of t.tBodies)for(const tr of tb.rows){
+      let ok=tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1||c.rowSpan>1)&&!tr.classList.contains('statHidden');
+      let name=norm(tr.dataset.pinRow||tr.dataset.id||tr.dataset.date||tr.dataset.mid||(tr.cells[0]&&tr.cells[0].textContent));
+      let id=name;rseen[id]=(rseen[id]||0)+1;if(rseen[id]>1)id+='#'+rseen[id];
+      rows.push({tr,name,id,ok:ok&&!!name});
+    }
+    return {cols,rows};
+  }
+
+  // ---- εφαρμογή κατάστασης στο DOM ----
+  function setStrip(el,on){
+    if(on){
+      if(el._pinOld)return;
+      el._pinOld={};PROPS.forEach(p=>{el._pinOld[p]=[el.style.getPropertyValue(p),el.style.getPropertyPriority(p)]});
+      const set=(p,v)=>el.style.setProperty(p,v,'important');
+      set('padding','0');set('font-size','0');set('line-height','0');set('overflow','hidden');set('color','transparent');
+      set('background','var(--pin)');set('border','0');
+    }else if(el._pinOld){
+      PROPS.forEach(p=>{let o=el._pinOld[p];el.style.removeProperty(p);if(o&&o[0])el.style.setProperty(p,o[0],o[1])});
+      el._pinOld=null;
+    }
+  }
+  function paint(c,colOn,rowOn){
+    let key=(colOn?1:0)+(rowOn?2:0);
+    if(c._pinKey===key||(!c._pinKey&&!key))return;
+    setStrip(c,false);
+    c.classList.toggle('pinColHide',colOn);c.classList.toggle('pinRowHideCell',rowOn);
+    if(key){
+      setStrip(c,true);
+      const set=(p,v)=>c.style.setProperty(p,v,'important');
+      if(colOn){set('width',STRIP+'px');set('min-width',STRIP+'px');set('max-width',STRIP+'px');set('box-shadow','inset 3px 0 0 var(--surface,#fff)')}
+      if(rowOn){set('height',STRIP+'px');set('max-height',STRIP+'px');set('box-shadow',colOn?'inset 3px 3px 0 var(--surface,#fff)':'inset 0 3px 0 var(--surface,#fff)')}
+    }
+    c._pinKey=key;
+  }
+  function apply(t){
+    if(!eligibleTable(t))return;
+    if(!(hasState(t)||t._pinApplied))return;
+    let v=load(t),sc=rowScope(t),rowIds=new Set(v.rows[sc]||[]),colIds=new Set(v.cols);
+    let md=t._pinModel=model(t);
+    let hiddenColIdx=new Set(md.cols.filter(c=>c.ok&&colIds.has(c.id)).map(c=>c.i));
+    let rowOnMap=new Map(md.rows.map(r=>[r.tr,r.ok&&rowIds.has(r.id)]));
+    const all=[...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])];
+    for(const r of all){
+      let rowOn=!!rowOnMap.get(r);
+      if(rowOn!==!!r._pinRowOn){r.classList.toggle('pinRowHide',rowOn);if(rowOn){r._pinH=[r.style.getPropertyValue('height'),r.style.getPropertyPriority('height')];r.style.setProperty('height',STRIP+'px','important')}else{r.style.removeProperty('height');if(r._pinH&&r._pinH[0])r.style.setProperty('height',r._pinH[0],r._pinH[1])}r._pinRowOn=rowOn}
+      let idx=0;
+      for(const c of r.cells){
+        let span=c.colSpan||1;
+        paint(c,span===1&&hiddenColIdx.has(idx),rowOn);
+        idx+=span;
+      }
+    }
+    t._pinApplied=hasState(t);
+    bar(t,md,colIds,rowIds);
+  }
+
+  // ---- μπάρα «Κρυμμένα: Χ στήλες, Υ γραμμές» + «Εμφάνιση όλων» ----
+  function bar(t,md,colIds,rowIds){
+    let wrap=t.closest('.prodTableWrap,.tablewrap')||t.parentElement;if(!wrap||!wrap.parentElement)return;
+    let nc=md.cols.filter(c=>c.ok&&colIds.has(c.id)).length,nr=md.rows.filter(r=>r.ok&&rowIds.has(r.id)).length;
+    let b=t._pinBar;
+    if(!nc&&!nr){if(b&&b.parentElement)b.remove();return}
+    if(!b){
+      b=document.createElement('div');b.className='pinBar';
+      b.innerHTML='<span class="pinCount"></span><button type="button" class="pinAll">Εμφάνιση όλων</button>';
+      b.querySelector('.pinAll').onclick=()=>showAll(t);
+      t._pinBar=b;
+    }
+    b.querySelector('.pinCount').textContent=`Κρυμμένα: ${nc} στήλες, ${nr} γραμμές`;
+    if(b.nextElementSibling!==wrap||b.parentElement!==wrap.parentElement)wrap.parentElement.insertBefore(b,wrap);
+  }
+  function showAll(t){let v=load(t);v.cols=[];v.rows={};save(t);refresh(t)}
+  function hide(t,kind,id){
+    let v=load(t);
+    if(kind==='col'){if(!v.cols.includes(id))v.cols.push(id)}
+    else{let sc=rowScope(t);(v.rows[sc]=v.rows[sc]||[]);if(!v.rows[sc].includes(id))v.rows[sc].push(id)}
+    save(t);refresh(t);
+  }
+  function show(t,kind,id){
+    let v=load(t);
+    if(kind==='col')v.cols=v.cols.filter(x=>x!==id);
+    else{let sc=rowScope(t);v.rows[sc]=(v.rows[sc]||[]).filter(x=>x!==id);if(!v.rows[sc].length)delete v.rows[sc]}
+    save(t);refresh(t);
+  }
+  function refresh(t){busy=true;try{t._pinApplied=true;apply(t)}finally{obs.takeRecords();busy=false}clearPins()}
+
+  // ---- επικάλυψη καρφιτσών ----
+  let layer=null;
+  function ensureLayer(){
+    if(layer&&layer.isConnected)return layer;
+    layer=document.createElement('div');layer.className='pinLayer';document.body.appendChild(layer);
+    layer.addEventListener('mouseenter',()=>{clearTimeout(hideT)});
+    layer.addEventListener('mouseleave',()=>scheduleClear());
+    return layer;
+  }
+  function clearPins(){clearTimeout(hideT);hot=null;if(layer)layer.innerHTML='';unhot()}
+  function scheduleClear(){clearTimeout(hideT);hideT=setTimeout(clearPins,320)}
+  function unhot(){document.querySelectorAll('.pinHot').forEach(e=>e.classList.remove('pinHot'))}
+  const PIN_SVG=(sign,row)=>{
+    let g=sign==='+'?(row?'M8 13h9M12.5 8.5v9':'M8.5 12.5h9M13 8v9'):(row?'M8 13h9':'M8.5 12.5h9');
+    return row?`<svg viewBox="0 0 34 26" width="34" height="26" aria-hidden="true"><path d="M33 13C33 13 20.5 24 12.5 24a11 11 0 1 1 0-22C20.5 2 33 13 33 13z" fill="var(--pin)"/><path d="${g}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`
+    :`<svg viewBox="0 0 26 34" width="26" height="34" aria-hidden="true"><path d="M13 33C13 33 2 20.5 2 12.5a11 11 0 0 1 22 0C24 20.5 13 33 13 33z" fill="var(--pin)"/><path d="${g}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`};
+  function wrapRect(t){let w=t.closest('.prodTableWrap,.tablewrap')||t.parentElement;return w.getBoundingClientRect()}
+  function mkPin(kind,sign,x,y,label,onclick){
+    let d=document.createElement('div');d.className='pinBtn pin'+kind+(sign==='+'?' pinPlus':'');
+    d.style.left=x+'px';d.style.top=y+'px';
+    d.innerHTML=`<span class="pinIcon">${PIN_SVG(sign,kind==='Row')}</span><span class="pinLabel">${label.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span>`;
+    d.onclick=e=>{e.stopPropagation();onclick()};
+    return d;
+  }
+  function line(x1,y1,x2,y2,cls){
+    let s=document.createElement('div');s.className='pinLine '+(cls||'');
+    if(y1===y2){s.style.left=Math.min(x1,x2)+'px';s.style.top=y1+'px';s.style.width=Math.abs(x2-x1)+'px';s.style.height='2px'}
+    else{s.style.left=x1+'px';s.style.top=Math.min(y1,y2)+'px';s.style.width='2px';s.style.height=Math.abs(y2-y1)+'px'}
+    return s;
+  }
+  function showMinus(t,kind,item,x,y,wr){
+    let L=ensureLayer();clearTimeout(hideT);L.innerHTML='';
+    if(kind==='col'){
+      L.appendChild(mkPin('Col','−',x-13,wr.top-34,item.name,()=>hide(t,'col',item.id)));
+    }else{
+      L.appendChild(mkPin('Row','−',wr.left-36,y-13,item.name,()=>hide(t,'row',item.id),-90));
+    }
+  }
+  function showPlus(t){
+    let md=t._pinModel||model(t),v=load(t),sc=rowScope(t),L=ensureLayer(),wr=wrapRect(t);
+    clearTimeout(hideT);L.innerHTML='';
+    let cols=md.cols.filter(c=>c.ok&&v.cols.includes(c.id)).map(c=>({c,r:c.th.getBoundingClientRect()})).sort((a,b)=>a.r.left-b.r.left);
+    let lanes=[],base=wr.top-34;
+    cols.forEach(o=>{
+      let cx=o.r.left+o.r.width/2,lane=0;
+      while(lanes[lane]!==undefined&&cx-lanes[lane]<(String(o.c.name).length*7+54))lane++;
+      lanes[lane]=cx;
+      let py=base-lane*30;
+      L.appendChild(line(cx,py+34,cx,o.r.top,'pinLineCol'));
+      let p=mkPin('Col','+',cx-13,py,o.c.name,()=>show(t,'col',o.c.id));
+      p.dataset.hotcol=o.c.i;p.onmouseenter=()=>hotCol(t,o.c.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
+      L.appendChild(p);
+    });
+    let ids=new Set(v.rows[sc]||[]);
+    let rows=md.rows.filter(r=>r.ok&&ids.has(r.id)).map(o=>({o,r:o.tr.cells[0].getBoundingClientRect()})).sort((a,b)=>a.r.top-b.r.top);
+    let rl=[],lane2=[];
+    rows.forEach(x=>{
+      let cy=x.r.top+x.r.height/2,k=0;
+      while(rl[k]!==undefined&&cy-rl[k]<32)k++;
+      let py=Math.max(cy,(rl[k]===undefined?-1e9:rl[k]+32));
+      rl[k]=py;
+      let px=wr.left-40;
+      let jx=wr.left-12-(rows.indexOf(x)%4)*4;
+      L.appendChild(line(px+34,py,jx,py,'pinLineRow'));
+      if(Math.abs(py-cy)>1)L.appendChild(line(jx,py,jx,cy,'pinLineRow'));
+      L.appendChild(line(jx,cy,x.r.left,cy,'pinLineRow'));
+      let p=mkPin('Row','+',px,py-13,x.o.name,()=>show(t,'row',x.o.id));
+      p.onmouseenter=()=>hotRow(x.o.tr,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
+      L.appendChild(p);
+    });
+  }
+  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){if(idx===i&&(c.colSpan||1)===1)c.classList.add('pinHot');idx+=c.colSpan||1}}}
+  function hotRow(tr,p){unhot();p.classList.add('pinOn');for(const c of tr.cells)c.classList.add('pinHot')}
+
+  // ---- hover: «−» στα όρια, «+» πάνω από τις λωρίδες ----
+  let raf=0,last=null;
+  document.addEventListener('mousemove',e=>{last=e;if(!raf)raf=requestAnimationFrame(()=>{raf=0;onMove(last)})},true);
+  function onMove(e){
+    let el=e.target;
+    if(!el||!el.closest)return;
+    if(el.closest('.pinLayer')){clearTimeout(hideT);return}
+    let cell=el.closest('th,td'),t=cell&&cell.closest('table');
+    if(!t||!eligibleTable(t)){if(layer&&layer.firstChild)scheduleClear();return}
+    // λωρίδα: δείξε όλες τις «+»
+    if(cell.classList.contains('pinColHide')||(cell.parentElement&&cell.parentElement.classList.contains('pinRowHide'))){
+      if(hot!==t||!layer||!layer.querySelector('.pinPlus')){hot=t;t._pinModel=model(t);showPlus(t)}
+      return;
+    }
+    if(layer&&layer.querySelector('.pinPlus')&&hot===t){scheduleClear();}
+    let md=t._pinModel=t._pinModel||model(t);
+    let v=load(t);
+    // στήλη: δεξί όριο επικεφαλίδας
+    if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead&&md.cols.length){
+      let hr=t.tHead.rows[t.tHead.rows.length-1];
+      if(cell.parentElement===hr){
+        let r=cell.getBoundingClientRect();
+        if(r.right-e.clientX<=9&&r.right-e.clientX>=-2){
+          let item=md.cols[cell.cellIndex];
+          if(item&&item.ok&&item.th===cell){let wr=wrapRect(t);let x=Math.min(r.right,wr.right-2);
+            if(!layer||!layer.querySelector('.pinCol:not(.pinPlus)')||layer.dataset.k!=='c'+item.id){showMinus(t,'col',item,x,0,wr);layer.dataset.k='c'+item.id;hot=t}
+            return}
+        }
+      }
+    }
+    // γραμμή: κάτω όριο πρώτου κελιού
+    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'&&cell===cell.parentElement.cells[0]){
+      let r=cell.getBoundingClientRect();
+      if(r.bottom-e.clientY<=6&&r.bottom-e.clientY>=-2){
+        let item=(md.rows.find(x=>x.tr===cell.parentElement))||(t._pinModel=model(t)).rows.find(x=>x.tr===cell.parentElement);
+        if(item&&item.ok){let wr=wrapRect(t);
+          if(!layer||layer.dataset.k!=='r'+item.id){showMinus(t,'row',item,0,r.bottom,wr);layer.dataset.k='r'+item.id;hot=t}
+          return}
+      }
+    }
+    if(layer&&layer.firstChild)scheduleClear();
+  }
+  window.addEventListener('scroll',()=>{if(layer&&layer.firstChild)clearPins()},true);
+  window.addEventListener('resize',clearPins);
+  document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closest('.pinLayer'))clearPins()},true);
+
+  // ---- ξαναεφαρμογή μετά από κάθε επαναζωγράφιση πίνακα ----
+  const dirty=new Set();let tm=0;
+  const obs=new MutationObserver(muts=>{
+    if(busy)return;
+    for(const m of muts){
+      let tgt=m.target.nodeType===1?m.target:m.target.parentElement;
+      if(!tgt||tgt.closest('.pinLayer,.pinBar'))continue;
+      let t=tgt.closest('table');
+      if(t){dirty.add(t)}
+      else if(m.addedNodes)m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.tagName==='TABLE')dirty.add(n);else if(n.querySelectorAll)n.querySelectorAll('table').forEach(x=>dirty.add(x))}});
+    }
+    if(dirty.size&&!tm)tm=setTimeout(flush,60);
+  });
+  function flush(){
+    tm=0;let list=[...dirty];dirty.clear();
+    busy=true;
+    try{for(const t of list){if(!t.isConnected||!eligibleTable(t))continue;t._pinModel=null;if(hasState(t)||t._pinApplied)apply(t)}}finally{obs.takeRecords();busy=false}
+  }
+  function start(){
+    obs.observe(document.body,{childList:true,subtree:true});
+    // πρώτη εφαρμογή σε ό,τι υπάρχει ήδη
+    document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)&&hasState(t))dirty.add(t)});
+    if(dirty.size)tm=setTimeout(flush,60);
+  }
+  window.PinTable={configs,register:c=>configs.push(c),refreshAll:()=>{document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)){t._pinModel=null;if(hasState(t)||t._pinApplied)dirty.add(t)}});if(dirty.size&&!tm)tm=setTimeout(flush,30)},showAll};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+
+// Ρυθμίσεις ανά πίνακα (ταυτότητα + «scope» γραμμών)
+PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyState.activeGroup,rowScope:()=>readyState.period+':'+readyRange().startISO});
 </script>
 </body></html>
