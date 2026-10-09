@@ -1077,6 +1077,12 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #receiptForm.popupMax .recGrip,#receiptForm:not(.receiptPopup) .recGrip{display:none}
 #receiptForm.popupMin :is(.recBody,.recFoot,.recGrip,.notice){display:none!important}
 </style>
+<style id="shipDraftLook">
+/* Πρόχειρα δελτία στο Ιστορικό Δελτίων Αποστολής */
+#shipHistRows tr.shipDraftRow,#shipHistRows tr.shipDraftRow:hover{background:var(--sg-amber,#FFF6E4)}
+#shipHistRows tr.shipDraftRow td{background:var(--sg-amber,#FFF6E4)}
+.draftPill{display:inline-flex;align-items:center;font-size:13px;font-weight:500;line-height:1.2;padding:3px 12px;border-radius:999px;background:var(--sg-amber,#FFF6E4);color:var(--sg-on-amber,#7A4A00);border:1px solid color-mix(in srgb,var(--sg-on-amber,#7A4A00) 30%,transparent);white-space:nowrap}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -3227,8 +3233,11 @@ let shipHistEntries=[],shipHistKind='';
 let shipHistState={period:'year',cursor:new Date(),customRange:null};
 function shipHistRange(){if(shipHistState.period==='custom'&&shipHistState.customRange){let c=shipHistState.customRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{startISO:c.start,endISO:c.end,label:`${fmt(c.start)} – ${fmt(c.end)}`}}let d=new Date(shipHistState.cursor),start,end,label;if(shipHistState.period==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);label=start.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'})}else if(shipHistState.period==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,0);label=start.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}else if(shipHistState.period==='quarter'){let q=Math.floor(d.getMonth()/3),m=q*3;start=new Date(d.getFullYear(),m,1);end=new Date(d.getFullYear(),m+3,0);label=`${q+1}ο τρίμηνο ${d.getFullYear()}`}else{start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear(),11,31);label=String(d.getFullYear())}return{startISO:localISODate(start),endISO:localISODate(end),label}}
 function shipHistShift(n){if(shipHistState.period==='custom')return;let d=shipHistState.cursor;if(shipHistState.period==='day')d.setDate(d.getDate()+n);else if(shipHistState.period==='month')d.setMonth(d.getMonth()+n);else if(shipHistState.period==='quarter')d.setMonth(d.getMonth()+3*n);else d.setFullYear(d.getFullYear()+n);shipHistState.cursor=new Date(d);renderShipmentHistory()}
+let shipDrafts=[];
 async function loadShipmentHistory(){
  shipHistEntries=await api('/loading/shipment-history');
+ // Πρόχειρα δελτία = ανοιχτές φορτώσεις (δεν έχουν ολοκληρωθεί)· διαβάζονται όπως αποθηκεύονται ήδη, μόνο για εμφάνιση
+ try{shipDrafts=(await api('/loading/orders')).filter(o=>o.status==='OPEN')}catch(e){shipDrafts=[]}
  renderShipmentHistory();
 }
 function renderShipmentHistory(){
@@ -3239,8 +3248,10 @@ function renderShipmentHistory(){
    let d=String(x.work_date||'').slice(0,10);
    return d>=r.startISO&&d<=r.endISO&&(!shipHistKind||x.kind===shipHistKind)&&(!q||[x.da_number,x.description,x.transporter,x.recipient,x.eka_code,x.reptool_code].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q));
  });
- $('shipHistRows').innerHTML=rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>';
- $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+ const dName=id=>{let o=(typeof orgs!=='undefined'?orgs:[]).find(x=>x.id===id);return o?(o.trade_name||o.legal_name||'—'):'—'};
+ const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td><span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td></tr>`).join('');
+ $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>';
+ $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openLoadingDetail(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
  $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
 }
 // Clicking a row opens the full Δ.Α. (dispatch note) it belongs to, with every line item under that
