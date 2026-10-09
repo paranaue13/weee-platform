@@ -1095,6 +1095,12 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #production:has(#productionPeriodBox.hidden) #productionActions{display:none}
 #loading>.card,#loading>.tablewrap{margin-bottom:var(--page-gap)}
 </style>
+<style id="shipZLook">
+/* Ιστορικό Δελτίων Αποστολής: προβολές Ζ(i)/Ζ(ii) -- οριζόντια κύλιση, σταθερή επικεφαλίδα */
+#shipHistCard table.shipZ{width:max-content;min-width:100%}
+#shipHistCard table.shipZ th,#shipHistCard table.shipZ td{white-space:nowrap}
+#shipHistZView{margin-left:0}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -1286,11 +1292,14 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt iconOnly" id="loadingEcMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
 <div class="card" id="shipHistCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ιστορικό Δελτίων Αποστολής</h3></div>
 <div class="productionTop" style="margin-bottom:8px">
+<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
 <div class="prodSegment" id="shipHistKindFilter">
 <button type="button" class="active" data-kind="">Όλα</button>
 <button type="button" data-kind="MATERIAL">Πωλήσεις</button>
 <button type="button" data-kind="WEEE_TO_UNIT">Ενδοδιακίνηση</button>
 <button type="button" id="shipHistRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button>
+</div>
+<div class="prodSegment" id="shipHistZView"><button type="button" data-zview="Z1">Τελική διάθεση</button><button type="button" data-zview="Z2">Διασυνοριακές μεταφορές</button></div>
 </div>
 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
 <div class="prodSegment" id="shipHistPeriodSeg">
@@ -3246,7 +3255,13 @@ let shipHistEntries=[],shipHistKind='';
 let shipHistState={period:'year',cursor:new Date(),customRange:null};
 function shipHistRange(){if(shipHistState.period==='custom'&&shipHistState.customRange){let c=shipHistState.customRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{startISO:c.start,endISO:c.end,label:`${fmt(c.start)} – ${fmt(c.end)}`}}let d=new Date(shipHistState.cursor),start,end,label;if(shipHistState.period==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);label=start.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'})}else if(shipHistState.period==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,0);label=start.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}else if(shipHistState.period==='quarter'){let q=Math.floor(d.getMonth()/3),m=q*3;start=new Date(d.getFullYear(),m,1);end=new Date(d.getFullYear(),m+3,0);label=`${q+1}ο τρίμηνο ${d.getFullYear()}`}else{start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear(),11,31);label=String(d.getFullYear())}return{startISO:localISODate(start),endISO:localISODate(end),label}}
 function shipHistShift(n){if(shipHistState.period==='custom')return;let d=shipHistState.cursor;if(shipHistState.period==='day')d.setDate(d.getDate()+n);else if(shipHistState.period==='month')d.setMonth(d.getMonth()+n);else if(shipHistState.period==='quarter')d.setMonth(d.getMonth()+3*n);else d.setFullYear(d.getFullYear()+n);shipHistState.cursor=new Date(d);renderShipmentHistory()}
-let shipDrafts=[],shipLoadings=[];
+let shipDrafts=[],shipLoadings=[],shipHistZ='',shipHistDefHead=null;
+// Προβολές Ζ(i) «Τελική διάθεση» και Ζ(ii) «Διασυνοριακές μεταφορές»: ίδια λίστα δελτίων, διαφορετικές στήλες (δεν είναι επιπλέον φορτώσεις)
+const ZV_PERM=(p,a)=>[p,a].filter(Boolean).join(' / ');
+const ZV_COLS={
+ Z1:[['Ημερομηνία',x=>x._date],['Δ.ΑΠ.',x=>x._da],['Αρ. Ζυγ.',x=>x.weighbridge_number],['Παραλήπτης ή κατ’εντολήν μεσάζων - Μεταποιητής',x=>x.recipient],['1ος Αποδέκτης',x=>x.first_recipient],['Περιγραφή είδους',x=>x.description],['Ποσότητα',x=>x._kg],['Κωδ. ΕΚΑ',x=>x.eka_code],['Κωδ. Reptool',x=>x.reptool_code],['Άδεια συλλέκτη μεταφορέα / Α.Δ.Α.',x=>ZV_PERM(x.transporter_permit,x.transporter_ada)],['Άδεια αποδέκτη / Α.Δ.Α.',x=>ZV_PERM(x.recipient_permit,x.recipient_ada)],['Εργασία διαχείρισης από 1ο αποδέκτη',x=>x.mgmt_operation],['Έγγραφο παρακολούθησης',x=>x.tracking_document],['Χώρα προορισμού',x=>x.destination_country],['Αριθμός container',x=>x.container_number]],
+ Z2:[['Ημερομηνία',x=>x._date],['Δ.ΑΠ.',x=>x._da],['Πελάτης (διαμεσολαβητής)',x=>x.recipient],['Περιγραφή εξοπλισμού',x=>x.description],['Ποσότητα (kg)',x=>x._kg],['Αρ. κοινοποίησης εξαγωγής (GR No)',x=>x.gr_notification_no],['Αρ. άδειας / φορτωτικής',x=>x.bill_of_lading],['Τελικός προορισμός (χώρα)',x=>x.destination_country],['EKA',x=>x.eka_code],['Εργασία διαχείρισης R ή D',x=>x.mgmt_operation]]
+};
 function flToastSafe(t){try{let el=$('ldErr');if(el){el.className='oktext';el.textContent=t;setTimeout(()=>{el.className='error';el.textContent=''},2500)}}catch(e){}}
 // Στοιχεία δελτίου αποστολής (για τις προβολές Ζ(i)/Ζ(ii)): ίδια πεδία στη «Νέα Φόρτωση», στη φόρτωση και στο παράθυρο Δ.Α.
 const DA_FIELDS=[['first_recipient','1ος Αποδέκτης'],['mgmt_operation','Εργασία διαχείρισης (R/D)'],['tracking_document','Έγγραφο παρακολούθησης'],['destination_country','Χώρα προορισμού'],['container_number','Αριθμός container'],['gr_notification_no','Αρ. κοινοποίησης εξαγωγής (GR No)'],['bill_of_lading','Αρ. άδειας / φορτωτικής']];
@@ -3268,6 +3283,26 @@ function renderShipmentHistory(){
    return d>=r.startISO&&d<=r.endISO&&(!shipHistKind||x.kind===shipHistKind)&&(!q||[x.da_number,x.description,x.transporter,x.recipient,x.eka_code,x.reptool_code].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q));
  });
  const dName=id=>{let o=(typeof orgs!=='undefined'?orgs:[]).find(x=>x.id===id);return o?(o.trade_name||o.legal_name||'—'):'—'};
+ let _tbl=$('shipHistRows').closest('table');
+ if(!shipHistDefHead)shipHistDefHead=_tbl.tHead.innerHTML;
+ document.querySelectorAll('#shipHistZView [data-zview]').forEach(b=>b.classList.toggle('active',b.dataset.zview===shipHistZ));
+ if(shipHistZ&&ZV_COLS[shipHistZ]){
+   let cols=ZV_COLS[shipHistZ];
+   _tbl.classList.add('shipZ');
+   _tbl.tHead.innerHTML='<tr>'+cols.map(c=>`<th>${esc(c[0])}</th>`).join('')+'</tr>';
+   const cell=(v,hdr)=>`<td>${v==null||v===''?'<span class="muted">—</span>':v}</td>`;
+   const draftZ=(shipDrafts||[]).map(o=>{
+     let x={...o,_date:new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'),_da:`${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span>`,recipient:o.customer_id?dName(o.customer_id):null,transporter:o.carrier_id?dName(o.carrier_id):null,description:o.dispatch_reason,_kg:Number(o.loaded_weight)>0?kg(o.loaded_weight):null};
+     return `<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}">${cols.map(c=>{let v=c[1](x);return c[0]==='Δ.ΑΠ.'?`<td>${v}</td>`:cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
+   const rowsZ=rows.map(x0=>{
+     let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
+     return `<tr class="ecRow" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
+   $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>`;
+   $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openLoadingDetail(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+   $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
+   return;
+ }
+ if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
  const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td></tr>`).join('');
  $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>';
  $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openLoadingDetail(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
@@ -3293,6 +3328,7 @@ function openDaDetail(daNumber,e){
  };
 }
 if($('shipHistSearch'))$('shipHistSearch').addEventListener('input',renderShipmentHistory);
+document.querySelectorAll('#shipHistZView [data-zview]').forEach(b=>b.onclick=()=>{shipHistZ=shipHistZ===b.dataset.zview?'':b.dataset.zview;renderShipmentHistory()});
 document.querySelectorAll('#shipHistKindFilter [data-kind]').forEach(b=>b.onclick=()=>{shipHistKind=b.dataset.kind;document.querySelectorAll('#shipHistKindFilter [data-kind]').forEach(x=>x.classList.toggle('active',x===b));renderShipmentHistory()});
 if($('shipHistPrev'))$('shipHistPrev').onclick=()=>shipHistShift(-1);
 if($('shipHistNext'))$('shipHistNext').onclick=()=>shipHistShift(1);
