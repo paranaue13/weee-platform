@@ -3238,11 +3238,11 @@ let shipHistEntries=[],shipHistKind='';
 let shipHistState={period:'year',cursor:new Date(),customRange:null};
 function shipHistRange(){if(shipHistState.period==='custom'&&shipHistState.customRange){let c=shipHistState.customRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{startISO:c.start,endISO:c.end,label:`${fmt(c.start)} – ${fmt(c.end)}`}}let d=new Date(shipHistState.cursor),start,end,label;if(shipHistState.period==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);label=start.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'})}else if(shipHistState.period==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,0);label=start.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}else if(shipHistState.period==='quarter'){let q=Math.floor(d.getMonth()/3),m=q*3;start=new Date(d.getFullYear(),m,1);end=new Date(d.getFullYear(),m+3,0);label=`${q+1}ο τρίμηνο ${d.getFullYear()}`}else{start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear(),11,31);label=String(d.getFullYear())}return{startISO:localISODate(start),endISO:localISODate(end),label}}
 function shipHistShift(n){if(shipHistState.period==='custom')return;let d=shipHistState.cursor;if(shipHistState.period==='day')d.setDate(d.getDate()+n);else if(shipHistState.period==='month')d.setMonth(d.getMonth()+n);else if(shipHistState.period==='quarter')d.setMonth(d.getMonth()+3*n);else d.setFullYear(d.getFullYear()+n);shipHistState.cursor=new Date(d);renderShipmentHistory()}
-let shipDrafts=[];
+let shipDrafts=[],shipLoadings=[];
 async function loadShipmentHistory(){
  shipHistEntries=await api('/loading/shipment-history');
  // Πρόχειρα δελτία = ανοιχτές φορτώσεις (δεν έχουν ολοκληρωθεί)· διαβάζονται όπως αποθηκεύονται ήδη, μόνο για εμφάνιση
- try{shipDrafts=(await api('/loading/orders')).filter(o=>o.status==='OPEN')}catch(e){shipDrafts=[]}
+ try{shipLoadings=await api('/loading/orders');shipDrafts=shipLoadings.filter(o=>o.status==='OPEN')}catch(e){shipLoadings=[];shipDrafts=[]}
  renderShipmentHistory();
 }
 function renderShipmentHistory(){
@@ -3268,7 +3268,14 @@ function openDaDetail(daNumber,e){
  if(!items.length)return;
  let total=items.reduce((s,x)=>s+Number(x.weight_kg||0),0);
  let html=`<div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Κιλά</th><th>Μεταφορέας</th><th>Παραλήπτης</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="2"><b>Σύνολο</b></td><td><b>${kg(total)}</b></td><td colspan="2"></td></tr></tfoot></table></div>`;
+ // Οριστικοποιημένο δελτίο φόρτωσης: ο αριθμός Δ.Α. είναι επεξεργάσιμος εδώ
+ let ld=items.some(x=>x.source==='LOADING')?(shipLoadings||[]).find(o=>o.status==='COMPLETED'&&String(o.dispatch_document_number||'')===daNumber):null;
+ if(ld)html=`<div class="toolbar" style="gap:10px;align-items:flex-end;margin-bottom:10px"><label style="flex:1">Αρ. Δ.Α.<input id="daNumInput" inputmode="numeric" value="${esc(daNumber)}"></label><button type="button" class="btn" id="daNumSave">Αποθήκευση αριθμού</button></div><div id="daNumErr" class="error"></div>`+html;
  openFloatAt('Δ.Α. '+daNumber,html,e.clientX,e.clientY);
+ if(ld&&$('daNumSave'))$('daNumSave').onclick=async()=>{
+   try{await api('/loading/orders/'+ld.id+'/dispatch-number',{method:'PUT',body:JSON.stringify({number:$('daNumInput').value})});$('floatingEditor').classList.add('hidden');await loadShipmentHistory()}
+   catch(err){$('daNumErr').textContent=err.message||String(err)}
+ };
 }
 if($('shipHistSearch'))$('shipHistSearch').addEventListener('input',renderShipmentHistory);
 document.querySelectorAll('#shipHistKindFilter [data-kind]').forEach(b=>b.onclick=()=>{shipHistKind=b.dataset.kind;document.querySelectorAll('#shipHistKindFilter [data-kind]').forEach(x=>x.classList.toggle('active',x===b));renderShipmentHistory()});

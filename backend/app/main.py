@@ -3367,6 +3367,17 @@ def _loading_number(db:Session)->str:
     rows=db.scalars(select(LoadingOrder).where(LoadingOrder.loading_number.like(f'LOAD-{year}-%'))).all()
     return f'LOAD-{year}-{len(rows)+1:06d}'
 
+def _next_da_number(db:Session,year:int)->int:
+    """Αρ. Δ.Α.: αύξων ανά έτος, ένα κοινό ρεύμα (Πωλήσεις + Ενδοδιακίνηση) -- επόμενος μετά τον μεγαλύτερο του έτους στο Ιστορικό Δελτίων Αποστολής."""
+    H=models.ShipmentHistoryEntry
+    rows=db.scalars(select(H.da_number).where(H.active==True,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1))).all()
+    nums=[int(x) for x in rows if x and str(x).strip().isdigit()]
+    return (max(nums) if nums else 0)+1
+
+def _da_in_use(db:Session,year:int,number:str,exclude_source_order:str|None=None)->bool:
+    H=models.ShipmentHistoryEntry
+    return db.scalar(select(func.count()).select_from(H).where(H.active==True,H.da_number==number,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1)))>0
+
 def _loading_totals(db:Session,o:LoadingOrder):
     reservations=db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.status=='RESERVED')).all()
     actuals=db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all()
@@ -3377,7 +3388,7 @@ def _loading_out(db:Session,o:LoadingOrder):
     reserved,loaded=_loading_totals(db,o)
     return schemas.LoadingOrderOut(id=o.id,loading_number=o.loading_number,customer_id=o.customer_id,carrier_id=o.carrier_id,vehicle_registration=o.vehicle_registration,
         max_allowed_weight=o.max_allowed_weight,selection_mode=o.selection_mode,status=o.status,reserved_weight=reserved,loaded_weight=loaded,
-        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason)
+        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason,dispatch_document_number=o.dispatch_document_number,weighbridge_number=o.weighbridge_number)
 
 @app.post('/loading/orders', response_model=schemas.LoadingOrderOut)
 def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('loading.view'))):
@@ -3445,8 +3456,45 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         lot=db.get(ReadyMaterialLot,r.ready_material_lot_id); r.status='RELEASED'
         if lot and lot.status=='RESERVED': lot.status='AVAILABLE'
     o.status='COMPLETED'; write_audit(db,user,'loading_order',o.id,'COMPLETE',new={'actual_items':len(actuals),'loaded_weight':str(_loading_totals(db,o)[1])})
+    # Οριστικοποίηση = αυτόματος Αρ. Δ.Α. (αύξων ανά έτος) και μετάβαση στο Ιστορικό Δελτίων Αποστολής: μία γραμμή ανά υλικό, όλες με τον ίδιο αριθμό
+    now=datetime.now(); typed=(o.dispatch_document_number or '').strip()
+    number=typed if (typed.isdigit() and not _da_in_use(db,now.year,typed)) else str(_next_da_number(db,now.year))
+    o.dispatch_document_number=number
+    cust=db.get(Organization,o.customer_id); carr=db.get(Organization,o.carrier_id) if o.carrier_id else None
+    orgname=lambda x:(x.trade_name or x.legal_name) if x else None
+    per_mat={}
+    for a in actuals:
+        lot=db.get(ReadyMaterialLot,a.ready_material_lot_id); mat=db.get(models.Material,lot.material_id) if lot else None
+        key=mat.id if mat else (lot.id if lot else a.id)
+        d=per_mat.setdefault(key,{'mat':mat,'w':Decimal('0')}); d['w']+=a.loaded_weight
+    for d in per_mat.values():
+        m=d['mat']
+        db.add(models.ShipmentHistoryEntry(work_date=now,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
+            description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(m.eka_code if m else None),reptool_code=(m.reptool_code if m else None),
+            kind='MATERIAL',source='LOADING',active=True))
     _enqueue_sync(db,'LOADING_ORDER',o.id,'UPSERT',{'loading_number':o.loading_number,'status':o.status,'loaded_weight':str(_loading_totals(db,o)[1])})
     db.commit(); return _loading_out(db,o)
+
+class DaNumberIn(schemas.BaseModel):
+    number:str
+
+@app.put('/loading/orders/{order_id}/dispatch-number', response_model=schemas.LoadingOrderOut)
+def loading_set_da_number(order_id:str,data:DaNumberIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.execute'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o or o.status!='COMPLETED' or not o.dispatch_document_number: raise HTTPException(409,'Ο αριθμός Δ.Α. αλλάζει μόνο σε οριστικοποιημένο δελτίο')
+    new=(data.number or '').strip()
+    if not new.isdigit(): raise HTTPException(422,'Ο αριθμός Δ.Α. πρέπει να είναι αριθμός')
+    old=o.dispatch_document_number
+    if new!=old:
+        H=models.ShipmentHistoryEntry
+        rows=db.scalars(select(H).where(H.source=='LOADING',H.da_number==old,H.active==True)).all()
+        year=rows[0].work_date.year if rows else datetime.now().year
+        if _da_in_use(db,year,new): raise HTTPException(409,f'Ο αριθμός Δ.Α. {new} υπάρχει ήδη')
+        for r in rows: r.da_number=new
+        o.dispatch_document_number=new
+        write_audit(db,user,'loading_order',o.id,'EDIT_DA_NUMBER',old={'da':old},new={'da':new})
+        db.commit()
+    return _loading_out(db,o)
 
 @app.get('/loading/orders/{order_id}', response_model=schemas.LoadingOrderOut)
 def loading_detail(order_id:str,db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
@@ -3491,7 +3539,7 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
     ql=(q or '').strip().lower()
     out=[{"id":r.id,"work_date":r.work_date.isoformat(),"da_number":r.da_number,"weighbridge_number":r.weighbridge_number,
           "transporter":r.transporter,"recipient":r.recipient,"description":r.description,"weight_kg":float(r.weight_kg or 0),
-          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind} for r in rows]
+          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"source":r.source} for r in rows]
     if ql:
         out=[r for r in out if ql in ' '.join(str(r.get(k) or '') for k in ('da_number','transporter','recipient','description','eka_code','reptool_code')).lower()]
     return out

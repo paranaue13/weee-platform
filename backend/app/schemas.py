@@ -525,6 +525,8 @@ class LoadingOrderOut(BaseModel):
     loaded_weight: Decimal
     remaining_capacity: Decimal
     dispatch_reason: str|None
+    dispatch_document_number: str|None = None
+    weighbridge_number: str|None = None
 
 
 # ---- Build 0.9 ----
