@@ -4924,10 +4924,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       });
     }
     let rows=[],rseen={};
+    let spanBody=[...t.tBodies].some(tb=>[...tb.rows].some(r=>[...r.cells].some(c=>c.rowSpan>1)));   // πίνακες με rowspan: δεν κρύβονται γραμμές
     for(const tb of t.tBodies)for(const tr of tb.rows){
-      let ok=tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1||c.rowSpan>1)&&!tr.classList.contains('statHidden');
-      let name=norm(tr.dataset.pinRow||tr.dataset.id||tr.dataset.date||tr.dataset.mid||(tr.cells[0]&&tr.cells[0].textContent));
-      let id=name;rseen[id]=(rseen[id]||0)+1;if(rseen[id]>1)id+='#'+rseen[id];
+      let ok=!spanBody&&tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1||c.rowSpan>1)&&!tr.classList.contains('statHidden');
+      let d=tr.dataset,key=norm(d.pinRow||d.id||d.receipt||d.month||d.date||d.mid||d.code);
+      let name=[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).find(x=>x)||key;
+      let id=key||[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).join('|');
+      let nm=id;rseen[nm]=(rseen[nm]||0)+1;if(rseen[nm]>1)id+='#'+rseen[nm];
       rows.push({tr,name,id,ok:ok&&!!name});
     }
     return {cols,rows};
@@ -5116,7 +5119,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       }
     }
     // γραμμή: κάτω όριο πρώτου κελιού
-    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'&&cell===cell.parentElement.cells[0]){
+    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'&&cell===[...cell.parentElement.cells].find(c=>!c.classList.contains('pinColHide'))){
       let r=cell.getBoundingClientRect();
       if(r.bottom-e.clientY<=6&&r.bottom-e.clientY>=-2){
         let item=(md.rows.find(x=>x.tr===cell.parentElement))||(t._pinModel=model(t)).rows.find(x=>x.tr===cell.parentElement);
@@ -5155,11 +5158,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)&&hasState(t))dirty.add(t)});
     if(dirty.size)tm=setTimeout(flush,60);
   }
-  window.PinTable={configs,register:c=>configs.push(c),refreshAll:()=>{document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)){t._pinModel=null;if(hasState(t)||t._pinApplied)dirty.add(t)}});if(dirty.size&&!tm)tm=setTimeout(flush,30)},showAll};
+  window.PinTable={configs,register:c=>configs.push(c),model,info:t=>{let m=model(t);return {id:tableId(t),elig:eligibleTable(t),colsOk:colsSupported(t),cols:m.cols.filter(c=>c.ok).length,colsAll:m.cols.length,rows:m.rows.filter(r=>r.ok).length,rowsAll:m.rows.length,dupRows:m.rows.length-new Set(m.rows.map(r=>r.name)).size}},refreshAll:()=>{document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)){t._pinModel=null;if(hasState(t)||t._pinApplied)dirty.add(t)}});if(dirty.size&&!tm)tm=setTimeout(flush,30)},showAll};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 
 // Ρυθμίσεις ανά πίνακα (ταυτότητα + «scope» γραμμών)
+PinTable.register({match:t=>!!t.closest('.deltioDeptCard'),id:t=>'deltio:'+t.closest('.deltioDeptCard').dataset.unit});
+PinTable.register({match:t=>!!t.closest('#receiptDailyTable,#ecTableWrap'),rowScope:()=>typeof receiptNav!=='undefined'&&receiptNav?receiptNav.day:''});
 PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyState.activeGroup,rowScope:()=>readyState.period+':'+readyRange().startISO});
 </script>
 </body></html>
