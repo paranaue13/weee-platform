@@ -3372,11 +3372,18 @@ def _next_da_number(db:Session,year:int)->int:
     H=models.ShipmentHistoryEntry
     rows=db.scalars(select(H.da_number).where(H.active==True,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1))).all()
     nums=[int(x) for x in rows if x and str(x).strip().isdigit()]
+    # και οι αριθμοί που έχουν ήδη δοθεί από τον χρήστη σε πρόχειρα/οριστικοποιημένα δελτία φόρτωσης του έτους
+    for o in db.scalars(select(LoadingOrder).where(LoadingOrder.status.in_(['OPEN','COMPLETED']),LoadingOrder.dispatch_document_number.is_not(None))).all():
+        if o.created_at and o.created_at.year==year and str(o.dispatch_document_number).strip().isdigit(): nums.append(int(o.dispatch_document_number))
     return (max(nums) if nums else 0)+1
 
-def _da_in_use(db:Session,year:int,number:str,exclude_source_order:str|None=None)->bool:
+def _da_in_use(db:Session,year:int,number:str,exclude_order_id:str|None=None)->bool:
+    """Ο Αρ. Δ.Α. είναι μοναδικός ανά έτος: κατειλημμένος είτε στο Ιστορικό είτε από άλλο πρόχειρο/οριστικοποιημένο δελτίο φόρτωσης."""
     H=models.ShipmentHistoryEntry
-    return db.scalar(select(func.count()).select_from(H).where(H.active==True,H.da_number==number,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1)))>0
+    if db.scalar(select(func.count()).select_from(H).where(H.active==True,H.da_number==number,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1)))>0: return True
+    for o in db.scalars(select(LoadingOrder).where(LoadingOrder.status.in_(['OPEN','COMPLETED']),LoadingOrder.dispatch_document_number==number)).all():
+        if o.id!=exclude_order_id and o.created_at and o.created_at.year==year: return True
+    return False
 
 def _loading_totals(db:Session,o:LoadingOrder):
     reservations=db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.status=='RESERVED')).all()
@@ -3395,6 +3402,12 @@ def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), 
     if data.selection_mode not in {'OFFICE_RESERVED','OPERATOR_SELECTION'}: raise HTTPException(422,'Μη έγκυρος τρόπος φόρτωσης')
     if data.max_allowed_weight<=0: raise HTTPException(422,'Το μέγιστο βάρος πρέπει να είναι θετικό')
     if not db.get(Organization,data.customer_id): raise HTTPException(422,'Άγνωστος πελάτης')
+    typed=(data.dispatch_document_number or '').strip()
+    if typed:
+        if not typed.isdigit(): raise HTTPException(422,'Ο αριθμός Δ.Α. πρέπει να είναι αριθμός')
+        if _da_in_use(db,datetime.now().year,typed): raise HTTPException(409,f'Ο αριθμός Δ.Α. {typed} υπάρχει ήδη φέτος')
+        data.dispatch_document_number=typed
+    else: data.dispatch_document_number=None
     o=LoadingOrder(loading_number=_loading_number(db),customer_id=data.customer_id,carrier_id=data.carrier_id,vehicle_registration=data.vehicle_registration,
         max_allowed_weight=data.max_allowed_weight,selection_mode=data.selection_mode,status='OPEN',dispatch_reason=data.dispatch_reason,weighbridge_number=data.weighbridge_number,
         dispatch_document_number=data.dispatch_document_number,created_by=user.id,notes=data.notes)
@@ -3458,7 +3471,10 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
     o.status='COMPLETED'; write_audit(db,user,'loading_order',o.id,'COMPLETE',new={'actual_items':len(actuals),'loaded_weight':str(_loading_totals(db,o)[1])})
     # Οριστικοποίηση = αυτόματος Αρ. Δ.Α. (αύξων ανά έτος) και μετάβαση στο Ιστορικό Δελτίων Αποστολής: μία γραμμή ανά υλικό, όλες με τον ίδιο αριθμό
     now=datetime.now(); typed=(o.dispatch_document_number or '').strip()
-    number=typed if (typed.isdigit() and not _da_in_use(db,now.year,typed)) else str(_next_da_number(db,now.year))
+    if typed:
+        if not typed.isdigit() or _da_in_use(db,now.year,typed,o.id): raise HTTPException(409,f'Ο αριθμός Δ.Α. {typed} υπάρχει ήδη φέτος')
+        number=typed
+    else: number=str(_next_da_number(db,now.year))
     o.dispatch_document_number=number
     cust=db.get(Organization,o.customer_id); carr=db.get(Organization,o.carrier_id) if o.carrier_id else None
     orgname=lambda x:(x.trade_name or x.legal_name) if x else None
@@ -3489,7 +3505,7 @@ def loading_set_da_number(order_id:str,data:DaNumberIn,db:Session=Depends(get_db
         H=models.ShipmentHistoryEntry
         rows=db.scalars(select(H).where(H.source=='LOADING',H.da_number==old,H.active==True)).all()
         year=rows[0].work_date.year if rows else datetime.now().year
-        if _da_in_use(db,year,new): raise HTTPException(409,f'Ο αριθμός Δ.Α. {new} υπάρχει ήδη')
+        if _da_in_use(db,year,new,o.id): raise HTTPException(409,f'Ο αριθμός Δ.Α. {new} υπάρχει ήδη')
         for r in rows: r.da_number=new
         o.dispatch_document_number=new
         write_audit(db,user,'loading_order',o.id,'EDIT_DA_NUMBER',old={'da':old},new={'da':new})
