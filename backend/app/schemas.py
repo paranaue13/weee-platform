@@ -108,6 +108,8 @@ class OrganizationCreate(BaseModel):
     phone: str|None = None
     supplier_kind: str|None = None
     supplier_source: str|None = None
+    permit_number: str|None = None
+    permit_ada: str|None = None
     roles: list[str] = []
 
 
@@ -119,6 +121,8 @@ class OrganizationUpdate(BaseModel):
     phone: str|None = None
     supplier_kind: str|None = None
     supplier_source: str|None = None
+    permit_number: str|None = None
+    permit_ada: str|None = None
     roles: list[str] = []
 
 class OrganizationMergeRequest(BaseModel):
@@ -137,6 +141,8 @@ class OrganizationOut(BaseModel):
     active: bool
     supplier_kind: str|None = None
     supplier_source: str|None = None
+    permit_number: str|None = None
+    permit_ada: str|None = None
 
 
 
@@ -507,6 +513,22 @@ class LoadingOrderCreate(BaseModel):
     weighbridge_number: str|None = None
     dispatch_document_number: str|None = None
     notes: str|None = None
+    first_recipient: str|None = None
+    mgmt_operation: str|None = None
+    tracking_document: str|None = None
+    destination_country: str|None = None
+    container_number: str|None = None
+    gr_notification_no: str|None = None
+    bill_of_lading: str|None = None
+
+class LoadingDaDetailsIn(BaseModel):
+    first_recipient: str|None = None
+    mgmt_operation: str|None = None
+    tracking_document: str|None = None
+    destination_country: str|None = None
+    container_number: str|None = None
+    gr_notification_no: str|None = None
+    bill_of_lading: str|None = None
 
 class LoadingLotAction(BaseModel):
     ready_material_lot_id: str
@@ -527,6 +549,13 @@ class LoadingOrderOut(BaseModel):
     dispatch_reason: str|None
     dispatch_document_number: str|None = None
     weighbridge_number: str|None = None
+    first_recipient: str|None = None
+    mgmt_operation: str|None = None
+    tracking_document: str|None = None
+    destination_country: str|None = None
+    container_number: str|None = None
+    gr_notification_no: str|None = None
+    bill_of_lading: str|None = None
 
 
 # ---- Build 0.9 ----

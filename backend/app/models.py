@@ -198,6 +198,14 @@ class ShipmentHistoryEntry(Base, TimestampMixin):
     kind: Mapped[str] = mapped_column(String(20), index=True)
     source: Mapped[str] = mapped_column(String(30), default="DA_LOG_2026")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Στοιχεία δελτίου για Ζ(i)/Ζ(ii) (ίδια τιμή σε όλες τις γραμμές ενός Δ.Α.)
+    first_recipient: Mapped[str|None] = mapped_column(String(200), nullable=True)
+    mgmt_operation: Mapped[str|None] = mapped_column(String(40), nullable=True)
+    tracking_document: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    destination_country: Mapped[str|None] = mapped_column(String(80), nullable=True)
+    container_number: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    gr_notification_no: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    bill_of_lading: Mapped[str|None] = mapped_column(String(120), nullable=True)
 
 class MaterialOpeningStock(Base, TimestampMixin):
     """A documented, point-in-time physical stock count for materials (e.g. 31/12/2025),
@@ -276,6 +284,9 @@ class Organization(Base, TimestampMixin):
     supplier_kind: Mapped[str|None] = mapped_column(String(20), nullable=True)
     # PICKUP_POINT: όταν είναι αποστολέας στη ζωντανή ροή, προμηθευτής της παραλαβής είναι το σημείο παραλαβής
     supplier_source: Mapped[str|None] = mapped_column(String(20), nullable=True)
+    # Άδεια (συλλέκτη μεταφορέα / αποδέκτη) και ΑΔΑ της άδειας -- για τις προβολές Ζ(i)/Ζ(ii) του Ιστορικού Δελτίων Αποστολής
+    permit_number: Mapped[str|None] = mapped_column(String(100), nullable=True)
+    permit_ada: Mapped[str|None] = mapped_column(String(100), nullable=True)
 
 
 class OrganizationRegistryDetail(Base, TimestampMixin):
@@ -663,6 +674,13 @@ class LoadingOrder(Base, TimestampMixin):
     dispatch_document_number: Mapped[str|None] = mapped_column(String(80), nullable=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    first_recipient: Mapped[str|None] = mapped_column(String(200), nullable=True)
+    mgmt_operation: Mapped[str|None] = mapped_column(String(40), nullable=True)
+    tracking_document: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    destination_country: Mapped[str|None] = mapped_column(String(80), nullable=True)
+    container_number: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    gr_notification_no: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    bill_of_lading: Mapped[str|None] = mapped_column(String(120), nullable=True)
 
 class LoadingReservation(Base):
     __tablename__ = "loading_reservations"

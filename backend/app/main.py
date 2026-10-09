@@ -76,6 +76,15 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_source VARCHAR(20)"))
                 for nm in ("ELECTRONET AE","MEGA ELECTRICS ΑΕΒΕ","ΑΚΤΙΒ ΚΟΜΠΙΟΥΤΕΡ ΣΥΣΤΕΜΣ%"):
                     conn.execute(text("UPDATE organizations SET supplier_source='PICKUP_POINT' WHERE legal_name LIKE :n"),{"n":nm})
+        if "organizations" in tables:
+            o_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
+            for col in ("permit_number","permit_ada"):
+                if col not in o_cols: conn.execute(text(f"ALTER TABLE organizations ADD COLUMN {col} VARCHAR(100)"))
+        for tbl in ("shipment_history_entries","loading_orders"):
+            if tbl in tables:
+                t_cols={c["name"] for c in inspect(engine).get_columns(tbl)}
+                for col in ("first_recipient","mgmt_operation","tracking_document","destination_country","container_number","gr_notification_no","bill_of_lading"):
+                    if col not in t_cols: conn.execute(text(f"ALTER TABLE {tbl} ADD COLUMN {col} VARCHAR(200)"))
         if "production_work_entries" in tables:
             pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
             if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
@@ -291,7 +300,7 @@ def update_organization(organization_id:str, data:schemas.OrganizationUpdate, db
     if data.supplier_source not in (None,"SENDER","PICKUP_POINT"): raise HTTPException(422,"Μη έγκυρη πηγή προμηθευτή")
     old={"legal_name":obj.legal_name,"trade_name":obj.trade_name,"tax_id":obj.tax_id,"email":obj.email,"phone":obj.phone,"supplier_kind":obj.supplier_kind,"supplier_source":obj.supplier_source}
     for k,v in data.model_dump(exclude={"roles"}).items():
-        if k in ("supplier_kind","supplier_source") and k not in data.model_fields_set: continue
+        if k in ("supplier_kind","supplier_source","permit_number","permit_ada") and k not in data.model_fields_set: continue
         setattr(obj,k,v)
     db.execute(models.organization_roles.delete().where(models.organization_roles.c.organization_id==organization_id))
     for role in sorted(set(data.roles)):
@@ -3395,7 +3404,7 @@ def _loading_out(db:Session,o:LoadingOrder):
     reserved,loaded=_loading_totals(db,o)
     return schemas.LoadingOrderOut(id=o.id,loading_number=o.loading_number,customer_id=o.customer_id,carrier_id=o.carrier_id,vehicle_registration=o.vehicle_registration,
         max_allowed_weight=o.max_allowed_weight,selection_mode=o.selection_mode,status=o.status,reserved_weight=reserved,loaded_weight=loaded,
-        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason,dispatch_document_number=o.dispatch_document_number,weighbridge_number=o.weighbridge_number)
+        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason,dispatch_document_number=o.dispatch_document_number,weighbridge_number=o.weighbridge_number,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading)
 
 @app.post('/loading/orders', response_model=schemas.LoadingOrderOut)
 def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('loading.view'))):
@@ -3410,7 +3419,11 @@ def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), 
     else: data.dispatch_document_number=None
     o=LoadingOrder(loading_number=_loading_number(db),customer_id=data.customer_id,carrier_id=data.carrier_id,vehicle_registration=data.vehicle_registration,
         max_allowed_weight=data.max_allowed_weight,selection_mode=data.selection_mode,status='OPEN',dispatch_reason=data.dispatch_reason,weighbridge_number=data.weighbridge_number,
-        dispatch_document_number=data.dispatch_document_number,created_by=user.id,notes=data.notes)
+        dispatch_document_number=data.dispatch_document_number,created_by=user.id,notes=data.notes,
+        first_recipient=(data.first_recipient or None),mgmt_operation=(data.mgmt_operation or None),tracking_document=(data.tracking_document or None),destination_country=(data.destination_country or None),container_number=(data.container_number or None),gr_notification_no=(data.gr_notification_no or None),bill_of_lading=(data.bill_of_lading or None))
+    if not o.destination_country:   # προσυμπλήρωση από τη χώρα του πελάτη στο Μητρώο (αν υπάρχει)
+        _d=db.scalar(select(models.OrganizationRegistryDetail).where(models.OrganizationRegistryDetail.organization_id==data.customer_id))
+        if _d and _d.country_code: o.destination_country=_d.country_code
     db.add(o); db.flush(); write_audit(db,user,'loading_order',o.id,'CREATE',new={'loading_number':o.loading_number,'mode':o.selection_mode,'max_weight':str(o.max_allowed_weight)})
     db.commit(); return _loading_out(db,o)
 
@@ -3487,9 +3500,23 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         m=d['mat']
         db.add(models.ShipmentHistoryEntry(work_date=now,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
             description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(m.eka_code if m else None),reptool_code=(m.reptool_code if m else None),
-            kind='MATERIAL',source='LOADING',active=True))
+            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
     _enqueue_sync(db,'LOADING_ORDER',o.id,'UPSERT',{'loading_number':o.loading_number,'status':o.status,'loaded_weight':str(_loading_totals(db,o)[1])})
     db.commit(); return _loading_out(db,o)
+
+@app.put('/loading/orders/{order_id}/da-details', response_model=schemas.LoadingOrderOut)
+def loading_set_da_details(order_id:str,data:schemas.LoadingDaDetailsIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.execute'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o or o.status not in ('OPEN','COMPLETED'): raise HTTPException(409,'Τα στοιχεία δελτίου αλλάζουν μόνο σε πρόχειρο ή οριστικοποιημένο δελτίο')
+    vals={f:((getattr(data,f) or '').strip() or None) for f in ['first_recipient', 'mgmt_operation', 'tracking_document', 'destination_country', 'container_number', 'gr_notification_no', 'bill_of_lading']}
+    old={f:getattr(o,f) for f in vals}
+    for f,v in vals.items(): setattr(o,f,v)
+    if o.status=='COMPLETED' and o.dispatch_document_number:
+        H=models.ShipmentHistoryEntry
+        for r in db.scalars(select(H).where(H.source=='LOADING',H.da_number==o.dispatch_document_number,H.active==True)).all():
+            for f,v in vals.items(): setattr(r,f,v)
+    write_audit(db,user,'loading_order',o.id,'EDIT_DA_DETAILS',old=old,new=vals); db.commit()
+    return _loading_out(db,o)
 
 class DaNumberIn(schemas.BaseModel):
     number:str
@@ -3553,9 +3580,19 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
     if kind: stmt=stmt.where(models.ShipmentHistoryEntry.kind==kind)
     rows=db.scalars(stmt.order_by(models.ShipmentHistoryEntry.work_date.desc(),models.ShipmentHistoryEntry.created_at.desc())).all()
     ql=(q or '').strip().lower()
+    _orgs={}
+    for og in db.scalars(select(Organization)).all():
+        for nm in (og.trade_name,og.legal_name):
+            if nm:
+                k=nm.strip().casefold(); ex=_orgs.get(k)
+                if ex is None or (not ex.permit_number and og.permit_number): _orgs[k]=og   # προτιμάται η εγγραφή με άδεια όταν υπάρχουν διπλά ονόματα
+    def _perm(name):
+        og=_orgs.get((name or '').strip().casefold())
+        return (og.permit_number,og.permit_ada) if og else (None,None)
     out=[{"id":r.id,"work_date":r.work_date.isoformat(),"da_number":r.da_number,"weighbridge_number":r.weighbridge_number,
           "transporter":r.transporter,"recipient":r.recipient,"description":r.description,"weight_kg":float(r.weight_kg or 0),
-          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"source":r.source} for r in rows]
+          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
+          "transporter_permit":_perm(r.transporter)[0],"transporter_ada":_perm(r.transporter)[1],"recipient_permit":_perm(r.recipient)[0],"recipient_ada":_perm(r.recipient)[1]} for r in rows]
     if ql:
         out=[r for r in out if ql in ' '.join(str(r.get(k) or '') for k in ('da_number','transporter','recipient','description','eka_code','reptool_code')).lower()]
     return out
