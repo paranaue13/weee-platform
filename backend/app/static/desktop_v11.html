@@ -1043,9 +1043,8 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #receiptForm .recBody::-webkit-scrollbar{width:8px}
 #receiptForm .recBody::-webkit-scrollbar-thumb{background:var(--line-strong,#b9bdc9);border-radius:8px}
 #receiptForm .recBody::-webkit-scrollbar-track{background:transparent}
-#receiptForm .recFoot{flex:none;border-top:1px solid var(--line,#e3e5ec);padding:10px 20px 12px;background:var(--surface,#fff)}
+#receiptForm .recFoot{flex:none;padding:4px 0 0}
 #receiptForm .recFoot #receiptMsg:empty{display:none}
-#receiptForm .recFoot .floatPanelActions{margin-top:0!important}
 #receiptForm .recGrp{background:var(--pop-card,#F0F3FA);border-radius:14px;padding:12px 14px;border:0!important;gap:10px 12px;flex:none}
 #receiptForm .recGrp label{display:flex;flex-direction:column;gap:4px}
 #receiptForm .recGrp .formgrid,#receiptForm .recGrp.formgrid{gap:10px 12px}
@@ -1205,8 +1204,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 <div id="singleLoadFields" class="recGrp formgrid"><label>Προμηθευτής<div class="comboAction"><input class="comboArrow" id="supplierText" autocomplete="off" placeholder="Γράψε προμηθευτή..."><button type="button" class="comboDrop" data-combo-target="supplierText" title="Άνοιγμα λίστας">▼</button><button type="button" class="miniAdd" id="quickSupplier" title="Νέος προμηθευτής">＋</button></div><input id="supplier" type="hidden"></label><label id="orderWrap">Αριθμός εντολής<input id="orderNo"></label><label>Αριθμός Δελτίου Αποστολής<input id="dispatchNo"></label><label id="sealWrap">Αριθμός Σφραγίδας<input id="sealNo"></label></div>
 <div class="recGrp formgrid" id="grpReport"><label id="dppWrap">ΔΠΠ<input id="dppNo" inputmode="numeric"></label><label>Ημερομηνία Αναφοράς<input id="reportDate" type="date"></label><label>Ανακυκλωτής<input id="recycler" value="ΚΕΝΤΡΟ ΕΛΛΗΝΙΚΗΣ ΠΕΡΙΒΑΛΛΟΝΤΙΚΗΣ ΑΝΑΚΥΚΛΩΣΗΣ Α.Β.Ε.Τ.Ε."></label><label class="span2">Παρατηρήσεις - Σχόλια ανακυκλωτή<textarea id="rnotes"></textarea></label></div>
-</div>
-<div class="recFoot"><div id="receiptMsg"></div><div class="toolbar floatPanelActions"><button class="btn ok" id="saveReceipt">Αποθήκευση</button><button class="btn danger hidden" id="deleteReceipt">Διαγραφή</button><button class="btn alt" id="cancelReceipt">Κλείσιμο</button></div></div>
+<div class="recFoot"><div id="receiptMsg"></div><div class="toolbar floatPanelActions"><button class="btn ok" id="saveReceipt">Αποθήκευση</button><button class="btn danger hidden" id="deleteReceipt">Διαγραφή</button><button class="btn alt" id="cancelReceipt">Κλείσιμο</button></div></div></div>
 <div class="recGrip" id="receiptGrip" title="Αλλαγή μεγέθους"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M14 4 4 14M14 8 8 14M14 12l-2 2"/></svg></div>
 </div>
 <div id="receiptLiveDetail" class="card hidden"></div></section>
