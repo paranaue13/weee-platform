@@ -681,6 +681,20 @@ class LoadingOrder(Base, TimestampMixin):
     container_number: Mapped[str|None] = mapped_column(String(120), nullable=True)
     gr_notification_no: Mapped[str|None] = mapped_column(String(120), nullable=True)
     bill_of_lading: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    # Προετοιμασία φόρτωσης (σχέδιο: δεν δεσμεύει αποθήκη μέχρι την οριστικοποίηση)
+    driver_name: Mapped[str|None] = mapped_column(String(200), nullable=True)
+    eka_code: Mapped[str|None] = mapped_column(String(60), nullable=True)
+    reptool_code: Mapped[str|None] = mapped_column(String(80), nullable=True)
+    delivery_date: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    prep_mode: Mapped[str|None] = mapped_column(String(10), nullable=True)
+
+class LoadingPlanItem(Base):
+    """Σχεδιασμένο μέσο συλλογής σε πρόχειρο της Προετοιμασίας. ΔΕΝ είναι δέσμευση: το lot μένει διαθέσιμο."""
+    __tablename__ = "loading_plan_items"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    loading_order_id: Mapped[str] = mapped_column(String(36), ForeignKey("loading_orders.id", ondelete="CASCADE"), index=True)
+    ready_material_lot_id: Mapped[str] = mapped_column(String(36), ForeignKey("ready_material_lots.id"), index=True)
+    __table_args__ = (UniqueConstraint("loading_order_id","ready_material_lot_id",name="uq_loading_plan_item"),)
 
 class LoadingReservation(Base):
     __tablename__ = "loading_reservations"

@@ -1101,6 +1101,72 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #shipHistCard table.shipZ th,#shipHistCard table.shipZ td{white-space:nowrap}
 #shipHistZView{margin-left:0}
 </style>
+<style id="prepLook">
+/* Φορτώσεις → Προετοιμασία φόρτωσης */
+#prepPanel{margin-top:16px;position:relative}
+#prepPanel .prepCard{margin-bottom:12px}
+#prepPanel .prepGrid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 14px}
+#prepPanel .prepGrid5 label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--pop-label,#44474f)}
+#prepPanel .prepGrid5 :is(input,select){height:40px;border:1px solid var(--line-strong,#b9bdc9);border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);padding:0 12px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}
+#prepPanel .prepSub{margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--line,#e3e5ec);font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--fg-3,#74777f)}
+#prepPanel .prepFreq{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:0 0 12px;padding:10px 14px;border-radius:14px;background:color-mix(in srgb,var(--pin,#D97757) 14%,var(--surface,#fff))}
+#prepPanel .prepFreq b{font-weight:600}
+#prepPanel .prepFreq small{color:var(--fg-3,#74777f)}
+#prepPanel .prepFreq button{border:1px solid var(--pin,#D97757);background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:999px;padding:4px 12px;font-size:12.5px;cursor:pointer}
+#prepPanel .prepFreq button:disabled{opacity:.45;cursor:default;border-color:var(--line-strong,#b9bdc9)}
+#prepPanel .prepTwo{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:clamp(440px,calc(100vh - 360px),680px);background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:16px;overflow:hidden}
+#prepPanel .prepWh,#prepPanel .prepCargo{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px 16px}
+#prepPanel .prepCargo{border-left:1px solid var(--line,#e3e5ec)}
+#prepPanel .prepHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
+#prepPanel .prepHead h3{margin:0;font-size:17px;font-weight:500}
+#prepPanel .prepHead .muted{font-size:12.5px}
+#prepPanel .prepSearch{height:40px;border:1px solid var(--line-strong,#b9bdc9);border-radius:999px;background:var(--surface,#fff);color:var(--fg,#1a1b20);padding:0 16px;margin-bottom:10px;font-size:14px}
+#prepPanel .prepList{flex:1 1 auto;min-height:0;overflow:auto;scrollbar-width:thin;border:1px solid var(--line,#e3e5ec);border-radius:12px}
+#prepPanel .prepCat{background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font-weight:500;font-size:13.5px;padding:9px 12px;position:sticky;top:0;z-index:1}
+#prepPanel .prepMat{display:flex;align-items:center;gap:10px;min-height:36px;padding:0 12px;border-bottom:1px solid var(--line,#e3e5ec);cursor:grab;font-size:14px}
+#prepPanel .prepMat:hover{background:var(--hover,#eaf0fd)}
+#prepPanel .prepMat .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#prepPanel .prepMat .pc,#prepPanel .prepMat .kgc{color:var(--fg-2,#44474f);font-variant-numeric:tabular-nums;text-align:right}
+#prepPanel .prepMat .pc{width:56px}#prepPanel .prepMat .kgc{width:72px}
+#prepPanel .prepMat .arr{width:22px;text-align:center;color:var(--fg-3,#74777f);cursor:pointer;user-select:none}
+#prepPanel input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent,#2f5fc4);cursor:pointer;margin:0}
+#prepPanel .prepMedia{display:flex;flex-wrap:wrap;gap:8px;padding:8px 12px 10px 40px;background:var(--surface-2,#f0f3fa);border-bottom:1px solid var(--line,#e3e5ec)}
+#prepPanel .prepMedia button{border:1px solid var(--line-strong,#b9bdc9);background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:999px;padding:5px 12px;font-size:13px;cursor:grab}
+#prepPanel .prepMedia button.on{background:var(--accent,#2f5fc4);border-color:var(--accent,#2f5fc4);color:var(--on-accent,#fff)}
+body[data-theme="dark"] #prepPanel .prepMedia button.on{color:#001a41}
+#prepPanel .cgGroup{border-bottom:1px solid var(--line,#e3e5ec)}
+#prepPanel .cgHead{display:flex;justify-content:space-between;background:var(--surface-2,#f0f3fa);padding:7px 12px;font-weight:500;font-size:13.5px}
+#prepPanel .cgRow{display:flex;align-items:center;gap:10px;min-height:34px;padding:0 12px;border-top:1px solid var(--line,#e3e5ec);font-size:13.5px;cursor:grab}
+#prepPanel .cgRow .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#prepPanel .cgRow .x{border:0;background:transparent;color:var(--fg-3,#74777f);font-size:16px;cursor:pointer;width:24px}
+#prepPanel .prepEmpty{padding:18px;color:var(--fg-3,#74777f);text-align:center;font-size:13.5px}
+#prepPanel .prepTotal{margin-top:10px;padding:10px 14px;border-radius:12px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41)}
+#prepPanel .prepTotalRow{display:flex;justify-content:space-between;align-items:center;font-size:15px}
+#prepPanel .prepTotalRow input{width:86px;height:28px;border:1px solid transparent;border-radius:8px;background:transparent;color:inherit;font:inherit;font-weight:600;text-align:right;padding:0 4px}
+#prepPanel .prepTotalRow input:focus{background:var(--surface,#fff);border-color:var(--line-strong,#b9bdc9);outline:none}
+#prepPanel .prepBar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent,#2f5fc4) 20%,transparent);margin-top:8px;overflow:hidden}
+#prepPanel .prepBar i{display:block;height:100%;width:0;background:var(--accent,#2f5fc4);transition:width .15s}
+#prepPanel .prepBar i.over{background:var(--neg,#a32d2d)}
+#prepPanel .prepMsg{min-height:0;margin-top:8px;font-size:13px;color:var(--neg,#a32d2d)}
+#prepPanel .prepMsg:empty{display:none}
+#prepPanel .prepMsg.ok{color:var(--st5-fg,#12532e)}
+#prepPanel .prepActions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
+#prepPanel .prepActions .btn{height:40px;border-radius:999px;padding:0 20px;font-weight:500}
+#prepPanel .prepMover{position:absolute;left:50%;top:190px;transform:translateX(-50%);z-index:3;width:46px;border-radius:23px;background:var(--surface,#fff);border:1px solid var(--line-strong,#b9bdc9);box-shadow:0 4px 14px rgba(15,30,54,.18);display:flex;flex-direction:column;align-items:center}
+#prepPanel .prepMover button{border:0;background:transparent;color:var(--accent,#2f5fc4);width:46px;height:44px;font-size:18px;cursor:pointer;border-radius:23px}
+#prepPanel .prepMover button:hover{background:var(--hover,#eaf0fd)}
+#prepPanel .prepMover button+.prepBadge+button{border-top:1px solid var(--line,#e3e5ec);border-radius:0 0 23px 23px}
+#prepPanel .prepBadge{position:absolute;top:-6px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--accent,#2f5fc4);color:var(--on-accent,#fff);font-size:11px;line-height:18px;text-align:center;padding:0 4px}
+body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
+#prepPanel .prepToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#2b3040;color:#fff;border-radius:999px;padding:10px 20px;font-size:14px;z-index:9600;box-shadow:0 6px 20px rgba(0,0,0,.3)}
+#prepPanel .prepTwo.dropOn .prepCargo{outline:2px dashed var(--accent,#2f5fc4);outline-offset:-6px}
+@media(max-width:1000px){
+  #prepPanel .prepGrid5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #prepPanel .prepTwo{display:flex;flex-direction:column;height:auto}
+  #prepPanel .prepWh{height:420px}#prepPanel .prepCargo{height:460px;border-left:0;border-top:1px solid var(--line,#e3e5ec)}
+  #prepPanel .prepMover{display:none}
+}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -1290,6 +1356,40 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><div style="display:flex;align-items:center;gap:16px"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="loadingShowCancelled"><span class="slider"></span></label><span>Εμφάνιση ακυρωμένων</span></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div></div><div class="tablewrap hidden" id="loadingOrdersWrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
+<div class="prodSegment" id="loadingSubSeg" style="margin:16px 0 0;display:inline-flex;width:auto"><button type="button" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" data-lsub="hist" class="active">Ιστορικό Δελτίων Αποστολής</button></div>
+<div id="prepPanel" class="hidden">
+<div class="card prepCard"><h3 style="margin:0 0 10px">Στοιχεία φόρτωσης</h3>
+<div class="prepGrid5">
+<label>Πελάτης / Παραλήπτης<select id="pfCustomer"></select></label>
+<label>Πινακίδα φορτηγού<input id="pfPlate" list="pfPlates" autocomplete="off"><datalist id="pfPlates"></datalist></label>
+<label>Οδηγός<input id="pfDriver" list="pfDrivers" autocomplete="off"><datalist id="pfDrivers"></datalist></label>
+<label>Μεταφορέας<select id="pfCarrier"></select></label>
+<label>Σκοπός φόρτωσης<select id="pfPurpose"></select></label>
+</div>
+<div class="prepSub">ΣΤΟΙΧΕΙΑ ΤΕΛΙΚΗΣ ΔΙΑΘΕΣΗΣ</div>
+<div class="prepGrid5">
+<label>Κωδ. ΕΚΑ<input id="pfEka" autocomplete="off"></label>
+<label>Reptool<input id="pfReptool" autocomplete="off"></label>
+<label>Αρ. Δ.Α.<input id="pfDa" inputmode="numeric" placeholder="αυτόματα στην οριστικοποίηση" autocomplete="off"></label>
+<label>Ημερομηνία<input id="pfDate" type="date"></label>
+<label>Παρατηρήσεις<input id="pfNotes" placeholder="προαιρετικά" autocomplete="off"></label>
+</div>
+</div>
+<div id="pfFreq" class="prepFreq hidden"></div>
+<div class="prepTwo" id="prepTwo">
+<section class="prepWh"><div class="prepHead"><h3>Αποθήκη</h3><span class="muted">τσέκαρε, ▾ για μέσα συλλογής</span></div>
+<input id="pfSearch" class="prepSearch" placeholder="Αναζήτηση υλικού…" autocomplete="off">
+<div id="pfWhList" class="prepList"></div></section>
+<div class="prepMover" id="pfMover"><button type="button" id="pfAdd" title="Προσθήκη επιλεγμένων στο φορτίο">▶</button><span class="prepBadge hidden" id="pfBadge"></span><button type="button" id="pfRemove" title="Αφαίρεση επιλεγμένων από το φορτίο">◀</button></div>
+<section class="prepCargo" id="pfCargoPanel"><div class="prepHead"><h3>Φορτίο</h3><span class="muted" id="pfCargoCount"></span></div>
+<div id="pfCargoList" class="prepList"></div>
+<div class="prepTotal"><div class="prepTotalRow"><span>Σύνολο φόρτωσης</span><span><b id="pfTotal">0</b> / <input id="pfMax" type="number" min="1" step="100" value="25000" title="Μέγιστο βάρος (kg)"> kg</span></div><div class="prepBar"><i id="pfBar"></i></div></div>
+<div id="pfMsg" class="prepMsg"></div>
+<div class="prepActions"><button type="button" class="btn alt" id="pfSaveDraft">Αποθήκευση ως πρόχειρο</button><button type="button" class="btn" id="pfFinalize">Οριστικοποίηση φόρτωσης</button></div>
+</section>
+</div>
+<div id="pfToast" class="prepToast hidden"></div>
+</div>
 <div class="card" id="shipHistCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ιστορικό Δελτίων Αποστολής</h3></div>
 <div class="productionTop" style="margin-bottom:8px">
 <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -3258,6 +3358,7 @@ let shipHistState={period:'year',cursor:new Date(),customRange:null};
 function shipHistRange(){if(shipHistState.period==='custom'&&shipHistState.customRange){let c=shipHistState.customRange,fmt=s=>new Date(s+'T12:00:00').toLocaleDateString('el-GR');return{startISO:c.start,endISO:c.end,label:`${fmt(c.start)} – ${fmt(c.end)}`}}let d=new Date(shipHistState.cursor),start,end,label;if(shipHistState.period==='day'){start=new Date(d.getFullYear(),d.getMonth(),d.getDate());end=new Date(start);label=start.toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'})}else if(shipHistState.period==='month'){start=new Date(d.getFullYear(),d.getMonth(),1);end=new Date(d.getFullYear(),d.getMonth()+1,0);label=start.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}else if(shipHistState.period==='quarter'){let q=Math.floor(d.getMonth()/3),m=q*3;start=new Date(d.getFullYear(),m,1);end=new Date(d.getFullYear(),m+3,0);label=`${q+1}ο τρίμηνο ${d.getFullYear()}`}else{start=new Date(d.getFullYear(),0,1);end=new Date(d.getFullYear(),11,31);label=String(d.getFullYear())}return{startISO:localISODate(start),endISO:localISODate(end),label}}
 function shipHistShift(n){if(shipHistState.period==='custom')return;let d=shipHistState.cursor;if(shipHistState.period==='day')d.setDate(d.getDate()+n);else if(shipHistState.period==='month')d.setMonth(d.getMonth()+n);else if(shipHistState.period==='quarter')d.setMonth(d.getMonth()+3*n);else d.setFullYear(d.getFullYear()+n);shipHistState.cursor=new Date(d);renderShipmentHistory()}
 let shipDrafts=[],shipLoadings=[],shipHistZ='',shipHistDefHead=null;
+function openDraftFromHistory(id){let o=(shipDrafts||[]).find(x=>x.id===id);if(o&&o.prep_mode==='PREP'&&window.PrepFortosis)PrepFortosis.openDraft(id);else openLoadingDetail(id)}
 // Προβολές Ζ(i) «Τελική διάθεση» και Ζ(ii) «Διασυνοριακές μεταφορές»: ίδια λίστα δελτίων, διαφορετικές στήλες (δεν είναι επιπλέον φορτώσεις)
 const ZV_PERM=(p,a)=>[p,a].filter(Boolean).join(' / ');
 const ZV_COLS={
@@ -3300,14 +3401,14 @@ function renderShipmentHistory(){
      let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
      return `<tr class="ecRow" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
    $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>`;
-   $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openLoadingDetail(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+   $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
    $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
    return;
  }
  if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
  const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td></tr>`).join('');
  $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>';
- $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openLoadingDetail(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+ $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
  $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
 }
 // Clicking a row opens the full Δ.Α. (dispatch note) it belongs to, with every line item under that
@@ -5331,6 +5432,220 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
   }
   new MutationObserver(fit).observe(f,{attributes:true,attributeFilter:['class','style']});
   window.addEventListener('resize',fit);
+})();
+</script>
+<script id="prepFortosis">
+// Φορτώσεις → Προετοιμασία φόρτωσης: σχέδιο φορτίου (δεν δεσμεύει αποθήκη) και οριστικοποίηση με την υπάρχουσα λογική φορτώσεων.
+(function(){
+  const PURPOSES=['Τελική διάθεση','Διασυνοριακή μεταφορά','Ενδοδιακίνηση','Πώληση'];
+  const P={id:null,cargo:[],sel:new Set(),cSel:new Set(),open:new Set(),stock:[],lots:new Map(),clients:[],carriers:[],ready:false,freq:null,drag:null,handled:false};
+  const $=id=>document.getElementById(id);
+  const fmt=n=>Number(n||0).toLocaleString('el-GR',{maximumFractionDigits:0});
+  const escH=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  let toastT=0;
+  function toast(t){let el=$('pfToast');el.textContent=t;el.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.add('hidden'),2600)}
+  function msg(t,ok){let m=$('pfMsg');m.textContent=t||'';m.classList.toggle('ok',!!ok)}
+
+  // ---- δεδομένα ----
+  async function loadStock(){
+    let d=await api('/loading/prep/stock');P.stock=d.categories||[];P.lots=new Map();
+    P.stock.forEach(c=>c.materials.forEach(m=>m.items.forEach(i=>P.lots.set(i.lot_id,{...i,material_id:m.material_id,material:m.material,category:c.category}))));
+  }
+  async function loadLists(){
+    [P.clients,P.carriers]=await Promise.all([api('/master/organizations?role=CLIENT'),api('/master/organizations?role=CARRIER')]);
+    const on=o=>o.trade_name||o.legal_name;
+    $('pfCustomer').innerHTML='<option value="">Επίλεξε…</option>'+P.clients.map(o=>`<option value="${o.id}">${escH(on(o))}</option>`).join('');
+    $('pfCarrier').innerHTML='<option value="">—</option>'+P.carriers.map(o=>`<option value="${o.id}">${escH(on(o))}</option>`).join('');
+    $('pfPurpose').innerHTML='<option value="">—</option>'+PURPOSES.map(x=>`<option>${x}</option>`).join('');
+  }
+  async function loadCarrierLists(){
+    let cid=$('pfCarrier').value;
+    if(!cid){$('pfPlates').innerHTML='';$('pfDrivers').innerHTML='';return}
+    try{
+      let [dr,ve]=await Promise.all([api('/master/carriers/'+cid+'/drivers'),api('/master/carriers/'+cid+'/vehicles')]);
+      $('pfDrivers').innerHTML=dr.map(x=>`<option value="${escH(x.full_name)}">`).join('');
+      $('pfPlates').innerHTML=ve.map(x=>`<option value="${escH(x.plate_number)}">`).join('');
+    }catch(e){}
+  }
+  async function loadFreq(){
+    let box=$('pfFreq'),cid=$('pfCustomer').value;P.freq=null;
+    if(!cid){box.classList.add('hidden');return}
+    try{P.freq=await api('/loading/prep/frequent?customer_id='+encodeURIComponent(cid))}catch(e){P.freq=null}
+    renderFreq();
+  }
+
+  // ---- μοντέλο ----
+  const inCargo=id=>P.cargo.includes(id);
+  const availItems=m=>m.items.filter(i=>!inCargo(i.lot_id));
+  function total(){return P.cargo.reduce((s,id)=>s+(P.lots.get(id)?.kg||0),0)}
+  function addLots(ids){
+    let add=ids.filter(id=>P.lots.has(id)&&!inCargo(id));
+    if(!add.length)return;
+    add.forEach(id=>{P.cargo.push(id);P.sel.delete(id)});
+    toast(`Προστέθηκαν ${add.length} μέσα · ${fmt(add.reduce((s,id)=>s+P.lots.get(id).kg,0))} kg`);
+    renderAll();
+  }
+  function removeLots(ids){
+    let rem=ids.filter(inCargo);
+    if(!rem.length)return;
+    P.cargo=P.cargo.filter(id=>!rem.includes(id));rem.forEach(id=>P.cSel.delete(id));
+    toast(`Αφαιρέθηκαν ${rem.length} μέσα από τη φόρτωση`);
+    renderAll();
+  }
+
+  // ---- εμφάνιση ----
+  function renderFreq(){
+    let box=$('pfFreq'),f=P.freq;
+    if(!f||!f.items||!f.items.length){box.classList.add('hidden');return}
+    box.classList.remove('hidden');
+    box.innerHTML=`<b>★ Συνήθη για αυτόν τον πελάτη</b><small>· ${f.items[0].count} από τις ${f.of} τελευταίες φορτώσεις</small>`+
+      f.items.map((x,i)=>{let ids=x.lot_ids.filter(id=>!inCargo(id));return `<button type="button" data-fq="${i}" ${ids.length?'':'disabled'}>+ ${escH(x.material)} · ${fmt(x.kg)} kg</button>`}).join('');
+    box.querySelectorAll('[data-fq]').forEach(b=>b.onclick=()=>addLots(P.freq.items[Number(b.dataset.fq)].lot_ids));
+  }
+  function renderWh(){
+    let q=($('pfSearch').value||'').trim().toLocaleLowerCase('el'),h='';
+    for(const c of P.stock){
+      let ms=c.materials.filter(m=>availItems(m).length&&(!q||m.material.toLocaleLowerCase('el').includes(q)));
+      if(!ms.length)continue;
+      h+=`<div class="prepCat">${escH(c.category)}</div>`;
+      for(const m of ms){
+        let it=availItems(m),selN=it.filter(i=>P.sel.has(i.lot_id)).length,open=P.open.has(m.material_id);
+        let pcs=it.filter(i=>i.code).length,kg=it.reduce((s,i)=>s+i.kg,0);
+        h+=`<div class="prepMat" draggable="true" data-m="${m.material_id}"><input type="checkbox" data-mc="${m.material_id}" ${selN===it.length?'checked':''}><span class="nm">${escH(m.material)}</span><span class="pc">${pcs?pcs+' τεμ.':''}</span><span class="kgc">${fmt(kg)}</span><span class="arr" data-arr="${m.material_id}">${open?'▴':'▾'}</span></div>`;
+        if(open)h+=`<div class="prepMedia">${it.map(i=>`<button type="button" draggable="true" data-l="${i.lot_id}" class="${P.sel.has(i.lot_id)?'on':''}">${escH(i.label)}${i.code?' · '+escH(i.code):''} · ${fmt(i.kg)} kg</button>`).join('')}</div>`;
+      }
+    }
+    let L=$('pfWhList');L.innerHTML=h||'<div class="prepEmpty">Δεν υπάρχουν διαθέσιμα μέσα συλλογής.</div>';
+    L.querySelectorAll('input[data-mc]').forEach(cb=>{
+      let m=findMat(cb.dataset.mc),it=m?availItems(m):[],n=it.filter(i=>P.sel.has(i.lot_id)).length;
+      cb.indeterminate=n>0&&n<it.length;
+      cb.onclick=e=>{e.stopPropagation();it.forEach(i=>cb.checked?P.sel.add(i.lot_id):P.sel.delete(i.lot_id));renderAll()};
+    });
+    L.querySelectorAll('[data-arr]').forEach(a=>a.onclick=e=>{e.stopPropagation();let k=a.dataset.arr;P.open.has(k)?P.open.delete(k):P.open.add(k);renderWh()});
+    L.querySelectorAll('.prepMat').forEach(r=>{
+      r.ondblclick=()=>{let m=findMat(r.dataset.m);if(m)addLots(availItems(m).map(i=>i.lot_id))};
+      r.ondragstart=e=>{let m=findMat(r.dataset.m);if(!m)return;let mine=availItems(m).map(i=>i.lot_id),selAll=[...P.sel].filter(id=>mine.includes(id)).length?[...P.sel]:mine;startDrag(e,'wh',selAll)};
+      r.ondragend=endDrag;
+    });
+    L.querySelectorAll('.prepMedia button').forEach(b=>{
+      b.onclick=()=>{let id=b.dataset.l;P.sel.has(id)?P.sel.delete(id):P.sel.add(id);renderAll()};
+      b.ondragstart=e=>{let id=b.dataset.l;startDrag(e,'wh',P.sel.has(id)?[...P.sel]:[id])};b.ondragend=endDrag;
+    });
+  }
+  function findMat(mid){for(const c of P.stock)for(const m of c.materials)if(m.material_id===mid)return m;return null}
+  function renderCargo(){
+    let by=new Map();
+    P.cargo.forEach(id=>{let l=P.lots.get(id);if(!l)return;if(!by.has(l.material_id))by.set(l.material_id,{name:l.material,items:[]});by.get(l.material_id).items.push(l)});
+    let h='';
+    by.forEach(g=>{
+      h+=`<div class="cgGroup"><div class="cgHead"><span>${escH(g.name)}</span><span>${fmt(g.items.reduce((s,i)=>s+i.kg,0))} kg</span></div>`+
+        g.items.map(i=>`<div class="cgRow" draggable="true" data-c="${i.lot_id}"><input type="checkbox" data-cc="${i.lot_id}" ${P.cSel.has(i.lot_id)?'checked':''}><span class="nm">${escH(i.label)}${i.code?' · '+escH(i.code):''}</span><span>${fmt(i.kg)} kg</span><button type="button" class="x" data-x="${i.lot_id}" title="Αφαίρεση">×</button></div>`).join('')+'</div>';
+    });
+    let L=$('pfCargoList');L.innerHTML=h||'<div class="prepEmpty">Το φορτίο είναι κενό. Τσέκαρε υλικά ή μέσα και πάτα ▶, ή σύρε τα εδώ.</div>';
+    $('pfCargoCount').textContent=P.cargo.length?`${P.cargo.length} μέσα συλλογής`:'';
+    L.querySelectorAll('[data-cc]').forEach(cb=>cb.onclick=()=>{cb.checked?P.cSel.add(cb.dataset.cc):P.cSel.delete(cb.dataset.cc);renderBadge()});
+    L.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>removeLots([b.dataset.x]));
+    L.querySelectorAll('.cgRow').forEach(r=>{
+      r.ondragstart=e=>{let id=r.dataset.c;startDrag(e,'cargo',P.cSel.has(id)?[...P.cSel]:[id])};r.ondragend=e=>{if(P.drag&&P.drag.kind==='cargo'&&!P.handled&&e.dataTransfer.dropEffect==='none')removeLots(P.drag.ids);endDrag()};
+    });
+    let t=total(),mx=Math.max(1,Number($('pfMax').value)||25000);
+    $('pfTotal').textContent=fmt(t);
+    let bar=$('pfBar');bar.style.width=Math.min(100,t/mx*100)+'%';bar.classList.toggle('over',t>mx);
+  }
+  function renderBadge(){
+    let n=P.sel.size+P.cSel.size,b=$('pfBadge');b.textContent=n;b.classList.toggle('hidden',!n);
+  }
+  function renderAll(){renderWh();renderCargo();renderFreq();renderBadge()}
+
+  // ---- drag & drop ----
+  function startDrag(e,kind,ids){P.drag={kind,ids};P.handled=false;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',kind+':'+ids.length)}
+  function endDrag(){P.drag=null;$('prepTwo').classList.remove('dropOn')}
+  function wireDrop(){
+    const cargo=$('pfCargoPanel'),wh=document.querySelector('#prepPanel .prepWh');
+    cargo.ondragover=e=>{if(P.drag&&P.drag.kind==='wh'){e.preventDefault();$('prepTwo').classList.add('dropOn')}};
+    cargo.ondragleave=e=>{if(!cargo.contains(e.relatedTarget))$('prepTwo').classList.remove('dropOn')};
+    cargo.ondrop=e=>{if(P.drag&&P.drag.kind==='wh'){e.preventDefault();P.handled=true;let ids=P.drag.ids;endDrag();addLots(ids)}};
+    wh.ondragover=e=>{if(P.drag&&P.drag.kind==='cargo')e.preventDefault()};
+    wh.ondrop=e=>{if(P.drag&&P.drag.kind==='cargo'){e.preventDefault();P.handled=true;let ids=P.drag.ids;endDrag();removeLots(ids)}};
+  }
+
+  // ---- φόρμα / αποθήκευση ----
+  function readForm(){
+    return {customer_id:$('pfCustomer').value,carrier_id:$('pfCarrier').value||null,vehicle_registration:$('pfPlate').value||null,driver_name:$('pfDriver').value||null,
+      dispatch_reason:$('pfPurpose').value||null,eka_code:$('pfEka').value||null,reptool_code:$('pfReptool').value||null,dispatch_document_number:$('pfDa').value||null,
+      delivery_date:$('pfDate').value||null,notes:$('pfNotes').value||null,max_allowed_weight:Math.max(1,Number($('pfMax').value)||25000),lot_ids:[...P.cargo]};
+  }
+  function fillForm(o){
+    $('pfCustomer').value=o?.customer_id||'';$('pfCarrier').value=o?.carrier_id||'';$('pfPlate').value=o?.vehicle_registration||'';$('pfDriver').value=o?.driver_name||'';
+    let pu=$('pfPurpose'),v=o?.dispatch_reason||'';
+    if(v&&![...pu.options].some(x=>x.value===v||x.textContent===v))pu.insertAdjacentHTML('beforeend',`<option>${escH(v)}</option>`);   // παλιά τιμή ελεύθερου κειμένου: εμφανίζεται όπως είναι
+    pu.value=v;
+    $('pfEka').value=o?.eka_code||'';$('pfReptool').value=o?.reptool_code||'';$('pfDa').value=o?.dispatch_document_number||'';
+    $('pfDate').value=o?.delivery_date||'';$('pfNotes').value=o?.notes||'';$('pfMax').value=o?o.max_allowed_weight:25000;
+  }
+  function checkForm(){
+    if(!$('pfCustomer').value){msg('Επίλεξε πελάτη / παραλήπτη.');$('pfCustomer').focus();return false}
+    return true;
+  }
+  async function save(){
+    if(!checkForm())return null;
+    let body=JSON.stringify(readForm());
+    let o=P.id?await api('/loading/prep/'+P.id,{method:'PUT',body}):await api('/loading/prep',{method:'POST',body});
+    P.id=o.id;return o;
+  }
+  async function saveDraft(){
+    msg('');
+    try{let o=await save();if(!o)return;toast('Αποθηκεύτηκε ως πρόχειρο · '+o.loading_number);msg('Αποθηκεύτηκε ως πρόχειρο ('+o.loading_number+').',true);if(typeof loadShipmentHistory==='function')loadShipmentHistory()}
+    catch(e){msg(e.message||String(e))}
+  }
+  async function finalize(){
+    msg('');
+    if(!P.cargo.length){msg('Το φορτίο είναι κενό.');return}
+    try{
+      let o=await save();if(!o)return;
+      let done=await api('/loading/prep/'+P.id+'/finalize',{method:'POST',body:JSON.stringify(readForm())});
+      toast('Οριστικοποιήθηκε · Δ.Α. '+(done.dispatch_document_number||''));
+      reset();await loadStock();renderAll();
+      if(typeof loadLoading==='function')loadLoading();
+    }catch(e){msg(e.message||String(e));await loadStock().catch(()=>{});renderAll()}
+  }
+  function reset(){P.id=null;P.cargo=[];P.sel.clear();P.cSel.clear();fillForm(null);msg('');P.freq=null;renderFreq()}
+
+  // ---- είσοδος στη σελίδα ----
+  async function ensure(){
+    if(P.ready)return;
+    await loadLists();wireDrop();
+    $('pfCustomer').onchange=()=>{loadFreq()};
+    $('pfCarrier').onchange=loadCarrierLists;
+    $('pfSearch').oninput=renderWh;
+    $('pfMax').oninput=renderCargo;
+    $('pfAdd').onclick=()=>{let ids=[...P.sel];if(!ids.length){toast('Δεν έχεις επιλέξει μέσα στην Αποθήκη');return}addLots(ids)};
+    $('pfRemove').onclick=()=>{let ids=[...P.cSel];if(!ids.length){toast('Δεν έχεις επιλέξει μέσα στο Φορτίο');return}removeLots(ids)};
+    $('pfSaveDraft').onclick=saveDraft;$('pfFinalize').onclick=finalize;
+    P.ready=true;
+  }
+  async function show(sub){
+    document.querySelectorAll('#loadingSubSeg [data-lsub]').forEach(b=>b.classList.toggle('active',b.dataset.lsub===sub));
+    $('prepPanel').classList.toggle('hidden',sub!=='prep');
+    $('shipHistCard').classList.toggle('hidden',sub!=='hist');
+    if(sub==='prep'){
+      try{await ensure();await loadStock();renderAll()}catch(e){msg(e.message||String(e))}
+    }
+  }
+  async function openDraft(id){
+    await show('prep');
+    try{
+      let d=await api('/loading/prep/'+id);
+      P.id=d.order.id;P.sel.clear();P.cSel.clear();
+      fillForm(d.order);await loadCarrierLists();
+      P.cargo=d.items.map(i=>i.lot_id).filter(l=>P.lots.has(l));
+      let gone=d.items.filter(i=>!P.lots.has(i.lot_id));
+      renderAll();loadFreq();
+      msg(gone.length?`${gone.length} μέσα του πρόχειρου δεν είναι πια διαθέσιμα και δεν εμφανίζονται στο φορτίο.`:'');
+    }catch(e){msg(e.message||String(e))}
+  }
+  document.querySelectorAll('#loadingSubSeg [data-lsub]').forEach(b=>b.onclick=()=>show(b.dataset.lsub));
+  window.PrepFortosis={show,openDraft};
 })();
 </script>
 </body></html>

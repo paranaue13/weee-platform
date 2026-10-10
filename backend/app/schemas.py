@@ -549,6 +549,11 @@ class LoadingOrderOut(BaseModel):
     dispatch_reason: str|None
     dispatch_document_number: str|None = None
     weighbridge_number: str|None = None
+    driver_name: str|None = None
+    eka_code: str|None = None
+    reptool_code: str|None = None
+    delivery_date: str|None = None
+    prep_mode: str|None = None
     first_recipient: str|None = None
     mgmt_operation: str|None = None
     tracking_document: str|None = None
@@ -703,3 +708,17 @@ class DeviceYieldCellIn(BaseModel):
 class DeviceYieldApplyBatchIn(BaseModel):
     weee_category_id: str
     batch_id: str | None = None
+
+class LoadingPrepIn(BaseModel):
+    customer_id: str
+    carrier_id: str|None = None
+    vehicle_registration: str|None = None
+    driver_name: str|None = None
+    dispatch_reason: str|None = None
+    eka_code: str|None = None
+    reptool_code: str|None = None
+    dispatch_document_number: str|None = None
+    delivery_date: str|None = None
+    notes: str|None = None
+    max_allowed_weight: Decimal = Decimal('25000')
+    lot_ids: list[str] = []

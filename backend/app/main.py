@@ -80,6 +80,10 @@ async def lifespan(app: FastAPI):
             o_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
             for col in ("permit_number","permit_ada"):
                 if col not in o_cols: conn.execute(text(f"ALTER TABLE organizations ADD COLUMN {col} VARCHAR(100)"))
+        if "loading_orders" in tables:
+            lo_cols={c["name"] for c in inspect(engine).get_columns("loading_orders")}
+            for col,typ in [("driver_name","VARCHAR(200)"),("eka_code","VARCHAR(60)"),("reptool_code","VARCHAR(80)"),("delivery_date","VARCHAR(10)"),("prep_mode","VARCHAR(10)")]:
+                if col not in lo_cols: conn.execute(text(f"ALTER TABLE loading_orders ADD COLUMN {col} {typ}"))
         for tbl in ("shipment_history_entries","loading_orders"):
             if tbl in tables:
                 t_cols={c["name"] for c in inspect(engine).get_columns(tbl)}
@@ -3404,7 +3408,7 @@ def _loading_out(db:Session,o:LoadingOrder):
     reserved,loaded=_loading_totals(db,o)
     return schemas.LoadingOrderOut(id=o.id,loading_number=o.loading_number,customer_id=o.customer_id,carrier_id=o.carrier_id,vehicle_registration=o.vehicle_registration,
         max_allowed_weight=o.max_allowed_weight,selection_mode=o.selection_mode,status=o.status,reserved_weight=reserved,loaded_weight=loaded,
-        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason,dispatch_document_number=o.dispatch_document_number,weighbridge_number=o.weighbridge_number,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading)
+        remaining_capacity=o.max_allowed_weight-loaded,dispatch_reason=o.dispatch_reason,dispatch_document_number=o.dispatch_document_number,weighbridge_number=o.weighbridge_number,driver_name=o.driver_name,eka_code=o.eka_code,reptool_code=o.reptool_code,delivery_date=o.delivery_date,prep_mode=o.prep_mode,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading)
 
 @app.post('/loading/orders', response_model=schemas.LoadingOrderOut)
 def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('loading.view'))):
@@ -3484,10 +3488,14 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
     o.status='COMPLETED'; write_audit(db,user,'loading_order',o.id,'COMPLETE',new={'actual_items':len(actuals),'loaded_weight':str(_loading_totals(db,o)[1])})
     # Οριστικοποίηση = αυτόματος Αρ. Δ.Α. (αύξων ανά έτος) και μετάβαση στο Ιστορικό Δελτίων Αποστολής: μία γραμμή ανά υλικό, όλες με τον ίδιο αριθμό
     now=datetime.now(); typed=(o.dispatch_document_number or '').strip()
+    wd=now
+    if o.delivery_date:
+        try: wd=datetime.fromisoformat(o.delivery_date)
+        except Exception: wd=now
     if typed:
-        if not typed.isdigit() or _da_in_use(db,now.year,typed,o.id): raise HTTPException(409,f'Ο αριθμός Δ.Α. {typed} υπάρχει ήδη φέτος')
+        if not typed.isdigit() or _da_in_use(db,wd.year,typed,o.id): raise HTTPException(409,f'Ο αριθμός Δ.Α. {typed} υπάρχει ήδη φέτος')
         number=typed
-    else: number=str(_next_da_number(db,now.year))
+    else: number=str(_next_da_number(db,wd.year))
     o.dispatch_document_number=number
     cust=db.get(Organization,o.customer_id); carr=db.get(Organization,o.carrier_id) if o.carrier_id else None
     orgname=lambda x:(x.trade_name or x.legal_name) if x else None
@@ -3498,8 +3506,8 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         d=per_mat.setdefault(key,{'mat':mat,'w':Decimal('0')}); d['w']+=a.loaded_weight
     for d in per_mat.values():
         m=d['mat']
-        db.add(models.ShipmentHistoryEntry(work_date=now,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
-            description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(m.eka_code if m else None),reptool_code=(m.reptool_code if m else None),
+        db.add(models.ShipmentHistoryEntry(work_date=wd,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
+            description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(o.eka_code or (m.eka_code if m else None)),reptool_code=(o.reptool_code or (m.reptool_code if m else None)),
             kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
     _enqueue_sync(db,'LOADING_ORDER',o.id,'UPSERT',{'loading_number':o.loading_number,'status':o.status,'loaded_weight':str(_loading_totals(db,o)[1])})
     db.commit(); return _loading_out(db,o)
@@ -3517,6 +3525,167 @@ def loading_set_da_details(order_id:str,data:schemas.LoadingDaDetailsIn,db:Sessi
             for f,v in vals.items(): setattr(r,f,v)
     write_audit(db,user,'loading_order',o.id,'EDIT_DA_DETAILS',old=old,new=vals); db.commit()
     return _loading_out(db,o)
+
+
+# ---- Προετοιμασία φόρτωσης: σχέδιο (δεν δεσμεύει αποθήκη) -> οριστικοποίηση με την υπάρχουσα λογική φορτώσεων ----
+_PREP_PURPOSES=('Τελική διάθεση','Διασυνοριακή μεταφορά','Ενδοδιακίνηση','Πώληση')
+
+def _prep_lot_info(db:Session,lot,cache:dict):
+    md=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+    label='Χύμα'
+    if md:
+        t=cache.get(md.type_id)
+        if t is None:
+            t=db.get(models.CollectionMediumType,md.type_id); cache[md.type_id]=t
+        label={'PALLET':'Παλέτα','SACK_1KG':'Σάκος 1 kg','SACK_2KG_UN':'Σάκος 2 kg'}.get(t.code if t else '', (t.name_el if t else 'Μέσο'))
+    return {'lot_id':lot.id,'lot_number':lot.lot_number,'label':label,'code':md.code if md else None,'kg':float(lot.net_weight)}
+
+@app.get('/loading/prep/stock')
+def loading_prep_stock(db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
+    """Διαθέσιμα μέσα συλλογής (lots με status AVAILABLE) ανά κατηγορία αποθήκης και υλικό."""
+    lots=db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status=='AVAILABLE',ReadyMaterialLot.entry_type!='INVENTORY').order_by(ReadyMaterialLot.created_at)).all()
+    mats={m.id:m for m in db.scalars(select(Material)).all()}
+    groups={g.id:g for g in db.scalars(select(models.StorageGroup)).all()}
+    cache={}; cats={}
+    for l in lots:
+        m=mats.get(l.material_id)
+        if not m: continue
+        g=groups.get(m.storage_group_id)
+        cname=g.name if g else 'Χωρίς κατηγορία'
+        c=cats.setdefault(cname,{'category':cname,'sort':g.sort_order if g else 9999,'mats':{}})
+        mm=c['mats'].setdefault(m.id,{'material_id':m.id,'material':m.official_description or m.internal_name,'items':[]})
+        mm['items'].append(_prep_lot_info(db,l,cache))
+    out=[]
+    for c in sorted(cats.values(),key=lambda c:(c['sort'],c['category'])):
+        ms=sorted(c['mats'].values(),key=lambda x:x['material'])
+        for m in ms: m['pieces']=sum(1 for i in m['items'] if i['code']); m['kg']=round(sum(i['kg'] for i in m['items']),3)
+        out.append({'category':c['category'],'materials':ms})
+    return {'categories':out}
+
+@app.get('/loading/prep/frequent')
+def loading_prep_frequent(customer_id:str,db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
+    """Συνήθη υλικά του πελάτη από το ιστορικό δελτίων του (τελευταίες 4 φορτώσεις)."""
+    org=db.get(Organization,customer_id)
+    if not org: return {'of':0,'items':[]}
+    names={n.strip().casefold() for n in (org.trade_name,org.legal_name) if n}
+    H=models.ShipmentHistoryEntry
+    rows=[r for r in db.scalars(select(H).where(H.active==True).order_by(H.work_date.desc())).all() if (r.recipient or '').strip().casefold() in names]
+    das=[]; by_da={}
+    for r in rows:
+        if r.da_number not in by_da: by_da[r.da_number]=[]; das.append(r.da_number)
+        by_da[r.da_number].append(r)
+    last=das[:4]
+    if not last: return {'of':0,'items':[]}
+    mats=db.scalars(select(Material)).all()
+    def match(desc):
+        d=(desc or '').strip().casefold()
+        for m in mats:
+            for nm in (m.official_description,m.internal_name,m.her_description,m.galaxy_description):
+                if nm and nm.strip().casefold()==d: return m
+        return None
+    cnt={}
+    for da in last:
+        seen=set()
+        for r in by_da[da]:
+            m=match(r.description)
+            if m and m.id not in seen:
+                seen.add(m.id); cnt[m.id]=cnt.get(m.id,0)+1
+    avail={}
+    for l in db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status=='AVAILABLE',ReadyMaterialLot.entry_type!='INVENTORY')).all():
+        a=avail.setdefault(l.material_id,{'kg':0.0,'lot_ids':[]}); a['kg']+=float(l.net_weight); a['lot_ids'].append(l.id)
+    mm={m.id:m for m in mats}
+    items=[{'material_id':mid,'material':mm[mid].official_description or mm[mid].internal_name,'count':c,'kg':round(avail.get(mid,{}).get('kg',0.0),3),'lot_ids':avail.get(mid,{}).get('lot_ids',[])}
+           for mid,c in sorted(cnt.items(),key=lambda x:-x[1])[:6]]
+    return {'of':len(last),'items':items}
+
+def _prep_apply(db:Session,o:LoadingOrder,data:schemas.LoadingPrepIn):
+    if not db.get(Organization,data.customer_id): raise HTTPException(422,'Άγνωστος πελάτης')
+    typed=(data.dispatch_document_number or '').strip()
+    year=datetime.now().year
+    if data.delivery_date:
+        try: year=datetime.fromisoformat(data.delivery_date).year
+        except Exception: raise HTTPException(422,'Μη έγκυρη ημερομηνία')
+    if typed:
+        if not typed.isdigit(): raise HTTPException(422,'Ο αριθμός Δ.Α. πρέπει να είναι αριθμός')
+        if _da_in_use(db,year,typed,o.id if o.id else None): raise HTTPException(409,f'Ο αριθμός Δ.Α. {typed} υπάρχει ήδη φέτος')
+    if data.max_allowed_weight<=0: raise HTTPException(422,'Το μέγιστο βάρος πρέπει να είναι θετικό')
+    o.customer_id=data.customer_id; o.carrier_id=data.carrier_id or None
+    o.vehicle_registration=(data.vehicle_registration or '').strip() or None
+    o.driver_name=(data.driver_name or '').strip() or None
+    o.dispatch_reason=(data.dispatch_reason or '').strip() or None
+    o.eka_code=(data.eka_code or '').strip() or None; o.reptool_code=(data.reptool_code or '').strip() or None
+    o.dispatch_document_number=typed or None; o.delivery_date=(data.delivery_date or '').strip()[:10] or None
+    o.notes=(data.notes or '').strip() or None; o.max_allowed_weight=data.max_allowed_weight
+
+def _prep_replace_items(db:Session,o:LoadingOrder,lot_ids:list):
+    for it in db.scalars(select(models.LoadingPlanItem).where(models.LoadingPlanItem.loading_order_id==o.id)).all(): db.delete(it)
+    db.flush()
+    for lid in dict.fromkeys(lot_ids):
+        if db.get(ReadyMaterialLot,lid): db.add(models.LoadingPlanItem(loading_order_id=o.id,ready_material_lot_id=lid))
+
+@app.post('/loading/prep',response_model=schemas.LoadingOrderOut)
+def loading_prep_create(data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.view'))):
+    o=LoadingOrder(loading_number=_loading_number(db),status='OPEN',selection_mode='OFFICE_RESERVED',prep_mode='PREP',created_by=user.id,customer_id=data.customer_id,max_allowed_weight=data.max_allowed_weight)
+    _prep_apply(db,o,data); db.add(o); db.flush()
+    _prep_replace_items(db,o,data.lot_ids)
+    write_audit(db,user,'loading_order',o.id,'PREP_CREATE',new={'loading_number':o.loading_number,'items':len(data.lot_ids)})
+    db.commit(); return _loading_out(db,o)
+
+def _prep_order(db:Session,order_id:str)->LoadingOrder:
+    o=db.get(LoadingOrder,order_id)
+    if not o or o.prep_mode!='PREP': raise HTTPException(404,'Δεν βρέθηκε πρόχειρο προετοιμασίας')
+    if o.status!='OPEN': raise HTTPException(409,'Το πρόχειρο δεν είναι πια ανοιχτό')
+    return o
+
+@app.put('/loading/prep/{order_id}',response_model=schemas.LoadingOrderOut)
+def loading_prep_update(order_id:str,data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.view'))):
+    o=_prep_order(db,order_id)
+    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids)
+    write_audit(db,user,'loading_order',o.id,'PREP_UPDATE',new={'items':len(data.lot_ids)})
+    db.commit(); return _loading_out(db,o)
+
+@app.get('/loading/prep/{order_id}')
+def loading_prep_get(order_id:str,db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o or o.prep_mode!='PREP': raise HTTPException(404,'Δεν βρέθηκε πρόχειρο προετοιμασίας')
+    cache={}; items=[]
+    mats={m.id:m for m in db.scalars(select(Material)).all()}
+    for it in db.scalars(select(models.LoadingPlanItem).where(models.LoadingPlanItem.loading_order_id==o.id)).all():
+        l=db.get(ReadyMaterialLot,it.ready_material_lot_id)
+        if not l: continue
+        m=mats.get(l.material_id)
+        info=_prep_lot_info(db,l,cache); info['material_id']=l.material_id; info['material']=(m.official_description or m.internal_name) if m else None
+        info['available']=(l.status=='AVAILABLE'); items.append(info)
+    return {'order':_loading_out(db,o),'items':items}
+
+@app.post('/loading/prep/{order_id}/finalize',response_model=schemas.LoadingOrderOut)
+def loading_prep_finalize(order_id:str,data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.execute'))):
+    """Οριστικοποίηση: δέσμευση ανά lot (έλεγχος διαθεσιμότητας και μέγιστου βάρους), στάδιο «Φορτωμένο» και ολοκλήρωση με την υπάρχουσα λογική."""
+    o=_prep_order(db,order_id)
+    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids); db.flush()
+    plan=[it.ready_material_lot_id for it in db.scalars(select(models.LoadingPlanItem).where(models.LoadingPlanItem.loading_order_id==o.id)).all()]
+    if not plan: raise HTTPException(422,'Το φορτίο είναι κενό')
+    mats={m.id:m for m in db.scalars(select(Material)).all()}; cache={}; missing=[]; lots=[]
+    for lid in plan:
+        l=db.get(ReadyMaterialLot,lid)
+        if not l: missing.append('μέσο που δεν υπάρχει πια'); continue
+        info=_prep_lot_info(db,l,cache); m=mats.get(l.material_id)
+        if l.status!='AVAILABLE':
+            why={'RESERVED':'έχει δεσμευτεί από άλλη φόρτωση','LOADING':'φορτώνεται σε άλλη φόρτωση','DISPATCHED':'έχει ήδη αποσταλεί'}.get(l.status,'δεν είναι διαθέσιμο')
+            missing.append(f"{info['label']} {info['code'] or ''} · {(m.official_description or m.internal_name) if m else ''} · {info['kg']:g} kg — {why}".replace('  ',' '))
+        else: lots.append(l)
+    if missing: raise HTTPException(409,'Δεν μπορεί να οριστικοποιηθεί. Λείπουν: '+'; '.join(missing)+'. Αφαίρεσέ τα από το φορτίο και ξαναδοκίμασε.')
+    total=sum((l.net_weight for l in lots),Decimal('0'))
+    if total>o.max_allowed_weight: raise HTTPException(422,f'Υπέρβαση μέγιστου βάρους κατά {float(total-o.max_allowed_weight):g} kg')
+    for l in lots:
+        db.add(LoadingReservation(loading_order_id=o.id,ready_material_lot_id=l.id,reserved_weight=l.net_weight,created_by=user.id,status='LOADED'))
+        db.add(LoadingActual(loading_order_id=o.id,ready_material_lot_id=l.id,loaded_weight=l.net_weight,loaded_by=user.id)); l.status='LOADING'
+    for it in db.scalars(select(models.LoadingPlanItem).where(models.LoadingPlanItem.loading_order_id==o.id)).all(): db.delete(it)
+    db.flush()
+    try:
+        return loading_complete(order_id,db,user)
+    except Exception:
+        db.rollback(); raise
 
 class DaNumberIn(schemas.BaseModel):
     number:str
