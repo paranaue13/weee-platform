@@ -1288,7 +1288,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <aside class="whDetail" id="whDetail"></aside></div>
 </div>
 </section>
-<section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div><div class="tablewrap hidden" id="loadingOrdersWrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
+<section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><div style="display:flex;align-items:center;gap:16px"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="loadingShowCancelled"><span class="slider"></span></label><span>Εμφάνιση ακυρωμένων</span></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div></div><div class="tablewrap hidden" id="loadingOrdersWrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
 <div class="card" id="shipHistCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ιστορικό Δελτίων Αποστολής</h3></div>
 <div class="productionTop" style="margin-bottom:8px">
@@ -3242,12 +3242,14 @@ function loadingOrgName(o){return o?(o.trade_name||o.legal_name):'—'}
 async function loadLoading(){
  let [rows,clients,carriers]=await Promise.all([api('/loading/orders'),api('/master/organizations?role=CLIENT&include_inactive=true'),api('/master/organizations?role=CARRIER&include_inactive=true')]);
  let cmap=Object.fromEntries(clients.map(c=>[c.id,c])),trmap=Object.fromEntries(carriers.map(c=>[c.id,c]));
+ rows=rows.filter(x=>x.status!=='CANCELLED'||$('loadingShowCancelled')?.checked);   // οι ακυρωμένες κρύβονται εκτός αν ζητηθούν (δεν αφορούν δελτίο ή αριθμό Δ.Α.)
  $('loadingRows').innerHTML=rows.map(x=>`<tr class="selectableRow" data-id="${x.id}"><td><b>${esc(x.loading_number)}</b></td><td>${esc(loadingOrgName(cmap[x.customer_id]))}</td><td>${esc(x.carrier_id?loadingOrgName(trmap[x.carrier_id]):'—')}</td><td>${kg(x.max_allowed_weight)}</td><td>${kg(x.reserved_weight)}</td><td>${kg(x.loaded_weight)}</td><td><span class="pill ${x.status==='COMPLETED'?'green':x.status==='CANCELLED'?'red':'yellow'}">${esc(loadingStatusLabels[x.status]||x.status)}</span></td></tr>`).join('')||'<tr><td colspan="7" class="muted">Δεν υπάρχουν φορτώσεις.</td></tr>';
  $('loadingOrdersWrap').classList.toggle('hidden',!rows.length);   // ο πίνακας φορτώσεων φαίνεται μόνο όταν έχει γραμμές
  document.querySelectorAll('#loadingRows tr[data-id]').forEach(tr=>tr.onclick=()=>openLoadingDetail(tr.dataset.id));
  loadShipmentHistory();
 }
 if($('newLoadingBtn'))$('newLoadingBtn').onclick=openNewLoadingPopup;
+if($('loadingShowCancelled'))$('loadingShowCancelled').onchange=()=>loadLoading();
 // Ιστορικό Δ.Α.: read-only traceability list from the official 2026 delivery-note log (see
 // ShipmentHistoryEntry / BUSINESS_RULES) -- independent of the lot-based loading workflow above,
 // since there's no real historical lot data to attach these rows to.
