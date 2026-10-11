@@ -5122,13 +5122,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   let busy=false,hot=null,hideT=null;
   const norm=s=>String(s==null?'':s).replace(/\s+/g,' ').trim();
   const user=()=>{try{return (typeof me!=='undefined'&&me&&(me.username||me.id))||'local'}catch(e){return 'local'}};
-  // Πίνακες ΧΩΡΙΣ καρφίτσες: Ζωντανή ροή (Παραλαβές/Φορτώσεις), Παραλαβές και Ταξινόμηση (ημέρες + μήνες).
-  const NOPIN='#ecTableWrap,#loadingEcTableWrap,#receiptDailyTable,#receiptMonthSummary,#sortingDailyTable,#sortingMonthSummary';
+  // Πίνακες ΧΩΡΙΣ καρφίτσες: Ζωντανή ροή (Παραλαβές/Φορτώσεις), Παραλαβές και Ταξινόμηση (ημέρες + μήνες), Υλικά → Πρέσα και Αποθήκη.
+  const NOPIN='#ecTableWrap,#loadingEcTableWrap,#receiptDailyTable,#receiptMonthSummary,#sortingDailyTable,#sortingMonthSummary,#readyPressPanel,#readyWarehousePanel';
   const eligibleTable=t=>t&&t.tHead&&t.tHead.rows.length&&!t.closest(SKIP)&&!t.closest(NOPIN);
   // Σβήσιμο των παλιών αποθηκευμένων αποκρύψεων για αυτούς τους πίνακες, ώστε να εμφανιστούν όλα μόνιμα.
   (function purge(){
     try{
-      let re=/:(ecTableWrap|loadingEcTableWrap|receiptDailyTable|receiptMonthSummary|sortingDailyTable|sortingMonthSummary)(:T\d+)?$/;
+      let re=/:(ecTableWrap|loadingEcTableWrap|receiptDailyTable|receiptMonthSummary|sortingDailyTable|sortingMonthSummary|readyPressPanel|readyWarehousePanel)(:T\d+)?$/;
       Object.keys(localStorage).filter(k=>k.startsWith('weee.pin.v1:')&&re.test(k)).forEach(k=>localStorage.removeItem(k));
     }catch(e){}
   })();
