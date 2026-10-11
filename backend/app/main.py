@@ -1993,6 +1993,17 @@ def _sorting_payload(db: Session, load: InboundLoad, ses: SortingSession):
         sorting_weight=total,difference=diff,requires_management_approval=ses.requires_management_approval,
         entries=[schemas.SortingEntryOut.model_validate(e) for e in entries])
 
+@app.get('/inventory/weee/media-content')
+def weee_media_content(db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
+    """Μόνο ανάγνωση: ανά κατηγορία ΑΗΗΕ, ποια μέσα συλλογής περιέχουν ήδη υλικό και πόσα kg (διαθέσιμο υπόλοιπο στα lots)."""
+    rows=db.execute(select(WEEEStockLot.weee_category_id,WEEEStockLot.collection_medium_id,func.sum(WEEEStockLot.available_weight))
+        .where(WEEEStockLot.available_weight>0,WEEEStockLot.collection_medium_id.is_not(None)).group_by(WEEEStockLot.weee_category_id,WEEEStockLot.collection_medium_id)).all()
+    out={}
+    for cat,med,kg in rows:
+        out.setdefault(cat,[]).append({'medium_id':med,'kg':float(kg or 0)})
+    for v in out.values(): v.sort(key=lambda x:-x['kg'])
+    return out
+
 @app.get('/sorting/available')
 def sorting_available(db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
     rows=db.scalars(select(InboundLoad).where(InboundLoad.status.in_(['READY_FOR_SORTING','SORTING_IN_PROGRESS'])).order_by(InboundLoad.ready_for_sorting_at)).all()
