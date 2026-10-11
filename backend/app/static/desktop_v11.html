@@ -5142,7 +5142,8 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
         let name=norm(th.dataset.pinCol||th.dataset.material||th.dataset.wcol||th.textContent);
         let ok=!!name&&!th.querySelector('input,button,select')&&!isSticky(th);
         let id=name;seen[id]=(seen[id]||0)+1;if(seen[id]>1)id+='#'+seen[id];
-        cols.push({i,th,name,id,ok});
+        // label = το όνομα όπως φαίνεται στην επικεφαλίδα (το id/name μένει εσωτερικό, ώστε να μη χαθούν αποθηκευμένες ρυθμίσεις)
+        cols.push({i,th,name,id,ok,label:norm(th.textContent)||name});
       });
     }
     let rows=[],rseen={};
@@ -5269,7 +5270,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   function showMinus(t,kind,item,x,y,wr){
     let L=ensureLayer();clearTimeout(hideT);L.innerHTML='';
     if(kind==='col'){
-      L.appendChild(mkPin('Col','−',x-13,wr.top-34,item.name,()=>hide(t,'col',item.id)));
+      L.appendChild(mkPin('Col','−',x-13,wr.top-34,item.label||item.name,()=>hide(t,'col',item.id)));
     }else{
       L.appendChild(mkPin('Row','−',wr.left-36,y-13,item.name,()=>hide(t,'row',item.id),-90));
     }
@@ -5281,11 +5282,11 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let lanes=[],base=wr.top-34;
     cols.forEach(o=>{
       let cx=o.r.left+o.r.width/2,lane=0;
-      while(lanes[lane]!==undefined&&cx-lanes[lane]<(String(o.c.name).length*7+54))lane++;
+      while(lanes[lane]!==undefined&&cx-lanes[lane]<(String(o.c.label||o.c.name).length*7+54))lane++;
       lanes[lane]=cx;
       let py=base-lane*30;
       L.appendChild(line(cx,py+34,cx,o.r.top,'pinLineCol'));
-      let p=mkPin('Col','+',cx-13,py,o.c.name,()=>show(t,'col',o.c.id));
+      let p=mkPin('Col','+',cx-13,py,o.c.label||o.c.name,()=>show(t,'col',o.c.id));
       p.dataset.hotcol=o.c.i;p.onmouseenter=()=>hotCol(t,o.c.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
       L.appendChild(p);
     });
