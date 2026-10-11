@@ -1665,7 +1665,7 @@ if($('ecRefreshBtn'))$('ecRefreshBtn').onclick=async()=>{
  catch(e){let el=$('ecStatus');if(el){el.textContent='⚠ '+(e.message||'Σφάλμα ανανέωσης');el.style.color='#a53629'}}
  finally{btn.disabled=false;btn.textContent=prevText}
 };
-function show(name){if(ecPollTimer){clearInterval(ecPollTimer);ecPollTimer=null}if($('settingsMenu'))$('settingsMenu').classList.add('hidden');document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name).classList.remove('hidden');if($('closeStockModal'))$('closeStockModal').onclick=()=>{if($('stockModal'))$('stockModal').classList.add('hidden')};if(name==='receipts'||name==='loading')startElectrocyclePolling();
+function show(name){try{if(typeof SF!=='undefined')SF.closeDD()}catch(e){}if(ecPollTimer){clearInterval(ecPollTimer);ecPollTimer=null}if($('settingsMenu'))$('settingsMenu').classList.add('hidden');document.querySelectorAll('.view').forEach(v=>v.classList.add('hidden'));$(name).classList.remove('hidden');if($('closeStockModal'))$('closeStockModal').onclick=()=>{if($('stockModal'))$('stockModal').classList.add('hidden')};if(name==='receipts'||name==='loading')startElectrocyclePolling();
 document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));let viewTitles={dashboard:'Αρχική',receipts:'Παραλαβές',sortingReview:'Ταξινόμηση',weee:'Αποθήκη ΑΗΗΕ',production:'Παραγωγή',ready:'Υλικά',loading:'Φορτώσεις',inventory:'Απογραφή (τρέχον έτος)',visitorLog:'Βιβλίο Επισκεπτών',presence:'Παρουσιολόγιο',galaxy:'Galaxy',master:'Μητρώα',equipment:'Εξοπλισμός',reports:'Αναφορές και Στατιστικά'};$('viewTitle').textContent=viewTitles[name]||name;
 let loader=null;
 switch(name){
@@ -5734,7 +5734,32 @@ const SF=(function(){
   // ---- μέσο συλλογής: πεδίο μέσα στη γραμμή, ΧΩΡΙΣ προεπιλογή ----
   const CRT=['PALLET','MATERIAL_PALLET','SACK_1KG','SACK_2KG_UN'];      // μόνο αυτά δημιουργούνται από εδώ (όχι καλάθια)
   let RECENT=[];                                                        // τελευταία 3 μέσα που διάλεξα
-  function closeDD(){if(DD.el){DD.el.remove();DD.el=null}DD.input=null;DD.type=null;DD.page=0;DD.mode=null}
+  function closeDD(){
+    if(DD.timer){clearInterval(DD.timer);DD.timer=null}
+    if(DD.el){DD.el.remove();DD.el=null}
+    document.querySelectorAll('.sfDD,.medPickMenu').forEach(e=>e.remove());   // ποτέ «ορφανά» αντίγραφα στη σελίδα
+    DD.input=null;DD.type=null;DD.page=0;DD.mode=null;DD.w=340;
+  }
+  // Η λίστα μένει πάντα δεμένη με το πεδίο που την άνοιξε: ακολουθεί το πεδίο όταν κυλάει η φόρμα και κλείνει αν το πεδίο
+  // βγει από το ορατό τμήμα ή αν κλείσει/αλλάξει η φόρμα.
+  function placeDD(){
+    if(!DD.el||!DD.input)return;
+    let inp=DD.input,sd=document.getElementById('sortingDetail');
+    if(!inp.isConnected||!inp.offsetParent||!sd||sd.classList.contains('hidden')||!sd.contains(inp)){closeDD();return}
+    let r=inp.getBoundingClientRect(),vr=sd.getBoundingClientRect(),hd=sd.querySelector('.sortingPopupHeader'),top=vr.top+(hd?hd.getBoundingClientRect().height:0);
+    if(r.bottom<top||r.top>vr.bottom||r.right<vr.left||r.left>vr.right){closeDD();return}
+    let hh=Math.min(420,DD.el.scrollHeight+12),w=DD.w||340;
+    DD.el.style.left=Math.max(8,Math.min(r.left,window.innerWidth-w-8))+'px';
+    DD.el.style.top=(window.innerHeight-r.bottom>hh+8?r.bottom+4:Math.max(8,r.top-hh-4))+'px';
+  }
+  function watchDD(){if(DD.timer)clearInterval(DD.timer);DD.timer=setInterval(()=>{if(!DD.el){clearInterval(DD.timer);DD.timer=null;return}placeDD()},200)}
+  if(!window.__sfDDGlobal){
+    window.__sfDDGlobal=true;
+    document.addEventListener('mousedown',e=>{if(DD.el&&!DD.el.contains(e.target)&&e.target!==DD.input)closeDD()},true);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&DD.el&&!(e.target.classList&&e.target.classList.contains('sfM')))closeDD()},true);
+    document.addEventListener('scroll',()=>{if(DD.el)placeDD()},true);
+    window.addEventListener('resize',()=>closeDD());
+  }
   function haveKg(m,cid){
     let v=((C.have&&C.have[cid])||[]).filter(x=>x.medium_id===m.id).reduce((s,x)=>s+x.kg,0);
     S.entries.forEach(e=>{if(e.weee_category_id===cid&&e.collection_medium_id===m.id)v+=entW(e)});
@@ -5786,6 +5811,7 @@ const SF=(function(){
   function openDD(inp){
     let keepType=DD.type,keepPage=DD.page,keepMode=DD.mode,keepNt=DD.nt;
     if(DD.el){DD.el.remove();DD.el=null}
+    document.querySelectorAll('.sfDD,.medPickMenu').forEach(e=>e.remove());
     DD.input=inp;DD.type=keepType||null;DD.page=keepPage||0;DD.mode=keepMode||null;DD.nt=keepNt;
     let row=inp.closest('.sfRow'),cid=row?row.dataset.c:null,cat=cid?C.rows.find(x=>x.id===cid):null;
     let q=norm(inp.value).trim(),h='',items=[];
@@ -5816,10 +5842,9 @@ const SF=(function(){
     }
     if(DD.mode!=='new')h+='<div class="sfNew"><a data-new="1">＋ Δημιουργία νέου (παλέτα / σάκος)</a></div>';
     DD.items=items;DD.hl=0;
+    document.querySelectorAll('.sfDD,.medPickMenu').forEach(e=>e.remove());
     let el=document.createElement('div');el.className='sfDD'+(!q&&DD.type?' wide':'');el.innerHTML=h;document.body.appendChild(el);DD.el=el;
-    let r=inp.getBoundingClientRect(),hh=Math.min(420,el.scrollHeight+12),w=(!q&&DD.type)?500:340;
-    el.style.left=Math.min(r.left,window.innerWidth-w-8)+'px';
-    el.style.top=(window.innerHeight-r.bottom>hh+8?r.bottom+4:Math.max(8,r.top-hh-4))+'px';
+    DD.w=(!q&&DD.type)?500:340;placeDD();watchDD();
     el.onmousedown=e=>{
       if(e.target.closest('.sfNf')&&e.target.closest('input,select,button')){if(e.target.id==='sfNcr'){e.preventDefault();createMedium()}return}
       let d;
@@ -5902,7 +5927,7 @@ const SF=(function(){
   }
   (function(){
     let sd=document.getElementById('sortingDetail');if(!sd)return;
-    new MutationObserver(fitPopup).observe(sd,{attributes:true,attributeFilter:['class','style'],childList:true});
+    new MutationObserver(()=>{if(sd.classList.contains('hidden'))closeDD();fitPopup()}).observe(sd,{attributes:true,attributeFilter:['class','style'],childList:true});
     window.addEventListener('resize',fitPopup);
   })();
   return {norm,cardHtml,bind,closeDD,fitPopup};
