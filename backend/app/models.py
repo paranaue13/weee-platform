@@ -389,6 +389,8 @@ class CollectionMediumType(Base, TimestampMixin):
     requires_unique_number: Mapped[bool] = mapped_column(Boolean, default=False)
     never_reuse_number: Mapped[bool] = mapped_column(Boolean, default=False)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Χρήση είδους: IN = εισερχόμενο (παραλαβές), OUT = εξερχόμενο (ταξινόμηση εξόδου), BOTH = και τα δύο
+    usage: Mapped[str] = mapped_column(String(10), default="BOTH", server_default="BOTH")
 
 class CollectionMedium(Base, TimestampMixin):
     __tablename__ = "collection_media"

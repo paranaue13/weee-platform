@@ -247,6 +247,10 @@ class MediumTypeOut(MediumTypeCreate):
     model_config = ConfigDict(from_attributes=True)
     id: str
     active: bool
+    usage: str = "BOTH"
+
+class MediumTypeUsageIn(BaseModel):
+    usage: str
 
 class MediumCreate(BaseModel):
     type_id: str

@@ -77,6 +77,14 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_source VARCHAR(20)"))
                 for nm in ("ELECTRONET AE","MEGA ELECTRICS ΑΕΒΕ","ΑΚΤΙΒ ΚΟΜΠΙΟΥΤΕΡ ΣΥΣΤΕΜΣ%"):
                     conn.execute(text("UPDATE organizations SET supplier_source='PICKUP_POINT' WHERE legal_name LIKE :n"),{"n":nm})
+        if "collection_medium_types" in tables:
+            mt_cols={c["name"] for c in inspect(engine).get_columns("collection_medium_types")}
+            if "usage" not in mt_cols:
+                conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN usage VARCHAR(10) DEFAULT 'BOTH'"))
+                conn.execute(text("UPDATE collection_medium_types SET usage='BOTH'"))
+                # τιμές εκκίνησης: εισερχόμενα = καλάθια, εξερχόμενα = σάκοι/παλέτα/κουτί/χύμα, τα υπόλοιπα «και τα δύο»
+                conn.execute(text("UPDATE collection_medium_types SET usage='IN' WHERE code IN ('BASKET_SMALL','BASKET_LARGE','INFOCYCLE_1','INFOCYCLE_2','METAL_BASKET')"))
+                conn.execute(text("UPDATE collection_medium_types SET usage='OUT' WHERE code IN ('SACK_1KG','SACK_2KG_UN','PALLET','BOX','BULK')"))
         if "organizations" in tables:
             o_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
             for col in ("permit_number","permit_ada"):
@@ -566,6 +574,15 @@ def list_media(include_inactive:bool=Query(default=False), db:Session=Depends(ge
     stmt=select(CollectionMedium)
     if not include_inactive: stmt=stmt.where(CollectionMedium.active==True)
     return db.scalars(stmt.order_by(CollectionMedium.code)).all()
+
+@app.put("/master/medium-types/{type_id}/usage", response_model=schemas.MediumTypeOut)
+def set_medium_type_usage(type_id:str, data:schemas.MediumTypeUsageIn, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    if data.usage not in ("IN","OUT","BOTH"): raise HTTPException(422,"Μη έγκυρη χρήση (Εισερχόμενο / Εξερχόμενο / Και τα δύο)")
+    mt=db.get(CollectionMediumType,type_id)
+    if not mt: raise HTTPException(404,"Άγνωστος τύπος μέσου")
+    old=mt.usage; mt.usage=data.usage
+    write_audit(db,user,"collection_medium_type",mt.id,"UPDATE_USAGE",old={"usage":old},new={"usage":mt.usage})
+    db.commit(); db.refresh(mt); return mt
 
 @app.get("/master/media/next-code")
 def media_next_code(type_id:str, code:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("sorting.perform"))):
