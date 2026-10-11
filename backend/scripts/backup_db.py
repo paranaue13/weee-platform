@@ -30,15 +30,31 @@ def backup_dir_for(db_path: Path) -> Path:
     d.mkdir(parents=True, exist_ok=True)
     return d
 
-def do_backup(db_path: Path, out_dir: Path) -> Path:
+def do_backup(db_path: Path, out_dir: Path, max_seconds: float = 180.0) -> Path:
+    """Αντίγραφο με το online backup API της sqlite (σωστό και με WAL: παίρνει συνεπές στιγμιότυπο, όχι μόνο το κύριο αρχείο).
+    Αν η βάση μείνει κλειδωμένη, το backup API ξαναδοκιμάζει για πάντα -- γι' αυτό υπάρχει όριο χρόνου: μετά από max_seconds
+    η προσπάθεια σταματά, το ημιτελές αρχείο σβήνεται και το σενάριο τελειώνει με σφάλμα (δεν «κολλάει» ούτε αφήνει αρχεία 0 bytes)."""
+    import time
     stamp = datetime.now().strftime("%Y%m%d_%H%M")
     dest = out_dir / f"weee_dev_{stamp}.db"
-    src = sqlite3.connect(str(db_path))
+    src = sqlite3.connect(str(db_path), timeout=30)
     dst = sqlite3.connect(str(dest))
+    t0 = time.time()
+    ok = False
+    def progress(status, remaining, total):
+        if time.time() - t0 > max_seconds:
+            raise TimeoutError(f"backup > {max_seconds:.0f}s (η βάση είναι κλειδωμένη;)")
     try:
-        src.backup(dst)
+        src.backup(dst, pages=2000, progress=progress, sleep=0.25)
+        ok = True
     finally:
         dst.close(); src.close()
+        if not ok:
+            try: dest.unlink(missing_ok=True)
+            except Exception: pass
+    if dest.stat().st_size == 0:
+        dest.unlink(missing_ok=True)
+        raise RuntimeError("backup file is empty")
     return dest
 
 def prune(out_dir: Path):
