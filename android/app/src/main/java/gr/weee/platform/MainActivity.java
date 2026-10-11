@@ -52,23 +52,9 @@ public class MainActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.rgb(243,245,246));
 
-        // Η επάνω μπάρα (τίτλος/έκδοση, admin, ΔΕΛΤΙΟ ΗΜΕΡΑΣ) σχεδιάζεται μέσα στη σελίδα (/mobile)· το κουμπί SERVER είναι
-        // στη δική του λεπτή native μπάρα, ώστε να φαίνεται πάντα, ακόμα κι όταν η σελίδα δεν φορτώνει.
+        // Η επάνω μπάρα (τίτλος/έκδοση, admin, ΔΕΛΤΙΟ ΗΜΕΡΑΣ, ONLINE) σχεδιάζεται μέσα στη σελίδα (/mobile)· το κουμπί ONLINE
+        // καλεί το editServer() (πρώην κουμπί SERVER) μέσω του WeeeNative.
         getWindow().setStatusBarColor(Color.rgb(24,36,47));
-        float dp = getResources().getDisplayMetrics().density;
-        LinearLayout bar = new LinearLayout(this);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setGravity(android.view.Gravity.END | android.view.Gravity.CENTER_VERTICAL);
-        bar.setBackgroundColor(Color.rgb(24,36,47));
-        bar.setPadding((int)(8*dp), (int)(4*dp), (int)(8*dp), (int)(4*dp));
-        Button cfg = new Button(this);
-        cfg.setText("SERVER");
-        cfg.setTextSize(12);
-        cfg.setMinHeight(0); cfg.setMinimumHeight(0);
-        cfg.setPadding((int)(14*dp), (int)(6*dp), (int)(14*dp), (int)(6*dp));
-        cfg.setOnClickListener(v -> editServer());
-        bar.addView(cfg, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(bar);
 
         web = new WebView(this);
         WebSettings ws = web.getSettings();
@@ -80,8 +66,8 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface public void editServer() { runOnUiThread(() -> MainActivity.this.editServer()); }
             @android.webkit.JavascriptInterface public String version() { return VERSION; }
-            // Η σελίδα κρύβει το δικό της κουμπί ONLINE όταν η native μπάρα έχει ήδη το SERVER.
-            @android.webkit.JavascriptInterface public boolean hasServerBar() { return true; }
+            // Δεν υπάρχει native μπάρα SERVER: η σελίδα δείχνει το δικό της κουμπί ONLINE/OFFLINE.
+            @android.webkit.JavascriptInterface public boolean hasServerBar() { return false; }
             // Από την οθόνη σφάλματος: «Αποθήκευση και δοκιμή» (νέα διεύθυνση) και «Ξανά» (ίδια διεύθυνση).
             @android.webkit.JavascriptInterface public void saveServer(String url) { runOnUiThread(() -> MainActivity.this.saveServer(url)); }
             @android.webkit.JavascriptInterface public void retry() { runOnUiThread(() -> MainActivity.this.loadApp()); }
