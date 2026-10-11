@@ -1021,6 +1021,8 @@ async function mtCountSend(r){
 (function(){
   let ver=(window.WeeeNative&&WeeeNative.version&&WeeeNative.version())||'2.5.41';
   $('appTitle').textContent='WEEE Platform '+ver;
+  // μέσα στην εφαρμογή Android το SERVER είναι στη native μπάρα (φαίνεται πάντα)· εδώ κρύβεται το ONLINE/OFFLINE
+  if(window.WeeeNative&&WeeeNative.hasServerBar&&WeeeNative.hasServerBar())$('net').style.display='none';
   // ONLINE = ό,τι έκανε το κουμπί SERVER (διεύθυνση server) όταν τρέχει μέσα στην εφαρμογή Android· στον browser ελέγχει τη σύνδεση
   $('net').onclick=()=>{if(window.WeeeNative&&WeeeNative.editServer)WeeeNative.editServer();else api('/health').then(()=>setNet(true)).catch(()=>setNet(false))};
   window.setNet=function(on){$('net').classList.toggle('off',!on);$('netTxt').textContent=on?'ONLINE':'OFFLINE'};
