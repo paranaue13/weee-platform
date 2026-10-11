@@ -3944,6 +3944,7 @@ def direct_process(stock_lot_id:str,data:schemas.DirectProcessCreate,db:Session=
 @app.get('/dashboard/operations', response_model=schemas.OperationalDashboardOut)
 def operations_dashboard(db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
     active_trip_ids=select(InboundTrip.id).where(InboundTrip.deleted_at.is_(None)); loads=db.scalars(select(InboundLoad).where(InboundLoad.trip_id.in_(active_trip_ids))).all(); sessions=db.scalars(select(SortingSession).join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).where(InboundLoad.trip_id.in_(active_trip_ids))).all()
+    _sess_with_entries=set(db.scalars(select(SortingEntry.session_id).distinct()).all())
     weee=db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all()
     prod=db.scalars(select(ProductionInputBalance).where(ProductionInputBalance.status=='OPEN')).all()
     ready=db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status=='AVAILABLE')).all()
@@ -3951,7 +3952,8 @@ def operations_dashboard(db:Session=Depends(get_db), user=Depends(require_permis
     sync=db.scalars(select(SyncEvent).where(SyncEvent.system=='GALAXY',SyncEvent.status.in_(['PENDING','RETRY']))).all()
     return schemas.OperationalDashboardOut(
         open_receipt_loads=sum(x.status!='CLOSED' for x in loads),
-        sorting_in_progress=sum(x.status=='IN_PROGRESS' for x in sessions),
+        # ίδιος κανόνας με τη λίστα Ταξινόμησης: «σε εξέλιξη» μόνο όταν η συνεδρία έχει τουλάχιστον μία καταχώρηση
+        sorting_in_progress=sum(x.status=='IN_PROGRESS' and x.id in _sess_with_entries for x in sessions),
         waiting_logistics=sum(x.status=='LOGISTICS_REVIEW' for x in sessions),
         waiting_management=sum(x.status=='MANAGEMENT_REVIEW' for x in sessions),
         weee_stock_kg=sum((x.available_weight for x in weee),Decimal('0')),
