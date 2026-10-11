@@ -1217,6 +1217,13 @@ body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
 #sortingDetail .sfQe .sfAdd:hover{background:var(--accent-bg,#d8e2ff)}
 #sortingDetail .sfSm{text-align:right;font-weight:500;font-variant-numeric:tabular-nums}
 #sortingDetail .sfEmpty{padding:18px;text-align:center;color:var(--fg-3,#74777f)}
+#sortingDetail .sfFsep{background:var(--surface-2,#f0f3fa);padding:9px 12px;border-top:1px solid var(--line-strong,#b9bdc9);font-weight:500;font-size:13px;display:flex;gap:10px;align-items:center}
+#sortingDetail .sfTag{background:var(--surface,#fff);border:1px solid var(--line-strong,#b9bdc9);border-radius:999px;padding:1px 9px;font-size:11px;color:var(--fg-3,#74777f)}
+#sortingDetail .sfRow.f{background:var(--surface-2,#f0f3fa)}
+#sortingDetail .sfRow.f.has{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface-2,#f0f3fa))}
+#sortingDetail .sfRow.f .sfCd{color:var(--fg-3,#74777f)}
+#sortingDetail .sfRow.f .sfDs{font-size:12px;color:var(--fg-3,#74777f)}
+
 .sfDD{position:fixed;z-index:9300;width:330px;max-height:360px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:12px;box-shadow:0 10px 30px rgba(20,30,70,.28);padding:6px}
 .sfDD .sfIt{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:13px}
 .sfDD .sfIt.hl,.sfDD .sfIt:hover{background:var(--hover,#eaf0fd)}
@@ -5629,9 +5636,10 @@ const SF=(function(){
     let m=C.media.find(x=>x.id===e.collection_medium_id);
     return `<span class="sfEn${S.editing[e.weee_category_id]===e.id?' ed':''}" data-e="${e.id}" title="Πάτα για διόρθωση"><b>${esc2(m?m.code:'—')}</b> ${f1(entW(e))} kg${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}<span class="x" data-del="${e.id}" title="Διαγραφή">✕</span></span>`;
   }
+  const isF=c=>/^\d+$/.test(String(c.official_code||'').trim());      // ξένα υλικά (ΜΗ ΑΗΗΕ): κωδικοί μόνο με αριθμούς
   function rowHtml(c){
     let en=S.entries.filter(e=>e.weee_category_id===c.id),has=en.length>0,rm=S.rm[c.id],avg=c.average_weight;
-    return `<div class="sfRow${has?' has':''}" data-c="${c.id}" data-avg="${avg??''}"><div class="sfCd">${esc2(c.official_code)}</div><div class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</div><div class="sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</div><div class="sfEns">${en.map(chipHtml).join('')}</div><div class="sfQe"><input class="sfK" placeholder="kg" inputmode="decimal" autocomplete="off"><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"><input class="sfM" value="${esc2(rm?mLabel2(rm):'')}" placeholder="Μέσο συλλογής" title="Μέσο συλλογής" autocomplete="off"><button type="button" class="sfAdd" title="Προσθήκη">＋</button></div><div class="sfSm">${has?f1(catSum(c.id))+' kg':''}</div></div>`;
+    return `<div class="sfRow${isF(c)?' f':''}${has?' has':''}" data-c="${c.id}" data-avg="${avg??''}"><div class="sfCd">${esc2(c.official_code)}</div><div class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</div><div class="sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</div><div class="sfEns">${en.map(chipHtml).join('')}</div><div class="sfQe"><input class="sfK" placeholder="kg" inputmode="decimal" autocomplete="off"><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"><input class="sfM" value="${esc2(rm?mLabel2(rm):'')}" placeholder="Μέσο συλλογής" title="Μέσο συλλογής" autocomplete="off"><button type="button" class="sfAdd" title="Προσθήκη">＋</button></div><div class="sfSm">${has?f1(catSum(c.id))+' kg':''}</div></div>`;
   }
   function visible(c){
     let q=norm(S.q).trim();
@@ -5641,7 +5649,10 @@ const SF=(function(){
   }
   function listHtml(){
     let h='<div class="sfTh"><div>Κωδικός</div><div>Περιγραφή</div><div style="text-align:right">Μέσο βάρος</div><div>Καταχωρήσεις</div><div>Νέα καταχώρηση: βάρος · τεμάχια · μέσο συλλογής</div><div style="text-align:right">Σύνολο</div></div>';
-    h+=C.rows.filter(visible).map(rowHtml).join('');
+    let vis=C.rows.filter(visible);
+    h+=vis.filter(c=>!isF(c)).map(rowHtml).join('');
+    let fr=vis.filter(isF);
+    if(fr.length)h+='<div class="sfFsep">Ξένα υλικά <span class="sfTag">ΜΗ ΑΗΗΕ</span></div>'+fr.map(rowHtml).join('');
     return h;
   }
   function renderList(){
