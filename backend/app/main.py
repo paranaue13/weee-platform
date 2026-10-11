@@ -1,3 +1,4 @@
+import os
 import re
 import asyncio, logging
 from contextlib import asynccontextmanager
@@ -21,6 +22,30 @@ from .electrocycle_sync import sync_electrocycle_orders
 from .export_settings import get_export_settings, archive_export_copy, EXPORT_DIR_KEY
 
 _log = logging.getLogger("electrocycle")
+
+def _setup_file_log():
+    """Εγγραφή σφαλμάτων (με traceback) σε αρχείο `server.log` στον φάκελο δεδομένων, ώστε να φαίνονται τα σφάλματα 500."""
+    try:
+        from logging.handlers import RotatingFileHandler
+        from pathlib import Path
+        from .config import settings as _st
+        url=_st.database_url
+        if url.startswith("sqlite:///"): base=Path(url[len("sqlite:///"):]).resolve().parent
+        else: base=Path(os.environ.get("LOCALAPPDATA") or Path.home())/"WEEE Platform"/"data"
+        base.mkdir(parents=True,exist_ok=True)
+        h=RotatingFileHandler(str(base/"server.log"),maxBytes=2_000_000,backupCount=5,encoding="utf-8")
+        h.setLevel(logging.WARNING)
+        h.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+        for name in ("","uvicorn.error","uvicorn.access","electrocycle","sqlalchemy.engine.Engine"):
+            lg=logging.getLogger(name)
+            if not any(isinstance(x,RotatingFileHandler) and getattr(x,"baseFilename","").endswith("server.log") for x in lg.handlers): lg.addHandler(h)
+        logging.getLogger("uvicorn.error").setLevel(logging.INFO)
+        # Το alembic (fileConfig) απενεργοποιεί τους υπάρχοντες loggers -- τους ξαναενεργοποιούμε ώστε να μην χάνονται τα σφάλματα 500
+        for nm,lg in list(logging.root.manager.loggerDict.items()):
+            if isinstance(lg,logging.Logger) and (nm.startswith("uvicorn") or nm.startswith("electrocycle") or nm.startswith("app")): lg.disabled=False
+    except Exception as e:
+        print("server.log setup failed:",e)
+_setup_file_log()
 
 async def _electrocycle_loop():
     # First run soon after startup, then every electrocycle_sync_minutes -- or sooner (every
@@ -144,6 +169,7 @@ async def lifespan(app: FastAPI):
     # ALTER TABLE block above. This only stamps/upgrades -- it never re-runs the
     # baseline DDL against a database that already has it (see app/migrations.py).
     run_alembic_migrations(engine)
+    _setup_file_log()   # ξανά μετά το alembic (που απενεργοποιεί τους loggers)
     with SessionLocal() as db:
         # Backfill legacy employee default department into the new many-to-many mapping.
         for emp in db.scalars(select(Employee).where(Employee.default_org_unit_id.is_not(None))).all():
