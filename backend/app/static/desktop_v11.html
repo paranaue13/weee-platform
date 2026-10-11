@@ -1261,6 +1261,9 @@ body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
 #sortingDetail.sortingPopup>*{flex-shrink:0}
 #sortingDetail.sortingPopup>.tablewrap{flex-shrink:1}
 #sortingDetail::after{content:"";display:block;flex:none;height:14px}
+/* περιθώρια πάνω/κάτω: ο τίτλος και η τελευταία γραμμή δεν κολλάνε στα άκρα */
+#sortingDetail .sortingPopupHeader{padding-top:20px!important}
+#sortingDetail::after{height:20px}
 #sortingDetail .sfList.sortingCatWrap{max-height:none!important;overflow:visible!important}
 #sortingDetail .sfTh{top:var(--sfTop,0px)}
 </style>
