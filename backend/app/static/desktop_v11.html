@@ -1106,9 +1106,11 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 /* Φορτώσεις → Προετοιμασία φόρτωσης */
 #prepPanel{margin-top:16px;position:relative}
 #prepPanel .prepCard{margin-bottom:12px}
-#prepPanel .prepGrid5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 14px}
-#prepPanel .prepGrid5 label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--pop-label,#44474f)}
-#prepPanel .prepGrid5 :is(input,select){height:40px;border:1px solid var(--line-strong,#b9bdc9);border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);padding:0 12px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}
+#prepPanel .prepGrid5,#prepPanel .prepGrid6{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px 14px}
+#prepPanel .prepGrid6{grid-template-columns:repeat(6,minmax(0,1fr))}
+#prepPanel .prepGrid6 .prepSpan2{grid-column:span 2}
+#prepPanel :is(.prepGrid5,.prepGrid6) label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:500;color:var(--pop-label,#44474f)}
+#prepPanel :is(.prepGrid5,.prepGrid6) :is(input,select){height:40px;border:1px solid var(--line-strong,#b9bdc9);border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);padding:0 12px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}
 #prepPanel .prepSub{margin:14px 0 8px;padding-top:12px;border-top:1px solid var(--line,#e3e5ec);font-size:12px;font-weight:500;letter-spacing:.04em;color:var(--fg-3,#74777f)}
 #prepPanel .prepFreq{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:0 0 12px;padding:10px 14px;border-radius:14px;background:color-mix(in srgb,var(--pin,#D97757) 14%,var(--surface,#fff))}
 #prepPanel .prepFreq b{font-weight:600}
@@ -1147,6 +1149,7 @@ body[data-theme="dark"] #prepPanel .prepMedia button.on{color:#001a41}
 #prepPanel .prepTotalRow input:focus{background:var(--surface,#fff);border-color:var(--line-strong,#b9bdc9);outline:none}
 #prepPanel .prepBar{height:6px;border-radius:3px;background:color-mix(in srgb,var(--accent,#2f5fc4) 20%,transparent);margin-top:8px;overflow:hidden}
 #prepPanel .prepBar i{display:block;height:100%;width:0;background:var(--accent,#2f5fc4);transition:width .15s}
+#prepPanel .prepBar i.warn{background:var(--pin,#D97757)}
 #prepPanel .prepBar i.over{background:var(--neg,#a32d2d)}
 #prepPanel .prepMsg{min-height:0;margin-top:8px;font-size:13px;color:var(--neg,#a32d2d)}
 #prepPanel .prepMsg:empty{display:none}
@@ -1176,7 +1179,8 @@ body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
 #prepPanel .prepFoot .prepActions{margin:0;flex-shrink:0}
 #prepPanel .prepFoot .prepMsg{margin-top:6px}
 @media(max-width:1000px){
-  #prepPanel .prepGrid5{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #prepPanel .prepGrid5,#prepPanel .prepGrid6{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #prepPanel .prepGrid6 .prepSpan2{grid-column:auto}
   #prepPanel .prepTwo{display:flex;flex-direction:column;height:auto}
   #prepPanel .prepWh{height:420px}#prepPanel .prepCargo{height:460px;border-left:0;border-top:1px solid var(--line,#e3e5ec)}
   #prepPanel .prepMover{display:none}
@@ -1474,18 +1478,19 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div class="prodSegment" id="loadingSubSeg" style="margin:16px 0 0;display:inline-flex;width:auto"><button type="button" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" data-lsub="hist" class="active">Ιστορικό Δελτίων Αποστολής</button></div>
 <div id="prepPanel" class="hidden">
 <div class="card prepCard"><h3 style="margin:0 0 10px">Στοιχεία φόρτωσης</h3>
-<div class="prepGrid5">
+<div class="prepGrid6">
 <label>Πελάτης / Παραλήπτης<select id="pfCustomer"></select></label>
 <label>Πινακίδα φορτηγού<input id="pfPlate" list="pfPlates" autocomplete="off"><datalist id="pfPlates"></datalist></label>
 <label>Οδηγός<input id="pfDriver" list="pfDrivers" autocomplete="off"><datalist id="pfDrivers"></datalist></label>
 <label>Μεταφορέας<select id="pfCarrier"></select></label>
 <label>Σκοπός φόρτωσης<select id="pfPurpose"></select></label>
+<label>Όριο βάρους (kg)<input id="pfMax" type="number" min="1" step="100" value="25000" inputmode="numeric"></label>
 </div>
 <div class="prepSub">ΣΤΟΙΧΕΙΑ ΤΕΛΙΚΗΣ ΔΙΑΘΕΣΗΣ</div>
-<div class="prepGrid5">
+<div class="prepGrid6">
 <label>Κωδ. ΕΚΑ<input id="pfEka" autocomplete="off"></label>
 <label>Reptool<input id="pfReptool" autocomplete="off"></label>
-<label>Αρ. Δ.Α.<input id="pfDa" inputmode="numeric" placeholder="αυτόματα στην οριστικοποίηση" autocomplete="off"></label>
+<label class="prepSpan2">Αρ. Δ.Α.<input id="pfDa" inputmode="numeric" placeholder="αυτόματα στην οριστικοποίηση" autocomplete="off"></label>
 <label>Ημερομηνία<input id="pfDate" type="date"></label>
 <label>Παρατηρήσεις<input id="pfNotes" placeholder="προαιρετικά" autocomplete="off"></label>
 </div>
@@ -1500,7 +1505,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="pfCargoList" class="prepList"></div>
 </section>
 </div>
-<div class="prepFoot"><div class="prepFootL"><div class="prepTotal"><div class="prepTotalRow"><span>Σύνολο φόρτωσης</span><span><b id="pfTotal">0</b> / <input id="pfMax" type="number" min="1" step="100" value="25000" title="Μέγιστο βάρος (kg)"> kg</span></div><div class="prepBar"><i id="pfBar"></i></div></div>
+<div class="prepFoot"><div class="prepFootL"><div class="prepTotal"><div class="prepTotalRow"><span>Σύνολο φόρτωσης</span><span><b id="pfTotal">0</b> / <b id="pfMaxTxt">25.000</b> kg</span></div><div class="prepBar"><i id="pfBar"></i></div></div>
 <div id="pfMsg" class="prepMsg"></div></div>
 <div class="prepActions"><button type="button" class="btn alt" id="pfSaveDraft">Αποθήκευση ως πρόχειρο</button><button type="button" class="btn" id="pfFinalize">Οριστικοποίηση φόρτωσης</button></div>
 </div>
@@ -5562,7 +5567,10 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     });
     let t=total(),mx=Math.max(1,Number($('pfMax').value)||25000);
     $('pfTotal').textContent=fmt(t);
-    let bar=$('pfBar');bar.style.width=Math.min(100,t/mx*100)+'%';bar.classList.toggle('over',t>mx);
+    $('pfMaxTxt').textContent=fmt(mx);
+    let bar=$('pfBar');bar.style.width=Math.min(100,t/mx*100)+'%';
+    // μπλε: απομένουν πάνω από 2000 kg · πορτοκαλί: απομένουν 2000 kg ή λιγότερα (μέχρι 1 kg πριν το όριο) · κόκκινο: το σύνολο έφτασε/ξεπέρασε το όριο
+    bar.classList.toggle('over',t>=mx);bar.classList.toggle('warn',t<mx&&mx-t<=2000);
   }
   function renderBadge(){
     let n=P.sel.size+P.cSel.size,b=$('pfBadge');b.textContent=n;b.classList.toggle('hidden',!n);
