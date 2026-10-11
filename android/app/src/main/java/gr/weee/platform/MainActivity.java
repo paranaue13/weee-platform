@@ -14,6 +14,9 @@ import android.provider.MediaStore;
 import android.view.ViewGroup;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -40,7 +43,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("weee", MODE_PRIVATE);
-        serverUrl = prefs.getString("server", "http://192.168.1.9:8000");
+        serverUrl = prefs.getString("server", "http://192.168.1.27:8000");
         buildUi();
     }
 
@@ -63,8 +66,19 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Object() {
             @android.webkit.JavascriptInterface public void editServer() { runOnUiThread(() -> MainActivity.this.editServer()); }
             @android.webkit.JavascriptInterface public String version() { return VERSION; }
+            // Από την οθόνη σφάλματος: «Αποθήκευση και δοκιμή» (νέα διεύθυνση) και «Ξανά» (ίδια διεύθυνση).
+            @android.webkit.JavascriptInterface public void saveServer(String url) { runOnUiThread(() -> MainActivity.this.saveServer(url)); }
+            @android.webkit.JavascriptInterface public void retry() { runOnUiThread(() -> MainActivity.this.loadApp()); }
         }, "WeeeNative");
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            // Αν η κύρια σελίδα δεν φορτώνει (timeout, αποτυχία σύνδεσης) ή απαντά 5xx, δείχνουμε δική μας οθόνη με πεδίο διεύθυνσης.
+            @Override public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
+                if (req != null && req.isForMainFrame()) showServerError(String.valueOf(err.getDescription()));
+            }
+            @Override public void onReceivedHttpError(WebView view, WebResourceRequest req, WebResourceResponse resp) {
+                if (req != null && req.isForMainFrame() && resp != null && resp.getStatusCode() >= 500) showServerError("HTTP " + resp.getStatusCode());
+            }
+        });
         web.setWebChromeClient(new WebChromeClient() {
             // <input type="file"> in /mobile: offer camera or gallery, results go back to the page which uploads them to the load.
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
@@ -165,6 +179,34 @@ public class MainActivity extends Activity {
         while (s.endsWith("/")) s = s.substring(0, s.length()-1);
         web.clearCache(true);
         web.loadUrl(s + "/mobile?build=" + VERSION);
+    }
+
+    private static String esc(String t) {
+        return t == null ? "" : t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
+
+    private void saveServer(String url) {
+        String s = url == null ? "" : url.trim();
+        if (s.isEmpty()) return;
+        if (!s.startsWith("http://") && !s.startsWith("https://")) s = "http://" + s;
+        serverUrl = s;
+        prefs.edit().putString("server", serverUrl).apply();
+        loadApp();
+    }
+
+    private void showServerError(String reason) {
+        String html = "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+            + "<style>body{font:16px sans-serif;background:#f3f5f6;color:#18242f;margin:0;padding:24px}h2{margin:0 0 8px}"
+            + "p{color:#556;margin:6px 0 16px}input{width:100%;box-sizing:border-box;font-size:18px;padding:12px;border:1px solid #889;border-radius:8px}"
+            + "button{font-size:16px;padding:12px 18px;margin:12px 10px 0 0;border:0;border-radius:8px;background:#18242f;color:#fff}"
+            + "button.b2{background:#fff;color:#18242f;border:1px solid #18242f}</style></head><body>"
+            + "<h2>Δεν είναι δυνατή η σύνδεση με τον server</h2>"
+            + "<p>Διεύθυνση τώρα: <b>" + esc(serverUrl) + "</b><br>Αιτία: " + esc(reason) + "</p>"
+            + "<label>Διεύθυνση server</label><input id='u' value=\"" + esc(serverUrl) + "\" autocapitalize='off' autocorrect='off' spellcheck='false'>"
+            + "<button onclick=\"WeeeNative.saveServer(document.getElementById('u').value)\">Αποθήκευση και δοκιμή</button>"
+            + "<button class='b2' onclick=\"WeeeNative.retry()\">Ξανά</button>"
+            + "</body></html>";
+        web.loadDataWithBaseURL("about:blank", html, "text/html", "utf-8", null);
     }
 
     private void editServer() {
