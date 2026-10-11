@@ -5804,11 +5804,15 @@ const SF=(function(){
     if(!best)return '1';
     return best.pre+String(mx+1).padStart(best.len,'0');
   }
-  function newFormHtml(){
-    let types=C.medTypes.filter(t=>CRT.includes(t.code));
-    if(!DD.nt||!types.some(t=>t.id===DD.nt))DD.nt=(types[0]||{}).id;
-    let t=types.find(x=>x.id===DD.nt)||{},std=(t.code==='SACK_1KG'||t.code==='SACK_2KG_UN')&&t.default_tare_weight!=null;
-    return `<div class="sfHd"><a class="sfBack" data-back="1">← Πίσω</a> · Δημιουργία νέου μέσου</div><div class="sfNf"><label>Είδος</label><select id="sfNt">${types.map(x=>`<option value="${x.id}"${x.id===DD.nt?' selected':''}>${esc2(x.name_el)}</option>`).join('')}</select><label>Αριθμός / κωδικός</label><input id="sfNid" value="${esc2((DD.nextMap&&DD.nextMap[DD.nt])||nextCode(DD.nt))}"><label>Αποβαρό (kg)</label><input id="sfNtare" inputmode="decimal" ${std?`value="${Number(t.default_tare_weight)}" readonly`:'placeholder="γράψε το αποβαρό της παλέτας"'}>${std?'<div class="sfHint">Στάνταρ αποβαρό σάκου, συμπληρώνεται μόνο του.</div>':'<div class="sfHint">Κάθε παλέτα έχει δικό της αποβαρό: γράψε το.</div>'}<div class="sfErr" id="sfNerr"></div><button type="button" id="sfNcr">Δημιουργία και επιλογή</button></div>`;
+  function newFormHtml(noBack){
+    let types=CRT.map(c=>C.medTypes.find(t=>t.code===c)).filter(Boolean);
+    let hasBulk=C.outTypes.some(t=>t.code==='BULK');
+    if(!(DD.nt==='BULK'&&hasBulk)&&!types.some(t=>t.id===DD.nt))DD.nt=(types[0]||{}).id;
+    let bulk=DD.nt==='BULK',t=types.find(x=>x.id===DD.nt)||{},std=(t.code==='SACK_1KG'||t.code==='SACK_2KG_UN')&&t.default_tare_weight!=null;
+    let hd=noBack?'<div class="sfHd">Δημιουργία νέου μέσου</div>':'<div class="sfHd"><a class="sfBack" data-back="1">← Πίσω</a> · Δημιουργία νέου μέσου</div>';
+    let chips='<label>Είδος</label><div class="sfTc" style="padding:2px 0">'+types.map(x=>`<span class="sfChip${x.id===DD.nt?' on':''}" data-nt="${x.id}">${esc2(x.name_el)}</span>`).join('')+(hasBulk?`<span class="sfChip${bulk?' on':''}" data-nt="BULK">Χύμα</span>`:'')+'</div>';
+    if(bulk)return `${hd}<div class="sfNf">${chips}<div class="sfHint">Το Χύμα δεν έχει αριθμό ούτε αποβαρό.</div><button type="button" id="sfNbulk">Επιλογή Χύμα</button></div>`;
+    return `${hd}<div class="sfNf">${chips}<label>Αριθμός / κωδικός</label><input id="sfNid" value="${esc2((DD.nextMap&&DD.nextMap[DD.nt])||nextCode(DD.nt))}"><label>Αποβαρό (kg)</label><input id="sfNtare" inputmode="decimal" ${std?`value="${Number(t.default_tare_weight)}" readonly`:'placeholder="γράψε το αποβαρό της παλέτας"'}>${std?'<div class="sfHint">Στάνταρ αποβαρό σάκου, συμπληρώνεται μόνο του.</div>':'<div class="sfHint">Κάθε παλέτα έχει δικό της αποβαρό: γράψε το.</div>'}<div class="sfErr" id="sfNerr"></div><button type="button" id="sfNcr">Δημιουργία και επιλογή</button></div>`;
   }
   // Πρόταση επόμενου αριθμού από τον server: μέγιστο από ΟΛΑ τα μέσα του είδους (ενεργά/ανενεργά/DEMO/διαγραμμένα στο ιστορικό)
   async function fetchNext(tid,typed){
@@ -5816,12 +5820,12 @@ const SF=(function(){
       let r=await api('/master/media/next-code?type_id='+encodeURIComponent(tid)+(typed?'&code='+encodeURIComponent(typed):''));
       DD.nextMap=DD.nextMap||{};DD.nextMap[tid]=r.code;
       let inp=$('sfNid');
-      if(!typed&&inp&&!inp.dataset.touched&&($('sfNt')||{}).value===tid)inp.value=r.code;
+      if(!typed&&inp&&!inp.dataset.touched&&DD.nt===tid)inp.value=r.code;
       return r;
     }catch(e){return null}
   }
   async function createMedium(){
-    let tid=($('sfNt')||{}).value,code=($('sfNid')||{}).value.trim(),tr=parseFloat(String(($('sfNtare')||{}).value).replace(',','.'));
+    let tid=DD.nt,code=($('sfNid')||{}).value.trim(),tr=parseFloat(String(($('sfNtare')||{}).value).replace(',','.'));
     let t=C.medTypes.find(x=>x.id===tid),err=$('sfNerr');
     if(!t||!CRT.includes(t.code)){err.textContent='Δημιουργία μόνο για Παλέτα, Παλέτα Υλικών, Σάκο 1 kg, Σάκο 2 kg.';return}
     if(!code){err.textContent='Γράψε αριθμό / κωδικό.';return}
@@ -5882,7 +5886,8 @@ const SF=(function(){
     let el=document.createElement('div');el.className='sfDD'+(!q&&DD.type?' wide':'');el.innerHTML=h;document.body.appendChild(el);DD.el=el;
     DD.w=(!q&&DD.type)?500:340;placeDD();watchDD();
     el.onmousedown=e=>{
-      if(e.target.closest('.sfNf')&&e.target.closest('input,select,button')){if(e.target.id==='sfNcr'){e.preventDefault();createMedium()}return}
+      if(e.target.closest('.sfNf')&&e.target.closest('input,select,button')){if(e.target.id==='sfNcr'){e.preventDefault();createMedium()}else if(e.target.id==='sfNbulk'){e.preventDefault();pickBulk(false)}return}
+      if(d=e.target.closest('[data-nt]')){e.preventDefault();DD.nt=d.dataset.nt;let keep=DD.input;openDD(keep);let x=document.getElementById(DD.nt==='BULK'?'sfNbulk':(document.getElementById('sfNtare')&&!document.getElementById('sfNtare').readOnly?'sfNtare':'sfNid'));if(x)x.focus();return}
       let d;
       if(d=e.target.closest('[data-new]')){e.preventDefault();DD.mode='new';openDD(DD.input);return}
       if(d=e.target.closest('[data-i]')){e.preventDefault();pick(DD.items[+d.dataset.i],false);return}
@@ -5891,11 +5896,10 @@ const SF=(function(){
       if(d=e.target.closest('[data-pg]')){e.preventDefault();DD.page=+d.dataset.pg;openDD(DD.input);return}
       if(e.target.closest('[data-back]')){e.preventDefault();DD.type=null;DD.mode=null;openDD(DD.input);return}
     };
-    let sel=el.querySelector('#sfNt');
-    if(sel){
-      sel.onchange=()=>{DD.nt=sel.value;let keep=DD.input;openDD(keep);let x=document.getElementById('sfNtare');if(x&&!x.readOnly)x.focus()};
-      let ni=el.querySelector('#sfNid');if(ni)ni.addEventListener('input',()=>{ni.dataset.touched='1'});
-      fetchNext(sel.value);
+    let ni=el.querySelector('#sfNid');
+    if(ni){
+      ni.addEventListener('input',()=>{ni.dataset.touched='1'});
+      fetchNext(DD.nt);
     }
     markHL();
   }
