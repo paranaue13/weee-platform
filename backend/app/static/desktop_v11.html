@@ -3915,7 +3915,7 @@ function renderSortingRows(rows){
    let childRows=group.map(g=>`<tr class="selectableRow sortingRow childPointRow hidden" data-group="${r.receipt_id}" data-load="${g.load_id}" data-rtype="${r.receipt_type}"><td><b class="linkLike">${esc(g.order_number||g.receipt_number||'—')}</b></td><td>${esc(g.dpp_number||'')}</td><td>${esc(g.supplier||'—')}</td><td>${esc(typeLabel(r.receipt_type))}</td><td>${esc(g.carrier||'—')}</td><td><b>${kg(g.net_weight)}</b></td><td>${statusEl(g.status)}</td></tr>`).join('');
    // The toggle is plain link-styled text (not a button) so it lines up in the same column
    // position as the order numbers in the rows below it once expanded.
-   return `<tr class="groupRow" data-receipt="${r.receipt_id}" data-rtype="${r.receipt_type}"><td colspan="3"><b class="linkLike sortSpToggle" data-id="${r.receipt_id}" data-count="${group.length}">▸ ${group.length} σημεία</b></td><td>${esc(typeLabel(r.receipt_type))}</td><td>${esc(r.carrier||'—')}</td><td><b>${kg(totalNet)}</b></td><td>${statusEl(topStage(group.map(g=>g.status)))}</td></tr>${childRows}`;
+   return `<tr class="groupRow" data-receipt="${r.receipt_id}" data-rtype="${r.receipt_type}"><td colspan="3"><b class="linkLike sortSpToggle" data-id="${r.receipt_id}" data-count="${group.length}">▸ ${group.length} σημεία</b></td><td>${esc(typeLabel(r.receipt_type))}</td><td>${esc(r.carrier||'—')}</td><td><b>${kg(totalNet)}</b></td><td><span class="grpStat">${statusEl(topStage(group.map(g=>g.status)))}</span></td></tr>${childRows}`;
   }
   return `<tr class="selectableRow sortingRow ${String(r.status||'').toUpperCase().includes('REVIEW')?'rowReview':''}" data-load="${r.load_id}" data-rtype="${r.receipt_type}"><td><b class="linkLike">${esc(r.order_number||r.receipt_number||'—')}</b></td><td>${esc(r.dpp_number||'')}</td><td>${esc(r.supplier||'—')}</td><td>${esc(typeLabel(r.receipt_type))}</td><td>${esc(r.carrier||'—')}</td><td><b>${kg(r.net_weight)}</b></td><td>${statusEl(r.status)}</td></tr>`;
  }).join('')||'<tr><td colspan="7" class="muted">Δεν υπάρχουν ταξινομήσεις.</td></tr>';
@@ -3925,6 +3925,8 @@ function renderSortingRows(rows){
   let willShow=false;
   document.querySelectorAll(`#sortingRows .childPointRow[data-group="${b.dataset.id}"]`).forEach(ctr=>{ctr.classList.toggle('hidden');willShow=!ctr.classList.contains('hidden')});
   b.textContent=(willShow?'▾ ':'▸ ')+b.dataset.count+' σημεία';
+  // ανοιχτή ομάδα: η κατάσταση φαίνεται μόνο στις γραμμές με αριθμό εντολής· κλειστή: όπως πριν
+  let gs=b.closest('tr').querySelector('.grpStat');if(gs)gs.style.display=willShow?'none':'';
  });
 }
 function renderSortingMonths(all){let by={};all.forEach(r=>{let k=(r.receipt_date||'').slice(0,7);if(k)(by[k]??=[]).push(r)});$('sortingMonthSummary').innerHTML=`<div class="tablewrap"><table><thead><tr><th>Μήνας</th><th>Ταξινομήσεις</th><th>Συνολικό βάρος</th></tr></thead><tbody>${Object.keys(by).sort().reverse().map(k=>`<tr class="selectableRow sortingMonthPick" data-sm="${k}"><td>${new Date(k+'-01T12:00:00').toLocaleDateString('el-GR',{month:'long',year:'numeric'})}</td><td>${by[k].length}</td><td>${kg(by[k].reduce((s,r)=>s+Number(r.net_weight||0),0))}</td></tr>`).join('')}</tbody></table></div>`;document.querySelectorAll('.sortingMonthPick').forEach(tr=>tr.onclick=()=>{let [y,m]=tr.dataset.sm.split('-').map(Number);sortingNav.day=`${y}-${String(m).padStart(2,'0')}-01`;sortingCalCursor=new Date(y,m-1,1);sortingMode='days';loadSortingReview()})}
