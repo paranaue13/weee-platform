@@ -1255,6 +1255,15 @@ body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
 .sfDD .sfNf button{margin-top:8px;height:36px;border:0;border-radius:999px;background:var(--accent,#2f5fc4);color:var(--on-accent,#fff);font-weight:500;cursor:pointer}
 .sfDD .sfErr{color:var(--neg,#a32d2d);font-size:12px;min-height:0}
 </style>
+<style id="sfFitLook">
+/* Φόρμα Ταξινόμησης: κυλά ΟΛΟ το περιεχόμενο της φόρμας (όχι λίστα μέσα σε παράθυρο) και το παράθυρο χωράει πάντα στην οθόνη */
+#sortingDetail.sortingPopup{overflow:auto!important;scrollbar-width:thin}
+#sortingDetail.sortingPopup>*{flex-shrink:0}
+#sortingDetail.sortingPopup>.tablewrap{flex-shrink:1}
+#sortingDetail::after{content:"";display:block;flex:none;height:14px}
+#sortingDetail .sfList.sortingCatWrap{max-height:none!important;overflow:visible!important}
+#sortingDetail .sfTh{top:var(--sfTop,0px)}
+</style>
 <style id="popupTheme">
 /* ===== ΕΝΙΑΙΑ ΕΜΦΑΝΙΣΗ ΟΛΩΝ ΤΩΝ ΠΑΡΑΘΥΡΩΝ (#floatingEditor, #receiptForm, #sortingDetail) -- ΜΟΝΟ εμφάνιση, ένα κεντρικό σημείο =====
    Νέο παράθυρο: αρκεί να χρησιμοποιεί αυτά τα containers/classes (floatPanelHeader/receiptPopupHeader/sortingPopupHeader, winCtl, floatPanelActions). */
@@ -5880,7 +5889,20 @@ const SF=(function(){
       else if(e.key==='ArrowUp'){e.preventDefault();moveFrom(row.dataset.c,-1)}
     });
   }
-  return {norm,cardHtml,bind,closeDD};
+  // Το παράθυρο δεν ξεπερνά ποτέ το κάτω άκρο της οθόνης (κυλά το περιεχόμενο) και η λίστα κολλά κάτω από την επικεφαλίδα.
+  function fitPopup(){
+    let sd=$('sortingDetail');if(!sd||sd.classList.contains('hidden'))return;
+    if(sd.classList.contains('popupMax')||sd.classList.contains('popupMin')){sd.style.maxHeight='';return}
+    let top=sd.getBoundingClientRect().top,v=Math.max(260,window.innerHeight-top-8)+'px';
+    if(sd.style.maxHeight!==v)sd.style.maxHeight=v;
+    let h=sd.querySelector('.sortingPopupHeader');if(h){let t=Math.round(h.getBoundingClientRect().height-16);sd.style.setProperty('--sfTop',Math.max(0,t)+'px')}
+  }
+  (function(){
+    let sd=document.getElementById('sortingDetail');if(!sd)return;
+    new MutationObserver(fitPopup).observe(sd,{attributes:true,attributeFilter:['class','style'],childList:true});
+    window.addEventListener('resize',fitPopup);
+  })();
+  return {norm,cardHtml,bind,closeDD,fitPopup};
 })();
 </script>
 </body></html>
