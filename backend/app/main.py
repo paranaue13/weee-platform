@@ -1,3 +1,4 @@
+import re
 import asyncio, logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
@@ -565,6 +566,38 @@ def list_media(include_inactive:bool=Query(default=False), db:Session=Depends(ge
     stmt=select(CollectionMedium)
     if not include_inactive: stmt=stmt.where(CollectionMedium.active==True)
     return db.scalars(stmt.order_by(CollectionMedium.code)).all()
+
+@app.get("/master/media/next-code")
+def media_next_code(type_id:str, code:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("sorting.perform"))):
+    """Μόνο ανάγνωση: προτεινόμενος επόμενος ελεύθερος αριθμός για ένα είδος μέσου. Λαμβάνει υπόψη ΟΛΑ τα μέσα (ενεργά, ανενεργά, DEMO)
+    και κάθε κωδικό που υπήρξε ποτέ στο ιστορικό ενεργειών (π.χ. μέσα που έχουν διαγραφεί), ώστε να μην ξαναχρησιμοποιείται αριθμός."""
+    import json as _json
+    mt=db.get(CollectionMediumType,type_id)
+    if not mt: raise HTTPException(404,"Άγνωστος τύπος μέσου")
+    media=db.scalars(select(CollectionMedium)).all()
+    taken={m.code for m in media}
+    mine=[m.code for m in media if m.type_id==type_id]
+    for ev in db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type=="collection_medium")).all():
+        try: nv=_json.loads(ev.new_values or "{}")
+        except Exception: nv={}
+        c=nv.get("code") if isinstance(nv,dict) else None
+        if c:
+            taken.add(c)
+            if nv.get("type")==mt.code: mine.append(c)
+    best=None;mx=0;pref={}
+    for c in mine:
+        r=re.match(r"^(\D*)(\d+)$",str(c))
+        if not r: continue
+        n=int(r.group(2)); mx=max(mx,n)
+        if not str(c).upper().startswith("DEMO"):
+            pref[(r.group(1),len(r.group(2)))]=pref.get((r.group(1),len(r.group(2))),0)+1
+    if pref: pre,ln=max(pref.items(),key=lambda x:x[1])[0]
+    else: pre,ln="",1
+    n=mx+1
+    cand=f"{pre}{str(n).zfill(ln)}"
+    while cand in taken:
+        n+=1; cand=f"{pre}{str(n).zfill(ln)}"
+    return {"code":cand,"taken":(code in taken) if code else False,"never_reuse":bool(mt.never_reuse_number)}
 
 @app.post("/master/media", response_model=schemas.MediumOut)
 def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
