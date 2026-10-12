@@ -5690,7 +5690,7 @@ const SF=(function(){
 
   function chipHtml(e){
     let m=C.media.find(x=>x.id===e.collection_medium_id);
-    return `<span class="sfEn${S.editing[e.weee_category_id]===e.id?' ed':''}" data-e="${e.id}" title="Πάτα για διόρθωση"><b>${esc2(m?m.code:(e.entry_type==='BULK'?'Χύμα':'—'))}</b> ${f1(entW(e))} kg${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}<span class="x" data-del="${e.id}" title="Διαγραφή">✕</span></span>`;
+    return `<span class="sfEn${S.editing[e.weee_category_id]===e.id?' ed':''}" data-e="${e.id}" title="Πάτα για διόρθωση"><b>${esc2(m?m.code:((e.entry_type==='BULK'||e.entry_type==='MEDIUM')?'Χύμα':'—'))}</b> ${f1(entW(e))} kg${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}<span class="x" data-del="${e.id}" title="Διαγραφή">✕</span></span>`;
   }
   const isF=c=>/^\d+$/.test(String(c.official_code||'').trim());      // ξένα υλικά (ΜΗ ΑΗΗΕ): κωδικοί μόνο με αριθμούς
   function rowHtml(c){
@@ -5745,14 +5745,10 @@ const SF=(function(){
     let body={weee_category_id:cid,collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:(old&&old.entry_type==='BULK')?'BULK':'MEDIUM',raw_weight:k,piece_count:pcs,notes:null};
     S.busy=true;
     try{
-      // Χύμα: ίδια λογική με σήμερα -- ΑΗΗΕ ενεργοποιημένο για χύμα: καταχώρηση τύπου BULK χωρίς μέσο (τεμάχια × μέσο βάρος)·
-      // αλλιώς δημιουργείται μέσο Χύμα με αυτόματο κωδικό BULK-… τη στιγμή της καταχώρησης.
+      // Χύμα: ΜΙΑ εγγραφή, χωρίς αριθμό και αποβαρό. ΑΗΗΕ ενεργοποιημένο για χύμα: τύπος BULK (τεμάχια × μέσο βάρος)·
+      // αλλιώς καταχώρηση χωρίς μέσο συλλογής.
       if(S.bulk[cid]){body.entry_type='BULK';body.collection_medium_id=null}
-      else if(S.bulkMed[cid]&&!editId){
-        let bt=C.medTypes.find(t=>t.code==='BULK');
-        let bm=await api('/sorting/'+C.loadId+'/media',{method:'POST',body:JSON.stringify({type_id:bt.id,code:null,tare_weight:null})});
-        C.media.push(bm);body.collection_medium_id=bm.id;
-      }
+      else if(S.bulkMed[cid]&&!editId){body.collection_medium_id=null}      // Χύμα: χωρίς μέσο, χωρίς αριθμό (δεν δημιουργείται πια BULK-…)
       let e=editId?await api('/sorting/entries/'+editId,{method:'PUT',body:JSON.stringify(body)}):await api('/sorting/'+C.loadId+'/entries',{method:'POST',body:JSON.stringify(body)});
       let wasEmpty=!S.entries.length;
       if(editId){let i=S.entries.findIndex(x=>x.id===editId);if(i>=0)S.entries[i]=e;else S.entries.push(e)}else S.entries.push(e);
@@ -5969,7 +5965,8 @@ const SF=(function(){
     C.rows=ctx.cats.filter(c=>!c.is_internal_subcategory);
     const outType=new Set((ctx.medTypes||[]).filter(t=>t.usage!=='IN').map(t=>t.id));       // Χρήση: Εξερχόμενο ή Και τα δύο
     C.outTypes=(ctx.medTypes||[]).filter(t=>t.usage!=='IN'&&t.active!==false);
-    C.pickable=ctx.media.filter(m=>m.active!==false&&outType.has(m.type_id));
+    let bulkTypeId=((ctx.medTypes||[]).find(t=>t.code==='BULK')||{}).id;
+    C.pickable=ctx.media.filter(m=>m.active!==false&&outType.has(m.type_id)&&m.type_id!==bulkTypeId);   // το Χύμα βγαίνει ΜΙΑ φορά (η επιλογή «Χύμα»), όχι ως BULK-…
     // κατάσταση: διατηρείται μόνο η αναζήτηση/διακόπτης ανάμεσα σε ξαναζωγραφίσματα της ίδιας ταξινόμησης
     let keep=(S&&S.loadId===ctx.loadId)?{q:S.q,only:S.only}:{q:'',only:false};
     S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH};

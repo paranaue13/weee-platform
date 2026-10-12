@@ -3005,6 +3005,7 @@ def weee_media_summary(db:Session=Depends(get_db), user=Depends(require_permissi
         c=cats.get(lot.weee_category_id)
         if not c: continue
         m=media.get(lot.collection_medium_id) if lot.collection_medium_id else None; t=types.get(m.type_id) if m else None
+        if t and t.code=='BULK': m=None; t=None      # το Χύμα είναι ΜΙΑ ομάδα (και οι παλιές εγγραφές BULK-… μετράνε ως Χύμα)
         key=t.id if t else 'NONE'; used[key]=(t.name_el if t else 'Χύμα / χωρίς μέσο', t.code if t else 'NONE')
         d=fam.setdefault(_weee_family_code(c),{}); d[key]=round(d.get(key,0)+float(lot.available_weight or 0),3)
     order=['BASKET_SMALL','BASKET_LARGE','INFOCYCLE_1','INFOCYCLE_2','SACK_1KG','SACK_2KG_UN','PALLET','BOX','BULK','NONE']
@@ -3021,9 +3022,10 @@ def weee_media_detail(official_code:str, type_key:str, db:Session=Depends(get_db
     for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all():
         if lot.weee_category_id not in ids: continue
         m=media.get(lot.collection_medium_id) if lot.collection_medium_id else None; t=types.get(m.type_id) if m else None
+        if t and t.code=='BULK': m=None; t=None      # Χύμα = μία γραμμή, χωρίς αριθμό
         if (t.id if t else 'NONE')!=type_key: continue
         if t: type_name=t.name_el
-        g=groups.setdefault(lot.collection_medium_id or 'NONE',{'medium_id':lot.collection_medium_id,'code':m.code if m else 'Χύμα','kg':0.0})
+        g=groups.setdefault(lot.collection_medium_id or 'NONE' if not (m is None) else 'NONE',{'medium_id':lot.collection_medium_id if m else None,'code':m.code if m else 'Χύμα','kg':0.0})
         g['kg']=round(g['kg']+float(lot.available_weight or 0),3)
     def natural(x):
         import re
