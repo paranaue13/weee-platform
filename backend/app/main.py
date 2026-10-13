@@ -693,16 +693,8 @@ def _next_medium_code(db:Session,mt)->str:
 
 def _next_code_for(db:Session,code3:str,year:int|None=None)->str:
     """ΕΝΑΣ μετρητής ανά (έτος, κωδικός) για όλες τις πηγές· δεν μειώνεται ποτέ. Μοναδικότητα από τη βάση."""
-    year=year or datetime.now().year; yy=year%100
-    row=db.get(models.CodeCounter,(year,code3))
-    if not row:
-        row=models.CodeCounter(year=year,code=code3,last_no=0); db.add(row); db.flush()
-    while True:
-        row.last_no=int(row.last_no or 0)+1
-        c=f"{yy:02d}-{code3}-{row.last_no:04d}"
-        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==c)): break
-    db.flush()
-    return c
+    from . import codes as _codes
+    return _codes.next_code_for(db,code3,year)
 
 def _content_code_for_category(db:Session,cat)->str:
     """Κωδικός περιεχομένου (3 γράμματα) μιας κατηγορίας ΑΗΗΕ· οι δικές μας υποκατηγορίες παίρνουν τον κωδικό του parent."""

@@ -41,23 +41,40 @@ def _period(now: datetime | None = None):
     return n.year, (n.month - 1) // 3 + 1, n.month
 
 
-def next_medium_code(db: Session, form: str, demo: bool) -> str:
-    """Μοναδικός κωδικός μέσου μιας χρήσης: P-000231 (παλέτα) / S-000187 (σάκος 1 και 2 kg). Η αρίθμηση δεν επαναχρησιμοποιείται·
-    τα DEMO έχουν ξεχωριστό πρόθεμα και δική τους αρίθμηση ώστε να μη «χάνονται» αριθμοί των πραγματικών."""
-    kind = "P" if form == "PALLET" else "S"
-    prefix = ("DEMO-" if demo else "") + kind
-    key = f"matmedium.seq.{prefix}"
-    row = db.scalar(select(AppSetting).where(AppSetting.key == key).with_for_update())
-    if not row:
+def material_content_code(db: Session, mat) -> str:
+    """Κωδικός περιεχομένου (3 γράμματα) από την κατηγορία αποθήκης του υλικού· χωρίς κατηγορία -> NCT."""
+    sg = db.get(StorageGroup, mat.storage_group_id) if mat is not None and getattr(mat, "storage_group_id", None) else None
+    m = db.get(models.ContentCodeMap, ("SGROUP", sg.name)) if sg is not None else None
+    if not m:
+        m = db.get(models.ContentCodeMap, ("SGROUP", "Χωρίς κατηγορία"))
+    return m.code if m else "NCT"
+
+
+def _demo_seq_code(db: Session, code3: str, consume: bool) -> str:
+    """DEMO: χωριστή αρίθμηση ώστε να μη «χάνονται» αριθμοί των πραγματικών· ίδια μορφή με πρόθεμα DEMO-."""
+    yy = datetime.now().year % 100
+    key = f"matmedium.seq.DEMO-{code3}"
+    row = db.scalar(select(AppSetting).where(AppSetting.key == key).with_for_update()) if consume else db.scalar(select(AppSetting).where(AppSetting.key == key))
+    if consume and not row:
         row = AppSetting(key=key, value="0"); db.add(row); db.flush()
-    n = int(row.value or 0)
+    n = int(row.value or 0) if row else 0
     while True:
         n += 1
-        code = f"{prefix}-{n:06d}"
+        code = f"DEMO-{yy:02d}-{code3}-{n:04d}"
         if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
             break
-    row.value = str(n)
+    if consume:
+        row.value = str(n)
     return code
+
+
+def next_medium_code(db: Session, form: str, demo: bool, content_code: str = "NCT") -> str:
+    """Μοναδικός κωδικός μέσου μιας χρήσης: P-000231 (παλέτα) / S-000187 (σάκος 1 και 2 kg). Η αρίθμηση δεν επαναχρησιμοποιείται·
+    τα DEMO έχουν ξεχωριστό πρόθεμα και δική τους αρίθμηση ώστε να μη «χάνονται» αριθμοί των πραγματικών."""
+    if demo:
+        return _demo_seq_code(db, content_code, True)
+    from . import codes as _codes
+    return _codes.next_code_for(db, content_code)       # κοινός μετρητής (έτος, κωδικός περιεχομένου)
 
 
 def _types(db: Session) -> dict:
@@ -100,11 +117,11 @@ def _net(form: str, gross, tare, net):
     return n
 
 
-def _new_medium(db: Session, form: str, tare, demo: bool, status: str):
+def _new_medium(db: Session, form: str, tare, demo: bool, status: str, mat=None):
     if form == "BULK":
         return None
     t = _types(db)[FORMS[form]]
-    m = CollectionMedium(type_id=t.id, code=next_medium_code(db, form, demo), tare_weight=tare, status=status, active=True)
+    m = CollectionMedium(type_id=t.id, code=next_medium_code(db, form, demo, material_content_code(db, mat)), tare_weight=tare, status=status, active=True)
     db.add(m); db.flush()
     return m
 
@@ -194,18 +211,16 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
 
 
 @router.get("/next-code")
-def next_code_preview(form: str, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
+def next_code_preview(form: str, material_id: str | None = None, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
     """Ο κωδικός που θα δοθεί στο επόμενο μέσο μιας χρήσης (προεπισκόπηση, δεν δεσμεύεται)."""
     if form not in ("PALLET", "SACK_1KG", "SACK_2KG"):
         return {"code": None}
-    prefix = ("DEMO-" if is_demo(x_demo) else "") + ("P" if form == "PALLET" else "S")
-    row = db.scalar(select(AppSetting).where(AppSetting.key == f"matmedium.seq.{prefix}"))
-    n = int(row.value or 0) if row else 0
-    while True:
-        n += 1
-        code = f"{prefix}-{n:06d}"
-        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
-            return {"code": code}
+    mat = db.get(Material, material_id) if material_id else None
+    cc = material_content_code(db, mat)
+    if is_demo(x_demo):
+        return {"code": _demo_seq_code(db, cc, False)}
+    from . import codes as _codes
+    return {"code": _codes.preview_code_for(db, cc)}
 
 
 @router.post("/export")
@@ -235,7 +250,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
         net = _net(form, data.gross, tare, data.net)
         gross = data.gross if form != "BULK" else None
         counted = net
-        medium = _new_medium(db, form, tare, demo, "READY_STORAGE")
+        medium = _new_medium(db, form, tare, demo, "READY_STORAGE", mat)
     lot = ReadyMaterialLot(lot_number=_lot_number(db, mat, demo), material_id=mat.id, output_form=("CONTAINER" if medium else "BULK"),
                            collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
@@ -261,7 +276,7 @@ def add_inventory(data: InventoryIn, db: Session = Depends(get_db), user: User =
     tare = _tare_for(db, data.form, data.tare)
     net = _net(data.form, data.gross, tare, data.net)
     y, q, mo = _period()
-    medium = _new_medium(db, data.form, tare, demo, "INVENTORY")
+    medium = _new_medium(db, data.form, tare, demo, "INVENTORY", mat)
     e = MaterialInventoryEntry(material_id=mat.id, storage_group_id=mat.storage_group_id, collection_medium_id=medium.id if medium else None, form=data.form,
                                gross_weight=data.gross if data.form != "BULK" else None, tare_weight=tare, net_weight=net, year=y, quarter=q, month=mo,
                                status="COUNTED", is_demo=demo, created_by=user.id)
@@ -421,7 +436,7 @@ def delete_demo(db: Session = Depends(get_db), user: User = Depends(require_perm
     db.execute(AppSetting.__table__.delete().where(AppSetting.key.like("matmedium.seq.DEMO-%")))
     db.flush()
     n_media = 0
-    for m in db.scalars(select(CollectionMedium).where((CollectionMedium.code.like("DEMO-P-%")) | (CollectionMedium.code.like("DEMO-S-%")))).all():
+    for m in db.scalars(select(CollectionMedium).where((CollectionMedium.code.like("DEMO-P-%")) | (CollectionMedium.code.like("DEMO-S-%")) | (CollectionMedium.code.op("GLOB")("DEMO-[0-9][0-9]-*")))).all():
         db.delete(m); n_media += 1
     db.commit()
     return {"lots": len(lot_ids), "inventory": n_inv, "media": n_media}

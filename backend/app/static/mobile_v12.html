@@ -964,7 +964,7 @@ async function mtLoadStep3(){
 }
 async function mtPickForm(form){
   let w=mt.w;w.form=form;w.inv=null;w.gross='';w.tare='';w.net='';w.total='';mt.nextCode=null;
-  try{let r=await api('/mat/next-code?form='+form);mt.nextCode=r.code}catch(e){}
+  try{let r=await api('/mat/next-code?form='+form+(w.mat?'&material_id='+encodeURIComponent(w.mat):''));mt.nextCode=r.code}catch(e){}
   mtRender();
 }
 function mtBind(){
