@@ -980,6 +980,23 @@ def update_container(item_id:str,data:schemas.ContainerCreate,db:Session=Depends
     x.container_number=data.container_number; x.owner_organization_id=data.owner_organization_id; x.tare_weight=data.tare_weight; x.notes=data.notes
     write_audit(db,user,"container",x.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(x); return _container_public(x)
+class _ContainerTransfer(schemas.BaseModel):
+    owner_organization_id: str
+
+@app.post("/master/containers/{item_id}/transfer", response_model=schemas.ContainerOut)
+def transfer_container(item_id:str, data:_ContainerTransfer, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    """Μεταφορά ενός container σε άλλον μεταφορέα (αλλάζει ΜΟΝΟ ο ιδιοκτήτης· ο αριθμός και το απόβαρο μένουν)."""
+    x=db.get(ContainerAsset,item_id)
+    if not x: raise HTTPException(404,"Ο κάδος δεν βρέθηκε")
+    org=db.get(models.Organization,data.owner_organization_id)
+    if not org: raise HTTPException(404,"Ο μεταφορέας δεν βρέθηκε")
+    old=x.owner_organization_id
+    if old!=org.id:
+        x.owner_organization_id=org.id
+        write_audit(db,user,"container",x.id,"TRANSFER",old={"owner_organization_id":old},new={"owner_organization_id":org.id},reason="Μεταφορά container σε άλλον μεταφορέα (Νέα Παραλαβή)")
+        db.commit(); db.refresh(x)
+    return _container_public(x)
+
 @app.delete("/master/containers/{item_id}")
 def delete_container_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
     x=db.get(ContainerAsset,item_id)
