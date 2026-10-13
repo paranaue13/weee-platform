@@ -1024,6 +1024,12 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #mediaM .medEditCode{width:120px;font-weight:600}
 #mediaM .medEditTare{width:84px;text-align:right}
 #mediaM .medEdit:focus{outline:2px solid var(--accent);outline-offset:-1px}
+#mediaM .medIc{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--accent);cursor:pointer;font-size:14px}
+#mediaM .medIcTxt{width:auto;border-radius:999px;padding:0 10px;font-size:12px}
+#mediaM .medFixTare{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.medMoveList{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.medMoveRow{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:14px}
+.medMoveRow:last-child{border-bottom:0}.medMoveRow:hover{background:var(--hover)}
 #mediaM .medHdSp{flex:1}
 #mediaM .medCk{width:38px;text-align:center}
 #mediaM .medTrash{width:50px;text-align:right}
@@ -3903,10 +3909,10 @@ function paintMediumDet(){
  let anyUsed=all.some(x=>mediumInUse(x)),selUsed=rows.concat(all).some(x=>medSel.has(x.id)&&mediumInUse(x));
  let allChecked=rows.length>0&&rows.every(x=>medSel.has(x.id));
  let body=isBulk?`<tr><td></td><td>${esc(t.name_el)}</td><td>—</td><td>—</td><td><span class="pill green">Ελεύθερο</span></td><td></td></tr>`
-  :(rows.map(x=>{let used=mediumInUse(x);return `<tr class="medMaster${medSel.has(x.id)?' sel':''}" data-id="${x.id}"><td class="medCk"><input type="checkbox" data-ck="${x.id}" ${medSel.has(x.id)?'checked':''}></td><td>${esc(t.name_el)}</td><td><input class="medEdit medEditCode" data-f="code" data-id="${x.id}" value="${esc(x.code||'')}" autocomplete="off"></td><td><input class="medEdit medEditTare" data-f="tare" data-id="${x.id}" inputmode="decimal" placeholder="—" value="${x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):''}" autocomplete="off"></td><td>${used?'<span class="pill yellow">Σε χρήση</span>':'<span class="pill green">Ελεύθερο</span>'}</td><td class="medTrash"><button type="button" class="medDel" data-del="${x.id}" ${used?'disabled title="Σε χρήση: δεν διαγράφεται"':'title="Διαγραφή"'}>🗑</button></td></tr>`}).join('')||'<tr><td colspan="6" class="muted">Δεν υπάρχουν μέσα στην επιλεγμένη κατηγορία.</td></tr>');
+  :(rows.map(x=>{let used=mediumInUse(x);return `<tr class="medMaster${medSel.has(x.id)?' sel':''}" data-id="${x.id}"><td class="medCk"><input type="checkbox" data-ck="${x.id}" ${medSel.has(x.id)?'checked':''}></td><td>${esc(t.name_el)}</td><td><input class="medEdit medEditCode" data-f="code" data-id="${x.id}" value="${esc(x.code||'')}" autocomplete="off"></td><td>${t.tare_fixed?(x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):'—'):`<input class="medEdit medEditTare" data-f="tare" data-id="${x.id}" inputmode="decimal" placeholder="—" value="${x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):''}" autocomplete="off">`}</td><td>${used?'<span class="pill yellow">Σε χρήση</span>':'<span class="pill green">Ελεύθερο</span>'}</td><td class="medTrash"><button type="button" class="medDel" data-del="${x.id}" ${used?'disabled title="Σε χρήση: δεν διαγράφεται"':'title="Διαγραφή"'}>🗑</button></td></tr>`}).join('')||'<tr><td colspan="6" class="muted">Δεν υπάρχουν μέσα στην επιλεγμένη κατηγορία.</td></tr>');
  let delTypeDis=isBulk||anyUsed;
- let bar=medSel.size?`<div class="medBulkBar"><b>${medSel.size} επιλεγμένα</b><span class="medBulkTare">Αποβαρό για όλα [kg] <input id="medBulkTare" inputmode="decimal" placeholder="kg"> <button type="button" class="btn alt" id="medBulkApply">Εφαρμογή</button></span><span class="medBulkSp"></span>${selUsed?'<span class="muted">Περιλαμβάνονται μέσα σε χρήση: δεν διαγράφονται</span>':''}<button type="button" class="btn danger" id="medBulkDel" ${selUsed?'disabled':''}>Διαγραφή επιλεγμένων</button></div>`:'';
- box.innerHTML=`<div class="medDetHead"><h3>${esc(t.name_el)}</h3><span class="muted">Χρήση</span><div class="prodSegment medUsageSeg">${['IN','OUT','BOTH'].map(u=>`<button type="button" data-u="${u}" class="${usage===u?'active':''}">${MED_USAGE_LBL[u]}</button>`).join('')}</div><span class="medHdSp"></span><button type="button" class="btn alt medDelType" id="medDelType" ${delTypeDis?'disabled':''} title="${isBulk?'Το Χύμα δεν διαγράφεται':(anyUsed?'Έχει μέσα σε χρήση: δεν διαγράφεται':'Διαγραφή όλου του είδους')}">🗑 Διαγραφή είδους</button></div>${bar}
+ let bar=medSel.size?`<div class="medBulkBar"><b>${medSel.size} επιλεγμένα</b>${t.tare_fixed?'':'<span class="medBulkTare">Αποβαρό για όλα [kg] <input id="medBulkTare" inputmode="decimal" placeholder="kg"> <button type="button" class="btn alt" id="medBulkApply">Εφαρμογή</button></span>'}<button type="button" class="btn alt" id="medBulkMove">Μετακίνηση σε άλλον τύπο…</button><span class="medBulkSp"></span>${selUsed?'<span class="muted">Περιλαμβάνονται μέσα σε χρήση: δεν διαγράφονται</span>':''}<button type="button" class="btn danger" id="medBulkDel" ${selUsed?'disabled':''}>Διαγραφή επιλεγμένων</button></div>`:'';
+ box.innerHTML=`<div class="medDetHead"><h3>${esc(t.name_el)}</h3>${isBulk?'':'<button type="button" class="medIc" id="medRename" title="Μετονομασία τύπου">✎</button>'}<span class="muted">Χρήση</span><div class="prodSegment medUsageSeg">${['IN','OUT','BOTH'].map(u=>`<button type="button" data-u="${u}" class="${usage===u?'active':''}">${MED_USAGE_LBL[u]}</button>`).join('')}</div>${t.tare_fixed?`<span class="muted medFixTare">Σταθερό αποβαρό: <b>${t.default_tare_weight!=null?esc(String(Number(t.default_tare_weight)).replace('.',',')):'—'} kg</b> <button type="button" class="medIc medIcTxt" id="medTypeTare">Αλλαγή</button></span>`:''}<span class="medHdSp"></span><button type="button" class="btn alt medDelType" id="medDelType" ${delTypeDis?'disabled':''} title="${isBulk?'Το Χύμα δεν διαγράφεται':(anyUsed?'Έχει μέσα σε χρήση: δεν διαγράφεται':'Διαγραφή όλου του είδους')}">🗑 Διαγραφή είδους</button></div>${bar}
   <div class="registryTableWrap"><table class="registryTable"><thead><tr><th class="medCk"><input type="checkbox" id="medCkAll" ${allChecked?'checked':''} ${isBulk?'disabled':''}></th><th>Τύπος</th><th>Αριθμός / Κωδικός</th><th>Αποβαρό (kg)</th><th>Κατάσταση</th><th class="medCountTh">${isBulk?'Χωρίς αριθμό/αποβαρό':rows.length+' μέσα'}</th></tr></thead><tbody>${body}</tbody></table></div>`;
  const reload=async()=>{await loadMasterMedia()};
  box.querySelectorAll('.medUsageSeg button').forEach(b=>b.onclick=async()=>{
@@ -3916,6 +3922,40 @@ function paintMediumDet(){
  box.querySelectorAll('.medMaster').forEach(el=>el.onclick=e=>{if(e.target.closest('.medCk,.medTrash,.medEdit'))return;editMediumPopup(mediumRowsCache.find(x=>x.id===el.dataset.id))});
  box.querySelectorAll('[data-ck]').forEach(c=>c.onchange=()=>{c.checked?medSel.add(c.dataset.ck):medSel.delete(c.dataset.ck);paintMediumDet()});
  let ca=$('medCkAll');if(ca)ca.onchange=()=>{rows.forEach(x=>{ca.checked?medSel.add(x.id):medSel.delete(x.id)});paintMediumDet()};
+ // ✎ μετονομασία τύπου
+ let rn=$('medRename');if(rn)rn.onclick=()=>{
+  openFloat('Μετονομασία τύπου',`<div class="formgrid"><label class="span2">Νέο όνομα τύπου<input id="fpTypeName" value="${esc(t.name_el)}" autocomplete="off"></label></div><div class="error" id="fpTypeErr"></div><div class="depConfirmActions"><button type="button" class="btn alt" id="fpTypeCancel">Άκυρο</button><button type="button" class="btn" id="fpTypeSave">Αποθήκευση</button></div>`);
+  $('fpTypeCancel').onclick=()=>$('floatingEditor').classList.add('hidden');
+  $('fpTypeSave').onclick=async()=>{let v=$('fpTypeName').value.trim();if(!v){$('fpTypeErr').textContent='Γράψε το νέο όνομα.';return}
+   if(v===t.name_el){$('floatingEditor').classList.add('hidden');return}
+   try{await api('/master/medium-types/'+t.id+'/name',{method:'PUT',body:JSON.stringify({name_el:v})});$('floatingEditor').classList.add('hidden');await reload()}catch(err){$('fpTypeErr').textContent=err.message||String(err)}};
+  setTimeout(()=>{let i=$('fpTypeName');if(i){i.focus();i.select()}},50);
+ };
+ // αλλαγή σταθερού αποβάρου τύπου (αλλάζει όλα τα μέσα του)
+ let tt=$('medTypeTare');if(tt)tt.onclick=()=>{
+  openFloat('Σταθερό αποβαρό τύπου',`<div class="formgrid"><label class="span2">Αποβαρό του τύπου «${esc(t.name_el)}» (kg)<input id="fpTypeTare" inputmode="decimal" value="${t.default_tare_weight!=null?esc(String(Number(t.default_tare_weight)).replace('.',',')):''}" autocomplete="off"></label></div><div class="muted" style="margin:8px 0">Θα αλλάξει το αποβαρό και των ${all.length} μέσων του τύπου.${anyUsed?' Ορισμένα περιέχουν υλικό: τα ήδη καταχωρημένα kg δεν αλλάζουν, οι επόμενες ζυγίσεις θα γίνονται με το νέο αποβαρό.':''}</div><div class="error" id="fpTypeErr"></div><div class="depConfirmActions"><button type="button" class="btn alt" id="fpTypeCancel">Άκυρο</button><button type="button" class="btn" id="fpTypeSave">Αποθήκευση</button></div>`);
+  $('fpTypeCancel').onclick=()=>$('floatingEditor').classList.add('hidden');
+  $('fpTypeSave').onclick=async()=>{let n=Number(String($('fpTypeTare').value).trim().replace(',','.'));if(!Number.isFinite(n)||n<0){$('fpTypeErr').textContent='Γράψε έγκυρο αποβαρό (kg).';return}
+   try{await api('/master/medium-types/'+t.id+'/tare',{method:'PUT',body:JSON.stringify({default_tare_weight:n})});$('floatingEditor').classList.add('hidden');await reload()}catch(err){$('fpTypeErr').textContent=err.message||String(err)}};
+ };
+ // μετακίνηση επιλεγμένων μέσων σε άλλον τύπο
+ let mv=$('medBulkMove');if(mv)mv.onclick=()=>{
+  let targets=mediumTypesAll.filter(x=>x.active!==false&&x.code!=='BULK'&&x.id!==t.id);
+  openFloat('Μετακίνηση '+medSel.size+' μέσων σε άλλον τύπο',`<div class="medMoveList">${targets.map((x,i)=>`<label class="medMoveRow"><input type="radio" name="fpMoveTo" value="${x.id}" ${i===0?'checked':''}> <span>${esc(x.name_el)}</span>${x.tare_fixed?`<small class="muted">σταθερό αποβαρό ${esc(String(Number(x.default_tare_weight)).replace('.',','))} kg</small>`:''}</label>`).join('')}<label class="medMoveRow"><input type="radio" name="fpMoveTo" value="__new" ${targets.length?'':'checked'}> <span>＋ Νέος τύπος…</span></label></div><div id="fpMoveNew" class="hidden" style="margin-top:8px"><label>Όνομα νέου τύπου<input id="fpMoveName" placeholder="π.χ. Κλωβός" autocomplete="off"></label><div class="muted" style="margin-top:4px">Ο νέος τύπος παίρνει τη Χρήση «${MED_USAGE_LBL[usage]}».</div></div><div class="error" id="fpMoveErr"></div><div class="depConfirmActions"><button type="button" class="btn alt" id="fpMoveCancel">Άκυρο</button><button type="button" class="btn" id="fpMoveGo">Μετακίνηση</button></div>`);
+  const sync=()=>{let v=(document.querySelector('input[name=fpMoveTo]:checked')||{}).value;$('fpMoveNew').classList.toggle('hidden',v!=='__new')};
+  document.querySelectorAll('input[name=fpMoveTo]').forEach(r=>r.onchange=sync);sync();
+  $('fpMoveCancel').onclick=()=>$('floatingEditor').classList.add('hidden');
+  $('fpMoveGo').onclick=async()=>{
+   let v=(document.querySelector('input[name=fpMoveTo]:checked')||{}).value;if(!v)return;
+   let tg=mediumTypesAll.find(x=>x.id===v),inUse=[...medSel].some(id=>mediumInUse(mediumRowsCache.find(x=>x.id===id)));
+   try{
+    if(v==='__new'){let nm=$('fpMoveName').value.trim();if(!nm){$('fpMoveErr').textContent='Γράψε όνομα νέου τύπου.';return}
+     let nt=await api('/master/medium-types',{method:'POST',body:JSON.stringify({name_el:nm,usage,tare_fixed:false})});v=nt.id;tg=nt}
+    if(tg&&tg.tare_fixed&&inUse&&!confirm(MED_TARE_WARN))return;
+    let r=await api('/master/media/move',{method:'POST',body:JSON.stringify({ids:[...medSel],target_type_id:v})});
+    medSel=new Set();$('floatingEditor').classList.add('hidden');await reload();selectedMediumType=mediumTypesAll.find(x=>x.id===v)||selectedMediumType;renderMediumList();
+   }catch(err){$('fpMoveErr').textContent=err.message||String(err)}};
+ };
  // επεξεργασία επιτόπου: αποθήκευση όταν φεύγει ο δρομέας από το πεδίο (και για μέσα σε χρήση)
  box.querySelectorAll('.medEdit').forEach(inp=>{
   const orig=inp.value;
