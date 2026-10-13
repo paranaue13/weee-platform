@@ -388,8 +388,12 @@ def deactivate_organization(organization_id:str, db:Session=Depends(get_db), use
 def purge_organization(organization_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     obj=db.get(Organization,organization_id)
     if not obj: raise HTTPException(404,"Η εταιρεία δεν βρέθηκε")
-    used=db.scalar(select(InboundLoad.id).where(InboundLoad.supplier_id==organization_id).limit(1)) or db.scalar(select(InboundTrip.id).where(InboundTrip.carrier_id==organization_id).limit(1))
-    if used: raise HTTPException(409,"Η εγγραφή έχει χρησιμοποιηθεί. Χρησιμοποίησε «Μη ενεργό» για να διατηρηθεί το ιστορικό.")
+    n_trips=db.scalar(select(func.count()).select_from(InboundTrip).where(InboundTrip.carrier_id==organization_id)) or 0
+    n_loads=db.scalar(select(func.count()).select_from(InboundLoad).where(InboundLoad.supplier_id==organization_id)) or 0
+    if n_trips:
+        raise HTTPException(409,f"Ο μεταφορέας «{obj.legal_name}» έχει {n_trips} παραλαβές και δεν μπορεί να διαγραφεί οριστικά, για να μη χαθεί το ιστορικό τους. Χρησιμοποίησε «Μη ενεργό» (φεύγει από τις λίστες επιλογής αλλά κρατιέται το ιστορικό) ή «Συγχώνευση» με άλλον μεταφορέα.")
+    if n_loads:
+        raise HTTPException(409,f"Η εγγραφή «{obj.legal_name}» έχει {n_loads} παραλαβές ως προμηθευτής και δεν μπορεί να διαγραφεί οριστικά. Χρησιμοποίησε «Μη ενεργό» ή «Συγχώνευση».")
     db.execute(models.organization_roles.delete().where(models.organization_roles.c.organization_id==organization_id)); db.delete(obj); db.commit(); return {"deleted":True,"id":organization_id}
 
 @app.post("/master/organizations/{organization_id}/activate")
