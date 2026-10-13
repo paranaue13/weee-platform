@@ -224,8 +224,13 @@ def seed(db: Session):
             else:
                 obj.tare_weight=row.get("tare_kg"); obj.active=True
     ctr_path=data_dir / "container_registry.json"
-    if ctr_path.exists():
-        for row in json.loads(ctr_path.read_text(encoding="utf-8")):
+    # Η εισαγωγή μητρώου γίνεται μία φορά ανά έκδοση (ίδιος δείκτης με το /master/container-registry)·
+    # αλλιώς κάθε επανεκκίνηση ξαναδημιουργούσε μεταφορείς που έχουν συγχωνευθεί/διαγραφεί και τα containers τους.
+    from . import models as _m
+    _ctr_rows=json.loads(ctr_path.read_text(encoding="utf-8")) if ctr_path.exists() else []
+    _ctr_marker=db.scalar(select(_m.AppSetting).where(_m.AppSetting.key=='data.container_registry.import_revision'))
+    if ctr_path.exists() and not (_ctr_marker and _ctr_marker.value==f"container_registry_v1_{len(_ctr_rows)}"):
+        for row in _ctr_rows:
             carrier=str(row.get("carrier","")).strip(); code=str(row.get("code","")).strip()
             if not carrier or not code: continue
             org=db.scalar(select(Organization).where(Organization.legal_name==carrier))
