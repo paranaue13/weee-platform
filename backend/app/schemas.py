@@ -248,6 +248,23 @@ class MediumTypeOut(MediumTypeCreate):
     id: str
     active: bool
     usage: str = "BOTH"
+    tare_fixed: bool = False
+
+class MediumTypeNew(BaseModel):
+    name_el: str
+    usage: str = "OUT"
+    tare_fixed: bool = False
+    default_tare_weight: Decimal|None = None
+
+class MediumTypeRename(BaseModel):
+    name_el: str
+
+class MediumTypeTare(BaseModel):
+    default_tare_weight: Decimal
+
+class MediumMove(BaseModel):
+    ids: list[str]
+    target_type_id: str
 
 class MediumTypeUsageIn(BaseModel):
     usage: str

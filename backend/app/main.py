@@ -111,6 +111,10 @@ async def lifespan(app: FastAPI):
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_type_code ON collection_media (type_id, code)"))
         if "collection_medium_types" in tables:
             mt_cols={c["name"] for c in inspect(engine).get_columns("collection_medium_types")}
+            if "tare_fixed" not in mt_cols:
+                conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN tare_fixed BOOLEAN DEFAULT 0 NOT NULL"))
+                # οι σάκοι 1kg/2kg είχαν ήδη στάνταρ αποβαρό: γίνονται «σταθερό αποβαρό»
+                conn.execute(text("UPDATE collection_medium_types SET tare_fixed=1 WHERE code IN ('SACK_1KG','SACK_2KG_UN') AND default_tare_weight IS NOT NULL"))
             if "usage" not in mt_cols:
                 conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN usage VARCHAR(10) DEFAULT 'BOTH'"))
                 conn.execute(text("UPDATE collection_medium_types SET usage='BOTH'"))
@@ -631,12 +635,96 @@ def list_media(include_inactive:bool=Query(default=False), db:Session=Depends(ge
     for r in rows: r.in_use=r.id in used
     return rows
 
+def _temp_medium_code(db:Session,type_id:str)->str:
+    mx=0
+    for c in db.scalars(select(CollectionMedium.code).where(CollectionMedium.type_id==type_id,CollectionMedium.code.like("?%"))).all():
+        try: mx=max(mx,int(str(c)[1:]))
+        except ValueError: pass
+    return f"?{mx+1}"
+
+def _type_name_taken(db:Session,name:str,exclude_id:str|None=None)->bool:
+    n=name.strip().lower()
+    return any(t.id!=exclude_id and (t.name_el or "").strip().lower()==n for t in db.scalars(select(CollectionMediumType)).all())
+
+def _set_setting(db:Session,key:str,value:str):
+    row=db.scalar(select(AppSetting).where(AppSetting.key==key))
+    if row: row.value=value
+    else: db.add(AppSetting(key=key,value=value))
+
+@app.post("/master/medium-types", response_model=schemas.MediumTypeOut)
+def create_medium_type(data:schemas.MediumTypeNew, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    name=(data.name_el or "").strip()
+    if not name: raise HTTPException(422,"Γράψε όνομα τύπου")
+    if data.usage not in ("IN","OUT","BOTH"): raise HTTPException(422,"Μη έγκυρη χρήση")
+    if _type_name_taken(db,name): raise HTTPException(409,"Υπάρχει ήδη τύπος με αυτό το όνομα")
+    if data.tare_fixed and (data.default_tare_weight is None or data.default_tare_weight<0): raise HTTPException(422,"Γράψε το σταθερό αποβαρό του τύπου")
+    import uuid as _uuid
+    t=CollectionMediumType(code="CUSTOM_"+_uuid.uuid4().hex[:8].upper(),name_el=name,usage=data.usage,tare_fixed=bool(data.tare_fixed),
+        default_tare_weight=data.default_tare_weight if data.tare_fixed else None,requires_unique_number=True,never_reuse_number=False,active=True)
+    db.add(t); db.flush()
+    write_audit(db,user,"collection_medium_type",t.id,"CREATE",new={"name_el":name,"usage":t.usage,"tare_fixed":t.tare_fixed,"default_tare_weight":t.default_tare_weight})
+    db.commit(); db.refresh(t); return t
+
+@app.put("/master/medium-types/{type_id}/name", response_model=schemas.MediumTypeOut)
+def rename_medium_type(type_id:str, data:schemas.MediumTypeRename, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    t=db.get(CollectionMediumType,type_id)
+    if not t: raise HTTPException(404,"Άγνωστος τύπος μέσου")
+    if t.code=="BULK": raise HTTPException(409,"Το Χύμα δεν μετονομάζεται")
+    name=(data.name_el or "").strip()
+    if not name: raise HTTPException(422,"Γράψε το νέο όνομα")
+    if _type_name_taken(db,name,t.id): raise HTTPException(409,"Υπάρχει ήδη τύπος με αυτό το όνομα")
+    old=t.name_el; t.name_el=name
+    _set_setting(db,"medium_type.name."+t.code,name)      # ώστε να μη γυρίσει στο αρχικό όνομα μετά από επανεκκίνηση
+    write_audit(db,user,"collection_medium_type",t.id,"RENAME",old={"name_el":old},new={"name_el":name})
+    db.commit(); db.refresh(t); return t
+
+@app.put("/master/medium-types/{type_id}/tare", response_model=schemas.MediumTypeOut)
+def set_medium_type_tare(type_id:str, data:schemas.MediumTypeTare, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    t=db.get(CollectionMediumType,type_id)
+    if not t: raise HTTPException(404,"Άγνωστος τύπος μέσου")
+    if not t.tare_fixed: raise HTTPException(409,"Ο τύπος δεν έχει σταθερό αποβαρό: το αποβαρό ορίζεται ανά μέσο")
+    if data.default_tare_weight is None or data.default_tare_weight<0: raise HTTPException(422,"Μη έγκυρο αποβαρό")
+    old=t.default_tare_weight; t.default_tare_weight=data.default_tare_weight
+    n=0
+    for m in db.scalars(select(CollectionMedium).where(CollectionMedium.type_id==t.id)).all():
+        if m.tare_weight!=data.default_tare_weight:
+            write_audit(db,user,"collection_medium",m.id,"UPDATE",old={"tare_weight":m.tare_weight},new={"tare_weight":data.default_tare_weight},reason="Αλλαγή σταθερού αποβάρου τύπου")
+            m.tare_weight=data.default_tare_weight; n+=1
+    write_audit(db,user,"collection_medium_type",t.id,"UPDATE_TARE",old={"default_tare_weight":old},new={"default_tare_weight":data.default_tare_weight,"media_updated":n})
+    db.commit(); db.refresh(t); return t
+
+@app.post("/master/media/move")
+def move_media(data:schemas.MediumMove, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    tgt=db.get(CollectionMediumType,data.target_type_id)
+    if not tgt or not tgt.active: raise HTTPException(404,"Άγνωστος τύπος προορισμού")
+    if tgt.code=="BULK": raise HTTPException(409,"Το Χύμα δεν είναι προορισμός")
+    ids=list(dict.fromkeys(data.ids))
+    ms=db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(ids))).all()
+    if not ms: raise HTTPException(404,"Δεν βρέθηκαν μέσα")
+    ms=[m for m in ms if m.type_id!=tgt.id]
+    if not ms: raise HTTPException(409,"Τα μέσα ανήκουν ήδη σε αυτόν τον τύπο")
+    src_types={t.id:t for t in db.scalars(select(CollectionMediumType).where(CollectionMediumType.id.in_({m.type_id for m in ms}))).all()}
+    if any((src_types.get(m.type_id) and src_types[m.type_id].code=="BULK") for m in ms): raise HTTPException(409,"Τα μέσα Χύμα δεν μετακινούνται")
+    existing={c for c in db.scalars(select(CollectionMedium.code).where(CollectionMedium.type_id==tgt.id)).all()}
+    clash=[m.code for m in ms if m.code in existing]
+    if clash: raise HTTPException(409,"Στον τύπο προορισμού υπάρχει ήδη μέσο με τον ίδιο κωδικό ("+", ".join(clash[:8])+"). Άλλαξε πρώτα τον κωδικό.")
+    dup=[c for c in {m.code for m in ms} if sum(1 for m in ms if m.code==c)>1]
+    if dup: raise HTTPException(409,"Μέσα με τον ίδιο κωδικό ("+", ".join(dup[:8])+") δεν μπορούν να πάνε μαζί στον ίδιο τύπο. Άλλαξε πρώτα τον κωδικό.")
+    for m in ms:
+        old={"type_id":m.type_id,"tare_weight":m.tare_weight}
+        m.type_id=tgt.id
+        if tgt.tare_fixed: m.tare_weight=tgt.default_tare_weight
+        write_audit(db,user,"collection_medium",m.id,"UPDATE",old=old,new={"type_id":tgt.id,"tare_weight":m.tare_weight},reason="Μετακίνηση σε άλλον τύπο")
+    db.commit(); return {"moved":len(ms),"target":tgt.name_el}
+
 @app.post("/master/media/bulk-tare")
 def media_bulk_tare(data:schemas.MediumBulkTare, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     if data.tare_weight is None or data.tare_weight<0: raise HTTPException(422,"Το αποβαρό πρέπει να είναι μηδέν ή θετικό")
     ids=list(dict.fromkeys(data.ids))
     ms=db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(ids))).all()
     if not ms: raise HTTPException(404,"Δεν βρέθηκαν μέσα")
+    fixed=[t.name_el for t in db.scalars(select(CollectionMediumType).where(CollectionMediumType.id.in_({m.type_id for m in ms}),CollectionMediumType.tare_fixed==True)).all()]
+    if fixed: raise HTTPException(409,"Ο τύπος «"+", ".join(fixed)+"» έχει σταθερό αποβαρό: αλλάζει από τον τύπο, όχι ανά μέσο")
     for m in ms:
         old=m.tare_weight; m.tare_weight=data.tare_weight
         write_audit(db,user,"collection_medium",m.id,"UPDATE",old={"tare_weight":old},new={"tare_weight":data.tare_weight},reason="Μαζική αλλαγή αποβάρου")
@@ -734,10 +822,11 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
         prefix="MS" if mt.code=="MATERIAL_SACK" else "MP"
         seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like(f"{prefix}-%"))).all())+1
         code=f"{prefix}-{datetime.now().year}-{seq:06d}"
-    if not code: raise HTTPException(422,"Απαιτείται κωδικός μέσου")
+    if not code:
+        code=_temp_medium_code(db,data.type_id)       # κωδικός προαιρετικός στη δημιουργία: προσωρινός «?n», συμπληρώνεται αργότερα
     if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
     if data.linked_loading_order_id and not db.get(models.LoadingOrder,data.linked_loading_order_id): raise HTTPException(422,"Άγνωστο δελτίο φόρτωσης")
-    tare=data.tare_weight if data.tare_weight is not None else mt.default_tare_weight
+    tare=mt.default_tare_weight if getattr(mt,"tare_fixed",False) else (data.tare_weight if data.tare_weight is not None else mt.default_tare_weight)
     obj=CollectionMedium(type_id=data.type_id,code=code,tare_weight=tare,linked_loading_order_id=data.linked_loading_order_id); db.add(obj); db.flush(); write_audit(db,user,"collection_medium",obj.id,"CREATE",new={"code":code,"type":mt.code,"tare":str(tare) if tare is not None else None,"loading_order_id":data.linked_loading_order_id}); db.commit(); db.refresh(obj); return obj
 
 
@@ -771,6 +860,8 @@ def update_medium_master(item_id:str,data:schemas.MediumCreate,db:Session=Depend
     if not new_code: raise HTTPException(422,"Ο αριθμός / κωδικός δεν μπορεί να είναι κενός")
     if db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==new_code,CollectionMedium.type_id==data.type_id,CollectionMedium.id!=x.id)):
         raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
+    tmt=db.get(CollectionMediumType,data.type_id)
+    if tmt and getattr(tmt,"tare_fixed",False): data.tare_weight=tmt.default_tare_weight      # σταθερό αποβαρό: το παίρνει από τον τύπο
     x.type_id=data.type_id; x.code=new_code; x.tare_weight=data.tare_weight; x.linked_loading_order_id=data.linked_loading_order_id
     write_audit(db,user,"collection_medium",x.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(x); return x
@@ -2412,7 +2503,7 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
     if existing: return existing
     if db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)):
         raise HTTPException(409,'Ο κωδικός υπάρχει ήδη στον τύπο (ανενεργός). Σε άλλον τύπο επιτρέπεται.')
-    tare=data.tare_weight if data.tare_weight is not None else mt.default_tare_weight
+    tare=mt.default_tare_weight if getattr(mt,'tare_fixed',False) else (data.tare_weight if data.tare_weight is not None else mt.default_tare_weight)
     obj=CollectionMedium(type_id=data.type_id,code=code,tare_weight=tare,linked_loading_order_id=data.linked_loading_order_id)
     db.add(obj); db.flush(); write_audit(db,user,'collection_medium',obj.id,'CREATE_FROM_SORTING',new={'code':code,'type':mt.code,'tare':str(tare) if tare is not None else None}); db.commit(); db.refresh(obj); return obj
 

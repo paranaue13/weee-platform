@@ -166,7 +166,9 @@ def seed(db: Session):
         if not obj:
             db.add(CollectionMediumType(code=code,name_el=name,default_tare_weight=tare,requires_unique_number=req,never_reuse_number=never))
         else:
-            obj.name_el=name; obj.default_tare_weight=tare; obj.requires_unique_number=req; obj.never_reuse_number=never
+            custom_nm=db.scalar(select(AppSetting.value).where(AppSetting.key=='medium_type.name.'+code))      # μετονομασία από τον χρήστη
+            obj.name_el=custom_nm or name; obj.requires_unique_number=req; obj.never_reuse_number=never
+            if not getattr(obj,'tare_fixed',False): obj.default_tare_weight=tare      # σταθερό αποβαρό: το ορίζει ο χρήστης στον τύπο
             if not db.scalar(select(AppSetting).where(AppSetting.key=='medium_type.deleted.'+code)): obj.active=True   # είδος που διέγραψε ο χρήστης δεν ξαναενεργοποιείται
     for legacy_code in ("METAL_BASKET","BIG_BAG","SACK_2KG"):
         # SACK_2KG is a legacy duplicate of SACK_2KG_UN.

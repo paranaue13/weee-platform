@@ -391,6 +391,8 @@ class CollectionMediumType(Base, TimestampMixin):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Χρήση είδους: IN = εισερχόμενο (παραλαβές), OUT = εξερχόμενο (ταξινόμηση εξόδου), BOTH = και τα δύο
     usage: Mapped[str] = mapped_column(String(10), default="BOTH", server_default="BOTH")
+    # Σταθερό αποβαρό: όλα τα μέσα του τύπου έχουν το default_tare_weight του τύπου (δεν υπάρχει αποβαρό ανά μέσο)
+    tare_fixed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 class CollectionMedium(Base, TimestampMixin):
     __tablename__ = "collection_media"
