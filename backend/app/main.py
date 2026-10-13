@@ -2330,9 +2330,7 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
     mt=db.get(CollectionMediumType,data.type_id)
     if not mt or not mt.active: raise HTTPException(404,'Άγνωστος τύπος μέσου')
     code=(data.code or '').strip()
-    if mt.code=='BULK' and not code:
-        seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like('BULK-%'))).all())+1
-        code=f'BULK-{datetime.now().year}-{seq:06d}'
+    if mt.code=='BULK': raise HTTPException(422,'Το Χύμα δεν έχει αριθμό: καταχώρησέ το χωρίς μέσο συλλογής')
     if not code: raise HTTPException(422,'Γράψε αριθμό / κωδικό μέσου')
     existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.active==True))
     if existing:
