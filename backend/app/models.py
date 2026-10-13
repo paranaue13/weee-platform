@@ -395,6 +395,23 @@ class CollectionMediumType(Base, TimestampMixin):
     tare_fixed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     # Σύντομος κωδικός τύπου (3 χαρακτήρες) για τους αυτόματους κωδικούς μέσων: ΕΕ-ΤΤΤ-ΝΝΝΝ (π.χ. 26-PAL-0001)
     short_code: Mapped[str|None] = mapped_column(String(3), nullable=True)
+    # Μέσο μίας χρήσης (σάκος, μεγασάκος…): ο κωδικός δίνεται στην πρώτη χρήση, όχι στη δημιουργία στα Μητρώα
+    single_use: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+
+class CodeCounter(Base):
+    """ΕΝΑΣ μετρητής ανά (έτος, 3χαρακτήρης κωδικός): κοινός για τους κωδικούς τύπων και τους κωδικούς περιεχομένου και για όλες τις πηγές.
+    Δεν μειώνεται ποτέ· το (έτος, κωδικός) είναι μοναδικό από τη βάση."""
+    __tablename__ = "code_counters"
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(3), primary_key=True)
+    last_no: Mapped[int] = mapped_column(Integer, default=0)
+
+class ContentCode(Base):
+    """Κωδικοί περιεχομένου (για μέσα μίας χρήσης)· δεν επιτρέπεται να ισούνται με κωδικό τύπου μέσου."""
+    __tablename__ = "content_codes"
+    code: Mapped[str] = mapped_column(String(3), primary_key=True)
+    label: Mapped[str] = mapped_column(String(200))
+    source: Mapped[str|None] = mapped_column(String(30), nullable=True)
 
 class MediumCodeCounter(Base):
     """Μετρητής αυτόματων κωδικών ανά τύπο και έτος· δεν μειώνεται ποτέ (δεν επαναχρησιμοποιούνται αριθμοί)."""

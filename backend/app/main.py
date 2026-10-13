@@ -111,8 +111,19 @@ async def lifespan(app: FastAPI):
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_type_code ON collection_media (type_id, code)"))
             # κωδικοί της νέας μορφής ΕΕ-ΤΤΤ-ΝΝΝΝ είναι μοναδικοί σε ΟΛΑ τα μέσα (οι παλιοί κωδικοί δεν επηρεάζονται)
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_newcode ON collection_media (code) WHERE code GLOB '[0-9][0-9]-[A-Z0-9][A-Z0-9][A-Z0-9]-[0-9]*'"))
+        if "code_counters" in tables and "medium_code_counters" in tables:
+            # οι παλιοί μετρητές ανά τύπο περνούν στον κοινό πίνακα (έτος, κωδικός)
+            conn.execute(text("""INSERT INTO code_counters (year, code, last_no)
+                SELECT c.year, t.short_code, MAX(c.last_no) FROM medium_code_counters c JOIN collection_medium_types t ON t.id=c.type_id
+                WHERE t.short_code IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM code_counters x WHERE x.year=c.year AND x.code=t.short_code)
+                GROUP BY c.year, t.short_code"""))
         if "collection_medium_types" in tables:
             mt_cols={c["name"] for c in inspect(engine).get_columns("collection_medium_types")}
+            if "single_use" not in mt_cols:
+                conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN single_use BOOLEAN DEFAULT 0 NOT NULL"))
+                conn.execute(text("UPDATE collection_medium_types SET single_use=1 WHERE code IN ('SACK_1KG','SACK_2KG_UN','BIG_BAG','MATERIAL_PALLET','MATERIAL_SACK')"))
+                conn.execute(text("UPDATE collection_medium_types SET single_use=1 WHERE name_el LIKE 'Σάκος 1.5%'"))
             if "short_code" not in mt_cols:
                 conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN short_code VARCHAR(3)"))
                 for _c,_sc in {"INFOCYCLE_1":"NF1","INFOCYCLE_2":"NF2","BASKET_LARGE":"KLM","BASKET_SMALL":"KLK","METAL_BASKET":"KMT","PALLET":"PAL","BOX":"BOX",
@@ -676,16 +687,29 @@ def _next_medium_code(db:Session,mt)->str:
     """Αυτόματος κωδικός ΕΕ-ΤΤΤ-ΝΝΝΝ: έτος δημιουργίας, σύντομος κωδικός τύπου, αύξων αριθμός ανά έτος και τύπο (δεν μειώνεται ποτέ)."""
     if not mt.short_code:
         mt.short_code=_suggest_short_code(db,mt.name_el); db.flush()
-    yy=datetime.now().year%100; year=datetime.now().year
-    row=db.get(models.MediumCodeCounter,(mt.id,year))
+    year=datetime.now().year
+    return _next_code_for(db,mt.short_code,year)
+
+def _next_code_for(db:Session,code3:str,year:int|None=None)->str:
+    """ΕΝΑΣ μετρητής ανά (έτος, κωδικός) για όλες τις πηγές· δεν μειώνεται ποτέ. Μοναδικότητα από τη βάση."""
+    year=year or datetime.now().year; yy=year%100
+    row=db.get(models.CodeCounter,(year,code3))
     if not row:
-        row=models.MediumCodeCounter(type_id=mt.id,year=year,last_no=0); db.add(row); db.flush()
+        row=models.CodeCounter(year=year,code=code3,last_no=0); db.add(row); db.flush()
     while True:
         row.last_no=int(row.last_no or 0)+1
-        code=f"{yy:02d}-{mt.short_code}-{row.last_no:04d}"
-        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==code)): break
+        c=f"{yy:02d}-{code3}-{row.last_no:04d}"
+        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==c)): break
     db.flush()
-    return code
+    return c
+
+def _short_code_conflict(db:Session,sc:str,exclude_type_id:str|None=None)->str|None:
+    """Κωδικός τύπου ≠ κωδικός περιεχομένου και μοναδικός ανάμεσα στους τύπους. Επιστρέφει μήνυμα σφάλματος ή None."""
+    if db.scalar(select(models.ContentCode.code).where(models.ContentCode.code==sc)):
+        return "Ο κωδικός «"+sc+"» χρησιμοποιείται ήδη ως κωδικός περιεχομένου"
+    if db.scalar(select(CollectionMediumType.id).where(CollectionMediumType.short_code==sc,CollectionMediumType.id!=exclude_type_id)):
+        return "Ο κωδικός τύπου «"+sc+"» χρησιμοποιείται ήδη"
+    return None
 
 def _check_new_format(db:Session,code:str,type_id:str):
     """Κωδικός που μοιάζει με τη νέα μορφή (ΕΕ-…) πρέπει να είναι έγκυρος και να ταιριάζει με τον κωδικό του τύπου."""
@@ -718,8 +742,9 @@ def create_medium_type(data:schemas.MediumTypeNew, db:Session=Depends(get_db), u
     import uuid as _uuid
     sc=(data.short_code or "").strip().upper() or _suggest_short_code(db,name)
     if not _valid_short_code(sc): raise HTTPException(422,"Ο κωδικός τύπου είναι 3 χαρακτήρες (κεφαλαία λατινικά ή ψηφία)")
-    if db.scalar(select(CollectionMediumType.id).where(CollectionMediumType.short_code==sc)): raise HTTPException(409,"Ο κωδικός τύπου «"+sc+"» χρησιμοποιείται ήδη")
-    t=CollectionMediumType(code="CUSTOM_"+_uuid.uuid4().hex[:8].upper(),name_el=name,usage=data.usage,tare_fixed=bool(data.tare_fixed),short_code=sc,
+    msg=_short_code_conflict(db,sc)
+    if msg: raise HTTPException(409,msg)
+    t=CollectionMediumType(code="CUSTOM_"+_uuid.uuid4().hex[:8].upper(),name_el=name,usage=data.usage,tare_fixed=bool(data.tare_fixed),short_code=sc,single_use=bool(data.single_use),
         default_tare_weight=data.default_tare_weight if data.tare_fixed else None,requires_unique_number=True,never_reuse_number=False,active=True)
     db.add(t); db.flush()
     write_audit(db,user,"collection_medium_type",t.id,"CREATE",new={"name_el":name,"usage":t.usage,"tare_fixed":t.tare_fixed,"default_tare_weight":t.default_tare_weight})
@@ -750,11 +775,12 @@ def edit_medium_type(type_id:str, data:schemas.MediumTypeEdit, db:Session=Depend
     sc=(data.short_code if data.short_code is not None else t.short_code or "").strip().upper()
     if sc:
         if not _valid_short_code(sc): raise HTTPException(422,"Ο κωδικός τύπου είναι 3 χαρακτήρες (κεφαλαία λατινικά ή ψηφία)")
-        if db.scalar(select(CollectionMediumType.id).where(CollectionMediumType.short_code==sc,CollectionMediumType.id!=t.id)): raise HTTPException(409,"Ο κωδικός τύπου «"+sc+"» χρησιμοποιείται ήδη")
+        msg=_short_code_conflict(db,sc,t.id)
+        if msg: raise HTTPException(409,msg)
     fixed=bool(data.tare_fixed)
     if fixed and (data.default_tare_weight is None or data.default_tare_weight<0): raise HTTPException(422,"Γράψε το σταθερό αποβαρό του τύπου")
-    old={"name_el":t.name_el,"short_code":t.short_code,"usage":t.usage,"tare_fixed":bool(t.tare_fixed),"default_tare_weight":t.default_tare_weight}
-    t.name_el=name; t.usage=data.usage; t.short_code=sc or None
+    old={"name_el":t.name_el,"short_code":t.short_code,"usage":t.usage,"tare_fixed":bool(t.tare_fixed),"default_tare_weight":t.default_tare_weight,"single_use":bool(t.single_use)}
+    t.name_el=name; t.usage=data.usage; t.short_code=sc or None; t.single_use=bool(data.single_use)
     if name!=old["name_el"]: _set_setting(db,"medium_type.name."+t.code,name)
     n=0
     if fixed:
@@ -765,7 +791,7 @@ def edit_medium_type(type_id:str, data:schemas.MediumTypeEdit, db:Session=Depend
                 m.tare_weight=data.default_tare_weight; n+=1
     else:
         t.tare_fixed=False      # τα μέσα κρατούν το αποβαρό που έχουν· από εδώ και πέρα ορίζεται ανά μέσο
-    write_audit(db,user,"collection_medium_type",t.id,"UPDATE",old=old,new={"name_el":t.name_el,"short_code":t.short_code,"usage":t.usage,"tare_fixed":bool(t.tare_fixed),"default_tare_weight":t.default_tare_weight,"media_updated":n})
+    write_audit(db,user,"collection_medium_type",t.id,"UPDATE",old=old,new={"name_el":t.name_el,"short_code":t.short_code,"usage":t.usage,"tare_fixed":bool(t.tare_fixed),"default_tare_weight":t.default_tare_weight,"single_use":bool(t.single_use),"media_updated":n})
     db.commit(); db.refresh(t); return t
 
 @app.put("/master/medium-types/{type_id}/tare", response_model=schemas.MediumTypeOut)
@@ -918,6 +944,9 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
         code=(data.code or "").strip()
         if not code: raise HTTPException(422,"Γράψε αριθμό / κωδικό για το μέσο")
         _check_new_format(db,code,data.type_id)
+    elif mt.single_use:
+        import uuid as _u2
+        code="~"+_u2.uuid4().hex[:8]        # μέσο μίας χρήσης: ο κωδικός δίνεται στην πρώτη χρήση (δεν δημιουργείται εδώ)
     else:
         code=_next_medium_code(db,mt)       # αυτόματος κωδικός στη δημιουργία νέου μέσου
     if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")

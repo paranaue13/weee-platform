@@ -250,6 +250,7 @@ class MediumTypeOut(MediumTypeCreate):
     usage: str = "BOTH"
     tare_fixed: bool = False
     short_code: str|None = None
+    single_use: bool = False
 
 class MediumTypeNew(BaseModel):
     name_el: str
@@ -257,6 +258,7 @@ class MediumTypeNew(BaseModel):
     tare_fixed: bool = False
     default_tare_weight: Decimal|None = None
     short_code: str|None = None
+    single_use: bool = False
 
 class MediumTypeRename(BaseModel):
     name_el: str
@@ -267,6 +269,7 @@ class MediumTypeEdit(BaseModel):
     usage: str
     tare_fixed: bool = False
     default_tare_weight: Decimal|None = None
+    single_use: bool = False
 
 class MediumTypeTare(BaseModel):
     default_tare_weight: Decimal
