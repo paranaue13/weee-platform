@@ -665,6 +665,7 @@ def _suggest_short_code(db:Session,name:str)->str:
     letters=[ _GR2LAT.get(ch,ch) for ch in base ]
     cand=[ch for ch in "".join(letters) if ch in _CODE_LETTERS]
     taken={c for c in db.scalars(select(CollectionMediumType.short_code).where(CollectionMediumType.short_code.is_not(None))).all()}
+    taken|={c for c in db.scalars(select(models.ContentCode.code)).all()}
     code="".join(cand[:3])
     for ch in "KLMNPRTCDEFGHJAUVWXY":
         if len(code)>=3: break
@@ -702,6 +703,29 @@ def _next_code_for(db:Session,code3:str,year:int|None=None)->str:
         if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==c)): break
     db.flush()
     return c
+
+def _content_code_for_category(db:Session,cat)->str:
+    """Κωδικός περιεχομένου (3 γράμματα) μιας κατηγορίας ΑΗΗΕ· οι δικές μας υποκατηγορίες παίρνουν τον κωδικό του parent."""
+    m=db.get(models.ContentCodeMap,("WEEE",cat.code))
+    if not m and getattr(cat,"parent_code",None): m=db.get(models.ContentCodeMap,("WEEE",cat.parent_code))
+    return m.code if m else "NCT"
+
+def _assign_single_use_code(db:Session,user,medium_id:str|None,cat)->str|None:
+    """Μέσο μίας χρήσης: ο κωδικός ΕΕ-ΤΤΤ-ΝΝΝΝ δίνεται στην πρώτη αποθήκευση (κωδικός περιεχομένου της πρώτης κατηγορίας) και ΜΕΤΑ δεν αλλάζει.
+    Αν μπει δεύτερη κατηγορία στο ίδιο μέσο επιστρέφεται προειδοποίηση και μένει ο πρώτος κωδικός."""
+    if not medium_id: return None
+    m=db.get(CollectionMedium,medium_id)
+    if not m: return None
+    t=db.get(CollectionMediumType,m.type_id)
+    if not t or not t.single_use: return None
+    if str(m.code or "").startswith("~"):
+        code=_next_code_for(db,_content_code_for_category(db,cat))
+        write_audit(db,user,"collection_medium",m.id,"ASSIGN_CODE",old={"code":m.code},new={"code":code},reason="Κωδικός μέσου μίας χρήσης στην πρώτη χρήση")
+        m.code=code
+        return None
+    other=db.scalar(select(models.SortingEntry.id).where(models.SortingEntry.collection_medium_id==m.id,models.SortingEntry.weee_category_id!=cat.id).limit(1))
+    if other: return "Το μέσο "+m.code+" περιέχει ήδη άλλη κατηγορία. Ο κωδικός του μένει ως έχει."
+    return None
 
 def _short_code_conflict(db:Session,sc:str,exclude_type_id:str|None=None)->str|None:
     """Κωδικός τύπου ≠ κωδικός περιεχομένου και μοναδικός ανάμεσα στους τύπους. Επιστρέφει μήνυμα σφάλματος ή None."""
@@ -2586,8 +2610,10 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
         raw=Decimal(data.piece_count)*cat.average_weight
     obj=SortingEntry(session_id=ses.id,weee_category_id=data.weee_category_id,collection_medium_id=data.collection_medium_id,
       entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes)
-    db.add(obj); db.flush(); _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count})
-    db.commit(); db.refresh(obj); return obj
+    db.add(obj); db.flush()
+    warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
+    _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count})
+    db.commit(); db.refresh(obj); obj.warning=warn; return obj
 
 @app.put('/sorting/entries/{entry_id}', response_model=schemas.SortingEntryOut)
 def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
@@ -2604,9 +2630,11 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     if data.entry_type=='BULK' and data.piece_count is not None:
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         e.raw_weight=Decimal(data.piece_count)*cat.average_weight
-    db.flush(); _sync_entry_stock(db,e,user)
+    db.flush()
+    warn=_assign_single_use_code(db,user,e.collection_medium_id,cat) if e.collection_medium_id and e.collection_medium_id!=old['medium_id'] else None
+    _sync_entry_stock(db,e,user)
     write_audit(db,user,'sorting_entry',e.id,'EDIT_DRAFT',old=old,new={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count})
-    db.commit(); db.refresh(e); return e
+    db.commit(); db.refresh(e); e.warning=warn; return e
 
 @app.get('/sorting/{load_id}/medium-type-suggestions')
 def sorting_medium_type_suggestions(load_id:str, weee_category_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):

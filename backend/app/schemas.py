@@ -411,6 +411,7 @@ class SortingEntryOut(BaseModel):
     approved_weight: Decimal|None
     piece_count: int|None
     notes: str|None
+    warning: str|None = None      # π.χ. «το μέσο περιέχει ήδη άλλη κατηγορία· ο κωδικός μένει»
 
 class SortingSessionOut(BaseModel):
     id: str

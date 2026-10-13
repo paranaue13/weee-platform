@@ -5948,7 +5948,8 @@ const SF=(function(){
   let S=null,C=null,DD={el:null,input:null,items:[],hl:0,type:null,page:0,mode:null,nt:null};const FRESH=new Set();
 
   function typeName(m){let t=C.medTypes.find(x=>x.id===m.type_id);return t?t.name_el:''}
-  function mLabel(m){return m?(typeName(m)?typeName(m)+' · ':'')+(String(m.code||'').startsWith('~')?'(χωρίς κωδικό)':m.code):''}
+  const cdTxt=m=>String(m&&m.code||'').startsWith('~')?'(νέο, χωρίς κωδικό)':(m?m.code:'');
+  function mLabel(m){return m?(typeName(m)?typeName(m)+' · ':'')+cdTxt(m):''}
   function catSum(cid){return S.entries.filter(e=>e.weee_category_id===cid).reduce((s,e)=>s+entW(e),0)}
   function descOf(c){return weeeDescModeFor('sorting')==='her'&&c.her_description?c.her_description:(c.display_name||c.official_description||'')}
   function msg(t,ok){let m=$('sortEntryMsg');if(!m)return;m.className=ok?'oktext':'error';m.textContent=t||''}
@@ -6016,6 +6017,10 @@ const SF=(function(){
       else if(S.bulkMed[cid]&&!editId){body.collection_medium_id=null}      // Χύμα: χωρίς μέσο, χωρίς αριθμό (δεν δημιουργείται πια BULK-…)
       let e=editId?await api('/sorting/entries/'+editId,{method:'PUT',body:JSON.stringify(body)}):await api('/sorting/'+C.loadId+'/entries',{method:'POST',body:JSON.stringify(body)});
       let wasEmpty=!S.entries.length;
+      // μέσο μίας χρήσης: ο server έδωσε κωδικό στην πρώτη αποθήκευση· ανανέωση του κωδικού στη λίστα
+      if(e&&e.collection_medium_id){let mm=C.media.find(x=>x.id===e.collection_medium_id);
+        if(mm&&String(mm.code||'').startsWith('~')){try{let all=await api('/master/media');let nm=all.find(x=>x.id===mm.id);if(nm){mm.code=nm.code;let pk=C.pickable.find(x=>x.id===mm.id);if(pk)pk.code=nm.code}}catch(_){}}}
+      if(e&&e.warning)setTimeout(()=>msg(e.warning,false),50);
       if(editId){let i=S.entries.findIndex(x=>x.id===editId);if(i>=0)S.entries[i]=e;else S.entries.push(e)}else S.entries.push(e);
       S.rm[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;S.editing[cid]=null;
       msg('');
@@ -6093,7 +6098,7 @@ const SF=(function(){
   }
   function itemHtml(m,i,cid){
     let u=usedN(m),hk=cid?haveKg(m,cid):0;
-    return `<div class="sfIt" data-i="${i}"><span>${esc2(typeName(m))} · <b>${esc2(m.code)}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}${hk>0?` <small class="hv">· έχει ήδη ${f1(hk)} kg</small>`:''}</span><small>${tareTxt(m)}</small></div>`;
+    return `<div class="sfIt" data-i="${i}"><span>${esc2(typeName(m))} · <b>${esc2(cdTxt(m))}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}${hk>0?` <small class="hv">· έχει ήδη ${f1(hk)} kg</small>`:''}</span><small>${tareTxt(m)}</small></div>`;
   }
   function numKey(code){let m=String(code).match(/(\d+)\s*$/);return m?parseInt(m[1],10):1e9}
   function nextCode(typeId){
