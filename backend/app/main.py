@@ -595,11 +595,76 @@ def list_medium_types(include_inactive:bool=Query(default=False), db:Session=Dep
     if not include_inactive: stmt=stmt.where(CollectionMediumType.active==True)
     return db.scalars(stmt.order_by(CollectionMediumType.name_el)).all()
 
+def _media_in_use_ids(db:Session)->set:
+    """Μέσα «σε χρήση»: κατάσταση άλλη από AVAILABLE, ή κρατούν διαθέσιμο απόθεμα ΑΗΗΕ / μη εξαγόμενα υλικά."""
+    used=set(db.scalars(select(CollectionMedium.id).where(CollectionMedium.status!='AVAILABLE')).all())
+    used|=set(x for x in db.scalars(select(WEEEStockLot.collection_medium_id).where(WEEEStockLot.available_weight>0,WEEEStockLot.collection_medium_id.is_not(None))).all() if x)
+    used|=set(x for x in db.scalars(select(ReadyMaterialLot.collection_medium_id).where(ReadyMaterialLot.status.in_(['AVAILABLE','RESERVED','LOADING']),ReadyMaterialLot.collection_medium_id.is_not(None))).all() if x)
+    return used
+
+def _medium_referenced(db:Session,mid:str)->bool:
+    return bool(db.scalar(select(models.SortingEntry.id).where(models.SortingEntry.collection_medium_id==mid).limit(1))
+        or db.scalar(select(models.WEEEStockLot.id).where(models.WEEEStockLot.collection_medium_id==mid).limit(1))
+        or db.scalar(select(models.ReadyMaterialLot.id).where(models.ReadyMaterialLot.collection_medium_id==mid).limit(1)))
+
+def _medium_remove(db:Session,user,m)->str:
+    """Διαγραφή μέσου: αν δεν έχει ιστορικό σβήνεται, αλλιώς γίνεται ανενεργό (μένει το ιστορικό). Καταγράφεται στο ιστορικό αλλαγών."""
+    if _medium_referenced(db,m.id):
+        m.active=False; write_audit(db,user,"collection_medium",m.id,"DEACTIVATE",old={"active":True},new={"active":False},reason="Διαγραφή μέσου (έχει ιστορικό: κρατιέται ανενεργό)")
+        return "deactivated"
+    write_audit(db,user,"collection_medium",m.id,"PURGE",old={"code":m.code,"type_id":m.type_id,"tare_weight":m.tare_weight},reason="Διαγραφή μέσου")
+    db.delete(m); return "deleted"
+
 @app.get("/master/media", response_model=list[schemas.MediumOut])
 def list_media(include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
     stmt=select(CollectionMedium)
     if not include_inactive: stmt=stmt.where(CollectionMedium.active==True)
-    return db.scalars(stmt.order_by(CollectionMedium.code)).all()
+    rows=db.scalars(stmt.order_by(CollectionMedium.code)).all()
+    used=_media_in_use_ids(db)
+    for r in rows: r.in_use=r.id in used
+    return rows
+
+@app.post("/master/media/bulk-tare")
+def media_bulk_tare(data:schemas.MediumBulkTare, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    if data.tare_weight is None or data.tare_weight<0: raise HTTPException(422,"Το αποβαρό πρέπει να είναι μηδέν ή θετικό")
+    ids=list(dict.fromkeys(data.ids))
+    ms=db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(ids))).all()
+    if not ms: raise HTTPException(404,"Δεν βρέθηκαν μέσα")
+    for m in ms:
+        old=m.tare_weight; m.tare_weight=data.tare_weight
+        write_audit(db,user,"collection_medium",m.id,"UPDATE",old={"tare_weight":old},new={"tare_weight":data.tare_weight},reason="Μαζική αλλαγή αποβάρου")
+    db.commit(); return {"updated":len(ms)}
+
+@app.post("/master/media/bulk-delete")
+def media_bulk_delete(data:schemas.MediumBulkIds, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    ids=list(dict.fromkeys(data.ids))
+    ms=db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(ids))).all()
+    if not ms: raise HTTPException(404,"Δεν βρέθηκαν μέσα")
+    used=_media_in_use_ids(db)
+    busy=[m.code for m in ms if m.id in used]
+    if busy: raise HTTPException(409,"Περιλαμβάνονται μέσα σε χρήση: δεν διαγράφονται ("+", ".join(busy[:8])+(" …" if len(busy)>8 else "")+")")
+    res={"deleted":0,"deactivated":0}
+    for m in ms: res[_medium_remove(db,user,m)]+=1
+    db.commit(); return res
+
+@app.delete("/master/medium-types/{type_id}")
+def delete_medium_type(type_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    t=db.get(CollectionMediumType,type_id)
+    if not t: raise HTTPException(404,"Άγνωστο είδος μέσου")
+    if t.code=="BULK": raise HTTPException(409,"Το Χύμα δεν διαγράφεται")
+    ms=db.scalars(select(CollectionMedium).where(CollectionMedium.type_id==type_id)).all()
+    used=_media_in_use_ids(db)
+    busy=[m.code for m in ms if m.id in used and m.active]
+    if busy: raise HTTPException(409,"Το είδος έχει μέσα σε χρήση: δεν διαγράφεται ("+", ".join(busy[:8])+(" …" if len(busy)>8 else "")+")")
+    n=0
+    for m in ms:
+        if m.active or _medium_referenced(db,m.id) is False:
+            _medium_remove(db,user,m); n+=1
+    t.active=False
+    key="medium_type.deleted."+t.code
+    if not db.scalar(select(AppSetting).where(AppSetting.key==key)): db.add(AppSetting(key=key,value="1"))
+    write_audit(db,user,"collection_medium_type",t.id,"DELETE",old={"code":t.code,"name_el":t.name_el,"active":True},new={"active":False,"media_removed":n},reason="Διαγραφή είδους μέσου")
+    db.commit(); return {"ok":True,"media_removed":n}
 
 @app.put("/master/medium-types/{type_id}/usage", response_model=schemas.MediumTypeOut)
 def set_medium_type_usage(type_id:str, data:schemas.MediumTypeUsageIn, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):

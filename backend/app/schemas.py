@@ -267,6 +267,7 @@ class MediumOut(BaseModel):
     status: str
     active: bool
     linked_loading_order_id: str|None = None
+    in_use: bool = False        # «Σε χρήση»: κρατά απόθεμα / έχει κατάσταση άλλη από AVAILABLE (υπολογίζεται στη λίστα)
 
 class WEEEDisplayUpdate(BaseModel):
     display_name: str
@@ -726,3 +727,10 @@ class LoadingPrepIn(BaseModel):
     notes: str|None = None
     max_allowed_weight: Decimal = Decimal('25000')
     lot_ids: list[str] = []
+
+class MediumBulkIds(BaseModel):
+    ids: list[str]
+
+class MediumBulkTare(BaseModel):
+    ids: list[str]
+    tare_weight: Decimal
