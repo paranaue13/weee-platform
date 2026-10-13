@@ -1054,17 +1054,27 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 .medFoot .medBulkSp{flex:1}
 .medForm .btn.danger[disabled]{opacity:.4;cursor:not-allowed}
 /* Μητρώα → Μεταφορείς: λίστα αριστερά, κάρτα (στοιχεία + containers) δεξιά */
-#carriers .carrMd{display:grid;grid-template-columns:minmax(220px,300px) minmax(0,1fr);gap:14px;margin-top:12px;align-items:start}
+#carriers .carrMd{display:grid;grid-template-columns:minmax(380px,34%) minmax(0,1fr);gap:14px;margin-top:12px;align-items:start}
 #carriers .carrSide{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
-#carriers .carrAll{display:flex;align-items:center;gap:8px;padding:8px 12px;font-size:12px;color:var(--fg-3,#74777f);background:var(--surface-2);border-bottom:1px solid var(--line)}
-#carriers .carrList{max-height:calc(100vh - 300px);overflow:auto}
-#carriers .carrItem{display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px}
-#carriers .carrItem:hover{background:var(--hover)}
-#carriers .carrItem.on{background:var(--accent-bg);color:var(--accent-fg);font-weight:500;box-shadow:inset 3px 0 0 var(--accent)}
-#carriers .carrItem .carrName{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#carriers .carrItem small{color:var(--fg-3,#74777f);font-weight:400;margin-left:4px}
-#carriers .carrCnt{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:12px;line-height:20px}
-#carriers .carrCard{min-width:0;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface)}
+#carriers .carrTbl{width:100%;border-collapse:collapse;table-layout:fixed}
+#carriers .carrTbl th,#carriers .carrTbl td{white-space:normal;text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+#carriers .carrTbl th{background:var(--surface-2);color:var(--fg-3,#74777f);font-weight:600}
+#carriers .carrAllTxt{display:block;font-size:11px;font-weight:400;cursor:pointer}
+#carriers .carrTbl .carrCkC{width:34px;padding-right:0}
+#carriers .carrTbl .carrN{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#carriers .carrTbl td:last-child{white-space:nowrap}
+#carriers .carrTbl tbody tr{cursor:pointer}
+#carriers .carrTbl tbody tr:hover td{background:var(--hover)}
+#carriers .carrTbl tbody tr.off td{background:var(--st4-bg);color:var(--st4-fg)}
+#carriers .carrTbl tbody tr.off td:first-child{box-shadow:inset 4px 0 0 var(--st4-fg)}
+#carriers .carrTbl tbody tr.on td{background:var(--accent-bg);color:var(--accent-fg)}
+#carriers .carrTbl tbody tr.on td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+#carriers .carrTbl tbody tr.off.on td{background:var(--st4-bg);filter:brightness(.94)}
+#carriers .carrTbl tbody tr.off.on td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+#carriers .carrBd{display:inline-block;white-space:nowrap;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;background:var(--st5-bg);color:var(--st5-fg)}
+#carriers .carrBd.off{background:none;color:var(--st4-fg);border:1px solid var(--st4-fg)}
+#carriers .carrCard{min-width:0;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;max-height:calc(100vh - 270px);min-height:300px}
+#carriers .carrCard .registryTableWrap.carrCtrWrap{flex:1 1 auto;min-height:120px;max-height:none;overflow:auto}
 #carriers .carrHd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 #carriers .carrHd h3{margin:0;font-size:18px;font-weight:500}
 #carriers .carrDet{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 18px;margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2)}
@@ -1072,7 +1082,14 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #carriers .carrCtrHd{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px}
 #carriers .carrCtrHd b{font-size:15px}
 #carriers .carrIc{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--accent);cursor:pointer}
-@media(max-width:1000px){#carriers .carrMd{grid-template-columns:minmax(0,1fr)}#carriers .carrList{max-height:260px}#carriers .carrDet{grid-template-columns:1fr 1fr}}
+#master #carriers .carrTbl th,#master #carriers .carrTbl td{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+#master #carriers .carrTbl td:last-child,#master #carriers .carrTbl td.carrN{white-space:nowrap}
+#master #carriers .carrTbl{min-width:0;width:100%}
+#master #carriers .carrTbl th.carrN{white-space:nowrap;overflow-wrap:normal}
+#master #carriers .carrCtrWrap{background:var(--surface)}
+#master #carriers .carrCtrWrap thead th{background:var(--surface-2);color:var(--fg-3,#74777f)}
+#master #carriers .carrCtrWrap tbody tr:not(.inactiveMaster) td{background:var(--surface);color:var(--fg)}
+@media(max-width:900px){#carriers .carrMd{grid-template-columns:minmax(0,1fr)}#carriers .carrCard{max-height:none}#carriers .carrDet{grid-template-columns:1fr 1fr}}
 .comboMenu .comboSec{padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.04em;color:var(--accent,#2f5fc4);background:var(--accent-bg,#d8e2ff);position:sticky;top:0}
 .comboMenu .comboSec.dim{color:var(--fg-3,#74777f);background:var(--surface-2,#f0f3fa)}
 .comboMenu .comboItem.dim{opacity:.7}
@@ -1631,7 +1648,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <section id="master" class="view hidden"><div class="card masterSticky"><h3>Μητρώα</h3><div class="tabs"><button class="tab mtab active" data-mtab="suppliers">Προμηθευτές</button><button class="tab mtab" data-mtab="clients">Πελάτες</button><button class="tab mtab" data-mtab="carriers">Μεταφορείς</button><button class="tab mtab" data-mtab="partners">Συνεργάτες</button><button class="tab mtab" data-mtab="mediaM">Μέσα συλλογής</button><button class="tab mtab" data-mtab="weeeNamesM">ΑΗΗΕ</button><button class="tab mtab" data-mtab="materialsM">Υλικά</button><button class="tab mtab" data-mtab="departmentsM">Τμήματα</button><button class="tab mtab" data-mtab="employeesM">Εργαζόμενοι</button></div></div>
 <div id="suppliers" class="mpanel card"><h3>Προμηθευτές</h3><div class="masterTools"><input class="masterSearch" id="supplierSearch" placeholder="Αναζήτηση προμηθευτή, ΑΦΜ, ονομασίας…"><button class="btn" id="supplierCreate">+ Δημιουργία</button><span class="muted"><span id="supplierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="supplierMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="supplierCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
 <div id="clients" class="mpanel card hidden"><h3>Πελάτες</h3><div class="masterTools"><input class="masterSearch" id="clientSearch" placeholder="Αναζήτηση πελάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="clientCreate">+ Δημιουργία</button><span class="muted"><span id="clientCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="clientMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="clientCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="clientRows"></tbody></table></div></div>
-<div id="carriers" class="mpanel card hidden"><h3>Μεταφορείς</h3><div class="masterTools"><input class="masterSearch" id="carrierSearch" placeholder="Αναζήτηση μεταφορέα, ΑΦΜ, ονομασίας…"><button class="btn" id="carrierCreate">+ Δημιουργία</button><span class="muted"><span id="carrierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="carrierMergeBtn" disabled>Συγχώνευση</button></div><div class="carrMd"><div class="carrSide"><label class="carrAll"><input type="checkbox" id="carrierCheckAll"> Επιλογή όλων</label><div id="carrierList" class="carrList"></div></div><div class="carrCard" id="carrierCard"></div></div></div>
+<div id="carriers" class="mpanel card hidden"><h3>Μεταφορείς</h3><div class="masterTools"><input class="masterSearch" id="carrierSearch" placeholder="Αναζήτηση μεταφορέα, ΑΦΜ, ονομασίας…"><button class="btn" id="carrierCreate">+ Δημιουργία</button><span class="muted"><span id="carrierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="carrierMergeBtn" disabled>Συγχώνευση</button></div><div class="carrMd"><div class="carrSide"><table class="carrTbl"><colgroup><col style="width:36px"><col><col style="width:68px"><col style="width:112px"></colgroup><thead><tr><th class="carrCkC"><input type="checkbox" id="carrierCheckAll" title="Επιλογή όλων"></th><th>Μεταφορέας<label for="carrierCheckAll" class="carrAllTxt">Επιλογή όλων</label></th><th class="carrN">Cont.</th><th>Κατάσταση</th></tr></thead><tbody id="carrierList"></tbody></table></div><div class="carrCard" id="carrierCard"></div></div></div>
 <div id="partners" class="mpanel card hidden"><h3>Συνεργάτες</h3><div class="masterTools"><input class="masterSearch" id="partnerSearch" placeholder="Αναζήτηση συνεργάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="partnerCreate">+ Δημιουργία</button><span class="muted"><span id="partnerCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="partnerMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="partnerCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="partnerRows"></tbody></table></div></div>
 <div id="mediaM" class="mpanel card hidden"><h3>Μέσα συλλογής</h3><div class="masterTools"><input class="masterSearch" id="mediumSearch" placeholder="Αναζήτηση μέσου…"><button class="btn" id="mediumCreate">+ Δημιουργία</button><button class="btn alt" data-history="collection_medium">Ιστορικό αλλαγών</button></div><div class="mediaMd"><div class="mediaSide" id="medTypeButtons"></div><div class="mediaDet" id="mediumDet"></div></div></div>
 <div id="weeeNamesM" class="mpanel card hidden"><h3>ΑΗΗΕ</h3><div class="masterTools"><input class="masterSearch" id="weeeSearch" placeholder="Αναζήτηση κωδικού, περιγραφής HER ή ΕΚΑ…"><button class="btn" id="weeeCreate">+ Δημιουργία</button><span class="muted"><span id="weeeCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="weeeBulkEditBtn" disabled>Επεξεργασία</button><button class="btn alt" data-history="weee_category">Ιστορικό αλλαγών</button></div><div class="registryTableWrap"><table class="registryTable weeeRegistryTable"><thead><tr><th><input type="checkbox" id="weeeCheckAll"></th><th>Κωδικός / Επίσημη περιγραφή</th><th>Περιγραφή HER</th><th>Μέσο βάρος</th><th>Δικές μας υποκατηγορίες</th><th>Επεξεργάσιμο</th><th>Κατάσταση</th></tr></thead><tbody id="weeeNameRows"></tbody></table></div></div>
@@ -6354,6 +6371,7 @@ const SF=(function(){
 (function(){
   let sel=null,carriersData=[],ctrData=[],ctx=null;
   const sBadge=x=>`<span class="pill ${x?'green':'inactiveBadge'}">${x?'Ενεργό':'Μη ενεργό'}</span>`;
+  const cBadge=x=>`<span class="carrBd${x?'':' off'}">${x?'Ενεργός':'Μη ενεργός'}</span>`;
   const natural=(a,b)=>String(a.container_number||'').localeCompare(String(b.container_number||''),'el',{numeric:true});
   const tareTxt=v=>v!=null&&v!==''?esc(String(Number(v)).replace('.',',')):'—';
   const nameOf=o=>o.legal_name||o.trade_name||'—';
@@ -6364,9 +6382,9 @@ const SF=(function(){
     let none=ctrsOf('__none');
     if(!sel||(!carriersData.some(x=>x.id===sel)&&!(sel==='__none'&&none.length)))sel=(rows[0]||carriersData[0]||{}).id||null;
     let checked=ctx.checked;
-    let list=rows.map(x=>`<div class="carrItem${x.id===sel?' on':''}${x.active?'':' inactiveMaster'}" data-id="${x.id}"><input type="checkbox" class="carrCk" data-id="${x.id}" ${checked.has(x.id)?'checked':''}><span class="carrName">${esc(nameOf(x))}${x.active?'':'<small>· μη ενεργό</small>'}</span><span class="carrCnt">${ctrsOf(x.id).length}</span></div>`).join('');
-    if(none.length)list+=`<div class="carrItem${sel==='__none'?' on':''}" data-id="__none"><span class="carrName">Χωρίς μεταφορέα</span><span class="carrCnt">${none.length}</span></div>`;
-    $('carrierList').innerHTML=list||'<div class="muted" style="padding:12px">Δεν υπάρχουν αποτελέσματα.</div>';
+    let list=rows.map(x=>`<tr class="carrItem${x.id===sel?' on':''}${x.active?'':' off'}" data-id="${x.id}"><td class="carrCkC"><input type="checkbox" class="carrCk" data-id="${x.id}" ${checked.has(x.id)?'checked':''}></td><td><b>${esc(nameOf(x))}</b></td><td class="carrN">${ctrsOf(x.id).length}</td><td>${cBadge(x.active)}</td></tr>`).join('');
+    if(none.length)list+=`<tr class="carrItem${sel==='__none'?' on':''}" data-id="__none"><td class="carrCkC"></td><td><b>Χωρίς μεταφορέα</b></td><td class="carrN">${none.length}</td><td></td></tr>`;
+    $('carrierList').innerHTML=list||'<tr><td colspan="4" class="muted" style="padding:12px">Δεν υπάρχουν αποτελέσματα.</td></tr>';
     let cnt=$('carrierCheckedCount');if(cnt)cnt.textContent=checked.size;let mb=$('carrierMergeBtn');if(mb)mb.disabled=checked.size<2;
     let all=$('carrierCheckAll');if(all)all.checked=rows.length>0&&rows.every(x=>checked.has(x.id));
     $('carrierList').querySelectorAll('.carrItem').forEach(el=>el.onclick=e=>{if(e.target.closest('.carrCk'))return;sel=el.dataset.id;paint()});
@@ -6383,7 +6401,7 @@ const SF=(function(){
     let m=carriersData.find(x=>x.id===sel);
     if(!m){box.innerHTML='<div class="muted">Δεν υπάρχουν μεταφορείς.</div>';return}
     let cs=ctrsOf(m.id);
-    box.innerHTML=`<div class="carrHd"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3>${esc(nameOf(m))}</h3>${sBadge(m.active)}</div><button type="button" class="btn alt" id="carrEdit">✎ Επεξεργασία μεταφορέα</button></div>
+    box.innerHTML=`<div class="carrHd"><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h3>${esc(nameOf(m))}</h3>${cBadge(m.active)}</div><button type="button" class="btn alt" id="carrEdit">✎ Επεξεργασία μεταφορέα</button></div>
     <div class="carrDet"><div><small>Διακριτικός τίτλος</small>${esc(m.trade_name||'—')}</div><div><small>ΑΦΜ</small>${esc(m.tax_id||'—')}</div><div><small>Τηλέφωνο</small>${esc(m.phone||'—')}</div><div><small>Email</small>${esc(m.email||'—')}</div><div><small>Άδεια</small>${esc(m.permit_number||'—')}</div><div><small>ΑΔΑ άδειας</small>${esc(m.permit_ada||'—')}</div></div>
     <div class="carrCtrHd"><b>Containers (${cs.length})</b><span style="display:flex;gap:8px"><button type="button" class="btn alt" id="carrCtrHist">Ιστορικό αλλαγών</button><button type="button" class="btn" id="carrNewCtr">+ Νέο container</button></span></div>${ctrTable(cs)}`;
     $('carrEdit').onclick=()=>editOrgPopup('CARRIER','carrier',m);
@@ -6393,7 +6411,7 @@ const SF=(function(){
   }
   function ctrTable(cs){
     if(!cs.length)return '<p class="muted" style="margin:10px 0 0">Δεν έχει containers.</p>';
-    return `<div class="registryTableWrap" style="margin-top:10px"><table class="registryTable"><thead><tr><th>Container</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>${cs.map(c=>`<tr class="${c.active?'':'inactiveMaster'}"><td><b>${esc(c.container_number||'—')}</b></td><td>${tareTxt(c.tare_weight)}</td><td class="statusCell">${sBadge(c.active)}</td><td style="text-align:right"><button type="button" class="carrIc" data-ec="${c.id}" title="Επεξεργασία container">✎</button></td></tr>`).join('')}</tbody></table></div>`;
+    return `<div class="registryTableWrap carrCtrWrap" style="margin-top:10px"><table class="registryTable"><thead><tr><th>Container</th><th>Απόβαρο (kg)</th><th>Κατάσταση</th><th></th></tr></thead><tbody>${cs.map(c=>`<tr class="${c.active?'':'inactiveMaster'}"><td><b>${esc(c.container_number||'—')}</b></td><td>${tareTxt(c.tare_weight)}</td><td class="statusCell">${sBadge(c.active)}</td><td style="text-align:right"><button type="button" class="carrIc" data-ec="${c.id}" title="Επεξεργασία container">✎</button></td></tr>`).join('')}</tbody></table></div>`;
   }
   function bindCtr(box){box.querySelectorAll('[data-ec]').forEach(b=>b.onclick=()=>{let c=ctrData.find(x=>x.id===b.dataset.ec);if(c)editContainerPopup(c)})}
   window.renderCarrierMaster=async function(c){
