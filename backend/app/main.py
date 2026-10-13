@@ -524,7 +524,7 @@ def update_weee_category(category_id:str, data:schemas.WEEECategoryCreate, db:Se
     obj=db.get(WEEECategory,category_id)
     if not obj: raise HTTPException(404,"Η κατηγορία ΑΗΗΕ δεν βρέθηκε")
     if data.code!=obj.code and db.scalar(select(WEEECategory).where(WEEECategory.code==data.code)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη")
-    old={"code":obj.code,"description_el":obj.description_el,"her_description":obj.her_description,"eka_code":obj.eka_code,"processable":obj.processable}
+    old={"code":obj.code,"description_el":obj.description_el,"her_description":obj.her_description,"eka_code":obj.eka_code,"processable":obj.processable,"average_weight":obj.average_weight}
     for k,v in data.model_dump().items(): setattr(obj,k,v)
     write_audit(db,user,"weee_category",obj.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(obj); return obj
