@@ -396,11 +396,13 @@ class CollectionMedium(Base, TimestampMixin):
     __tablename__ = "collection_media"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
     type_id: Mapped[str] = mapped_column(String(36), ForeignKey("collection_medium_types.id"))
-    code: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    code: Mapped[str] = mapped_column(String(80), index=True)
     tare_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="AVAILABLE")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     linked_loading_order_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("loading_orders.id"), nullable=True)
+    # Ο κωδικός είναι μοναδικός ΜΕΣΑ στον τύπο· ο ίδιος κωδικός επιτρέπεται σε άλλον τύπο (το εσωτερικό id είναι το κλειδί).
+    __table_args__ = (UniqueConstraint("type_id","code",name="uq_collection_media_type_code"),)
 
 class AppSetting(Base, TimestampMixin):
     __tablename__ = "app_settings"

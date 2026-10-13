@@ -102,6 +102,13 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_source VARCHAR(20)"))
                 for nm in ("ELECTRONET AE","MEGA ELECTRICS ΑΕΒΕ","ΑΚΤΙΒ ΚΟΜΠΙΟΥΤΕΡ ΣΥΣΤΕΜΣ%"):
                     conn.execute(text("UPDATE organizations SET supplier_source='PICKUP_POINT' WHERE legal_name LIKE :n"),{"n":nm})
+        if "collection_media" in tables:
+            # ο κωδικός μέσου ήταν μοναδικός σε ΟΛΑ τα μέσα· γίνεται μοναδικός ανά τύπο (ίδιος κωδικός σε άλλον τύπο επιτρέπεται)
+            for ix in inspect(engine).get_indexes("collection_media"):
+                if ix.get("name")=="ix_collection_media_code" and ix.get("unique"):
+                    conn.execute(text("DROP INDEX ix_collection_media_code"))
+                    conn.execute(text("CREATE INDEX IF NOT EXISTS ix_collection_media_code ON collection_media (code)"))
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_type_code ON collection_media (type_id, code)"))
         if "collection_medium_types" in tables:
             mt_cols={c["name"] for c in inspect(engine).get_columns("collection_medium_types")}
             if "usage" not in mt_cols:
@@ -728,7 +735,7 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
         seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like(f"{prefix}-%"))).all())+1
         code=f"{prefix}-{datetime.now().year}-{seq:06d}"
     if not code: raise HTTPException(422,"Απαιτείται κωδικός μέσου")
-    if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code)): raise HTTPException(409,"Ο κωδικός μέσου υπάρχει ήδη")
+    if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
     if data.linked_loading_order_id and not db.get(models.LoadingOrder,data.linked_loading_order_id): raise HTTPException(422,"Άγνωστο δελτίο φόρτωσης")
     tare=data.tare_weight if data.tare_weight is not None else mt.default_tare_weight
     obj=CollectionMedium(type_id=data.type_id,code=code,tare_weight=tare,linked_loading_order_id=data.linked_loading_order_id); db.add(obj); db.flush(); write_audit(db,user,"collection_medium",obj.id,"CREATE",new={"code":code,"type":mt.code,"tare":str(tare) if tare is not None else None,"loading_order_id":data.linked_loading_order_id}); db.commit(); db.refresh(obj); return obj
@@ -760,7 +767,11 @@ def update_medium_master(item_id:str,data:schemas.MediumCreate,db:Session=Depend
     x=db.get(CollectionMedium,item_id)
     if not x: raise HTTPException(404,"Το μέσο δεν βρέθηκε")
     old={"type_id":x.type_id,"code":x.code,"tare_weight":x.tare_weight,"linked_loading_order_id":x.linked_loading_order_id}
-    x.type_id=data.type_id; x.code=data.code or x.code; x.tare_weight=data.tare_weight; x.linked_loading_order_id=data.linked_loading_order_id
+    new_code=(data.code or x.code or "").strip()
+    if not new_code: raise HTTPException(422,"Ο αριθμός / κωδικός δεν μπορεί να είναι κενός")
+    if db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==new_code,CollectionMedium.type_id==data.type_id,CollectionMedium.id!=x.id)):
+        raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
+    x.type_id=data.type_id; x.code=new_code; x.tare_weight=data.tare_weight; x.linked_loading_order_id=data.linked_loading_order_id
     write_audit(db,user,"collection_medium",x.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(x); return x
 @app.delete("/master/media/{item_id}")
@@ -2397,10 +2408,10 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
     code=(data.code or '').strip()
     if mt.code=='BULK': raise HTTPException(422,'Το Χύμα δεν έχει αριθμό: καταχώρησέ το χωρίς μέσο συλλογής')
     if not code: raise HTTPException(422,'Γράψε αριθμό / κωδικό μέσου')
-    existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.active==True))
-    if existing:
-        if existing.type_id!=data.type_id: raise HTTPException(409,'Ο κωδικός χρησιμοποιείται από άλλο τύπο μέσου')
-        return existing
+    existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id,CollectionMedium.active==True))
+    if existing: return existing
+    if db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)):
+        raise HTTPException(409,'Ο κωδικός υπάρχει ήδη στον τύπο (ανενεργός). Σε άλλον τύπο επιτρέπεται.')
     tare=data.tare_weight if data.tare_weight is not None else mt.default_tare_weight
     obj=CollectionMedium(type_id=data.type_id,code=code,tare_weight=tare,linked_loading_order_id=data.linked_loading_order_id)
     db.add(obj); db.flush(); write_audit(db,user,'collection_medium',obj.id,'CREATE_FROM_SORTING',new={'code':code,'type':mt.code,'tare':str(tare) if tare is not None else None}); db.commit(); db.refresh(obj); return obj
