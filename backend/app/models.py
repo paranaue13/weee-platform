@@ -413,6 +413,13 @@ class ContentCode(Base):
     label: Mapped[str] = mapped_column(String(200))
     source: Mapped[str|None] = mapped_column(String(30), nullable=True)
 
+class ContentCodeMap(Base):
+    """Αντιστοίχιση περιεχομένου -> κωδικός περιεχομένου: kind='WEEE' (key = επίσημος κωδικός κατηγορίας ΑΗΗΕ) ή 'SGROUP' (key = όνομα κατηγορίας αποθήκης υλικών)."""
+    __tablename__ = "content_code_map"
+    kind: Mapped[str] = mapped_column(String(10), primary_key=True)
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    code: Mapped[str] = mapped_column(String(3), ForeignKey("content_codes.code"))
+
 class MediumCodeCounter(Base):
     """Μετρητής αυτόματων κωδικών ανά τύπο και έτος· δεν μειώνεται ποτέ (δεν επαναχρησιμοποιούνται αριθμοί)."""
     __tablename__ = "medium_code_counters"
