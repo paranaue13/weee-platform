@@ -261,6 +261,13 @@ class MediumTypeNew(BaseModel):
 class MediumTypeRename(BaseModel):
     name_el: str
 
+class MediumTypeEdit(BaseModel):
+    name_el: str
+    short_code: str|None = None
+    usage: str
+    tare_fixed: bool = False
+    default_tare_weight: Decimal|None = None
+
 class MediumTypeTare(BaseModel):
     default_tare_weight: Decimal
 
