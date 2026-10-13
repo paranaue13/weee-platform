@@ -405,6 +405,13 @@ def merge_organizations(data:schemas.OrganizationMergeRequest, db:Session=Depend
     if not target: raise HTTPException(404,"Η εγγραφή-στόχος δεν βρέθηκε")
     source_ids=[s for s in dict.fromkeys(data.source_ids) if s!=data.target_id]
     if not source_ids: raise HTTPException(422,"Δεν επιλέχθηκαν εγγραφές για συγχώνευση")
+    # Ίδιος κωδικός container στον μεταφορέα που συγχωνεύεται και στον στόχο: δεν γράφεται δεύτερος· διακόπτεται η συγχώνευση (χωρίς καμία αλλαγή)
+    def _ctr_codes(oid):
+        return {_container_public(x).container_number for x in db.scalars(select(ContainerAsset).where(ContainerAsset.owner_organization_id==oid)).all()}
+    tgt_codes=_ctr_codes(data.target_id); dups=[]
+    for sid in source_ids:
+        dups+=sorted(_ctr_codes(sid)&tgt_codes)
+    if dups: raise HTTPException(409,"Η συγχώνευση διακόπηκε: οι κωδικοί containers "+", ".join(dups[:15])+(" …" if len(dups)>15 else "")+" υπάρχουν και στους δύο μεταφορείς. Δεν έγινε καμία αλλαγή.")
     merged=[]
     for sid in source_ids:
         src=db.get(Organization,sid)
@@ -424,6 +431,10 @@ def merge_organizations(data:schemas.OrganizationMergeRequest, db:Session=Depend
             if clash: db.delete(b)
             else: b.supplier_id=data.target_id
         db.execute(update(models.CarrierDriver).where(models.CarrierDriver.carrier_id==sid).values(carrier_id=data.target_id))
+        for v in db.scalars(select(models.CarrierVehicle).where(models.CarrierVehicle.carrier_id==sid)).all():
+            clash=db.scalar(select(models.CarrierVehicle).where(models.CarrierVehicle.carrier_id==data.target_id,models.CarrierVehicle.plate_number==v.plate_number))
+            if clash: db.delete(v)
+            else: v.carrier_id=data.target_id
         db.execute(update(models.ContainerAsset).where(models.ContainerAsset.owner_organization_id==sid).values(owner_organization_id=data.target_id))
         db.execute(update(models.InboundTrip).where(models.InboundTrip.carrier_id==sid).values(carrier_id=data.target_id))
         db.execute(update(models.InboundLoad).where(models.InboundLoad.supplier_id==sid).values(supplier_id=data.target_id))
