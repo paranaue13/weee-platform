@@ -393,6 +393,15 @@ class CollectionMediumType(Base, TimestampMixin):
     usage: Mapped[str] = mapped_column(String(10), default="BOTH", server_default="BOTH")
     # Σταθερό αποβαρό: όλα τα μέσα του τύπου έχουν το default_tare_weight του τύπου (δεν υπάρχει αποβαρό ανά μέσο)
     tare_fixed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    # Σύντομος κωδικός τύπου (3 χαρακτήρες) για τους αυτόματους κωδικούς μέσων: ΕΕ-ΤΤΤ-ΝΝΝΝ (π.χ. 26-PAL-0001)
+    short_code: Mapped[str|None] = mapped_column(String(3), nullable=True)
+
+class MediumCodeCounter(Base):
+    """Μετρητής αυτόματων κωδικών ανά τύπο και έτος· δεν μειώνεται ποτέ (δεν επαναχρησιμοποιούνται αριθμοί)."""
+    __tablename__ = "medium_code_counters"
+    type_id: Mapped[str] = mapped_column(String(36), ForeignKey("collection_medium_types.id"), primary_key=True)
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    last_no: Mapped[int] = mapped_column(Integer, default=0)
 
 class CollectionMedium(Base, TimestampMixin):
     __tablename__ = "collection_media"

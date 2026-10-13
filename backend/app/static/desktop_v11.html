@@ -1039,6 +1039,7 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 .nmNew .prodSegment{display:flex;width:100%}.nmNew .prodSegment button{flex:1}
 .nmNew .muted{font-size:12px;line-height:1.5}
 @media(max-width:700px){.nmGrid{grid-template-columns:1fr}}
+#mediaM .medFlash{margin:0 0 10px;padding:8px 14px;border-radius:10px;background:var(--accent-bg);color:var(--accent-fg);font-size:13px}
 #mediaM .medHdSp{flex:1}
 #mediaM .medCk{width:38px;text-align:center}
 #mediaM .medTrash{width:50px;text-align:right}
@@ -3905,7 +3906,7 @@ function paintMediumSide(){
  box.querySelectorAll('.medTypeItem').forEach(b=>b.onclick=()=>{selectedMediumType=mediumTypesAll.find(x=>x.id===b.dataset.t);renderMediumList()});
 }
 const MED_TARE_WARN='Το μέσο περιέχει υλικό. Τα ήδη καταχωρημένα kg δεν αλλάζουν. Οι επόμενες ζυγίσεις θα γίνονται με το νέο αποβαρό.';
-let medSel=new Set(),medSelType=null;
+let medSel=new Set(),medSelType=null,medFlash=null;
 function paintMediumDet(){
  let box=$('mediumDet');if(!box)return;
  let t=selectedMediumType;
@@ -3918,12 +3919,13 @@ function paintMediumDet(){
  let anyUsed=all.some(x=>mediumInUse(x)),selUsed=rows.concat(all).some(x=>medSel.has(x.id)&&mediumInUse(x));
  let allChecked=rows.length>0&&rows.every(x=>medSel.has(x.id));
  let body=isBulk?`<tr><td></td><td>${esc(t.name_el)}</td><td>—</td><td>—</td><td><span class="pill green">Ελεύθερο</span></td><td></td></tr>`
-  :(rows.map(x=>{let used=mediumInUse(x);return `<tr class="medMaster${medSel.has(x.id)?' sel':''}" data-id="${x.id}"><td class="medCk"><input type="checkbox" data-ck="${x.id}" ${medSel.has(x.id)?'checked':''}></td><td>${esc(t.name_el)}</td><td><input class="medEdit medEditCode" data-f="code" data-id="${x.id}" placeholder="(χωρίς κωδικό)" value="${String(x.code||'').startsWith('?')?'':esc(x.code||'')}" autocomplete="off"></td><td>${t.tare_fixed?(x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):'—'):`<input class="medEdit medEditTare" data-f="tare" data-id="${x.id}" inputmode="decimal" placeholder="—" value="${x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):''}" autocomplete="off">`}</td><td>${used?'<span class="pill yellow">Σε χρήση</span>':'<span class="pill green">Ελεύθερο</span>'}</td><td class="medTrash"><button type="button" class="medDel" data-del="${x.id}" ${used?'disabled title="Σε χρήση: δεν διαγράφεται"':'title="Διαγραφή"'}>🗑</button></td></tr>`}).join('')||'<tr><td colspan="6" class="muted">Δεν υπάρχουν μέσα στην επιλεγμένη κατηγορία.</td></tr>');
+  :(rows.map(x=>{let used=mediumInUse(x);return `<tr class="medMaster${medSel.has(x.id)?' sel':''}" data-id="${x.id}"><td class="medCk"><input type="checkbox" data-ck="${x.id}" ${medSel.has(x.id)?'checked':''}></td><td>${esc(t.name_el)}</td><td><input class="medEdit medEditCode" data-f="code" data-id="${x.id}" value="${esc(x.code||'')}" autocomplete="off"></td><td>${t.tare_fixed?(x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):'—'):`<input class="medEdit medEditTare" data-f="tare" data-id="${x.id}" inputmode="decimal" placeholder="—" value="${x.tare_weight!=null?esc(String(Number(x.tare_weight)).replace('.',',')):''}" autocomplete="off">`}</td><td>${used?'<span class="pill yellow">Σε χρήση</span>':'<span class="pill green">Ελεύθερο</span>'}</td><td class="medTrash"><button type="button" class="medDel" data-del="${x.id}" ${used?'disabled title="Σε χρήση: δεν διαγράφεται"':'title="Διαγραφή"'}>🗑</button></td></tr>`}).join('')||'<tr><td colspan="6" class="muted">Δεν υπάρχουν μέσα στην επιλεγμένη κατηγορία.</td></tr>');
  let delTypeDis=isBulk||anyUsed;
  let bar=medSel.size?`<div class="medBulkBar"><b>${medSel.size} επιλεγμένα</b>${t.tare_fixed?'':'<span class="medBulkTare">Αποβαρό για όλα [kg] <input id="medBulkTare" inputmode="decimal" placeholder="kg"> <button type="button" class="btn alt" id="medBulkApply">Εφαρμογή</button></span>'}<button type="button" class="btn alt" id="medBulkMove">Μετακίνηση σε άλλον τύπο…</button><span class="medBulkSp"></span>${selUsed?'<span class="muted">Περιλαμβάνονται μέσα σε χρήση: δεν διαγράφονται</span>':''}<button type="button" class="btn danger" id="medBulkDel" ${selUsed?'disabled':''}>Διαγραφή επιλεγμένων</button></div>`:'';
- box.innerHTML=`<div class="medDetHead"><h3>${esc(t.name_el)}</h3>${isBulk?'':'<button type="button" class="medIc" id="medRename" title="Μετονομασία τύπου">✎</button>'}<span class="muted">Χρήση</span><div class="prodSegment medUsageSeg">${['IN','OUT','BOTH'].map(u=>`<button type="button" data-u="${u}" class="${usage===u?'active':''}">${MED_USAGE_LBL[u]}</button>`).join('')}</div>${t.tare_fixed?`<span class="muted medFixTare">Σταθερό αποβαρό: <b>${t.default_tare_weight!=null?esc(String(Number(t.default_tare_weight)).replace('.',',')):'—'} kg</b> <button type="button" class="medIc medIcTxt" id="medTypeTare">Αλλαγή</button></span>`:''}<span class="medHdSp"></span><button type="button" class="btn alt medDelType" id="medDelType" ${delTypeDis?'disabled':''} title="${isBulk?'Το Χύμα δεν διαγράφεται':(anyUsed?'Έχει μέσα σε χρήση: δεν διαγράφεται':'Διαγραφή όλου του είδους')}">🗑 Διαγραφή είδους</button></div>${bar}
+ box.innerHTML=`<div class="medDetHead"><h3>${esc(t.name_el)}</h3>${isBulk?'':'<button type="button" class="medIc" id="medRename" title="Μετονομασία τύπου">✎</button>'}<span class="muted">Χρήση</span><div class="prodSegment medUsageSeg">${['IN','OUT','BOTH'].map(u=>`<button type="button" data-u="${u}" class="${usage===u?'active':''}">${MED_USAGE_LBL[u]}</button>`).join('')}</div>${t.tare_fixed?`<span class="muted medFixTare">Σταθερό αποβαρό: <b>${t.default_tare_weight!=null?esc(String(Number(t.default_tare_weight)).replace('.',',')):'—'} kg</b> <button type="button" class="medIc medIcTxt" id="medTypeTare">Αλλαγή</button></span>`:''}<span class="medHdSp"></span><button type="button" class="btn alt medDelType" id="medDelType" ${delTypeDis?'disabled':''} title="${isBulk?'Το Χύμα δεν διαγράφεται':(anyUsed?'Έχει μέσα σε χρήση: δεν διαγράφεται':'Διαγραφή όλου του είδους')}">🗑 Διαγραφή είδους</button></div>${medFlash?`<div class="medFlash">Δημιουργήθηκε το μέσο <b>${esc(medFlash)}</b>. Ο κωδικός δόθηκε αυτόματα.</div>`:''}${bar}
   <div class="registryTableWrap"><table class="registryTable"><thead><tr><th class="medCk"><input type="checkbox" id="medCkAll" ${allChecked?'checked':''} ${isBulk?'disabled':''}></th><th>Τύπος</th><th>Αριθμός / Κωδικός</th><th>Αποβαρό (kg)</th><th>Κατάσταση</th><th class="medCountTh">${isBulk?'Χωρίς αριθμό/αποβαρό':rows.length+' μέσα'}</th></tr></thead><tbody>${body}</tbody></table></div>`;
  const reload=async()=>{await loadMasterMedia()};
+ if(medFlash){let keep=medFlash;setTimeout(()=>{if(medFlash===keep){medFlash=null;let f=document.querySelector('#mediumDet .medFlash');if(f)f.remove()}},6000)}
  box.querySelectorAll('.medUsageSeg button').forEach(b=>b.onclick=async()=>{
   if(b.dataset.u===usage)return;
   try{let r=await api('/master/medium-types/'+t.id+'/usage',{method:'PUT',body:JSON.stringify({usage:b.dataset.u})});t.usage=r.usage;renderMediumList()}
@@ -3973,7 +3975,7 @@ function paintMediumDet(){
    let m=mediumRowsCache.find(x=>x.id===inp.dataset.id);if(!m)return;
    let v=inp.value.trim(),payload={type_id:m.type_id,code:m.code,tare_weight:m.tare_weight,linked_loading_order_id:m.linked_loading_order_id};
    if(inp.dataset.f==='code'){
-    if(!v){if(String(m.code||'').startsWith('?'))return;alert('Ο αριθμός / κωδικός δεν μπορεί να είναι κενός.');inp.value=orig;return}
+    if(!v){alert('Ο αριθμός / κωδικός δεν μπορεί να είναι κενός.');inp.value=orig;return}
     if(v===m.code)return;
     payload.code=v;
    }else{
@@ -4012,11 +4014,12 @@ function editMediumPopup(obj=null){let opts=mediumTypesCache.map(t=>`<option val
 function newMediumDialog(){
  let types=[];for(const [u] of MED_USAGE_GRP)mediumTypesAll.filter(x=>x.active!==false&&x.code!=='BULK'&&(x.usage||'BOTH')===u).forEach(x=>types.push(x));
  let defId=(selectedMediumType&&selectedMediumType.code!=='BULK'&&types.some(x=>x.id===selectedMediumType.id))?selectedMediumType.id:(types[0]||{}).id;
- let nu='OUT',nw='fix';
+ let nu='OUT',nw='fix',nmT=null;
  openFloat('Νέο Μέσο',`<div class="nmGrid">
   <label>Τύπος<select id="nmType">${types.map(x=>`<option value="${x.id}" ${x.id===defId?'selected':''}>${esc(x.name_el)}</option>`).join('')}<option value="__new">＋ Νέος τύπος μέσου…</option></select></label>
-  <label>Αριθμός / Κωδικός <span class="muted">(προαιρετικό)</span><input id="nmCode" autocomplete="off"></label>
+  <label>Αριθμός / Κωδικός<input id="nmCode" value="Θα δοθεί αυτόματα" disabled></label>
   <div id="nmNew" class="nmNew hidden"><label>Όνομα νέου τύπου<input id="nmName" placeholder="π.χ. Κλωβός" autocomplete="off"></label>
+   <div><label>Κωδικός τύπου <span class="muted">(3 χαρακτήρες, για τους αυτόματους κωδικούς)</span><input id="nmShort" maxlength="3" autocomplete="off" style="text-transform:uppercase"></label></div>
    <div><span class="nmLbl">Χρήση</span><div class="prodSegment" id="nmUsage"><button type="button" data-u="IN">Εισερχόμενο</button><button type="button" data-u="OUT" class="active">Εξερχόμενο</button><button type="button" data-u="BOTH">Και τα δύο</button></div></div>
    <div><span class="nmLbl">Αποβαρό του τύπου</span><div class="prodSegment" id="nmTare"><button type="button" data-w="fix" class="active">Σταθερό για όλα τα μέσα</button><button type="button" data-w="var">Διαφορετικό σε κάθε μέσο</button></div></div>
    <div class="muted" id="nmHint"></div></div>
@@ -4032,31 +4035,32 @@ function newMediumDialog(){
    $('nmTareLbl').textContent=nw==='fix'?'Αποβαρό του τύπου (kg)':'Αποβαρό αυτού του μέσου (kg) — προαιρετικό';
    if(tv.readOnly)tv.value='';tv.readOnly=false;tv.placeholder=nw==='fix'?'ίδιο για όλα τα μέσα του τύπου':'';
    let U={IN:'Εισερχόμενο',OUT:'Εξερχόμενο',BOTH:'Και τα δύο'};
-   $('nmHint').textContent='Θα δημιουργηθεί ο τύπος «'+($('nmName').value.trim()||'…')+'» με χρήση «'+U[nu]+'» και '+(nw==='fix'?'σταθερό αποβαρό: όλα τα μέσα του θα έχουν το ίδιο αποβαρό.':'αποβαρό που ορίζεται ξεχωριστά σε κάθε μέσο.')+' Θα δημιουργηθεί και το πρώτο του μέσο. Ο αριθμός/κωδικός μπορεί να συμπληρωθεί και αργότερα.';
+   if(!$('nmShort').dataset.touched&&$('nmName').value.trim()){clearTimeout(nmT);nmT=setTimeout(async()=>{try{let r=await api('/master/medium-types/suggest-code?name='+encodeURIComponent($('nmName').value.trim()));if($('nmShort')&&!$('nmShort').dataset.touched)$('nmShort').value=r.short_code}catch(e){}},250)}
+   $('nmHint').textContent='Θα δημιουργηθεί ο τύπος «'+($('nmName').value.trim()||'…')+'» με χρήση «'+U[nu]+'» και '+(nw==='fix'?'σταθερό αποβαρό: όλα τα μέσα του θα έχουν το ίδιο αποβαρό.':'αποβαρό που ορίζεται ξεχωριστά σε κάθε μέσο.')+' Θα δημιουργηθεί και το πρώτο του μέσο, με αυτόματο κωδικό.';
   }else{
    $('nmTareLbl').textContent=tp&&tp.tare_fixed?'Αποβαρό του τύπου (kg) — σταθερό':'Αποβαρό (kg)';
    if(tp&&tp.tare_fixed){tv.readOnly=true;tv.value=tp.default_tare_weight!=null?String(Number(tp.default_tare_weight)).replace('.',','):''}else{if(tv.readOnly)tv.value='';tv.readOnly=false}
    tv.placeholder='';
   }
  };
- $('nmType').onchange=upd;$('nmName').oninput=upd;
+ $('nmType').onchange=upd;$('nmName').oninput=upd;$('nmShort').addEventListener('input',()=>{$('nmShort').dataset.touched='1'});
  $('nmUsage').onclick=e=>{let b=e.target.closest('[data-u]');if(!b)return;nu=b.dataset.u;[...$('nmUsage').children].forEach(x=>x.classList.toggle('active',x===b));upd()};
  $('nmTare').onclick=e=>{let b=e.target.closest('[data-w]');if(!b)return;nw=b.dataset.w;[...$('nmTare').children].forEach(x=>x.classList.toggle('active',x===b));upd()};
  $('nmCancel').onclick=()=>$('floatingEditor').classList.add('hidden');
  $('nmSave').onclick=async()=>{
-  let v=$('nmType').value,isNew=v==='__new',code=$('nmCode').value.trim(),raw=String($('nmTareVal').value).trim().replace(',','.'),tare=raw===''?null:Number(raw);
+  let v=$('nmType').value,isNew=v==='__new',raw=String($('nmTareVal').value).trim().replace(',','.'),tare=raw===''?null:Number(raw);
   if(tare!=null&&(!Number.isFinite(tare)||tare<0)){$('nmErr').textContent='Γράψε έγκυρο αποβαρό (kg).';return}
   try{
    let tid=v;
    if(isNew){
     let nm=$('nmName').value.trim();if(!nm)return;
     if(nw==='fix'&&tare==null){$('nmErr').textContent='Γράψε το σταθερό αποβαρό του τύπου.';return}
-    let nt=await api('/master/medium-types',{method:'POST',body:JSON.stringify({name_el:nm,usage:nu,tare_fixed:nw==='fix',default_tare_weight:nw==='fix'?tare:null})});
+    let nt=await api('/master/medium-types',{method:'POST',body:JSON.stringify({name_el:nm,usage:nu,tare_fixed:nw==='fix',default_tare_weight:nw==='fix'?tare:null,short_code:$('nmShort').value.trim().toUpperCase()||null})});
     tid=nt.id;
    }
-   await api('/master/media',{method:'POST',body:JSON.stringify({type_id:tid,code:code||null,tare_weight:(isNew&&nw==='fix')?null:tare,linked_loading_order_id:null})});
+   let nm2=await api('/master/media',{method:'POST',body:JSON.stringify({type_id:tid,code:null,tare_weight:(isNew&&nw==='fix')?null:tare,linked_loading_order_id:null})});
    $('floatingEditor').classList.add('hidden');
-   selectedMediumType={id:tid};await loadMasterMedia();
+   medFlash=nm2.code;selectedMediumType={id:tid};await loadMasterMedia();
   }catch(err){$('nmErr').textContent=err.message||String(err)}
  };
  upd();setTimeout(()=>{let c=$('nmCode');if(c)c.focus()},50);

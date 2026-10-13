@@ -109,8 +109,16 @@ async def lifespan(app: FastAPI):
                     conn.execute(text("DROP INDEX ix_collection_media_code"))
                     conn.execute(text("CREATE INDEX IF NOT EXISTS ix_collection_media_code ON collection_media (code)"))
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_type_code ON collection_media (type_id, code)"))
+            # κωδικοί της νέας μορφής ΕΕ-ΤΤΤ-ΝΝΝΝ είναι μοναδικοί σε ΟΛΑ τα μέσα (οι παλιοί κωδικοί δεν επηρεάζονται)
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_collection_media_newcode ON collection_media (code) WHERE code GLOB '[0-9][0-9]-[A-Z0-9][A-Z0-9][A-Z0-9]-[0-9]*'"))
         if "collection_medium_types" in tables:
             mt_cols={c["name"] for c in inspect(engine).get_columns("collection_medium_types")}
+            if "short_code" not in mt_cols:
+                conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN short_code VARCHAR(3)"))
+                for _c,_sc in {"INFOCYCLE_1":"NF1","INFOCYCLE_2":"NF2","BASKET_LARGE":"KLM","BASKET_SMALL":"KLK","METAL_BASKET":"KMT","PALLET":"PAL","BOX":"BOX",
+                               "SACK_1KG":"AK1","SACK_2KG_UN":"AK2","MATERIAL_PALLET":"PMT","MATERIAL_SACK":"AKM","BIG_BAG":"MGA"}.items():
+                    conn.execute(text("UPDATE collection_medium_types SET short_code=:s WHERE code=:c AND short_code IS NULL"),{"s":_sc,"c":_c})
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_medium_type_short_code ON collection_medium_types (short_code) WHERE short_code IS NOT NULL"))
             if "tare_fixed" not in mt_cols:
                 conn.execute(text("ALTER TABLE collection_medium_types ADD COLUMN tare_fixed BOOLEAN DEFAULT 0 NOT NULL"))
                 # οι σάκοι 1kg/2kg είχαν ήδη στάνταρ αποβαρό: γίνονται «σταθερό αποβαρό»
@@ -635,12 +643,57 @@ def list_media(include_inactive:bool=Query(default=False), db:Session=Depends(ge
     for r in rows: r.in_use=r.id in used
     return rows
 
-def _temp_medium_code(db:Session,type_id:str)->str:
-    mx=0
-    for c in db.scalars(select(CollectionMedium.code).where(CollectionMedium.type_id==type_id,CollectionMedium.code.like("?%"))).all():
-        try: mx=max(mx,int(str(c)[1:]))
-        except ValueError: pass
-    return f"?{mx+1}"
+_CODE_LETTERS="ACDEFGHJKLMNPRTUVWXY"      # γράμματα χωρίς B I O S Z Q (μπερδεύονται με 8, 1, 0, 5, 2)
+_GR2LAT={"Α":"A","Β":"V","Γ":"G","Δ":"D","Ε":"E","Ζ":"Z","Η":"I","Θ":"T","Ι":"I","Κ":"K","Λ":"L","Μ":"M","Ν":"N","Ξ":"X","Ο":"O","Π":"P","Ρ":"R","Σ":"S","Τ":"T","Υ":"Y","Φ":"F","Χ":"C","Ψ":"P","Ω":"O"}
+_NEWCODE_RE=re.compile(r"^(\d{2})-([A-Z0-9]{3})-(\d{4,})$")
+
+def _suggest_short_code(db:Session,name:str)->str:
+    import unicodedata
+    base=unicodedata.normalize("NFD",(name or "").upper()).encode("utf-8").decode("utf-8")
+    base="".join(ch for ch in base if not unicodedata.combining(ch))
+    letters=[ _GR2LAT.get(ch,ch) for ch in base ]
+    cand=[ch for ch in "".join(letters) if ch in _CODE_LETTERS]
+    taken={c for c in db.scalars(select(CollectionMediumType.short_code).where(CollectionMediumType.short_code.is_not(None))).all()}
+    code="".join(cand[:3])
+    for ch in "KLMNPRTCDEFGHJAUVWXY":
+        if len(code)>=3: break
+        code+=ch
+    code=code[:3]
+    i=0
+    while code in taken and i<400:
+        # αλλαγή του τελευταίου γράμματος, μετά του μεσαίου
+        a,b,c=code
+        L=_CODE_LETTERS; j=(L.index(c) if c in L else 0)+1
+        code=a+b+L[j%len(L)]
+        if j>=len(L): code=a+L[(L.index(b)+1)%len(L) if b in L else 0]+L[0]
+        i+=1
+    return code
+
+def _valid_short_code(code:str)->bool:
+    return bool(re.fullmatch(r"[A-Z0-9]{3}",code or ""))
+
+def _next_medium_code(db:Session,mt)->str:
+    """Αυτόματος κωδικός ΕΕ-ΤΤΤ-ΝΝΝΝ: έτος δημιουργίας, σύντομος κωδικός τύπου, αύξων αριθμός ανά έτος και τύπο (δεν μειώνεται ποτέ)."""
+    if not mt.short_code:
+        mt.short_code=_suggest_short_code(db,mt.name_el); db.flush()
+    yy=datetime.now().year%100; year=datetime.now().year
+    row=db.get(models.MediumCodeCounter,(mt.id,year))
+    if not row:
+        row=models.MediumCodeCounter(type_id=mt.id,year=year,last_no=0); db.add(row); db.flush()
+    while True:
+        row.last_no=int(row.last_no or 0)+1
+        code=f"{yy:02d}-{mt.short_code}-{row.last_no:04d}"
+        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==code)): break
+    db.flush()
+    return code
+
+def _check_new_format(db:Session,code:str,type_id:str):
+    """Κωδικός που μοιάζει με τη νέα μορφή (ΕΕ-…) πρέπει να είναι έγκυρος και να ταιριάζει με τον κωδικό του τύπου."""
+    if not re.match(r"^\d{2}-",code or ""): return
+    m=_NEWCODE_RE.match(code)
+    t=db.get(CollectionMediumType,type_id)
+    if not m or (t and t.short_code and m.group(2)!=t.short_code):
+        raise HTTPException(422,"Μη έγκυρος κωδικός. Η μορφή είναι ΕΕ-"+((t.short_code if t and t.short_code else "ΤΤΤ"))+"-ΝΝΝΝ (π.χ. 26-"+((t.short_code if t and t.short_code else "PAL"))+"-0001).")
 
 def _type_name_taken(db:Session,name:str,exclude_id:str|None=None)->bool:
     n=name.strip().lower()
@@ -651,6 +704,10 @@ def _set_setting(db:Session,key:str,value:str):
     if row: row.value=value
     else: db.add(AppSetting(key=key,value=value))
 
+@app.get("/master/medium-types/suggest-code")
+def suggest_medium_type_code(name:str="", db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
+    return {"short_code":_suggest_short_code(db,name)}
+
 @app.post("/master/medium-types", response_model=schemas.MediumTypeOut)
 def create_medium_type(data:schemas.MediumTypeNew, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
     name=(data.name_el or "").strip()
@@ -659,7 +716,10 @@ def create_medium_type(data:schemas.MediumTypeNew, db:Session=Depends(get_db), u
     if _type_name_taken(db,name): raise HTTPException(409,"Υπάρχει ήδη τύπος με αυτό το όνομα")
     if data.tare_fixed and (data.default_tare_weight is None or data.default_tare_weight<0): raise HTTPException(422,"Γράψε το σταθερό αποβαρό του τύπου")
     import uuid as _uuid
-    t=CollectionMediumType(code="CUSTOM_"+_uuid.uuid4().hex[:8].upper(),name_el=name,usage=data.usage,tare_fixed=bool(data.tare_fixed),
+    sc=(data.short_code or "").strip().upper() or _suggest_short_code(db,name)
+    if not _valid_short_code(sc): raise HTTPException(422,"Ο κωδικός τύπου είναι 3 χαρακτήρες (κεφαλαία λατινικά ή ψηφία)")
+    if db.scalar(select(CollectionMediumType.id).where(CollectionMediumType.short_code==sc)): raise HTTPException(409,"Ο κωδικός τύπου «"+sc+"» χρησιμοποιείται ήδη")
+    t=CollectionMediumType(code="CUSTOM_"+_uuid.uuid4().hex[:8].upper(),name_el=name,usage=data.usage,tare_fixed=bool(data.tare_fixed),short_code=sc,
         default_tare_weight=data.default_tare_weight if data.tare_fixed else None,requires_unique_number=True,never_reuse_number=False,active=True)
     db.add(t); db.flush()
     write_audit(db,user,"collection_medium_type",t.id,"CREATE",new={"name_el":name,"usage":t.usage,"tare_fixed":t.tare_fixed,"default_tare_weight":t.default_tare_weight})
@@ -822,8 +882,8 @@ def create_medium(data:schemas.MediumCreate, db:Session=Depends(get_db), user:Us
         prefix="MS" if mt.code=="MATERIAL_SACK" else "MP"
         seq=len(db.scalars(select(CollectionMedium).where(CollectionMedium.code.like(f"{prefix}-%"))).all())+1
         code=f"{prefix}-{datetime.now().year}-{seq:06d}"
-    if not code:
-        code=_temp_medium_code(db,data.type_id)       # κωδικός προαιρετικός στη δημιουργία: προσωρινός «?n», συμπληρώνεται αργότερα
+    if mt.code=="BULK": raise HTTPException(422,"Το Χύμα δεν έχει αριθμό: δεν δημιουργούνται μέσα Χύμα")
+    code=_next_medium_code(db,mt)       # αυτόματος κωδικός ΠΑΝΤΑ στη δημιουργία νέου μέσου
     if db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id)): raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
     if data.linked_loading_order_id and not db.get(models.LoadingOrder,data.linked_loading_order_id): raise HTTPException(422,"Άγνωστο δελτίο φόρτωσης")
     tare=mt.default_tare_weight if getattr(mt,"tare_fixed",False) else (data.tare_weight if data.tare_weight is not None else mt.default_tare_weight)
@@ -858,6 +918,7 @@ def update_medium_master(item_id:str,data:schemas.MediumCreate,db:Session=Depend
     old={"type_id":x.type_id,"code":x.code,"tare_weight":x.tare_weight,"linked_loading_order_id":x.linked_loading_order_id}
     new_code=(data.code or x.code or "").strip()
     if not new_code: raise HTTPException(422,"Ο αριθμός / κωδικός δεν μπορεί να είναι κενός")
+    if new_code!=x.code or data.type_id!=x.type_id: _check_new_format(db,new_code,data.type_id)
     if db.scalar(select(CollectionMedium.id).where(CollectionMedium.code==new_code,CollectionMedium.type_id==data.type_id,CollectionMedium.id!=x.id)):
         raise HTTPException(409,"Ο κωδικός υπάρχει ήδη στον τύπο. Σε άλλον τύπο επιτρέπεται.")
     tmt=db.get(CollectionMediumType,data.type_id)
