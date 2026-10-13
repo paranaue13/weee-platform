@@ -5462,12 +5462,14 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   const user=()=>{try{return (typeof me!=='undefined'&&me&&(me.username||me.id))||'local'}catch(e){return 'local'}};
   // Πίνακες ΧΩΡΙΣ καρφίτσες: Ζωντανή ροή (Παραλαβές/Φορτώσεις), Παραλαβές και Ταξινόμηση (ημέρες + μήνες), Υλικά → Πρέσα και Αποθήκη.
   const NOPIN='#ecTableWrap,#loadingEcTableWrap,#receiptDailyTable,#receiptMonthSummary,#sortingDailyTable,#sortingMonthSummary,#readyPressPanel,#readyWarehousePanel';
-  // Καμία καρφίτσα απόκρυψης σε κανέναν πίνακα: όλες οι στήλες και γραμμές φαίνονται μόνιμα.
-  const eligibleTable=t=>false;
+  // Καρφίτσες ΜΟΝΟ στις σελίδες Αποθήκη ΑΗΗΕ, Παραγωγή, Υλικά και Απογραφή (εκτός από τις υποκαρτέλες του NOPIN).
+  const PINPAGES='#weee,#production,#ready,#inventory';
+  const eligibleTable=t=>t&&t.tHead&&t.tHead.rows.length&&!t.closest(SKIP)&&!t.closest(NOPIN)&&!!t.closest(PINPAGES);
   // Σβήσιμο των παλιών αποθηκευμένων αποκρύψεων για αυτούς τους πίνακες, ώστε να εμφανιστούν όλα μόνιμα.
   (function purge(){
     try{
-      Object.keys(localStorage).filter(k=>k.startsWith('weee.pin.v1:')).forEach(k=>localStorage.removeItem(k));
+      let re=/:(ecTableWrap|loadingEcTableWrap|receiptDailyTable|receiptMonthSummary|sortingDailyTable|sortingMonthSummary|readyPressPanel|readyWarehousePanel)(:T\d+)?$/;
+      Object.keys(localStorage).filter(k=>k.startsWith('weee.pin.v1:')&&re.test(k)).forEach(k=>localStorage.removeItem(k));
     }catch(e){}
   })();
 
