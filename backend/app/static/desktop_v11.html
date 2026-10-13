@@ -3871,7 +3871,21 @@ function openFloatAt(title,html,x,y){
   const keyOf=t=>String(t||'').replace(new RegExp('\\s*('+MONTHS+')\\s*','g'),' ').replace(/[0-9]+/g,'').replace(/[·:\-–].*$/,'').replace(/\s+/g,' ').trim();
   window.popupApplySize=function(p,k){p.dataset.sizeKey=k;p.style.width='';p.style.height='';let s=load()[k];if(s){p.style.width=Math.min(s.w,innerWidth-16)+'px';p.style.height=Math.min(s.h,innerHeight-16)+'px'}};
   const base=openFloat;
-  openFloat=function(title,html){let p=base(title,html);p.style.top='max(64px,5vh)';popupApplySize(p,'float:'+keyOf(title));return p};
+  // Φόρμες των Μητρώων: ΣΤΑΘΕΡΟ μέγεθος ανά τύπο παραθύρου (πλάτος 520px, ύψος όσο το περιεχόμενο όταν ανοίγει)· δεν αλλάζει όσο
+  // αλλάζουν οι επιλογές μέσα στο παράθυρο. Αν ο χρήστης το αλλάξει από τη γωνία, το μέγεθος θυμάται ανά τύπο παραθύρου.
+  const FIXED=new Set(['Νέο Μέσο','Επεξεργασία τύπου','Επεξεργασία μέσου','Μετακίνηση μέσων σε άλλον τύπο','Μετονομασία τύπου','Σταθερό αποβαρό τύπου',
+    'Επεξεργασία εργαζομένου','Νέος εργαζόμενος','Επεξεργασία Container','Νέο Container','Προφίλ ΑΗΗΕ','Προφίλ Υλικού','Νέο Υλικό','Επεξεργασία Υλικού',
+    'Προφίλ Αναλωσίμου','Νέο Αναλώσιμο','Επεξεργασία Τμήματος','Νέο Τμήμα','Επεξεργασία Μέσου','Νέος Οδηγός','Νέα Πινακίδα','Νέα δική μας υποκατηγορία',
+    'Νέα ΑΗΗΕ διάκριση','Επεξεργασία δικής μας υποκατηγορίας','Επεξεργασία ΑΗΗΕ διάκρισης']);
+  openFloat=function(title,html){let p=base(title,html);p.style.top='max(64px,5vh)';let k='float:'+keyOf(title);popupApplySize(p,k);
+    let nm=keyOf(title);
+    if(FIXED.has(nm)){
+      p.style.minWidth='0';p.style.maxHeight='calc(100vh - 80px)';
+      let saved=load()[k];
+      if(!saved){p.style.width='min(520px,calc(100vw - 16px))';requestAnimationFrame(()=>{if(!p.classList.contains('hidden')&&!p.dataset.sizeFrozen){p.dataset.sizeFrozen='1';p.style.height=Math.min(p.offsetHeight,innerHeight-80)+'px'}})}
+      p.dataset.sizeFrozen=saved?'1':'';
+    }else{p.style.minWidth='';p.style.maxHeight=''}
+    return p};
   [['receiptForm','receipt'],['sortingDetail','sorting']].forEach(([id,k])=>{let p=document.getElementById(id);if(!p)return;new MutationObserver(()=>{if(!p.classList.contains('hidden')&&!p.dataset.sized){p.dataset.sized='1';popupApplySize(p,'win:'+k)}else if(p.classList.contains('hidden'))delete p.dataset.sized}).observe(p,{attributes:true,attributeFilter:['class']})});
   let drag=null;
   document.addEventListener('pointerdown',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(e.clientX>r.right-24&&e.clientY>r.bottom-24)drag={p,w:r.width,h:r.height}},true);
