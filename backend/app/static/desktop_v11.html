@@ -2628,7 +2628,7 @@ function negRestore(box){if(box&&box._negMr!==undefined){box.style.marginRight=b
 function scanNegKg(){
  _negScanTimer=null;
  let groups=new Map();
- document.querySelectorAll('.negKgCell').forEach(c=>{
+ document.querySelectorAll('.negKgCell,.negativeCell').forEach(c=>{
   if(!c.offsetParent||c.closest('#negKgMini'))return;
   let box=c.closest('.prodTableWrap,.tablewrap,.registryTableWrap,.tableWrap')||(c.closest('table')&&c.closest('table').parentElement);
   if(!box)return;
