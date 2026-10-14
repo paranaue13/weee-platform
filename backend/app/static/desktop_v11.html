@@ -5527,7 +5527,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
 (function(){
   const NS='weee.pin.v1:';
   const PROPS=['width','min-width','max-width','height','max-height','padding','font-size','line-height','overflow','background','background-color','box-shadow','border','color'];
-  const STRIP=7,SKIP='#floatingEditor,[class*="opup"],.cellFmtMenu,.sgMenu,.periodPickerDropdown,.pinLayer,.whItems';
+  const STRIP=6,SKIP='#floatingEditor,[class*="opup"],.cellFmtMenu,.sgMenu,.periodPickerDropdown,.pinLayer,.whItems';
   const configs=[];                       // {match(table), id(table), rowScope(table)}
   const cache=new Map();                  // storage key -> {cols:[],rows:{scope:[]}}
   let busy=false,hot=null,hideT=null;
@@ -5626,25 +5626,37 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     }
     let rows=[],rseen={};
     // Κελιά με rowSpan (π.χ. ομάδα) δεν «λωρίδοποιούνται» όταν κρύβεται γραμμή (βλ. apply)· γραμμές με colSpan δεν κρύβονται.
+    const rowLabel=tr=>{
+      // όνομα της μεμονωμένης γραμμής από τα ορατά κελιά δεδομένων (όχι από το συγχωνευμένο κελί ομάδας)
+      let cs=[...tr.cells].filter(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1&&!c.classList.contains('pinColHide'));
+      let pick=cs.find(c=>/[A-Za-zΑ-Ωα-ωΆ-ώ]{2,}/.test(norm(c.textContent)))||cs.find(c=>norm(c.textContent));
+      return pick?norm(pick.textContent):'';
+    };
     for(const tb of t.tBodies)for(const tr of tb.rows){
       let ok=tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1)&&!tr.classList.contains('statHidden');
       let d=tr.dataset,key=norm(d.pinRow||d.id||d.receipt||d.month||d.date||d.mid||d.code);
-      let name=[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).find(x=>x)||key;
+      let owns=[...tr.cells].filter(c=>c.rowSpan>1).map(c=>({cell:c,trs:[...tb.rows].slice(tr.sectionRowIndex,tr.sectionRowIndex+c.rowSpan)}));
+      let name=rowLabel(tr)||[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).find(x=>x)||key;
       let id=key||[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).join('|');
       let nm=id;rseen[nm]=(rseen[nm]||0)+1;if(rseen[nm]>1)id+='#'+rseen[nm];
-      rows.push({tr,name,id,ok:ok&&!!name});
+      rows.push({tr,name,id,ok:ok&&!!name,owns});
     }
     return {cols,rows};
   }
 
   // ---- εφαρμογή κατάστασης στο DOM ----
-  function setStrip(el,on){
+  function setStrip(el,on,colOn,rowOn){
     if(on){
       if(el._pinOld)return;
       el._pinOld={};PROPS.forEach(p=>{el._pinOld[p]=[el.style.getPropertyValue(p),el.style.getPropertyPriority(p)]});
       const set=(p,v)=>el.style.setProperty(p,v,'important');
       set('padding','0');set('font-size','0');set('line-height','0');set('overflow','hidden');set('color','transparent');
-      set('background','var(--pin)');set('border','0');
+      // λεπτή γραμμή (2px) στο κέντρο του κελιού πάνω σε αδιαφανές φόντο — όχι γεμάτο πορτοκαλί μπλοκ
+      let ln='linear-gradient(var(--pin),var(--pin))',layers=[];
+      if(colOn)layers.push(ln+' center/2px 100% no-repeat');
+      if(rowOn)layers.push(ln+' center/100% 2px no-repeat');
+      layers.push('var(--surface,#fff)');
+      set('background',layers.join(','));set('border','0');
     }else if(el._pinOld){
       PROPS.forEach(p=>{let o=el._pinOld[p];el.style.removeProperty(p);if(o&&o[0])el.style.setProperty(p,o[0],o[1])});
       el._pinOld=null;
@@ -5656,10 +5668,11 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     setStrip(c,false);
     c.classList.toggle('pinColHide',colOn);c.classList.toggle('pinRowHideCell',rowOn);
     if(key){
-      setStrip(c,true);
+      setStrip(c,true,colOn,rowOn);
       const set=(p,v)=>c.style.setProperty(p,v,'important');
-      if(colOn){set('width',STRIP+'px');set('min-width',STRIP+'px');set('max-width',STRIP+'px');set('box-shadow','inset 3px 0 0 var(--surface,#fff)')}
-      if(rowOn){set('height',STRIP+'px');set('max-height',STRIP+'px');set('box-shadow',colOn?'inset 3px 3px 0 var(--surface,#fff)':'inset 0 3px 0 var(--surface,#fff)')}
+      set('box-shadow','none');
+      if(colOn){set('width',STRIP+'px');set('min-width',STRIP+'px');set('max-width',STRIP+'px')}
+      if(rowOn){set('height',STRIP+'px');set('max-height',STRIP+'px')}
     }
     c._pinKey=key;
   }
@@ -5679,6 +5692,14 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
         let span=c.colSpan||1,gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;
         paint(c,span===1&&hiddenColIdx.has(gi),rowOn&&(c.rowSpan||1)===1);
         idx+=span;
+      }
+    }
+    for(const it of md.rows){
+      if(!it.owns||!it.owns.length)continue;
+      for(const o of it.owns){
+        let all=o.trs.length>0&&o.trs.every(tr=>rowOnMap.get(tr));
+        let gi=t._pinGrid&&t._pinGrid.has(o.cell)?t._pinGrid.get(o.cell):-1;
+        paint(o.cell,(o.cell.colSpan||1)===1&&hiddenColIdx.has(gi),all);
       }
     }
     t._pinApplied=hasState(t);
@@ -5705,6 +5726,12 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let v=load(t);
     if(kind==='col'){if(!v.cols.includes(id))v.cols.push(id)}
     else{let sc=rowScope(t);(v.rows[sc]=v.rows[sc]||[]);if(!v.rows[sc].includes(id))v.rows[sc].push(id)}
+    save(t);refresh(t);
+  }
+  function hideRows(t,ids){
+    let v=load(t),sc=rowScope(t);
+    (v.rows[sc]=v.rows[sc]||[]);
+    ids.forEach(id=>{if(!v.rows[sc].includes(id))v.rows[sc].push(id)});
     save(t);refresh(t);
   }
   function show(t,kind,id){
@@ -5761,7 +5788,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       L.appendChild(p);fitLabel(p,wr);
     }else{
       let top=Math.min(Math.max(y-13,wr.top+4),wr.bottom-30);
-      let p=mkPin('Row','−',wr.left+4,top,item.name,()=>hide(t,'row',item.id));
+      let p=mkPin('Row','−',wr.left+4,top,item.name,kind==='group'?()=>hideRows(t,item.ids):()=>hide(t,'row',item.id));
       L.appendChild(p);fitLabel(p,wr);
     }
   }
@@ -5826,14 +5853,26 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
         }
       }
     }
-    // γραμμή: κάτω όριο πρώτου κελιού
-    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'&&cell===[...cell.parentElement.cells].find(c=>!c.classList.contains('pinColHide'))){
+    // γραμμή: κάτω όριο ΟΠΟΙΟΥΔΗΠΟΤΕ κελιού δεδομένων = μία μεμονωμένη γραμμή (ανεξάρτητα από τις κρυμμένες στήλες).
+    // Ολόκληρη ομάδα (συγχωνευμένο κελί) κρύβεται ΜΟΝΟ από το ίδιο το κελί της ομάδας.
+    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
       let r=cell.getBoundingClientRect();
       if(r.bottom-e.clientY<=6&&r.bottom-e.clientY>=-2){
-        let item=(md.rows.find(x=>x.tr===cell.parentElement))||(t._pinModel=model(t)).rows.find(x=>x.tr===cell.parentElement);
-        if(item&&item.ok){let wr=wrapRect(t);
-          if(!layer||layer.dataset.k!=='r'+item.id){showMinus(t,'row',item,0,r.bottom,wr);layer.dataset.k='r'+item.id;hot=t}
-          return}
+        let tr=cell.parentElement;
+        let item=(md.rows.find(x=>x.tr===tr))||(t._pinModel=model(t)).rows.find(x=>x.tr===tr);
+        if(item){let wr=wrapRect(t);
+          if(cell.rowSpan>1){
+            let g=item.owns.find(o=>o.cell===cell);
+            let its=g?g.trs.map(x=>md.rows.find(q=>q.tr===x)).filter(q=>q&&q.ok):[];
+            if(its.length){
+              let n=its.length,label=norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)');
+              let k='g'+its[0].id;
+              if(!layer||layer.dataset.k!==k){showMinus(t,'group',{name:label,ids:its.map(q=>q.id)},0,r.bottom,wr);layer.dataset.k=k;hot=t}
+              return}
+          }else if((cell.colSpan||1)===1&&item.ok){
+            if(!layer||layer.dataset.k!=='r'+item.id){showMinus(t,'row',item,0,r.bottom,wr);layer.dataset.k='r'+item.id;hot=t}
+            return}
+        }
       }
     }
     if(layer&&layer.firstChild)scheduleClear();
