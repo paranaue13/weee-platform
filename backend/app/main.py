@@ -3266,15 +3266,20 @@ def _check_time(v,label):
     return str(v)
 
 EMPTY_BREAK={'start':'','end':''}
+BREAK_GROUPS_KEY='app.break_groups'
+
+def _brk(v):
+    v=v or {}
+    return {'start':str(v.get('start') or ''),'end':str(v.get('end') or '')}
 
 def _sched_norm(d:dict)->dict:
-    """Κανονικοποίηση αποθηκευμένου ωραρίου: ίδια μορφή ακόμη κι αν λείπουν τα διαλείμματα (παλιά δεδομένα)."""
+    """Κανονικοποίηση ωραρίου. b1/b2 = διαλείμματα Τμήματος Α (τα υπάρχοντα δεδομένα), B.b1/B.b2 = Τμήματος Β (ξεκινά κενό)."""
     out={'active':d.get('active') if d.get('active') in ('summer','winter','special') else 'summer'}
     for k in ('summer','winter','special'):
         src=d.get(k) or DEFAULT_SCHEDULE[k]
+        bb=src.get('B') or {}
         out[k]={'start':src.get('start') or DEFAULT_SCHEDULE[k]['start'],'end':src.get('end') or DEFAULT_SCHEDULE[k]['end'],
-                'b1':{'start':(src.get('b1') or {}).get('start') or '','end':(src.get('b1') or {}).get('end') or ''},
-                'b2':{'start':(src.get('b2') or {}).get('start') or '','end':(src.get('b2') or {}).get('end') or ''}}
+                'b1':_brk(src.get('b1')),'b2':_brk(src.get('b2')),'B':{'b1':_brk(bb.get('b1')),'b2':_brk(bb.get('b2'))}}
     return out
 
 @app.get('/settings/schedule')
@@ -3296,23 +3301,54 @@ def _check_break(v,label):
 def schedule_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
     active=data.get('active')
     if active not in ('summer','winter','special'): raise HTTPException(422,'Μη έγκυρη επιλογή ωραρίου')
+    row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
+    try: prev=_sched_norm(json.loads(row.value)) if row else _sched_norm(DEFAULT_SCHEDULE)
+    except Exception: prev=_sched_norm(DEFAULT_SCHEDULE)
     payload={'active':active}
     for key,label in (('summer','Θερινό'),('winter','Χειμερινό'),('special','Έκτακτο')):
         d=data.get(key) or {}
         st=_check_time(d.get('start'),label); en=_check_time(d.get('end'),label)
         if st>=en: raise HTTPException(422,f'{label}: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
-        b1=_check_break(d.get('b1'),f'{label} · Διάλειμμα 1'); b2=_check_break(d.get('b2'),f'{label} · Διάλειμμα 2')
-        for br,bl in ((b1,'Διάλειμμα 1'),(b2,'Διάλειμμα 2')):
-            if br['start'] and (br['start']<st or br['end']>en): raise HTTPException(422,f'{label} · {bl}: πρέπει να είναι μέσα στη βάρδια ({st}–{en})')
-        if b1['start'] and b2['start'] and not (b1['end']<=b2['start'] or b2['end']<=b1['start']):
-            raise HTTPException(422,f'{label}: τα δύο διαλείμματα δεν πρέπει να επικαλύπτονται')
-        payload[key]={'start':st,'end':en,'b1':b1,'b2':b2}
-    row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
+        dB=d.get('B') or {}
+        cells=[('A',1,_check_break(d.get('b1'),f'{label} · Τμήμα Α · Διάλειμμα 1'),prev[key]['b1']),
+               ('A',2,_check_break(d.get('b2'),f'{label} · Τμήμα Α · Διάλειμμα 2'),prev[key]['b2']),
+               ('B',1,_check_break(dB.get('b1'),f'{label} · Τμήμα Β · Διάλειμμα 1'),prev[key]['B']['b1']),
+               ('B',2,_check_break(dB.get('b2'),f'{label} · Τμήμα Β · Διάλειμμα 2'),prev[key]['B']['b2'])]
+        for grp,n,br,old in cells:
+            # Μέσα στη βάρδια: ελέγχεται όταν το διάλειμμα ΑΛΛΑΖΕΙ· ένα ήδη αποθηκευμένο που βγαίνει εκτός μετά από αλλαγή βάρδιας δεν απορρίπτεται και δεν διαγράφεται
+            if br['start'] and br!=_brk(old) and (br['start']<st or br['end']>en):
+                raise HTTPException(422,f'{label} · Τμήμα {"Α" if grp=="A" else "Β"} · Διάλειμμα {n}: πρέπει να είναι μέσα στη βάρδια ({st}–{en})')
+        for grp in ('A','B'):
+            x=[c[2] for c in cells if c[0]==grp and c[2]['start']]
+            if len(x)==2 and not (x[0]['end']<=x[1]['start'] or x[1]['end']<=x[0]['start']):
+                raise HTTPException(422,f'{label} · Τμήμα {"Α" if grp=="A" else "Β"}: τα δύο διαλείμματα δεν πρέπει να επικαλύπτονται')
+        payload[key]={'start':st,'end':en,'b1':cells[0][2],'b2':cells[1][2],'B':{'b1':cells[2][2],'b2':cells[3][2]}}
     old=row.value if row else None
     if row: row.value=json.dumps(payload,ensure_ascii=False)
     else: db.add(AppSetting(key=SCHEDULE_KEY,value=json.dumps(payload,ensure_ascii=False)))
     write_audit(db,user,'app_setting',SCHEDULE_KEY,'UPDATE',old={'schedule':old},new={'schedule':payload}); db.commit()
     return payload
+
+@app.get('/settings/break-groups')
+def break_groups_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    """Αντιστοίχιση Τμήματος -> ομάδα διαλειμμάτων (A|B). Τμήμα χωρίς εγγραφή = Α."""
+    row=db.scalar(select(AppSetting).where(AppSetting.key==BREAK_GROUPS_KEY))
+    try: m=json.loads(row.value) if row else {}
+    except Exception: m={}
+    return {k:v for k,v in m.items() if v in ('A','B')}
+
+@app.put('/settings/break-groups')
+def break_groups_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    m={}
+    for k,v in (data or {}).items():
+        if v not in ('A','B'): raise HTTPException(422,'Η ομάδα διαλειμμάτων πρέπει να είναι Α ή Β')
+        m[str(k)]=v
+    row=db.scalar(select(AppSetting).where(AppSetting.key==BREAK_GROUPS_KEY))
+    old=row.value if row else None
+    if row: row.value=json.dumps(m,ensure_ascii=False)
+    else: db.add(AppSetting(key=BREAK_GROUPS_KEY,value=json.dumps(m,ensure_ascii=False)))
+    write_audit(db,user,'app_setting',BREAK_GROUPS_KEY,'UPDATE',old={'groups':old},new={'groups':m}); db.commit()
+    return m
 
 def _pick_folder_dialog(initial:str|None)->str|None:
     # Runs on the server's own desktop session (this app is always run interactively on the

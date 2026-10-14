@@ -991,6 +991,16 @@ body[data-theme="dark"] #master .registryTable tbody tr:not(.inactiveMaster) td 
 .schedLine{display:flex;align-items:center;gap:8px;margin:6px 0}
 .schedLbl{min-width:96px;color:var(--fg-2,#44474f)}
 .schedNet{background:var(--st5-bg,#d7efe0);color:var(--st5-fg,#12532e);border-radius:var(--r-chip);padding:3px 10px;font-weight:600;font-size:13px}
+/* Παρουσιολόγιο: γραμματοσειρά πίνακα 13,5px, ύψος γραμμής 56px */
+#presence .presTable td{height:56px;font-size:13.5px}
+#presence .presTable td.presNm{font-size:13.5px;font-weight:500}
+#presence .presTable td.presNet{font-size:13.5px}
+#presence .presTable th{font-size:12px}
+#presence .tf input.tfIn{font-size:13.5px}
+.schedGrid{border-collapse:collapse;margin-top:6px}
+.schedGrid td,.schedGrid th{padding:4px 8px 4px 0;text-align:left;vertical-align:middle}
+.schedGrid th .schedNet{display:inline-block;border:1px solid var(--st5-fg,#12532e);border-radius:var(--r-chip);padding:5px 12px;width:100%;text-align:center}
+.schedGroupRow{display:flex;align-items:center;gap:10px;margin:4px 0}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1953,12 +1963,42 @@ function tfInner(v24){return `<input type="text" class="tfIn" inputmode="numeric
 function tpkHtml(attrs,v24){return `<span class="tpk tf" ${attrs}>${tfInner(v24)}</span>`}
 function tpkValue(el){let i=el.querySelector('.tfIn');if(!i)return '';let v=i.value.trim();return tfToM(v)===null?'':v}
 function tpkFill(el,v24){el.classList.add('tf');if(TF_MODE[el.id])el.dataset.k=TF_MODE[el.id];el.innerHTML=tfInner(v24)}
+// Όρια έγκυρων τιμών ενός πεδίου ώρας (λεπτά)· null = χωρίς όριο (πεδία βάρδιας: όλο το 24ωρο).
+//  - Διάλειμμα (Ρυθμίσεις): μέσα στη βάρδια του ίδιου ωραρίου.
+//  - Αργοπορημένη προσέλευση: από έναρξη βάρδιας +1' έως 12:00, και πριν την ώρα αποχώρησης αν υπάρχει.
+//  - Πρόωρη αποχώρηση: από την έναρξη βάρδιας (ή ώρα άφιξης +1' αν αργοπόρησε) έως λήξη βάρδιας −1'.
+function tfConstraint(el){
+  if(!el)return null;
+  if(el.dataset.sc&&el.dataset.k==='brk'){
+    let g=f=>tfToM((document.querySelector(`#floatingEditor .tf[data-sc="${el.dataset.sc}"][data-f="${f}"] .tfIn`)||{}).value);
+    let S=g('start'),E=g('end');return S!==null&&E!==null?{min:S,max:E,step:5}:null;
+  }
+  if(el.dataset.e&&(el.dataset.k==='late'||el.dataset.k==='leave')&&typeof presState!=='undefined'&&presState.sched){
+    let sc=scheduleToMinutes(presState.sched);if(sc.s==null||sc.e==null)return null;
+    let a=presState.att.find(x=>x.employee_id===el.dataset.e)||{},t=v=>v?tfToM(deltioTimeStr(v)):null;
+    if(el.dataset.k==='late'){
+      let max=720;if(a.status==='LEFT'){let lv=t(a.since_at);if(lv!==null)max=Math.min(max,lv-1)}
+      return {min:sc.s+1,max:max,step:1};
+    }
+    let ar=a.status!=='ABSENT'&&a.late?t(a.arrived_at):null;
+    return {min:ar!==null?ar+1:sc.s,max:sc.e-1,step:1};
+  }
+  return null;
+}
 function tfOptions(el){
-  let k=el.dataset.k,sc=(typeof presState!=='undefined'&&presState.sched)?scheduleToMinutes(presState.sched):null,S=sc&&sc.s!=null?sc.s:420,E=sc&&sc.e!=null?sc.e:900,a=[];
-  if(k==='late'){for(let m=S+1;m<=S+180&&m<1440;m++)a.push(m)}
-  else if(k==='leave'){for(let m=Math.max(0,E-180);m<E;m++)a.push(m)}
+  let c=tfConstraint(el),a=[];
+  if(c){let st=c.step||1,m=Math.ceil(c.min/st)*st;for(;m<=c.max;m+=st)a.push(m)}
+  else if(el.dataset.k==='late'||el.dataset.k==='leave'||el.dataset.k==='brk'){}
   else{for(let m=0;m<1440;m+=5)a.push(m)}
   return a.map(tfFromM);
+}
+// Κόκκινο σε ήδη αποθηκευμένες ώρες εκτός ορίων (δεν διαγράφονται)
+function tfMarkRange(root){
+  (root||document).querySelectorAll('.tf[data-e],.tf[data-sc]').forEach(el=>{
+    let i=el.querySelector('.tfIn');if(!i)return;let m=tfToM(i.value.trim()),c=tfConstraint(el);
+    let bad=m!==null&&c&&(m<c.min||m>c.max);
+    i.classList.toggle('err',!!bad);i.title=bad?'Εκτός επιτρεπτών ορίων':'';
+  });
 }
 let tfFloat=null,tfFor=null;
 function tfClose(){if(tfFloat){tfFloat.remove();tfFloat=null}tfFor=null}
@@ -1986,14 +2026,19 @@ window.addEventListener('scroll',e=>{if(tfFloat&&!(e.target.closest&&e.target.cl
 document.addEventListener('input',e=>{
   let i=e.target;if(!i.classList||!i.classList.contains('tfIn'))return;
   i.value=tfNorm(i.value,false);
-  let bad=i.value.length===5&&tfToM(i.value)===null;i.classList.toggle('err',bad);
+  let bad=i.value.length===5&&tfToM(i.value)===null;
+  if(i.value.length===5&&!bad){let c=tfConstraint(i.closest('.tf')),m=tfToM(i.value);if(c&&(m<c.min||m>c.max))bad=true}
+  i.classList.toggle('err',bad);
   if(tfFloat&&tfFor===i){let cm=tfToM(i.value);if(cm!==null){let o=tfFloat.querySelector(`[data-t="${i.value}"]`);tfFloat.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));if(o){o.classList.add('sel');tfFloat.scrollTop=Math.max(0,o.offsetTop-tfFloat.clientHeight/2)}}}
 });
 // Λάθος ή ημιτελής ώρα: κόκκινο πεδίο και ΔΕΝ αποθηκεύεται (το γεγονός change δεν φτάνει στους χειριστές αποθήκευσης)
 document.addEventListener('change',e=>{
   let i=e.target;if(!i.classList||!i.classList.contains('tfIn'))return;
   i.value=tfNorm(i.value,true);
-  if(i.value!==''&&tfToM(i.value)===null){i.classList.add('err');e.stopPropagation();e.stopImmediatePropagation();return}
+  if(i.value!==''){
+    let m=tfToM(i.value),c=m===null?null:tfConstraint(i.closest('.tf'));
+    if(m===null||(c&&(m<c.min||m>c.max))){i.classList.add('err');e.stopPropagation();e.stopImmediatePropagation();return}
+  }
   i.classList.remove('err');
 },true);
 // ΚΟΙΝΗ συνάρτηση καθαρών ωρών (δεν αποθηκεύεται πουθενά, υπολογίζεται κάθε φορά).
@@ -2010,19 +2055,21 @@ function attendanceNetMinutes(p,sch){
   return t;
 }
 function fmtNetHours(m){return Math.floor(m/60)+' ω '+String(m%60).padStart(2,'0')+' λ'}
-// ενεργό ωράριο από τις Ρυθμίσεις -> λεπτά
-function scheduleToMinutes(sc,key){
+// ενεργό ωράριο από τις Ρυθμίσεις -> λεπτά· group: 'A'|'B' = ποια διαλείμματα (προεπιλογή Α)
+function scheduleToMinutes(sc,key,group){
   let d=(sc&&(sc[key||sc.active]||sc.summer))||{};
-  let br=[d.b1,d.b2].filter(x=>x&&x.start&&x.end).map(x=>[tfToM(x.start),tfToM(x.end)]).filter(x=>x[0]!==null&&x[1]!==null);
-  return {s:tfToM(d.start),e:tfToM(d.end),b:br,start:d.start,end:d.end,b1:d.b1,b2:d.b2};
+  let src=group==='B'?(d.B||{}):d;
+  let br=[src.b1,src.b2].filter(x=>x&&x.start&&x.end).map(x=>[tfToM(x.start),tfToM(x.end)]).filter(x=>x[0]!==null&&x[1]!==null);
+  return {s:tfToM(d.start),e:tfToM(d.end),b:br,start:d.start,end:d.end,b1:src.b1,b2:src.b2,A:{b1:d.b1,b2:d.b2},B:d.B||{}};
 }
-function scheduleNetMinutes(d){return attendanceNetMinutes({},scheduleToMinutes({x:d},'x'))}
-let presState={emps:[],units:[],att:[],shiftEnd:'15:00',sched:null},presTimer=null;
+function scheduleNetMinutes(d,group){return attendanceNetMinutes({},scheduleToMinutes({x:d},'x',group))}
+let presState={emps:[],units:[],att:[],shiftEnd:'15:00',sched:null,groups:{}},presTimer=null;
 async function presLoad(){
   let [emps,units,att]=await Promise.all([api('/master/employees'),api('/master/org-units'),api('/production/attendance/effective?date='+localISODate(new Date()))]);
-  let sc=null;try{sc=await api('/settings/schedule')}catch(err){}
+  let sc=null,grp={};try{sc=await api('/settings/schedule')}catch(err){}
+  try{grp=await api('/settings/break-groups')}catch(err){}
   let sm=sc?scheduleToMinutes(sc):null;
-  presState={emps:emps.filter(e=>e.active!==false).sort((a,b)=>surnameKey(a.full_name).localeCompare(surnameKey(b.full_name),'el')),units,att,shiftEnd:(sm&&sm.end)||'15:00',sched:sc};
+  presState={emps:emps.filter(e=>e.active!==false).sort((a,b)=>surnameKey(a.full_name).localeCompare(surnameKey(b.full_name),'el')),units,att,shiftEnd:(sm&&sm.end)||'15:00',sched:sc,groups:grp||{}};
 }
 function presKind(a){return a.status==='PRESENT'?(a.late?'LATE':'PRESENT'):(a.status||'PRESENT')}
 // Οι καταστάσεις συνδυάζονται: «Αργοπορία» και «Έφυγε» μπορούν να ισχύουν μαζί, άρα οι μετρητές μπορεί να αθροίζουν περισσότερους από τους εργαζομένους.
@@ -2034,19 +2081,25 @@ function presPaint(){
   $('presDate').textContent='Σήμερα · '+new Date().toLocaleDateString('el-GR');
   let sm=presState.sched?scheduleToMinutes(presState.sched):null;
   $('presShift').textContent=sm&&sm.start||'—';$('presShiftEnd').textContent=sm&&sm.end||'—';
-  $('presBreaks').textContent=sm&&sm.b.length?'Διαλείμματα: '+[sm.b1,sm.b2].filter(x=>x&&x.start&&x.end).map(x=>x.start+'–'+x.end).join(' · '):'';
+  let bt=(x)=>[x&&x.b1,x&&x.b2].filter(y=>y&&y.start&&y.end).map(y=>y.start+'–'+y.end).join(' · ');
+  let tA=sm?bt(sm.A):'',tB=sm?bt(sm.B):'';
+  $('presBreaks').textContent=(tA||tB)?'Διαλείμματα'+(tA?' Α: '+tA:'')+(tB?(tA?' ·':'')+' Β: '+tB:''):'';
   let am={};presState.att.forEach(a=>am[a.employee_id]=a);
   $('presBody').innerHTML=presState.emps.map(e=>{
     let a=am[e.id]||{status:'PRESENT'},f=presFlags(a),btn=(s,cls,l,on)=>`<button type="button" class="${cls}" data-e="${e.id}" data-s="${s}" aria-pressed="${on}">${l}</button>`;
+    // τα διαλείμματα του εργαζομένου: από το Τμήμα του (τρέχουσα θέση, αλλιώς μόνιμο τμήμα) και την αντιστοίχιση Τμήμα -> Α/Β
+    let unit=a.org_unit_id||e.default_org_unit_id||((e.org_unit_ids||[])[0]),grp=(presState.groups&&presState.groups[unit])==='B'?'B':'A';
+    let smE=presState.sched?scheduleToMinutes(presState.sched,null,grp):null;
     let lateV=f.L&&a.arrived_at?deltioTimeStr(a.arrived_at):'';
-    let leaveV=f.E&&a.since_at&&deltioTimeStr(a.since_at)<presState.shiftEnd?deltioTimeStr(a.since_at):'';
+    let leaveV=f.E&&a.since_at?deltioTimeStr(a.since_at):'';
     let lateT=tpkHtml(`data-e="${e.id}" data-k="late"`,lateV),leaveT=tpkHtml(`data-e="${e.id}" data-k="leave"`,leaveV);
     // Η ώρα εμφανίζεται μόνο όταν η αντίστοιχη κατάσταση είναι ενεργή (μπορούν να είναι ενεργές και οι δύο)
     let lateCell=f.L?lateT:'',leaveCell=f.E?leaveT:'';
-    let net=attendanceNetMinutes({absent:f.ab,late:f.L,arrived:a.arrived_at?tfToM(deltioTimeStr(a.arrived_at)):null,left:f.E,leave:a.since_at?tfToM(deltioTimeStr(a.since_at)):null},sm);
+    let net=attendanceNetMinutes({absent:f.ab,late:f.L,arrived:a.arrived_at?tfToM(deltioTimeStr(a.arrived_at)):null,left:f.E,leave:a.since_at?tfToM(deltioTimeStr(a.since_at)):null},smE);
     let netCell=f.ab?'<td class="presNet z">0</td>':`<td class="presNet">${net===null?'–':fmtNetHours(net)}</td>`;
     return `<tr><td class="presNm">${esc(e.full_name)}</td><td><span class="presSeg">${btn('PRESENT','p','Παρών',f.P)}${btn('LATE','t','Αργοπορία',f.L)}${btn('ABSENT','a','Απών',f.ab)}${btn('LEFT','l','Έφυγε',f.E)}</span></td><td>${lateCell}</td><td>${leaveCell}</td>${netCell}</tr>`;
   }).join('')||'<tr><td colspan="5" class="muted">Δεν υπάρχουν εργαζόμενοι.</td></tr>';
+  tfMarkRange($('presBody'));
 }
 async function presRefresh(){try{await presLoad();presPaint();$('presMsg').textContent=''}catch(err){$('presMsg').textContent=err?.message||String(err)}}
 async function loadPresenceCounts(){try{await presLoad();presPaint()}catch(err){}}
@@ -2088,10 +2141,17 @@ $('presBody').onclick=async e=>{
     if(f.L&&f.E){body.status='LEFT';body.late=false;body.arrived_at=null}      // αφαιρεί μόνο την αργοπορία
     else if(f.E){body.status='LEFT';body.late=true}                              // Έφυγε → Αργοπορία + Έφυγε
     else{body.status='PRESENT';body.late=true;body.since_at=f.ab?now:(a.since_at||null)}
+    // Αν η τρέχουσα ώρα είναι εκτός ορίων δεν μπαίνει αυτόματα: το πεδίο μένει κενό για χειροκίνητη επιλογή
+    if(!body.arrived_at){let sc=presState.sched?scheduleToMinutes(presState.sched):null,nm=tfToM(deltioTimeStr(now));
+      let lv=f.E&&a.since_at?tfToM(deltioTimeStr(a.since_at)):null,mx=lv!==null?Math.min(720,lv-1):720;
+      if(!(sc&&sc.s!=null&&nm!==null&&nm>=sc.s+1&&nm<=mx))body.arrived_at=null;}
   }else{ // LEFT
     if(f.E&&!f.L)return;
     if(f.E&&f.L){body.status='PRESENT';body.late=true;body.since_at=now}       // αφαιρεί μόνο το «Έφυγε», μένει η αργοπορία
     else{body.status='LEFT';body.since_at=now}
+    if(body.status==='LEFT'&&body.since_at===now){let sc=presState.sched?scheduleToMinutes(presState.sched):null,nm=tfToM(deltioTimeStr(now));
+      let ar=f.L&&a.arrived_at?tfToM(deltioTimeStr(a.arrived_at)):null,mn=ar!==null?ar+1:(sc&&sc.s);
+      if(!(sc&&sc.e!=null&&nm!==null&&nm>=mn&&nm<=sc.e-1))body.since_at=null;}
   }
   try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){$('presMsg').textContent=err?.message||String(err)}
 };
@@ -5527,7 +5587,7 @@ renderProdWeee=function(){
     // config table, reusing the existing .mediumInfo/.mediumHead collapsible pattern instead of a new
     // component. Εμφάνιση ΑΗΗΕ's table: one line per tab, a radio per display option (bullet choice),
     // not a dropdown-per-tab -- easier to scan/compare once there are several tabs listed together.
-    openFloat('Ρυθμίσεις εφαρμογής',`<div class="appSettingsLayout"><div class="appSettingsList"><button type="button" class="appSettingsItem active" data-appset="appearance"><b>Εμφάνιση</b><small>Θέμα εφαρμογής</small></button><button type="button" class="appSettingsItem" data-appset="language"><b>Γλώσσα</b><small>Γλώσσα διεπαφής</small></button><button type="button" class="appSettingsItem" data-appset="weeeDesc"><b>Εμφάνιση ΑΗΗΕ</b><small>Περιγραφές ανά τμήμα</small></button><button type="button" class="appSettingsItem" data-appset="schedule"><b>Ωράριο</b><small>Θερινό / Χειμερινό / Έκτακτο</small></button><button type="button" class="appSettingsItem" data-appset="exportDir"><b>Φάκελος εξαγωγών</b><small>Αποθήκευση αναφορών</small></button></div><div class="appSettingsDetail"><div class="appSettingsPanel" data-apppanel="appearance"><h4>Εμφάνιση</h4><div class="appSettingsChoices" id="themeChoices"></div></div><div class="appSettingsPanel hidden" data-apppanel="language"><h4>Γλώσσα</h4><div class="appSettingsChoices" id="languageChoices"></div></div><div class="appSettingsPanel hidden" data-apppanel="weeeDesc"><h4>Εμφάνιση ΑΗΗΕ</h4><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Τμήμα</th><th style="text-align:center">Επίσημη περιγραφή</th><th style="text-align:center">Περιγραφή HER</th></tr></thead><tbody>${WEEE_DESC_TABS.map(([tab,label])=>`<tr><td>${esc(label)}</td><td style="text-align:center"><input type="radio" name="wd_${tab}" value="official" data-weeetab="${tab}"></td><td style="text-align:center"><input type="radio" name="wd_${tab}" value="her" data-weeetab="${tab}"></td></tr>`).join('')}<tr><td>Android (όλα τα κινητά)</td><td style="text-align:center"><input type="radio" name="wd_android" value="official" data-androiddesc="1"></td><td style="text-align:center"><input type="radio" name="wd_android" value="her" data-androiddesc="1"></td></tr></tbody></table><div id="androidDescMsg" class="muted" style="margin-top:6px"></div></div></div><div class="appSettingsPanel hidden" data-apppanel="schedule"><h4>Ωράριο</h4><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="summer">Θερινό</label><span class="schedNet" id="schedNet_summer"></span></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="summer" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="summer" data-f="end" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 1</span><span class="tpk tf" data-sc="summer" data-f="b1s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="summer" data-f="b1e" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 2</span><span class="tpk tf" data-sc="summer" data-f="b2s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="summer" data-f="b2e" data-k="shiftE"></span></div></div><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="winter">Χειμερινό</label><span class="schedNet" id="schedNet_winter"></span></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="winter" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="winter" data-f="end" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 1</span><span class="tpk tf" data-sc="winter" data-f="b1s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="winter" data-f="b1e" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 2</span><span class="tpk tf" data-sc="winter" data-f="b2s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="winter" data-f="b2e" data-k="shiftE"></span></div></div><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="special">Έκτακτο</label><span class="schedNet" id="schedNet_special"></span></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="special" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="special" data-f="end" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 1</span><span class="tpk tf" data-sc="special" data-f="b1s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="special" data-f="b1e" data-k="shiftE"></span></div><div class="schedLine"><span class="schedLbl">Διάλειμμα 2</span><span class="tpk tf" data-sc="special" data-f="b2s" data-k="shiftS"></span> – <span class="tpk tf" data-sc="special" data-f="b2e" data-k="shiftE"></span></div></div><div id="scheduleMsg" class="muted" style="margin-top:6px"></div></div><div class="appSettingsPanel hidden" data-apppanel="exportDir"><h4>Φάκελος εξαγωγών</h4><label style="display:block;font-weight:700;margin-bottom:5px">Τοπικός φάκελος (στον υπολογιστή του server)</label><div style="display:flex;gap:8px"><input id="exportDirPath" placeholder="π.χ. C:\\WEEE Εξαγωγές" style="flex:1;padding:8px;border:1px solid #d7dde1;border-radius:8px"><button id="exportDirBrowse" class="btn alt" type="button">Επιλογή...</button></div><label style="display:flex;align-items:center;gap:8px;margin-top:9px;font-weight:600"><input type="checkbox" id="exportDirGroup" style="width:auto"> Οργάνωση σε φακέλους ανά έτος/μήνα (για τις ημερήσιες/μηνιαίες αναφορές)</label><div class="muted" style="margin-top:6px">Ισχύει προς το παρόν στην ενότητα «Δημιουργία από τις καταγραφές» (Αναφορές και Στατιστικά). Αν δεν οριστεί φάκελος, η εφαρμογή ρωτάει πριν από κάθε εξαγωγή.</div><button id="exportDirSave" class="btn ok" style="margin-top:10px">Αποθήκευση</button><div id="exportDirMsg" class="muted" style="margin-top:6px"></div></div></div></div>`);
+    openFloat('Ρυθμίσεις εφαρμογής',`<div class="appSettingsLayout"><div class="appSettingsList"><button type="button" class="appSettingsItem active" data-appset="appearance"><b>Εμφάνιση</b><small>Θέμα εφαρμογής</small></button><button type="button" class="appSettingsItem" data-appset="language"><b>Γλώσσα</b><small>Γλώσσα διεπαφής</small></button><button type="button" class="appSettingsItem" data-appset="weeeDesc"><b>Εμφάνιση ΑΗΗΕ</b><small>Περιγραφές ανά τμήμα</small></button><button type="button" class="appSettingsItem" data-appset="schedule"><b>Ωράριο</b><small>Θερινό / Χειμερινό / Έκτακτο</small></button><button type="button" class="appSettingsItem" data-appset="exportDir"><b>Φάκελος εξαγωγών</b><small>Αποθήκευση αναφορών</small></button></div><div class="appSettingsDetail"><div class="appSettingsPanel" data-apppanel="appearance"><h4>Εμφάνιση</h4><div class="appSettingsChoices" id="themeChoices"></div></div><div class="appSettingsPanel hidden" data-apppanel="language"><h4>Γλώσσα</h4><div class="appSettingsChoices" id="languageChoices"></div></div><div class="appSettingsPanel hidden" data-apppanel="weeeDesc"><h4>Εμφάνιση ΑΗΗΕ</h4><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Τμήμα</th><th style="text-align:center">Επίσημη περιγραφή</th><th style="text-align:center">Περιγραφή HER</th></tr></thead><tbody>${WEEE_DESC_TABS.map(([tab,label])=>`<tr><td>${esc(label)}</td><td style="text-align:center"><input type="radio" name="wd_${tab}" value="official" data-weeetab="${tab}"></td><td style="text-align:center"><input type="radio" name="wd_${tab}" value="her" data-weeetab="${tab}"></td></tr>`).join('')}<tr><td>Android (όλα τα κινητά)</td><td style="text-align:center"><input type="radio" name="wd_android" value="official" data-androiddesc="1"></td><td style="text-align:center"><input type="radio" name="wd_android" value="her" data-androiddesc="1"></td></tr></tbody></table><div id="androidDescMsg" class="muted" style="margin-top:6px"></div></div></div><div class="appSettingsPanel hidden" data-apppanel="schedule"><h4>Ωράριο</h4><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="summer">Θερινό</label></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="summer" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="summer" data-f="end" data-k="shiftE"></span></div><table class="schedGrid"><thead><tr><th></th><th><span class="schedNet" id="schedNet_summer_A"></span></th><th><span class="schedNet" id="schedNet_summer_B"></span></th></tr></thead><tbody><tr><td class="schedLbl">Διάλειμμα 1</td><td><span class="tpk tf" data-sc="summer" data-f="a1s" data-k="brk"></span> – <span class="tpk tf" data-sc="summer" data-f="a1e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="summer" data-f="b1s" data-k="brk"></span> – <span class="tpk tf" data-sc="summer" data-f="b1e" data-k="brk"></span></td></tr><tr><td class="schedLbl">Διάλειμμα 2</td><td><span class="tpk tf" data-sc="summer" data-f="a2s" data-k="brk"></span> – <span class="tpk tf" data-sc="summer" data-f="a2e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="summer" data-f="b2s" data-k="brk"></span> – <span class="tpk tf" data-sc="summer" data-f="b2e" data-k="brk"></span></td></tr></tbody></table></div><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="winter">Χειμερινό</label></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="winter" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="winter" data-f="end" data-k="shiftE"></span></div><table class="schedGrid"><thead><tr><th></th><th><span class="schedNet" id="schedNet_winter_A"></span></th><th><span class="schedNet" id="schedNet_winter_B"></span></th></tr></thead><tbody><tr><td class="schedLbl">Διάλειμμα 1</td><td><span class="tpk tf" data-sc="winter" data-f="a1s" data-k="brk"></span> – <span class="tpk tf" data-sc="winter" data-f="a1e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="winter" data-f="b1s" data-k="brk"></span> – <span class="tpk tf" data-sc="winter" data-f="b1e" data-k="brk"></span></td></tr><tr><td class="schedLbl">Διάλειμμα 2</td><td><span class="tpk tf" data-sc="winter" data-f="a2s" data-k="brk"></span> – <span class="tpk tf" data-sc="winter" data-f="a2e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="winter" data-f="b2s" data-k="brk"></span> – <span class="tpk tf" data-sc="winter" data-f="b2e" data-k="brk"></span></td></tr></tbody></table></div><div class="schedBox"><div class="schedHead"><label class="scheduleOption"><input type="radio" name="sched_active" value="special">Έκτακτο</label></div><div class="schedLine"><span class="schedLbl">Βάρδια</span><span class="tpk tf" data-sc="special" data-f="start" data-k="shiftS"></span> – <span class="tpk tf" data-sc="special" data-f="end" data-k="shiftE"></span></div><table class="schedGrid"><thead><tr><th></th><th><span class="schedNet" id="schedNet_special_A"></span></th><th><span class="schedNet" id="schedNet_special_B"></span></th></tr></thead><tbody><tr><td class="schedLbl">Διάλειμμα 1</td><td><span class="tpk tf" data-sc="special" data-f="a1s" data-k="brk"></span> – <span class="tpk tf" data-sc="special" data-f="a1e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="special" data-f="b1s" data-k="brk"></span> – <span class="tpk tf" data-sc="special" data-f="b1e" data-k="brk"></span></td></tr><tr><td class="schedLbl">Διάλειμμα 2</td><td><span class="tpk tf" data-sc="special" data-f="a2s" data-k="brk"></span> – <span class="tpk tf" data-sc="special" data-f="a2e" data-k="brk"></span></td><td><span class="tpk tf" data-sc="special" data-f="b2s" data-k="brk"></span> – <span class="tpk tf" data-sc="special" data-f="b2e" data-k="brk"></span></td></tr></tbody></table></div><div class="schedBox"><div class="schedHead"><b>Ποια τμήματα ανήκουν σε κάθε ομάδα</b></div><div id="schedGroupRows" class="muted">Φόρτωση…</div></div><div id="scheduleMsg" class="muted" style="margin-top:6px"></div></div><div class="appSettingsPanel hidden" data-apppanel="exportDir"><h4>Φάκελος εξαγωγών</h4><label style="display:block;font-weight:700;margin-bottom:5px">Τοπικός φάκελος (στον υπολογιστή του server)</label><div style="display:flex;gap:8px"><input id="exportDirPath" placeholder="π.χ. C:\\WEEE Εξαγωγές" style="flex:1;padding:8px;border:1px solid #d7dde1;border-radius:8px"><button id="exportDirBrowse" class="btn alt" type="button">Επιλογή...</button></div><label style="display:flex;align-items:center;gap:8px;margin-top:9px;font-weight:600"><input type="checkbox" id="exportDirGroup" style="width:auto"> Οργάνωση σε φακέλους ανά έτος/μήνα (για τις ημερήσιες/μηνιαίες αναφορές)</label><div class="muted" style="margin-top:6px">Ισχύει προς το παρόν στην ενότητα «Δημιουργία από τις καταγραφές» (Αναφορές και Στατιστικά). Αν δεν οριστεί φάκελος, η εφαρμογή ρωτάει πριν από κάθε εξαγωγή.</div><button id="exportDirSave" class="btn ok" style="margin-top:10px">Αποθήκευση</button><div id="exportDirMsg" class="muted" style="margin-top:6px"></div></div></div></div>`);
     function flashMsg(el,cls,text,ms=2500){el.className=cls;el.textContent=text;if(el._flashTimer)clearTimeout(el._flashTimer);if(cls==='oktext')el._flashTimer=setTimeout(()=>{if(el.textContent===text)el.textContent=''},ms)}
     api('/settings/android').then(a=>document.querySelectorAll('input[data-androiddesc]').forEach(r=>r.checked=r.value===a.weee_desc_mode)).catch(()=>{});
     document.querySelectorAll('input[data-androiddesc]').forEach(r=>r.onchange=async()=>{let m=$('androidDescMsg');try{await api('/settings/android',{method:'PUT',body:JSON.stringify({weee_desc_mode:r.value})});flashMsg(m,'oktext','Αποθηκεύτηκε. Ισχύει στα κινητά στην επόμενη είσοδο / ανανέωση.')}catch(e){m.className='error';m.textContent=e.message}});
@@ -5537,32 +5597,52 @@ renderProdWeee=function(){
     document.querySelectorAll('.appSettingsItem').forEach(b=>b.onclick=()=>{document.querySelectorAll('.appSettingsItem').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.appSettingsPanel').forEach(p=>p.classList.toggle('hidden',p.dataset.apppanel!==b.dataset.appset))});
 const SCHED_KEYS=['summer','winter','special'];
 function schedField(k,f){return document.querySelector(`#floatingEditor .tf[data-sc="${k}"][data-f="${f}"] .tfIn`)}
-function schedRead(){
+function schedBody(){
   let body={active:document.querySelector('input[name="sched_active"]:checked')?.value||'summer'};
-  SCHED_KEYS.forEach(k=>{let v=f=>(schedField(k,f)?.value||'').trim();body[k]={start:v('start'),end:v('end'),b1:{start:v('b1s'),end:v('b1e')},b2:{start:v('b2s'),end:v('b2e')}}});
+  SCHED_KEYS.forEach(k=>{let v=f=>(schedField(k,f)?.value||'').trim();
+    body[k]={start:v('start'),end:v('end'),b1:{start:v('a1s'),end:v('a1e')},b2:{start:v('a2s'),end:v('a2e')},B:{b1:{start:v('b1s'),end:v('b1e')},b2:{start:v('b2s'),end:v('b2e')}}}});
   return body;
 }
 function schedPaintNet(){
-  SCHED_KEYS.forEach(k=>{let el=$('schedNet_'+k);if(!el)return;let v=f=>(schedField(k,f)?.value||'').trim();
-    let m=scheduleNetMinutes({start:v('start'),end:v('end'),b1:{start:v('b1s'),end:v('b1e')},b2:{start:v('b2s'),end:v('b2e')}});
-    el.textContent=m===null?'':'Καθαρή εργασία: '+fmtNetHours(m)});
+  SCHED_KEYS.forEach(k=>['A','B'].forEach(g=>{let el=$('schedNet_'+k+'_'+g);if(!el)return;let v=f=>(schedField(k,f)?.value||'').trim();
+    let d={start:v('start'),end:v('end'),b1:{start:v('a1s'),end:v('a1e')},b2:{start:v('a2s'),end:v('a2e')},B:{b1:{start:v('b1s'),end:v('b1e')},b2:{start:v('b2s'),end:v('b2e')}}};
+    let m=scheduleNetMinutes(d,g);el.textContent=m===null?'':'Τμήμα '+(g==='A'?'Α':'Β')+' · '+fmtNetHours(m)}));
 }
 function paintSchedule(sc){
   document.querySelectorAll('input[name="sched_active"]').forEach(r=>r.checked=r.value===sc.active);
-  SCHED_KEYS.forEach(k=>{let d=sc[k]||{};let set=(f,v)=>{let i=schedField(k,f);if(i){i.value=v||'';i.classList.remove('err')}};
-    set('start',d.start);set('end',d.end);set('b1s',d.b1&&d.b1.start);set('b1e',d.b1&&d.b1.end);set('b2s',d.b2&&d.b2.start);set('b2e',d.b2&&d.b2.end)});
-  schedPaintNet();
+  SCHED_KEYS.forEach(k=>{let d=sc[k]||{},B=d.B||{};let set=(f,v)=>{let i=schedField(k,f);if(i){i.value=v||'';i.classList.remove('err')}};
+    set('start',d.start);set('end',d.end);
+    set('a1s',d.b1&&d.b1.start);set('a1e',d.b1&&d.b1.end);set('a2s',d.b2&&d.b2.start);set('a2e',d.b2&&d.b2.end);
+    set('b1s',B.b1&&B.b1.start);set('b1e',B.b1&&B.b1.end);set('b2s',B.b2&&B.b2.start);set('b2e',B.b2&&B.b2.end)});
+  schedPaintNet();tfMarkRange($('floatingEditor'));
 }
 async function saveSchedule(){let msg=$('scheduleMsg');
   // Διάλειμμα με μόνο τη μία ώρα συμπληρωμένη: περιμένει την άλλη (δεν αποθηκεύει, δεν επαναφέρει το πεδίο)
-  let body0=schedRead(),half=null;
-  SCHED_KEYS.forEach(k=>['b1','b2'].forEach((b,i)=>{let d=body0[k][b];if(!half&&!!d.start!==!!d.end)half=(k==='summer'?'Θερινό':k==='winter'?'Χειμερινό':'Έκτακτο')+' · Διάλειμμα '+(i+1)}));
-  if(half){msg.className='muted';msg.textContent=half+': συμπλήρωσε και την άλλη ώρα του διαλείμματος για να αποθηκευτεί.';return}
+  let body0=schedBody(),half=null;
+  SCHED_KEYS.forEach(k=>{let d=body0[k];[['Α',1,d.b1],['Α',2,d.b2],['Β',1,d.B.b1],['Β',2,d.B.b2]].forEach(([g,n,x])=>{if(!half&&!!x.start!==!!x.end)half=(k==='summer'?'Θερινό':k==='winter'?'Χειμερινό':'Έκτακτο')+' · Τμήμα '+g+' · Διάλειμμα '+n})});
+  if(half){msg.className='muted';msg.textContent=half+': συμπλήρωσε και την άλλη ώρα του διαλείμματος για να αποθηκευτεί.';schedPaintNet();tfMarkRange($('floatingEditor'));return}
   try{let r=await api('/settings/schedule',{method:'PUT',body:JSON.stringify(body0)});paintSchedule(r);flashMsg(msg,'oktext','Αποθηκεύτηκε.')}catch(e){msg.className='error';msg.textContent=e.message;api('/settings/schedule').then(paintSchedule).catch(()=>{})}}
 document.querySelectorAll('#floatingEditor .tf[data-sc]').forEach(el=>{tpkFill(el,'');el.dataset.k=el.dataset.k||'shiftS'});
+// Ποια Τμήματα ανήκουν σε ομάδα διαλειμμάτων Α ή Β (ισχύει για όλα τα ωράρια· χωρίς εγγραφή = Α)
+async function paintBreakGroups(){
+  let box=$('schedGroupRows');if(!box)return;
+  try{
+    let [units,groups]=await Promise.all([api('/master/org-units'),api('/settings/break-groups')]);
+    let act=units.filter(u=>u.active!==false);
+    box.className='';
+    box.innerHTML=act.map(u=>{let g=groups[u.id]==='B'?'B':'A';return `<div class="schedGroupRow" data-u="${u.id}"><span class="schedLbl" style="min-width:220px">${esc(u.name_el)}</span><span class="prodSegment"><button type="button" data-g="A" class="${g==='A'?'active':''}">Α</button><button type="button" data-g="B" class="${g==='B'?'active':''}">Β</button></span></div>`}).join('')||'<span class="muted">Δεν υπάρχουν τμήματα.</span>';
+    box.querySelectorAll('button[data-g]').forEach(bt=>bt.onclick=async()=>{
+      let row=bt.closest('[data-u]');row.querySelectorAll('button[data-g]').forEach(x=>x.classList.toggle('active',x===bt));
+      let map={};box.querySelectorAll('[data-u]').forEach(r=>{map[r.dataset.u]=r.querySelector('button.active')?.dataset.g||'A'});
+      let msg=$('scheduleMsg');try{await api('/settings/break-groups',{method:'PUT',body:JSON.stringify(map)});flashMsg(msg,'oktext','Αποθηκεύτηκε.')}catch(e){msg.className='error';msg.textContent=e.message}
+    });
+  }catch(e){box.textContent=e.message||String(e)}
+}
+paintBreakGroups();
 api('/settings/schedule').then(paintSchedule).catch(()=>{});
 document.querySelectorAll('input[name="sched_active"]').forEach(r=>r.onchange=saveSchedule);
 document.querySelectorAll('#floatingEditor .tf[data-sc]').forEach(el=>el.addEventListener('change',saveSchedule));
+document.querySelectorAll('#floatingEditor .tf[data-sc] .tfIn').forEach(i=>i.addEventListener('input',()=>{schedPaintNet();tfMarkRange($('floatingEditor'))}));
 api('/settings/export').then(x=>{$('exportDirPath').value=x.path||'';$('exportDirGroup').checked=x.group_by_month!==false}).catch(()=>{});
 $('exportDirSave').onclick=async()=>{let msg=$('exportDirMsg');try{clearApiCache('/settings/export');let r=await api('/settings/export',{method:'PUT',body:JSON.stringify({path:$('exportDirPath').value.trim(),group_by_month:$('exportDirGroup').checked})});$('exportDirPath').value=r.path||'';flashMsg(msg,'oktext','Αποθηκεύτηκε.')}catch(e){msg.className='error';msg.textContent=e.message}};
 $('exportDirBrowse').onclick=async()=>{let msg=$('exportDirMsg'),btn=$('exportDirBrowse'),old=btn.textContent;btn.disabled=true;btn.textContent='Άνοιγμα...';try{let r=await api('/settings/export/browse',{method:'POST',body:JSON.stringify({initial:$('exportDirPath').value.trim()})});if(r.path)$('exportDirPath').value=r.path}catch(e){msg.className='error';msg.textContent=e.message}finally{btn.disabled=false;btn.textContent=old}};
