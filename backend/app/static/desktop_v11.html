@@ -99,7 +99,7 @@ body[data-theme="dark"] .negKgCell{background:#4a1f1f;color:#ff8b8b}
 .negBar .negNav{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border:1px solid currentColor;border-radius:16px}
 .negBar .negNav button{padding:2px 9px;border-radius:12px;font-size:15px}.negBar .negPos{padding:0 6px;font-weight:600;min-width:46px;text-align:center}
 .negBar .negX{font-size:17px;padding:0 4px}
-.negRail{position:absolute;width:12px;border-radius:6px;background:var(--surface-2,#f0f3fa);border:1px solid var(--line,#e3e5ec);z-index:5}
+.negRail{position:absolute;width:14px;box-sizing:border-box;border-radius:0 12px 12px 0;background:var(--surface-2,#f0f3fa);border:1px solid var(--line,#e3e5ec);border-left:0;z-index:5}
 .negRail i{position:absolute;left:1px;right:1px;height:5px;border-radius:3px;background:var(--neg,#b3261e);cursor:pointer}
 .negRail i.on{outline:2px solid var(--accent,#2f5fc4);height:7px;margin-top:-1px}
 @keyframes negFl{0%,60%{outline:3px solid var(--accent,#2f5fc4);outline-offset:1px}100%{outline:3px solid transparent;outline-offset:1px}}
@@ -550,11 +550,11 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 #invCountTable .invHerInput{width:100%;border:0;border-radius:0;background:transparent;padding:4px;font-size:13px;min-height:auto}
 #invCountTable .invHerInput:focus{background:#eef5f8;border-radius:4px}
 #invCountTable thead th{font-size:11px;font-weight:500;color:var(--fg-2,#44474f)}
-#invResetColsBtn{height:40px;min-height:40px;box-sizing:border-box;padding-top:0;padding-bottom:0}
 #invYearNav,#invZoomNav{display:inline-flex;align-items:stretch;height:40px;min-height:40px;margin:0;box-sizing:border-box;border:1px solid var(--line-strong);border-radius:var(--r-pill,999px);background:var(--surface,#fff);overflow:hidden}
 #invYearNav b,#invZoomNav b{display:inline-flex;align-items:center;justify-content:center;min-width:64px;padding:0 10px;margin:0;border-left:1px solid var(--line);border-right:1px solid var(--line);font-size:14px;font-weight:500;line-height:1;text-align:center}
 #invYearNav button,#invZoomNav button{display:inline-flex;align-items:center;justify-content:center;height:100%;width:44px;min-width:44px;padding:0!important;margin:0;border:0;background:transparent;line-height:1}
 #invZoomNav button{font-size:20px;font-weight:500;color:var(--fg-2,#44474f)}
+#invCountTable td:first-child:not(.invGroupCell),#invCountTable th:first-child:not(.invGroupCell){box-shadow:none!important}
 #invCountTable tbody tr{height:34px}
 #invCountTable tbody td{height:34px;box-sizing:border-box;padding-top:0;padding-bottom:0;line-height:20px}
 #invCountTable tbody td.invTextCol{padding-top:6px;padding-bottom:6px}
@@ -761,6 +761,13 @@ body[data-theme="dark"]{--st1-bg:#2A3040;--st1-fg:#C9CFDC;--st2-bg:#23365E;--st2
 .prodTable tfoot td{background:var(--surface-2)!important}
 /* Στήλη «Σύνολο» δίπλα στην sticky πρώτη στήλη: κολλημένη κι αυτή (το left το ορίζει το StickyTables = πλάτος της πρώτης στήλης) */
 .prodTable td.stkTotal,.prodTable th.stkTotal{position:sticky!important}
+/* Συνεχείς γραμμές: με border-collapse οι γραμμές των sticky κελιών (και των συγχωνευμένων) «χάνονταν» στο scroll·
+   με separate/spacing 0 κάθε κελί κρατά τις δικές του δεξιά/κάτω γραμμές (ίδιο πάχος/χρώμα από token) σε όλα τα επίπεδα. */
+.prodTable{border-collapse:separate!important;border-spacing:0!important}
+.content .prodTable th,.content .prodTable td,.content .prodTable tr>*+*:not(.pinColHide){border-left:0!important;border-right:1px solid var(--line,#e3e5ec);border-bottom:1px solid var(--line,#e3e5ec)}
+.content .prodTable th:last-child,.content .prodTable td:last-child{border-right:0}
+.content .prodTable .prodGroupStart{border-left:2px solid #8daabd!important}
+.content .prodTable tr>.pinColHide,.content .prodTable tr.pinRowHide>*{border-right:0!important;border-bottom:0!important}
 .prodTable tbody td.stkTotal{z-index:1;background:var(--surface)!important;box-shadow:1px 0 0 var(--line-strong)}
 .prodTable tbody tr:nth-child(even) td.stkTotal{background:var(--stripe)!important}
 .prodTable tbody tr.selectableRow:hover td.stkTotal,.prodTable tbody tr:hover td.stkTotal{background:var(--hover)!important}
@@ -1684,7 +1691,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><span class="muted">Σύνολο: <span id="shipHistTotal"></span></span><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th>Ημερομηνία</th><th>Αρ. Δ.Α.</th><th>Περιγραφή</th><th>Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th>Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody></table></div></div></section>
 
 <section id="reports" class="view hidden"><div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode repTab active" data-reptab="receipts">Παραλαβές</button><button class="receiptMode repTab" data-reptab="processing">Επεξεργασία</button><button class="receiptMode repTab" data-reptab="dispatch">Αποστολές</button><button class="receiptMode repTab" data-reptab="statistics">Στατιστικά</button><button class="receiptMode repTab" data-reptab="recycling">Ανακύκλωση Συσκευών</button></div><div class="receiptActionButtons" id="reportsUploadWrap"><button class="btn" id="reportsUploadBtn">+ Φόρτωση αρχείου</button><input type="file" id="reportsUploadInput" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.pdf" multiple></div></div><div class="card hidden" id="reportsGenerate"><div class="toolbar" style="margin:0 0 10px"><b>Δημιουργία από τις καταγραφές</b><span id="reportsGenMsg" class="muted"></span></div><div class="toolbar" style="margin:0 0 8px"><label class="inlineCheck">Ημέρα <input type="date" id="reportsGenDay"></label><button class="btn alt repGen" data-kind="day" data-path="/sorting/daily-export?day=">Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="day" data-path="/reports/generate/daily-summary?day=">Ημερήσιο Συγκεντρωτικό</button></div><div class="toolbar" style="margin:0"><label class="inlineCheck">Μήνας <input type="month" id="reportsGenMonth"></label><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/monthly-received?month=">Μηνιαία Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/non-weee-by-supplier?month=">Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή</button></div></div><div id="reportsList"></div><div id="deviceYieldPanel" class="hidden"></div></section>
-<section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><button class="btn alt" id="invResetColsBtn">Επαναφορά στηλών</button><div class="prodPeriodNav" id="invZoomNav"><button type="button" id="invZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="invZoomLabel" style="min-width:52px">100%</b><button type="button" id="invZoomIn" title="Μεγέθυνση πίνακα">+</button></div></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
+<section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><div class="prodPeriodNav" id="invZoomNav"><button type="button" id="invZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="invZoomLabel" style="min-width:52px">100%</b><button type="button" id="invZoomIn" title="Μεγέθυνση πίνακα">+</button></div></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
 <section id="master" class="view hidden"><div class="card masterSticky"><h3>Μητρώα</h3><div class="tabs"><button class="tab mtab active" data-mtab="suppliers">Προμηθευτές</button><button class="tab mtab" data-mtab="clients">Πελάτες</button><button class="tab mtab" data-mtab="carriers">Μεταφορείς</button><button class="tab mtab" data-mtab="partners">Συνεργάτες</button><button class="tab mtab" data-mtab="mediaM">Μέσα συλλογής</button><button class="tab mtab" data-mtab="weeeNamesM">ΑΗΗΕ</button><button class="tab mtab" data-mtab="materialsM">Υλικά</button><button class="tab mtab" data-mtab="departmentsM">Τμήματα</button><button class="tab mtab" data-mtab="employeesM">Εργαζόμενοι</button></div></div>
 <div id="suppliers" class="mpanel card"><h3>Προμηθευτές</h3><div class="masterTools"><input class="masterSearch" id="supplierSearch" placeholder="Αναζήτηση προμηθευτή, ΑΦΜ, ονομασίας…"><button class="btn" id="supplierCreate">+ Δημιουργία</button><span class="muted"><span id="supplierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="supplierMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="supplierCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
 <div id="clients" class="mpanel card hidden"><h3>Πελάτες</h3><div class="masterTools"><input class="masterSearch" id="clientSearch" placeholder="Αναζήτηση πελάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="clientCreate">+ Δημιουργία</button><span class="muted"><span id="clientCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="clientMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="clientCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="clientRows"></tbody></table></div></div>
@@ -2655,7 +2662,7 @@ let _negScanTimer=null;
 function flagNegativeKg(){scheduleNegScan()}
 function scheduleNegScan(){clearTimeout(_negScanTimer);_negScanTimer=setTimeout(scanNegKg,250)}
 const _negState=new WeakMap();
-function negRestore(box){if(box&&box._negMr!==undefined){box.style.marginRight=box._negMr;delete box._negMr}}
+function negRestore(box){if(box&&box._negMr!==undefined){box.style.marginRight=box._negMr;box.style.borderTopRightRadius=box._negBtr||'';box.style.borderBottomRightRadius=box._negBbr||'';delete box._negMr}}
 function scanNegKg(){
  _negScanTimer=null;
  let groups=new Map();
@@ -2682,15 +2689,16 @@ function buildNegUi(st){
  bar.innerHTML=`<span class="negIc">⚠</span><span class="negTxt"><b>${n}</b> αρνητικ${n===1?'ή τιμή':'ές τιμές'} κιλών σε <b>${m}</b> γραμμ${m===1?'ή':'ές'}</span><span class="negSp"></span><button type="button" class="negGo">Δες τα</button><span class="negNav hidden"><button type="button" class="negPrev" title="Προηγούμενο">‹</button><span class="negPos"></span><button type="button" class="negNext" title="Επόμενο">›</button></span><button type="button" class="negX" title="Κλείσιμο">✕</button>`;
  par.insertBefore(bar,box);
  if(box._negMr===undefined)box._negMr=box.style.marginRight;
- box.style.marginRight='18px';   // χώρος για τη λωρίδα δεικτών, χωρίς να καλύπτει κελιά
+ box._negBtr=box.style.borderTopRightRadius;box._negBbr=box.style.borderBottomRightRadius;
+ box.style.marginRight='14px';box.style.borderTopRightRadius='0';box.style.borderBottomRightRadius='0';   // η λωρίδα δεικτών συνεχίζει το πλαίσιο του πίνακα
  if(getComputedStyle(par).position==='static')par.style.position='relative';
  let rail=document.createElement('div');rail.className='negRail';rail._negBox=box;
  par.appendChild(rail);
  st.bar=bar;st.rail=rail;
  const place=()=>{
   if(!box.isConnected||!rail.isConnected)return;
-  rail.style.top=box.offsetTop+'px';rail.style.height=box.clientHeight+'px';
-  rail.style.left=(box.offsetLeft+box.offsetWidth+3)+'px';
+  rail.style.top=box.offsetTop+'px';rail.style.height=box.offsetHeight+'px';
+  rail.style.left=(box.offsetLeft+box.offsetWidth)+'px';
   rail.innerHTML='';
   let h=box.scrollHeight||1,br=box.getBoundingClientRect();
   rows.forEach(tr=>{
@@ -3333,7 +3341,6 @@ function renderInventoryCount(){
   setTimeout(invApplyZoom,0);
 }
 $('invActiveOnlyToggle').onchange=(e)=>{invActiveOnly=e.target.checked;renderInventoryCount()};
-$('invResetColsBtn').onclick=()=>{invIdOrder=['reptool','subcat','her','eka','baseline'];renderInventoryCount()};
 $('invYearPrev').onclick=()=>{invYear--;loadInventoryCount()};
 $('invYearNext').onclick=()=>{invYear++;loadInventoryCount()};
 $('invZoomOut').onclick=()=>{invZoom-=10;invApplyZoom()};
@@ -5805,12 +5812,20 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let z=mkZone({left:Math.max(cr.left,cr.right-26),top:cr.top,width:Math.min(26,cr.width),height:cr.height},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
     L.appendChild(z);fitLabel(z,wr);hot=t;
   }
+  // κείμενο του πρώτου ΟΡΑΤΟΥ κελιού δεδομένων της γραμμής (μετά το κελί ομάδας), όπως φαίνεται αυτή τη στιγμή
+  function rowFirstText(tr){
+    for(const c of tr.cells){
+      if((c.rowSpan||1)>1||(c.colSpan||1)>1||c.classList.contains('pinColHide'))continue;
+      let tx=norm(c.textContent);if(tx)return tx;
+    }
+    return '';
+  }
   function rowZone(t,item,cell,wr){
     let L=openLayer('r'+item.id);if(!L)return;
     let rr=clampR(item.tr.getBoundingClientRect(),wr),cr=cell.getBoundingClientRect();
     L.appendChild(mkHl(rr,'pinHlRow'));
     let left=Math.max(cr.left,wr.left);
-    let z=mkZone({left:left,top:rr.top,width:28,height:rr.height},'dL','−','Απόκρυψη γραμμής: '+item.name,()=>hide(t,'row',item.id));
+    let z=mkZone({left:left,top:rr.top,width:28,height:rr.height},'dL','−','Απόκρυψη γραμμής: '+(rowFirstText(item.tr)||item.name),()=>hide(t,'row',item.id));
     L.appendChild(z);fitLabel(z,wr);hot=t;
   }
   function groupZone(t,item,cell,its,label,wr){
@@ -5841,7 +5856,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       while(b<rows.length-1&&rows[b+1].classList.contains('pinRowHide'))b++;
       let items=rows.slice(a,b+1).map(x=>md.rows.find(q=>q.tr===x)).filter(Boolean);
       if(!items.length)return false;
-      let ids=items.map(q=>q.id),names=items.map(q=>q.name);
+      let ids=items.map(q=>q.id),names=items.map(q=>rowFirstText(q.tr)||q.name);
       let L=openLayer('R'+ids.join('|'));if(!L)return true;
       let top=rows[a].getBoundingClientRect().top-6,bot=rows[b].getBoundingClientRect().bottom+6;
       let zr=clampR({left:wr.left,right:wr.right,top:top,bottom:bot},wr);
