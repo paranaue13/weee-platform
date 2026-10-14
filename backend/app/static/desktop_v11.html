@@ -1021,8 +1021,8 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 /* απαλές κάθετες γραμμές ανάμεσα στις στήλες, σε όλους τους πίνακες (εκτός από τις λωρίδες απόκρυψης) */
 .content table tr>*+*:not(.pinColHide){border-left:1px solid var(--col-sep)}
 .pinColHide>*,.pinRowHideCell>*{display:none!important}
-.pinHot{outline:2px solid var(--pin);outline-offset:-2px}
-.pinColHide.pinHot,.pinRowHideCell.pinHot{filter:brightness(1.12)}
+.pinHot{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--pin) 10%,transparent)!important}
+.pinColHide.pinHot,.pinRowHideCell.pinHot{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--pin) 22%,transparent)!important}
 #weee h3.weeeSecTitle{margin:22px 0 10px;padding-left:12px;border-left:4px solid var(--accent);font-size:20px;line-height:1.25;color:var(--fg)}
 /* Μητρώα → Μέσα συλλογής: λίστα ειδών αριστερά (ομαδοποιημένη ανά Χρήση), καρτέλα είδους δεξιά */
 #mediaM .mediaMd{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);gap:16px;margin-top:12px;align-items:start}
@@ -5785,6 +5785,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       let r=item.th?item.th.getBoundingClientRect():{top:wr.top};
       let top=Math.min(Math.max(wr.top,r.top)+2,wr.bottom-40);
       let p=mkPin('Col','−',Math.max(wr.left+2,x-13),top,item.label||item.name,()=>hide(t,'col',item.id));
+      p.onmouseenter=()=>hotCol(t,item.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
       L.appendChild(p);fitLabel(p,wr);
     }else{
       let top=Math.min(Math.max(y-13,wr.top+4),wr.bottom-30);
@@ -5820,8 +5821,9 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       L.appendChild(p);fitLabel(p,wr);
     });
   }
-  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;if(gi===i&&(c.colSpan||1)===1)c.classList.add('pinHot');idx+=c.colSpan||1}}}
-  function hotRow(tr,p){unhot();p.classList.add('pinOn');for(const c of tr.cells)c.classList.add('pinHot')}
+  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;if(gi===i&&(c.colSpan||1)===1&&!isStickyAny(c))c.classList.add('pinHot');idx+=c.colSpan||1}}}
+  function hotRow(tr,p){unhot();p.classList.add('pinOn');for(const c of tr.cells)if(!isStickyAny(c))c.classList.add('pinHot')}
+  function isStickyAny(c){let cs=getComputedStyle(c);return cs.position==='sticky'&&(cs.left!=='auto'||cs.bottom!=='auto')&&c.tagName==='TD'}
 
   // ---- hover: «−» στα όρια, «+» πάνω από τις λωρίδες ----
   let raf=0,last=null;
