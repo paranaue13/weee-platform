@@ -1001,6 +1001,39 @@ body[data-theme="dark"] #master .registryTable tbody tr:not(.inactiveMaster) td 
 .schedGrid td,.schedGrid th{padding:4px 8px 4px 0;text-align:left;vertical-align:middle}
 .schedGrid th .schedNet{display:inline-block;border:1px solid var(--st5-fg,#12532e);border-radius:var(--r-chip);padding:5px 12px;width:100%;text-align:center}
 .schedGroupRow{display:flex;align-items:center;gap:10px;margin:4px 0}
+/* Γρήγορες ρυθμίσεις, μενού που κρύβεται, split screen */
+#quickBtn{width:40px;height:40px;min-width:40px;padding:0!important;border-radius:50%!important;border:1px solid var(--line-strong,#b9bdc9)!important;display:inline-flex!important;align-items:center;justify-content:center;color:var(--fg-2,#44474f);background:var(--surface,#fff);margin:0 6px 0 0;flex:none}
+#quickBtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#quickPop{position:fixed;width:290px;z-index:9800;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--line);border-radius:var(--r-box);box-shadow:0 10px 30px rgba(0,0,0,.22);padding:14px}
+#quickPop h4{margin:0 0 12px;font-size:15px;font-weight:600}
+#quickPop .qRow{margin-bottom:14px}#quickPop .qRow:last-child{margin-bottom:0}
+#quickPop .qLbl{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:500;margin-bottom:6px}
+#quickPop .qSub{font-size:12px;color:var(--fg-3,#74777f);line-height:1.35}
+#quickPop .prodSegment{display:flex;width:100%}#quickPop .prodSegment button{flex:1}
+body.sideAuto .shell{grid-template-columns:56px minmax(0,1fr)!important}
+body.sideAuto .side{width:56px;overflow:hidden;padding-left:8px;padding-right:8px;transition:width .15s ease;z-index:60}
+body.sideAuto .side:hover{width:200px;margin-right:-144px;box-shadow:6px 0 24px rgba(0,0,0,.28)}
+#splitHost{display:none;height:calc(100vh - 58px);padding:8px;gap:0;box-sizing:border-box}
+body.splitOn #splitHost{display:flex}
+body.splitOn .main>.content{display:none}
+#splitHost.v{flex-direction:row}#splitHost.h{flex-direction:column}
+.splitPane{display:flex;flex-direction:column;min-width:0;min-height:0;border:2px solid transparent;border-radius:var(--r-box);overflow:hidden;background:var(--surface,#fff)}
+.splitPane.active{border-color:var(--accent,#2f5fc4)}
+.splitHead{height:34px;flex:0 0 34px;display:flex;align-items:center;gap:8px;padding:0 8px;background:var(--surface-2,#f0f3fa);border-bottom:2px solid transparent;box-sizing:border-box}
+.splitPane.active .splitHead{border-bottom-color:var(--accent,#2f5fc4)}
+.splitHead select{height:26px;min-height:0;border:1px solid var(--line-strong,#b9bdc9);border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13px;font-weight:600;padding:0 6px;width:auto;max-width:100%}
+.splitPane iframe{flex:1 1 auto;border:0;width:100%;min-height:0;background:var(--bg,#f6f7fa)}
+.splitDiv{flex:0 0 10px;position:relative;z-index:5}
+#splitHost.v>.splitDiv{cursor:col-resize}#splitHost.h>.splitDiv{cursor:row-resize}
+.splitDiv::after{content:"";position:absolute;background:var(--line-strong,#b9bdc9);border-radius:2px}
+#splitHost.v>.splitDiv::after{left:3px;right:3px;top:0;bottom:0}
+#splitHost.h>.splitDiv::after{top:3px;bottom:3px;left:0;right:0}
+.splitDiv:hover::after,.splitDiv.drag::after{background:var(--accent,#2f5fc4)}
+#splitHost.dragging iframe{pointer-events:none}
+body.pane .side,body.pane .topbar{display:none!important}
+body.pane .shell{grid-template-columns:minmax(0,1fr)!important}
+body.pane .content{padding:12px 14px 20px!important}
+body.pane #login{display:none!important}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1765,7 +1798,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div></main></div>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}async function api(path,opt={}){let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(path,{...opt,headers:h,cache:'no-store'});let d=null;try{d=await r.json()}catch{}if(!r.ok)throw new Error(Array.isArray(d?.detail)?d.detail.join('\n'):(d?.detail||'Σφάλμα '+r.status));if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
+const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}async function api(path,opt={}){let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(path,{...opt,headers:h,cache:'no-store'});let d=null;try{d=await r.json()}catch{}if(!r.ok){let er=new Error(Array.isArray(d?.detail)?d.detail.join('\n'):(d?.detail||'Σφάλμα '+r.status));er.status=r.status;throw er}if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
 async function downloadAuthorized(path){
  try{let exp=await api('/settings/export');if(!exp?.path){if(!confirm('Δεν έχει οριστεί φάκελος εξαγωγών στις Ρυθμίσεις εφαρμογής -- το αρχείο θα αποθηκευτεί μόνο με τη λήψη του browser. Να συνεχίσει η εξαγωγή;'))return}}catch{}
  let r=await fetch(path,{headers:token?{Authorization:'Bearer '+token}:{}});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.detail||'Σφάλμα '+r.status)}let blob=await r.blob(),name='export';let cd=r.headers.get('content-disposition')||'';let m=cd.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^;\"]+)/i);if(m)name=decodeURIComponent(m[1]||m[2]);let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
@@ -6981,6 +7014,191 @@ const SF=(function(){
   window.addEventListener('resize',schedule);
   window.StickyTables={fix:fixAll};
   schedule();
+})();
+</script>
+<script id="splitScreen">
+// Γρήγορες ρυθμίσεις: μενού που κρύβεται + split screen (δύο ανεξάρτητα iframes της ίδιας εφαρμογής σε «ενσωματωμένη» λειτουργία).
+// Γονική σελίδα: κουμπί ⚙, παράθυρο ρυθμίσεων, διαχωριστής, δρομολόγηση μενού/refresh/τίτλου προς την ενεργή οθόνη.
+// Οθόνη (pane): ?pane=1 -> χωρίς μενού/πάνω γραμμή, παίρνει token και καρτέλα με postMessage.
+(function(){
+  const ORIGIN=location.origin;
+  const PANE=new URLSearchParams(location.search).get('pane')==='1';
+  const VIEWS=[['dashboard','Αρχική'],['receipts','Παραλαβές'],['sortingReview','Ταξινόμηση'],['weee','Αποθήκη ΑΗΗΕ'],['production','Παραγωγή'],['ready','Υλικά'],['loading','Φορτώσεις'],['inventory','Απογραφή'],['galaxy','Galaxy'],['reports','Αναφορές και Στατιστικά'],['master','Μητρώα'],['presence','Παρουσιολόγιο']];
+  // Καταγραφή τρέχουσας καρτέλας
+  const _show=show;
+  let routeFn=null;
+  show=function(name){
+    if(routeFn&&routeFn(name))return;
+    window.__curView=name;
+    let r=_show.apply(this,arguments);
+    if(PANE)try{parent.postMessage({t:'view',view:name},ORIGIN)}catch(e){}
+    return r;
+  };
+  // Σφάλμα 401 (λήξη/αποσύνδεση): ισχύει και στις δύο οθόνες
+  const _api=api;
+  api=async function(path,opt){
+    let method=String((opt&&opt.method)||'GET').toUpperCase();
+    try{
+      let r=await _api.apply(this,arguments);
+      if(PANE&&method!=='GET'&&!/^\/auth\//.test(path))try{parent.postMessage({t:'mutated'},ORIGIN)}catch(e){}
+      return r;
+    }catch(e){
+      if(e&&e.status===401&&token){
+        if(PANE){try{parent.postMessage({t:'unauth'},ORIGIN)}catch(_){}}
+        else if(window.__splitActive){location.reload()}
+      }
+      throw e;
+    }
+  };
+  if(PANE){
+    document.body.classList.add('pane');
+    const openView=v=>{
+      v=v||'dashboard';
+      if(v==='presence'){show('dashboard');setTimeout(()=>{try{$('openPresence').onclick()}catch(e){}},80)}
+      else show(v);
+    };
+    window.addEventListener('message',async e=>{
+      if(e.origin!==ORIGIN||e.source!==parent)return;
+      let d=e.data||{};
+      if(d.t==='init'){
+        token=d.token;
+        try{me=await api('/me');$('who').textContent=me.username+' · '+me.roles.join(', ')}catch(err){}
+        $('login').classList.add('hidden');$('app').classList.remove('hidden');
+        try{await preload()}catch(err){}
+        openView(d.view);
+      }else if(d.t==='show')openView(d.view);
+      else if(d.t==='refresh'){clearApiCache();openView(window.__curView)}
+      else if(d.t==='dataChanged'){
+        clearApiCache();
+        let editing=document.querySelector('#floatingEditor:not(.hidden),.floatPanel:not(.hidden),#receiptForm:not(.hidden),#sortingDetail:not(.hidden)');
+        let typing=/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement&&document.activeElement.tagName||'');
+        if(!editing&&!typing){clearTimeout(window.__dcT);window.__dcT=setTimeout(()=>{try{openView(window.__curView)}catch(err){}},600)}
+      }else if(d.t==='token')token=d.token;
+    });
+    window.addEventListener('storage',e=>{if(e.key==='weeeTheme'&&typeof applyTheme==='function')applyTheme(e.newValue||'system')});
+    document.addEventListener('mousedown',()=>{try{parent.postMessage({t:'activate'},ORIGIN)}catch(e){}},true);
+    let tt=$('viewTitle');
+    if(tt)new MutationObserver(()=>{try{parent.postMessage({t:'title',text:tt.textContent},ORIGIN)}catch(e){}}).observe(tt,{childList:true,characterData:true,subtree:true});
+    try{parent.postMessage({t:'ready'},ORIGIN)}catch(e){}
+    return;
+  }
+
+  // ================= ΓΟΝΙΚΗ ΣΕΛΙΔΑ =================
+  const KEY=()=>'weee.quick.v1:'+((typeof me!=='undefined'&&me&&(me.username||me.id))||'local');
+  let prefs={autoHide:false,split:'none',pos:{v:50,h:50},second:'weee'};
+  const loadPrefs=()=>{try{let o=JSON.parse(localStorage.getItem(KEY())||'null');if(o)prefs=Object.assign({autoHide:false,split:'none',pos:{v:50,h:50},second:'weee'},o,{pos:Object.assign({v:50,h:50},o.pos||{})})}catch(e){}};
+  const savePrefs=()=>{try{localStorage.setItem(KEY(),JSON.stringify(prefs))}catch(e){}};
+  let panes=[null,null],active=0,host=null;
+  const post=(i,m)=>{try{panes[i]&&panes[i].frame.contentWindow.postMessage(m,ORIGIN)}catch(e){}};
+  const viewLabel=v=>(VIEWS.find(x=>x[0]===v)||[v,v])[1];
+
+  // ---- ⚙ κουμπί + παράθυρο ----
+  const refreshBtn=$('refresh');
+  const qb=document.createElement('button');
+  qb.type='button';qb.className='btn alt iconOnly';qb.id='quickBtn';qb.title='Γρήγορες ρυθμίσεις';
+  qb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.36.5.7.9.9.34.18.72.28 1.1.3h.1v4h-.1c-.38.02-.76.12-1.1.3-.4.2-.7.54-.9.9Z"/></svg>';
+  refreshBtn.parentNode.insertBefore(qb,refreshBtn);
+  const pop=document.createElement('div');pop.id='quickPop';pop.className='hidden';
+  pop.innerHTML=`<h4>Γρήγορες ρυθμίσεις</h4>
+    <div class="qRow"><div class="qLbl"><span>Μενού που κρύβεται</span><label class="toggleSwitch"><input type="checkbox" id="qAutoHide"><span class="slider"></span></label></div><div class="qSub">Το αριστερό μενού μαζεύει σε λωρίδα με εικονίδια και ανοίγει όταν περνάς το ποντίκι.</div></div>
+    <div class="qRow"><div class="qLbl"><span>Split screen</span></div><div class="prodSegment" id="qSplit"><button type="button" data-s="none">Χωρίς</button><button type="button" data-s="v">Κάθετο</button><button type="button" data-s="h">Οριζόντιο</button></div></div>`;
+  document.body.appendChild(pop);
+  const placePop=()=>{let r=qb.getBoundingClientRect();pop.style.top=(r.bottom+8)+'px';pop.style.left=Math.max(8,Math.min(window.innerWidth-298,r.right-290))+'px'};
+  const paintPop=()=>{$('qAutoHide').checked=!!prefs.autoHide;pop.querySelectorAll('#qSplit button').forEach(b=>b.classList.toggle('active',b.dataset.s===prefs.split))};
+  qb.onclick=e=>{e.stopPropagation();if(pop.classList.contains('hidden')){placePop();paintPop();pop.classList.remove('hidden')}else pop.classList.add('hidden')};
+  document.addEventListener('mousedown',e=>{if(!pop.classList.contains('hidden')&&!pop.contains(e.target)&&e.target!==qb&&!qb.contains(e.target))pop.classList.add('hidden')},true);
+  window.addEventListener('resize',()=>{if(!pop.classList.contains('hidden'))placePop()});
+  $('qAutoHide').onchange=e=>{prefs.autoHide=e.target.checked;savePrefs();applyAutoHide()};
+  pop.querySelectorAll('#qSplit button').forEach(b=>b.onclick=()=>{prefs.split=b.dataset.s;savePrefs();paintPop();applySplit()});
+
+  // ---- μενού που κρύβεται ----
+  function applyAutoHide(){document.body.classList.toggle('sideAuto',!!prefs.autoHide)}
+
+  // ---- split ----
+  const curNavView=()=>window.__curView||(document.querySelector('.nav button.active')||{dataset:{}}).dataset.view||'dashboard';
+  function buildPane(i,view){
+    let el=document.createElement('div');el.className='splitPane';
+    el.innerHTML=`<div class="splitHead"><select class="splitSel" aria-label="Καρτέλα οθόνης">${VIEWS.map(v=>`<option value="${v[0]}">${v[1]}</option>`).join('')}</select></div><iframe title="Οθόνη ${i+1}"></iframe>`;
+    let sel=el.querySelector('select'),fr=el.querySelector('iframe');
+    let p={el,sel,frame:fr,view,ready:false,title:viewLabel(view)};
+    sel.value=view;
+    sel.onchange=()=>{p.view=sel.value;post(i,{t:'show',view:sel.value});setActive(i)};
+    el.querySelector('.splitHead').addEventListener('mousedown',()=>setActive(i));
+    fr.src='/desktop?pane=1';
+    return p;
+  }
+  function ensureView(p,v){if(![...p.sel.options].some(o=>o.value===v)){let o=document.createElement('option');o.value=v;o.textContent=v;p.sel.appendChild(o)}p.sel.value=v}
+  function setActive(i){
+    active=i;
+    panes.forEach((p,k)=>p&&p.el.classList.toggle('active',k===i));
+    let p=panes[i];if(!p)return;
+    let t=$('viewTitle');if(t&&p.title)t.textContent=p.title;
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===p.view));
+  }
+  function applyFractions(){
+    if(!host||!panes[0])return;
+    let f=Math.max(18,Math.min(82,prefs.pos[prefs.split]||50));
+    panes[0].el.style.flex=`0 0 calc(${f}% - 5px)`;panes[1].el.style.flex='1 1 0';
+  }
+  function applySplit(){
+    if(prefs.split==='none'){teardown();return}
+    if(!host){
+      let main=document.querySelector('.main');
+      host=document.createElement('div');host.id='splitHost';main.appendChild(host);
+      let first=curNavView(),second=prefs.second||'weee';
+      panes=[buildPane(0,first),buildPane(1,second)];
+      let div=document.createElement('div');div.className='splitDiv';div.title='Σύρε για αλλαγή μεγέθους';
+      host.append(panes[0].el,div,panes[1].el);
+      div.addEventListener('mousedown',e=>{
+        e.preventDefault();div.classList.add('drag');host.classList.add('dragging');
+        const mv=ev=>{let r=host.getBoundingClientRect(),f=prefs.split==='v'?(ev.clientX-r.left)/r.width*100:(ev.clientY-r.top)/r.height*100;prefs.pos[prefs.split]=Math.max(18,Math.min(82,f));applyFractions()};
+        const up=()=>{document.removeEventListener('mousemove',mv);document.removeEventListener('mouseup',up);div.classList.remove('drag');host.classList.remove('dragging');savePrefs()};
+        document.addEventListener('mousemove',mv);document.addEventListener('mouseup',up);
+      });
+      // η γονική σελίδα δεν πρέπει να τρέχει δικά της polls όσο φαίνονται οι οθόνες
+      try{if(typeof ecPollTimer!=='undefined'&&ecPollTimer){clearInterval(ecPollTimer);ecPollTimer=null}}catch(e){}
+      try{if(typeof presTimer!=='undefined'&&presTimer){clearInterval(presTimer);presTimer=null}}catch(e){}
+    }
+    window.__splitActive=true;
+    document.body.classList.add('splitOn');
+    host.className=prefs.split;
+    applyFractions();
+    routeFn=name=>{ if(!window.__splitActive)return false; let p=panes[active];if(!p)return false; p.view=name;ensureView(p,name);post(active,{t:'show',view:name});setActive(active);return true };
+    setActive(active);
+  }
+  function teardown(){
+    if(!host)return;
+    let v=panes[active]&&panes[active].view;
+    routeFn=null;window.__splitActive=false;
+    panes.forEach(p=>{if(p){prefs.second=(p===panes[1]?p.view:prefs.second);try{p.frame.src='about:blank'}catch(e){}p.el.remove()}});
+    host.remove();host=null;panes=[null,null];active=0;
+    document.body.classList.remove('splitOn');
+    savePrefs();
+    let t=$('viewTitle');
+    // επιστροφή στη μία οθόνη με την ενεργή καρτέλα
+    if(v==='presence'){_show('dashboard');setTimeout(()=>{try{$('openPresence').onclick()}catch(e){}},80)}
+    else if(v){window.__curView=v;_show(v)}
+  }
+  // ---- μηνύματα από τις οθόνες ----
+  window.addEventListener('message',e=>{
+    if(e.origin!==ORIGIN)return;
+    let i=panes.findIndex(p=>p&&p.frame.contentWindow===e.source);if(i<0)return;
+    let d=e.data||{},p=panes[i];
+    if(d.t==='ready'){p.ready=true;post(i,{t:'init',token,view:p.view})}
+    else if(d.t==='view'){p.view=d.view;ensureView(p,d.view);if(i===active)setActive(i)}
+    else if(d.t==='title'){p.title=d.text;if(i===active){let t=$('viewTitle');if(t)t.textContent=d.text}}
+    else if(d.t==='activate'){pop.classList.add('hidden');if(active!==i)setActive(i)}
+    else if(d.t==='unauth'){location.reload()}
+    else if(d.t==='mutated'){panes.forEach((q,k)=>{if(q&&k!==i&&q.view===p.view)post(k,{t:'dataChanged'})})}
+  });
+  // refresh: ενεργή οθόνη
+  const origRefresh=refreshBtn.onclick;
+  refreshBtn.onclick=function(){if(window.__splitActive&&panes[active])post(active,{t:'refresh'});else if(origRefresh)origRefresh.apply(this,arguments)};
+  // αρχικοποίηση μετά το login
+  const _preload=preload;
+  let started=false;
+  const boot=()=>{if(started||!me)return;started=true;loadPrefs();applyAutoHide();if(prefs.split!=='none')applySplit()};
+  let iv=setInterval(()=>{if(typeof me!=='undefined'&&me&&!$('app').classList.contains('hidden')){clearInterval(iv);boot()}},300);
 })();
 </script>
 </body></html>
