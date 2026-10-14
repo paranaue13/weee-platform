@@ -2712,7 +2712,7 @@ function stickyStackFooter(tfootId){
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
 // Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
-function fitProdWraps(){document.querySelectorAll('.prodTableWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY;w.style.maxHeight=Math.max(220,window.innerHeight-top-24)+'px'})}
+function fitProdWraps(){document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');w.style.maxHeight=(hist?Math.max(320,window.innerHeight-240):Math.max(220,window.innerHeight-top-24))+'px'})}
 (function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 function renderReadyMaterials(){
  let entries=readyState.entries||[];
