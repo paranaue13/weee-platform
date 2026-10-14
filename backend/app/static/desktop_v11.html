@@ -754,6 +754,13 @@ body[data-theme="dark"]{--st1-bg:#2A3040;--st1-fg:#C9CFDC;--st2-bg:#23365E;--st2
 .prodTable thead th:first-child{background:var(--surface-2)!important;overflow:hidden;box-shadow:1px 0 0 var(--line-strong)}
 .prodTable tfoot td:first-child{background:var(--surface-2)!important}
 .prodTable tfoot td{background:var(--surface-2)!important}
+/* Στήλη «Σύνολο» δίπλα στην sticky πρώτη στήλη: κολλημένη κι αυτή (το left το ορίζει το StickyTables = πλάτος της πρώτης στήλης) */
+.prodTable td.stkTotal,.prodTable th.stkTotal{position:sticky!important}
+.prodTable tbody td.stkTotal{z-index:1;background:var(--surface)!important;box-shadow:1px 0 0 var(--line-strong)}
+.prodTable tbody tr:nth-child(even) td.stkTotal{background:var(--stripe)!important}
+.prodTable tbody tr.selectableRow:hover td.stkTotal,.prodTable tbody tr:hover td.stkTotal{background:var(--hover)!important}
+.prodTable thead th.stkTotal{z-index:5;box-shadow:1px 0 0 var(--line-strong)}
+.prodTable tfoot td.stkTotal{z-index:5;box-shadow:1px 0 0 var(--line-strong)}
 </style>
 <style id="stickyFootFix">
 /* Η sticky πρώτη στήλη του υποσυνόλου (tfoot) μένει πάνω από τα sticky-κάτω κελιά, ώστε οι στήλες που κυλούν να μην φαίνονται από κάτω της */
@@ -6661,12 +6668,49 @@ const SF=(function(){
       if(!drop)cum+=r.getBoundingClientRect().height;
     }
   }
+  // Στήλη «Σύνολο» αμέσως δεξιά από sticky πρώτη στήλη: κολλά κι αυτή, με left = πλάτος της πρώτης στήλης.
+  function fixTotalCol(t){
+    if(!t.tHead||!t.tHead.rows.length)return;
+    let secs=[t.tHead,...t.tBodies,t.tFoot].filter(Boolean),at={};   // at[colIndex] -> [{c,ri,rs,sec}]
+    let lastHead=t.tHead.rows.length-1,first=null,second=null;
+    secs.forEach(sec=>{
+      let occ=[];
+      [...sec.rows].forEach((r,ri)=>{
+        let col=0;
+        [...r.cells].forEach(c=>{
+          while(occ[col]>ri)col++;
+          let cs=c.colSpan||1,rs=c.rowSpan||1;
+          for(let k=0;k<cs;k++)occ[col+k]=ri+rs;
+          if(cs===1&&col<=1){(at[col]=at[col]||[]).push({c,ri,rs,sec});
+            if(sec===t.tHead){if(col===0&&!first)first=c;if(col===1&&ri+rs-1>=lastHead)second=c}}
+          col+=cs;
+        });
+      });
+    });
+    let isTot=second&&/^\s*σ[υύ]νολο/i.test(second.textContent||'');
+    let cs0=first?getComputedStyle(first):null;
+    let on=!!(isTot&&cs0&&cs0.position==='sticky'&&cs0.left!=='auto');
+    let prev=t._stkTotal||[];
+    if(!on){
+      prev.forEach(c=>{c.classList.remove('stkTotal');c.style.removeProperty('left')});
+      t._stkTotal=null;return;
+    }
+    let w=Math.round(first.getBoundingClientRect().width);
+    let cells=(at[1]||[]).map(o=>o.c);
+    prev.filter(c=>!cells.includes(c)).forEach(c=>{c.classList.remove('stkTotal');c.style.removeProperty('left')});
+    cells.forEach(c=>{
+      if(!c.classList.contains('stkTotal'))c.classList.add('stkTotal');
+      let v=w+'px';
+      if(c.style.getPropertyValue('left')!==v||c.style.getPropertyPriority('left')!=='important')c.style.setProperty('left',v,'important');
+    });
+    t._stkTotal=cells;
+  }
   function fixAll(){
     timer=null;
     document.querySelectorAll('table').forEach(t=>{
       if(!t.offsetParent)return;
       let sc=scrollerOf(t);
-      fixHead(t,sc);fixFoot(t,sc);
+      fixHead(t,sc);fixFoot(t,sc);fixTotalCol(t);
       if(window.ResizeObserver){
         if(!ro)ro=new ResizeObserver(()=>schedule());
         if(!seen.has(t)){seen.add(t);ro.observe(t)}
