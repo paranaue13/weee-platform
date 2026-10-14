@@ -1485,7 +1485,13 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
             arrived=data.arrived_at.replace(tzinfo=None) if data.arrived_at and data.arrived_at.tzinfo is None else (data.arrived_at.astimezone(timezone.utc).replace(tzinfo=None) if data.arrived_at else None)
             late=bool(arrived) if data.late is None else data.late
     elif status=="ABSENT": arrived,late=None,False  # απών = δεν ξεκίνησε ποτέ την ημέρα
-    else: arrived,late=p_arr,p_late
+    else:  # LEFT: κρατά την αργοπορία· μπορεί να οριστεί/αλλάξει και αργοπορία ταυτόχρονα (Αργοπορία + Έφυγε)
+        arrived,late=p_arr,p_late
+        if data.late is True: late,arrived=True,(p_arr or now)
+        elif data.late is False: late,arrived=False,None
+        if "arrived_at" in data.model_fields_set:
+            arrived=data.arrived_at.replace(tzinfo=None) if data.arrived_at and data.arrived_at.tzinfo is None else (data.arrived_at.astimezone(timezone.utc).replace(tzinfo=None) if data.arrived_at else None)
+            late=bool(arrived) if data.late is None else data.late
     old=None
     if obj:
         old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
@@ -3259,24 +3265,48 @@ def _check_time(v,label):
     if not _re.fullmatch(r'([01]\d|2[0-3]):[0-5]\d',str(v or '')): raise HTTPException(422,f'{label}: μη έγκυρη ώρα (ωω:λλ)')
     return str(v)
 
+EMPTY_BREAK={'start':'','end':''}
+
+def _sched_norm(d:dict)->dict:
+    """Κανονικοποίηση αποθηκευμένου ωραρίου: ίδια μορφή ακόμη κι αν λείπουν τα διαλείμματα (παλιά δεδομένα)."""
+    out={'active':d.get('active') if d.get('active') in ('summer','winter','special') else 'summer'}
+    for k in ('summer','winter','special'):
+        src=d.get(k) or DEFAULT_SCHEDULE[k]
+        out[k]={'start':src.get('start') or DEFAULT_SCHEDULE[k]['start'],'end':src.get('end') or DEFAULT_SCHEDULE[k]['end'],
+                'b1':{'start':(src.get('b1') or {}).get('start') or '','end':(src.get('b1') or {}).get('end') or ''},
+                'b2':{'start':(src.get('b2') or {}).get('start') or '','end':(src.get('b2') or {}).get('end') or ''}}
+    return out
+
 @app.get('/settings/schedule')
 def schedule_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
     row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
-    if not row: return DEFAULT_SCHEDULE
-    try: return json.loads(row.value)
-    except Exception: return DEFAULT_SCHEDULE
+    if not row: return _sched_norm(DEFAULT_SCHEDULE)
+    try: return _sched_norm(json.loads(row.value))
+    except Exception: return _sched_norm(DEFAULT_SCHEDULE)
+
+def _check_break(v,label):
+    v=v or {}; st=str(v.get('start') or ''); en=str(v.get('end') or '')
+    if not st and not en: return dict(EMPTY_BREAK)
+    if not st or not en: raise HTTPException(422,f'{label}: συμπλήρωσε και την ώρα έναρξης και την ώρα λήξης του διαλείμματος')
+    st=_check_time(st,label); en=_check_time(en,label)
+    if st>=en: raise HTTPException(422,f'{label}: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
+    return {'start':st,'end':en}
 
 @app.put('/settings/schedule')
 def schedule_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
     active=data.get('active')
     if active not in ('summer','winter','special'): raise HTTPException(422,'Μη έγκυρη επιλογή ωραρίου')
-    summer={'start':_check_time((data.get('summer') or {}).get('start'),'Θερινό'),'end':_check_time((data.get('summer') or {}).get('end'),'Θερινό')}
-    winter={'start':_check_time((data.get('winter') or {}).get('start'),'Χειμερινό'),'end':_check_time((data.get('winter') or {}).get('end'),'Χειμερινό')}
-    special={'start':_check_time((data.get('special') or {}).get('start'),'Έκτακτο'),'end':_check_time((data.get('special') or {}).get('end'),'Έκτακτο')}
-    if summer['start']>=summer['end']: raise HTTPException(422,'Θερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
-    if winter['start']>=winter['end']: raise HTTPException(422,'Χειμερινό: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
-    if special['start']>=special['end']: raise HTTPException(422,'Έκτακτο: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
-    payload={'active':active,'summer':summer,'winter':winter,'special':special}
+    payload={'active':active}
+    for key,label in (('summer','Θερινό'),('winter','Χειμερινό'),('special','Έκτακτο')):
+        d=data.get(key) or {}
+        st=_check_time(d.get('start'),label); en=_check_time(d.get('end'),label)
+        if st>=en: raise HTTPException(422,f'{label}: η ώρα λήξης πρέπει να είναι μετά την έναρξη')
+        b1=_check_break(d.get('b1'),f'{label} · Διάλειμμα 1'); b2=_check_break(d.get('b2'),f'{label} · Διάλειμμα 2')
+        for br,bl in ((b1,'Διάλειμμα 1'),(b2,'Διάλειμμα 2')):
+            if br['start'] and (br['start']<st or br['end']>en): raise HTTPException(422,f'{label} · {bl}: πρέπει να είναι μέσα στη βάρδια ({st}–{en})')
+        if b1['start'] and b2['start'] and not (b1['end']<=b2['start'] or b2['end']<=b1['start']):
+            raise HTTPException(422,f'{label}: τα δύο διαλείμματα δεν πρέπει να επικαλύπτονται')
+        payload[key]={'start':st,'end':en,'b1':b1,'b2':b2}
     row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
     old=row.value if row else None
     if row: row.value=json.dumps(payload,ensure_ascii=False)
