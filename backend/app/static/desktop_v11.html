@@ -92,9 +92,18 @@ body[data-theme="dark"] .sortingKpiCard.k1{background:#173044}body[data-theme="d
    ΑΗΗΕ). Ούτε το κελί ούτε το toast είχαν ποτέ δικό τους στυλ -- έμεναν αόρατα μέσα στο απλό κείμενο. */
 .negKgCell{background:#fde5e5;color:#9b2222;font-weight:800;padding:2px 7px;border-radius:6px;display:inline-block}
 body[data-theme="dark"] .negKgCell{background:#4a1f1f;color:#ff8b8b}
-#negKgToast{position:fixed;right:18px;bottom:18px;z-index:200;background:#a82727;color:#fff;padding:11px 14px;border-radius:var(--r-sm);box-shadow:0 10px 28px rgba(0,0,0,.25);display:flex;align-items:center;gap:12px;font-weight:700;max-width:420px;font-size:13px}
-#negKgToast button{background:transparent;border:0;color:#fff;cursor:pointer;font-size:15px;opacity:.85;padding:0;line-height:1}
-#negKgToast button:hover{opacity:1}
+.negBar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 8px;padding:8px 14px;border-radius:10px;background:var(--st3-bg);color:var(--st3-fg);border:1px solid var(--st3-fg)}
+.negBar .negIc{font-size:16px}.negBar .negSp{flex:1}
+.negBar button{border:0;background:none;color:inherit;font:inherit;font-weight:700;cursor:pointer}
+.negBar .negGo{padding:4px 12px;border-radius:14px;border:1px solid currentColor}
+.negBar .negNav{display:inline-flex;align-items:center;gap:4px;padding:2px 4px;border:1px solid currentColor;border-radius:16px}
+.negBar .negNav button{padding:2px 9px;border-radius:12px;font-size:15px}.negBar .negPos{padding:0 6px;font-weight:600;min-width:46px;text-align:center}
+.negBar .negX{font-size:17px;padding:0 4px}
+.negRail{position:absolute;width:12px;border-radius:6px;background:var(--surface-2,#f0f3fa);border:1px solid var(--line,#e3e5ec);z-index:5}
+.negRail i{position:absolute;left:1px;right:1px;height:5px;border-radius:3px;background:var(--neg,#b3261e);cursor:pointer}
+.negRail i.on{outline:2px solid var(--accent,#2f5fc4);height:7px;margin-top:-1px}
+@keyframes negFl{0%,60%{outline:3px solid var(--accent,#2f5fc4);outline-offset:1px}100%{outline:3px solid transparent;outline-offset:1px}}
+.negKgCell.negFlash{animation:negFl 1.4s ease-out}
 /* Γραμμή "Διορθώσεις (αναλυτικά)" στην Παραγωγή -- ξεχωριστό, πιο έντονο κόκκινο από το γενικό
    .prodShipRow (καφέ/amber, χρησιμοποιείται και αλλού για "Αποστολές περιόδου"), ώστε να ξεχωρίζει
    ως κάτι που χρειάζεται προσοχή. */
@@ -2609,29 +2618,78 @@ function readyHasStock(displayLb){return (readyBalanceByName[displayLb]||0)>0}
 // virtually every table in the app) call this whenever they render a negative value -- it highlights
 // the cell red (via the .negKgCell class each helper wraps the value in) and raises one debounced
 // toast per render burst rather than one alert per cell.
-let _negKgCount=0,_negKgToastTimer=null;
-function flagNegativeKg(){
- _negKgCount++;
- if(_negKgToastTimer)return;
- _negKgToastTimer=setTimeout(()=>{
-  let n=_negKgCount;_negKgCount=0;_negKgToastTimer=null;
-  showNegKgToast(`⚠ Βρέθηκαν ${n} αρνητικ${n===1?'ή τιμή κιλών':'ές τιμές κιλών'} -- δες τα κόκκινα κελιά.`);
- },250);
+// Η προειδοποίηση εμφανίζεται ως λωρίδα ΠΑΝΩ από τον πίνακα (όχι toast) + στενή λωρίδα δεικτών δεξιά του πίνακα.
+// Ό,τι μετράει ως αρνητικό μένει ίδιο: τα κελιά .negKgCell που ζωγραφίζουν τα prodVal()/blankKg().
+let _negScanTimer=null;
+function flagNegativeKg(){scheduleNegScan()}
+function scheduleNegScan(){clearTimeout(_negScanTimer);_negScanTimer=setTimeout(scanNegKg,250)}
+const _negState=new WeakMap();
+function negRestore(box){if(box&&box._negMr!==undefined){box.style.marginRight=box._negMr;delete box._negMr}}
+function scanNegKg(){
+ _negScanTimer=null;
+ let groups=new Map();
+ document.querySelectorAll('.negKgCell').forEach(c=>{
+  if(!c.offsetParent||c.closest('#negKgMini'))return;
+  let box=c.closest('.prodTableWrap,.tablewrap,.registryTableWrap,.tableWrap')||(c.closest('table')&&c.closest('table').parentElement);
+  if(!box)return;
+  if(!groups.has(box))groups.set(box,[]);groups.get(box).push(c);
+ });
+ document.querySelectorAll('.negBar,.negRail').forEach(el=>{if(!groups.has(el._negBox)||!el._negBox.isConnected){negRestore(el._negBox);el.remove()}});
+ groups.forEach((cells,box)=>{
+  let st=_negState.get(box);
+  let same=st&&st.cells.length===cells.length&&st.cells.every((c,i)=>c===cells[i])&&st.bar&&st.bar.isConnected;
+  if(same)return;
+  if(st){if(st.bar)st.bar.remove();if(st.rail)st.rail.remove()}
+  st={cells,cur:-1,bar:null,rail:null,box};_negState.set(box,st);buildNegUi(st);
+ });
 }
-function showNegKgToast(msg){
- let el=document.getElementById('negKgToast');
- if(!el){
-  el=document.createElement('div');
-  el.id='negKgToast';
-  el.innerHTML=`<span id="negKgToastMsg"></span><button id="negKgToastClose" type="button">✕</button>`;
-  document.body.appendChild(el);
-  document.getElementById('negKgToastClose').onclick=()=>el.classList.add('hidden');
- }
- document.getElementById('negKgToastMsg').textContent=msg;
- el.classList.remove('hidden');
- clearTimeout(el._hideTimer);
- el._hideTimer=setTimeout(()=>el.classList.add('hidden'),8000);
+function buildNegUi(st){
+ let box=st.box,cells=st.cells,par=box.parentElement;if(!par)return;
+ let rows=[...new Set(cells.map(c=>c.closest('tr')))];
+ let n=cells.length,m=rows.length;
+ let bar=document.createElement('div');bar.className='negBar';bar._negBox=box;
+ bar.innerHTML=`<span class="negIc">⚠</span><span class="negTxt"><b>${n}</b> αρνητικ${n===1?'ή τιμή':'ές τιμές'} κιλών σε <b>${m}</b> γραμμ${m===1?'ή':'ές'}</span><span class="negSp"></span><button type="button" class="negGo">Δες τα</button><span class="negNav hidden"><button type="button" class="negPrev" title="Προηγούμενο">‹</button><span class="negPos"></span><button type="button" class="negNext" title="Επόμενο">›</button></span><button type="button" class="negX" title="Κλείσιμο">✕</button>`;
+ par.insertBefore(bar,box);
+ if(box._negMr===undefined)box._negMr=box.style.marginRight;
+ box.style.marginRight='18px';   // χώρος για τη λωρίδα δεικτών, χωρίς να καλύπτει κελιά
+ if(getComputedStyle(par).position==='static')par.style.position='relative';
+ let rail=document.createElement('div');rail.className='negRail';rail._negBox=box;
+ par.appendChild(rail);
+ st.bar=bar;st.rail=rail;
+ const place=()=>{
+  if(!box.isConnected||!rail.isConnected)return;
+  rail.style.top=box.offsetTop+'px';rail.style.height=box.clientHeight+'px';
+  rail.style.left=(box.offsetLeft+box.offsetWidth+3)+'px';
+  rail.innerHTML='';
+  let h=box.scrollHeight||1,br=box.getBoundingClientRect();
+  rows.forEach(tr=>{
+   let first=cells.findIndex(c=>c.closest('tr')===tr);
+   let y=(tr.getBoundingClientRect().top-br.top+box.scrollTop)/h;
+   let t=document.createElement('i');t.style.top=(Math.max(0,Math.min(.985,y))*100)+'%';t.dataset.row=String(first);t.title='Αρνητική τιμή κιλών';
+   t.onclick=()=>show(first);rail.appendChild(t);
+  });
+  mark();
+ };
+ const mark=()=>{[...rail.children].forEach(t=>{let f=+t.dataset.row;t.classList.toggle('on',st.cur>=0&&cells[st.cur]&&cells[st.cur].closest('tr')===cells[f].closest('tr'))})};
+ const show=i=>{
+  st.cur=(i+n)%n;let c=cells[st.cur];if(!c.isConnected)return;
+  let br=box.getBoundingClientRect(),cr=c.getBoundingClientRect();
+  box.scrollTo({top:Math.max(0,cr.top-br.top+box.scrollTop-box.clientHeight/2+cr.height/2),left:Math.max(0,cr.left-br.left+box.scrollLeft-box.clientWidth/2+cr.width/2),behavior:'smooth'});
+  c.classList.remove('negFlash');void c.offsetWidth;c.classList.add('negFlash');
+  bar.querySelector('.negGo').classList.add('hidden');bar.querySelector('.negNav').classList.remove('hidden');
+  bar.querySelector('.negPos').textContent=(st.cur+1)+' / '+n;mark();
+ };
+ bar.querySelector('.negGo').onclick=()=>show(0);
+ bar.querySelector('.negPrev').onclick=()=>show(st.cur<0?n-1:st.cur-1);
+ bar.querySelector('.negNext').onclick=()=>show(st.cur<0?0:st.cur+1);
+ bar.querySelector('.negX').onclick=()=>{bar.remove();rail.remove();negRestore(box)};
+ place();
+ if(window.ResizeObserver){let ro=new ResizeObserver(()=>place());ro.observe(box);bar._ro=ro}
 }
+new MutationObserver(muts=>{
+ if(muts.every(mu=>mu.target.closest&&mu.target.closest('.negBar,.negRail')))return;
+ scheduleNegScan();
+}).observe(document.documentElement,{childList:true,subtree:true});
 // Most tables' tfoot has one row, which the CSS above pins to bottom:0 of the scroll container --
 // fine on its own. A tfoot with SEVERAL rows (like #readyMatFoot's 3) needs each row's bottom offset
 // stacked by the height of the rows below it, or they'd all sit on top of one another at bottom:0
