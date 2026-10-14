@@ -6492,4 +6492,99 @@ const SF=(function(){
   };
 })();
 </script>
+<script id="stickyTables">
+// ΚΟΙΝΟ component «StickyTables»: σωστά sticky offsets σε ΟΛΟΥΣ τους πίνακες.
+// - Κάθε επίπεδο επικεφαλίδας (thead tr) κάθεται ακριβώς κάτω από το προηγούμενο, με το ΠΡΑΓΜΑΤΙΚΟ του ύψος
+//   (όχι σταθερά top: 0/38/90px που προϋποθέτουν συγκεκριμένο ύψος και επικαλύπτονται όταν το κείμενο γράφεται σε πολλές γραμμές).
+// - Πίνακας μέσα σε δικό του scroll box: οι επικεφαλίδες κολλούν στο 0 του box (όχι στο offset της σελίδας που κόβει την 1η γραμμή).
+// - Πολλές γραμμές στο tfoot: κάθε γραμμή κολλά πάνω από όσες ακολουθούν (όχι όλες στο bottom:0 η μία πάνω στην άλλη).
+(function(){
+  let timer=null,ro=null;
+  const seen=new WeakSet();
+  function scrollerOf(t){
+    let p=t.parentElement;
+    while(p&&p!==document.body&&p!==document.documentElement){
+      let cs=getComputedStyle(p);
+      if(/(auto|scroll)/.test(cs.overflowY))return p;
+      p=p.parentElement;
+    }
+    return null;
+  }
+  const setTop=(c,v)=>{if(c.style.getPropertyValue('top')!==v||c.style.getPropertyPriority('top')!=='important')c.style.setProperty('top',v,'important')};
+  const setBottom=(c,v)=>{if(c.style.getPropertyValue('bottom')!==v||c.style.getPropertyPriority('bottom')!=='important')c.style.setProperty('bottom',v,'important')};
+  function fixHead(t,sc){
+    if(!t.tHead)return;
+    let rows=[...t.tHead.rows].filter(r=>r.offsetParent&&r.cells.length);
+    if(!rows.length)return;
+    if(getComputedStyle(rows[0].cells[0]).position!=='sticky')return;
+    if(t._stBase===undefined){
+      // Πίνακας χωρίς δικό του scroll box: κρατά το offset της σελίδας (π.χ. 58px κάτω από τη σταθερή μπάρα).
+      let tp=parseFloat(getComputedStyle(rows[0].cells[0]).top);
+      t._stBase=sc?0:(isFinite(tp)?tp:0);
+    }
+    if(sc&&t._stBase!==0)t._stBase=0;
+    // th:first-child της 2ης/3ης γραμμής επικεφαλίδας ΔΕΝ είναι η πρώτη στήλη (η πρώτη καλύπτεται από rowspan):
+    // το CSS «sticky πρώτη στήλη» δεν πρέπει να την κολλά στο left:0 πάνω από την επικεφαλίδα της πρώτης στήλης.
+    let occ=[];
+    [...t.tHead.rows].forEach((r,ri)=>{
+      let col=0;
+      [...r.cells].forEach((c,ci)=>{
+        while(occ[col]>ri)col++;
+        for(let k=0;k<c.colSpan;k++)occ[col+k]=ri+(c.rowSpan||1);
+        if(ci===0){
+          let notFirst=col>0;
+          if(notFirst&&!c._stNF){c._stNF=true;c.style.setProperty('left','auto','important');c.style.setProperty('box-shadow','none','important');c.style.setProperty('z-index','auto','important')}
+          else if(!notFirst&&c._stNF){c._stNF=false;c.style.removeProperty('left');c.style.removeProperty('box-shadow');c.style.removeProperty('z-index')}
+        }
+        col+=c.colSpan;
+      });
+    });
+    let cum=t._stBase;
+    rows.forEach(r=>{
+      let v=cum+'px';
+      [...r.cells].forEach(c=>setTop(c,v));
+      cum+=r.getBoundingClientRect().height;
+    });
+  }
+  function fixFoot(t,sc){
+    let tf=t.tFoot;if(!tf||tf.id==='readyMatFoot')return;           // το readyMatFoot έχει δικό του stickyStackFooter
+    let rows=[...tf.rows].filter(r=>r.offsetParent&&r.cells.length);
+    if(!rows.length)return;
+    let stick=rows.filter(r=>[...r.cells].some(c=>getComputedStyle(c).position==='sticky'));
+    if(!stick.length)return;
+    let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
+    let avail=sc?sc.clientHeight:window.innerHeight;
+    let tooTall=avail>0&&total>avail*0.5;
+    let cum=0;
+    for(let i=rows.length-1;i>=0;i--){
+      let r=rows[i],drop=tooTall&&i<rows.length-1;
+      [...r.cells].forEach(c=>{
+        if(drop){c.style.setProperty('position','static','important')}
+        else{if(c.style.position==='static')c.style.removeProperty('position');setBottom(c,cum+'px')}
+      });
+      if(!drop)cum+=r.getBoundingClientRect().height;
+    }
+  }
+  function fixAll(){
+    timer=null;
+    document.querySelectorAll('table').forEach(t=>{
+      if(!t.offsetParent)return;
+      let sc=scrollerOf(t);
+      fixHead(t,sc);fixFoot(t,sc);
+      if(window.ResizeObserver){
+        if(!ro)ro=new ResizeObserver(()=>schedule());
+        if(!seen.has(t)){seen.add(t);ro.observe(t)}
+      }
+    });
+  }
+  function schedule(){clearTimeout(timer);timer=setTimeout(fixAll,90)}
+  new MutationObserver(muts=>{
+    if(muts.some(m=>m.type==='childList'&&[...m.addedNodes].some(n=>n.nodeType===1&&(n.matches('table,thead,tbody,tfoot,tr')||(n.querySelector&&n.querySelector('table'))))))schedule();
+    else if(muts.some(m=>m.type==='attributes'))schedule();
+  }).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
+  window.addEventListener('resize',schedule);
+  window.StickyTables={fix:fixAll};
+  schedule();
+})();
+</script>
 </body></html>
