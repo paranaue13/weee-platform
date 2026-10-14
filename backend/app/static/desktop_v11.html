@@ -5564,9 +5564,43 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     return true;
   }
   function isSticky(c){let cs=getComputedStyle(c);return cs.position==='sticky'&&cs.left!=='auto'}
+  // Πλέγμα στηλών: για κάθε κελί η πρώτη στήλη που καλύπτει (λαμβάνει υπόψη colSpan ΚΑΙ rowSpan από πάνω γραμμές).
+  function gridOf(t){
+    let map=new Map(),sections=[t.tHead,...t.tBodies,t.tFoot].filter(Boolean),ncols=0,headCover=[];
+    sections.forEach(sec=>{
+      let occ=[];
+      [...sec.rows].forEach((r,ri)=>{
+        let col=0;
+        [...r.cells].forEach(c=>{
+          while(occ[col]>ri)col++;
+          map.set(c,col);
+          let cs=c.colSpan||1,rs=c.rowSpan||1;
+          for(let k=0;k<cs;k++){occ[col+k]=ri+rs;if(sec===t.tHead){(headCover[col+k]=headCover[col+k]||[]).push({c,ri,rs})}}
+          col+=cs;ncols=Math.max(ncols,col);
+        });
+      });
+    });
+    return {map,ncols,headCover};
+  }
   function model(t){
     let m=t._pinModel;
     let hr=t.tHead.rows[t.tHead.rows.length-1],cols=[],seen={};
+    let g=gridOf(t);t._pinGrid=g.map;
+    if(!colsSupported(t)){
+      // Επικεφαλίδες με colSpan/rowSpan: «φύλλο» κάθε στήλης = το κελί που φτάνει στην τελευταία γραμμή. id = ομάδα > όνομα.
+      let last=t.tHead.rows.length-1;
+      for(let i=0;i<g.ncols;i++){
+        let cov=g.headCover[i]||[];
+        let leaf=cov.find(o=>o.ri+o.rs-1>=last);
+        if(!leaf){cols.push({i,th:null,name:'',id:'',ok:false,label:''});continue}
+        let th=leaf.c;
+        let name=norm(th.dataset.pinCol||th.dataset.material||th.dataset.wcol||th.textContent);
+        let parents=cov.filter(o=>o!==leaf&&o.c!==th).map(o=>norm(o.c.dataset.pinCol||o.c.textContent)).filter(Boolean);
+        let ok=!!name&&(th.colSpan||1)===1&&!th.querySelector('input,button,select')&&!isSticky(th)&&g.map.get(th)===i;
+        let id=parents.concat(name).join(' > ');seen[id]=(seen[id]||0)+1;if(seen[id]>1)id+='#'+seen[id];
+        cols.push({i,th,name,id,ok,label:norm(th.textContent)||name});
+      }
+    }
     if(colsSupported(t)){
       [...hr.cells].forEach((th,i)=>{
         let name=norm(th.dataset.pinCol||th.dataset.material||th.dataset.wcol||th.textContent);
@@ -5577,9 +5611,9 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       });
     }
     let rows=[],rseen={};
-    let spanBody=[...t.tBodies].some(tb=>[...tb.rows].some(r=>[...r.cells].some(c=>c.rowSpan>1)));   // πίνακες με rowspan: δεν κρύβονται γραμμές
+    // Κελιά με rowSpan (π.χ. ομάδα) δεν «λωρίδοποιούνται» όταν κρύβεται γραμμή (βλ. apply)· γραμμές με colSpan δεν κρύβονται.
     for(const tb of t.tBodies)for(const tr of tb.rows){
-      let ok=!spanBody&&tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1||c.rowSpan>1)&&!tr.classList.contains('statHidden');
+      let ok=tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1)&&!tr.classList.contains('statHidden');
       let d=tr.dataset,key=norm(d.pinRow||d.id||d.receipt||d.month||d.date||d.mid||d.code);
       let name=[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).find(x=>x)||key;
       let id=key||[...tr.cells].slice(0,3).map(c=>norm(c.textContent)).join('|');
@@ -5628,8 +5662,8 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       if(rowOn!==!!r._pinRowOn){r.classList.toggle('pinRowHide',rowOn);if(rowOn){r._pinH=[r.style.getPropertyValue('height'),r.style.getPropertyPriority('height')];r.style.setProperty('height',STRIP+'px','important')}else{r.style.removeProperty('height');if(r._pinH&&r._pinH[0])r.style.setProperty('height',r._pinH[0],r._pinH[1])}r._pinRowOn=rowOn}
       let idx=0;
       for(const c of r.cells){
-        let span=c.colSpan||1;
-        paint(c,span===1&&hiddenColIdx.has(idx),rowOn);
+        let span=c.colSpan||1,gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;
+        paint(c,span===1&&hiddenColIdx.has(gi),rowOn&&(c.rowSpan||1)===1);
         idx+=span;
       }
     }
@@ -5738,7 +5772,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       L.appendChild(p);
     });
   }
-  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){if(idx===i&&(c.colSpan||1)===1)c.classList.add('pinHot');idx+=c.colSpan||1}}}
+  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;if(gi===i&&(c.colSpan||1)===1)c.classList.add('pinHot');idx+=c.colSpan||1}}}
   function hotRow(tr,p){unhot();p.classList.add('pinOn');for(const c of tr.cells)c.classList.add('pinHot')}
 
   // ---- hover: «−» στα όρια, «+» πάνω από τις λωρίδες ----
@@ -5761,10 +5795,10 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     // στήλη: δεξί όριο επικεφαλίδας
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead&&md.cols.length){
       let hr=t.tHead.rows[t.tHead.rows.length-1];
-      if(cell.parentElement===hr){
+      if(cell.parentElement===hr||(cell.rowSpan>1&&md.cols.some(c=>c.th===cell))){
         let r=cell.getBoundingClientRect();
         if(r.right-e.clientX<=9&&r.right-e.clientX>=-2){
-          let item=md.cols[cell.cellIndex];
+          let item=md.cols.find(c=>c.th===cell);
           if(item&&item.ok&&item.th===cell){let wr=wrapRect(t);let x=Math.min(r.right,wr.right-2);
             if(!layer||!layer.querySelector('.pinCol:not(.pinPlus)')||layer.dataset.k!=='c'+item.id){showMinus(t,'col',item,x,0,wr);layer.dataset.k='c'+item.id;hot=t}
             return}
