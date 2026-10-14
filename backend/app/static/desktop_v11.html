@@ -1144,15 +1144,25 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 .pinBar .pinAll{height:30px;padding:0 16px;border:0;border-radius:999px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font:inherit;font-weight:500;cursor:pointer}
 .pinBar .pinAll:hover{filter:brightness(.96)}
 .pinLayer{position:fixed;left:0;top:0;width:0;height:0;z-index:9500;pointer-events:none}
-.pinLayer .pinBtn{position:fixed;display:block;cursor:pointer;pointer-events:auto;user-select:none}
-.pinLayer .pinIcon{display:block;line-height:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.28));transition:transform .08s}
-.pinLayer .pinBtn:hover .pinIcon,.pinLayer .pinBtn.pinOn .pinIcon{transform:scale(1.12)}
-.pinLayer .pinLabel{position:absolute;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px;padding:0 8px;border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--pin);max-width:220px;overflow:hidden;text-overflow:ellipsis}
-.pinLayer .pinCol .pinLabel{left:100%;top:2px;margin-left:4px}
-.pinLayer .pinRow .pinLabel{left:100%;top:3px;margin-left:4px}
-.pinLayer .pinBtn.pinFlip .pinLabel{left:auto;right:100%;margin:0 4px 0 0}
-.pinLayer .pinBtn.pinOn .pinLabel{background:var(--pin);color:#fff}
-.pinLayer .pinLine{position:fixed;background:var(--pin);opacity:.75;pointer-events:none;border-radius:1px}
+.pinLayer .pinZone{position:fixed;pointer-events:auto;cursor:pointer;z-index:2;user-select:none}
+.pinLayer .pinDot{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--pin);color:#fff;font:700 15px/19px Roboto,system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.pinLayer .pinZone.plus .pinDot{background:var(--accent,#2f5fc4)}
+.pinLayer .pinZone.dTR .pinDot{top:3px;right:3px}
+.pinLayer .pinZone.dL .pinDot{left:4px;top:50%;margin-top:-10px}
+.pinLayer .pinZone.dR .pinDot{right:4px;top:50%;margin-top:-10px}
+.pinLayer .pinZone.dTC .pinDot{left:50%;margin-left:-10px;top:4px}
+.pinLayer .pinLabel{position:absolute;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px;padding:0 8px;border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--pin);max-width:300px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+.pinLayer .pinZone.plus .pinLabel{border-color:var(--accent,#2f5fc4)}
+.pinLayer .pinZone.dTR .pinLabel{right:28px;top:3px}
+.pinLayer .pinZone.dTR.pinFlip .pinLabel{right:auto;left:0}
+.pinLayer .pinZone.dL .pinLabel{left:30px;top:50%;margin-top:-10px}
+.pinLayer .pinZone.dR .pinLabel{left:100%;margin-left:4px;top:50%;margin-top:-10px}
+.pinLayer .pinZone.dTC .pinLabel{left:calc(50% + 14px);top:4px}
+.pinLayer .pinZone.dTC.pinFlip .pinLabel{left:auto;right:calc(50% + 14px)}
+.pinLayer .pinHl{position:fixed;pointer-events:none;z-index:1}
+.pinLayer .pinHlLine{background:var(--pin)}
+.pinLayer .pinHlRow{background:color-mix(in srgb,var(--pin) 12%,transparent)}
+.pinLayer .pinHlGroup{border:2px solid var(--pin);border-radius:4px;box-sizing:border-box}
 </style>
 <style id="ecFeedLook">
 /* Ζωντανή ροή (Παραλαβές + Φορτώσεις): χωρίς κάθετες γραμμές, ίδια εμφάνιση σε όλες τις γραμμές. Κενό τύπων φορτίου (Παραλαβές): φόντο σελίδας από token */
@@ -5725,7 +5735,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       b.querySelector('.pinAll').onclick=()=>showAll(t);
       t._pinBar=b;
     }
-    b.querySelector('.pinCount').textContent=`Κρυμμένα: ${nc} στήλες, ${nr} γραμμές`;
+    b.querySelector('.pinCount').textContent='Κρυμμένα: '+[nc?nc+(nc===1?' στήλη':' στήλες'):'',nr?nr+(nr===1?' γραμμή':' γραμμές'):''].filter(Boolean).join(', ');
     if(b.nextElementSibling!==wrap||b.parentElement!==wrap.parentElement)wrap.parentElement.insertBefore(b,wrap);
   }
   function showAll(t){let v=load(t);v.cols=[];v.rows={};save(t);refresh(t)}
@@ -5758,81 +5768,98 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     layer.addEventListener('mouseleave',()=>scheduleClear());
     return layer;
   }
-  function clearPins(){clearTimeout(hideT);hot=null;if(layer)layer.innerHTML='';unhot()}
+  function clearPins(){clearTimeout(hideT);hot=null;if(layer){layer.innerHTML='';delete layer.dataset.k}unhot()}
   function scheduleClear(){clearTimeout(hideT);hideT=setTimeout(clearPins,320)}
   function unhot(){document.querySelectorAll('.pinHot').forEach(e=>e.classList.remove('pinHot'))}
-  const PIN_SVG=(sign,row)=>{
-    let g=sign==='+'?(row?'M8 13h9M12.5 8.5v9':'M8.5 12.5h9M13 8v9'):(row?'M8 13h9':'M8.5 12.5h9');
-    return row?`<svg viewBox="0 0 34 26" width="34" height="26" aria-hidden="true"><path d="M33 13C33 13 20.5 24 12.5 24a11 11 0 1 1 0-22C20.5 2 33 13 33 13z" fill="var(--pin)"/><path d="${g}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`
-    :`<svg viewBox="0 0 26 34" width="26" height="34" aria-hidden="true"><path d="M13 33C13 33 2 20.5 2 12.5a11 11 0 0 1 22 0C24 20.5 13 33 13 33z" fill="var(--pin)"/><path d="${g}" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/></svg>`};
+  // ---- αόρατες περιοχές πιασίματος (zones) + κουκκίδα ΜΟΝΟ στο hover ----
+  // Στήλη: πάνω-δεξιά γωνία της επικεφαλίδας (~26px, όλο το ύψος της)· Γραμμή: αριστερή εσωτερική πλευρά του πρώτου
+  // κελιού δεδομένων (~28px, όλο το ύψος της γραμμής)· Ομάδα: δεξιά (εξωτερική) πλευρά του κελιού ομάδας (~28px).
+  // Επαναφορά: από τη λεπτή γραμμή του κρυμμένου στοιχείου (μπλε «+»). Όλα μένουν μέσα στα όρια του πίνακα.
   function wrapRect(t){let w=t.closest('.prodTableWrap,.tablewrap')||t.parentElement;return w.getBoundingClientRect()}
-  function mkPin(kind,sign,x,y,label,onclick){
-    let d=document.createElement('div');d.className='pinBtn pin'+kind+(sign==='+'?' pinPlus':'');
-    d.style.left=x+'px';d.style.top=y+'px';
-    d.innerHTML=`<span class="pinIcon">${PIN_SVG(sign,kind==='Row')}</span><span class="pinLabel">${label.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span>`;
-    d.onclick=e=>{e.stopPropagation();onclick()};
-    return d;
+  const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  function clampR(r,w){let l=Math.max(r.left,w.left),rt=Math.min(r.right,w.right),tp=Math.max(r.top,w.top),b=Math.min(r.bottom,w.bottom);return {left:l,right:rt,top:tp,bottom:b,width:Math.max(0,rt-l),height:Math.max(0,b-tp)}}
+  function mkZone(rect,cls,sign,label,onclick){
+    let z=document.createElement('div');z.className='pinZone '+cls+(sign==='+'?' plus':'');
+    z.style.left=rect.left+'px';z.style.top=rect.top+'px';z.style.width=rect.width+'px';z.style.height=rect.height+'px';
+    z.innerHTML=`<span class="pinDot">${sign}</span><span class="pinLabel">${esc2(label)}</span>`;
+    z.onclick=e=>{e.stopPropagation();e.preventDefault();onclick()};
+    return z;
   }
-  function line(x1,y1,x2,y2,cls){
-    let s=document.createElement('div');s.className='pinLine '+(cls||'');
-    if(y1===y2){s.style.left=Math.min(x1,x2)+'px';s.style.top=y1+'px';s.style.width=Math.abs(x2-x1)+'px';s.style.height='2px'}
-    else{s.style.left=x1+'px';s.style.top=Math.min(y1,y2)+'px';s.style.width='2px';s.style.height=Math.abs(y2-y1)+'px'}
-    return s;
+  function mkHl(rect,cls){
+    let h=document.createElement('div');h.className='pinHl '+cls;
+    h.style.left=rect.left+'px';h.style.top=rect.top+'px';h.style.width=rect.width+'px';h.style.height=rect.height+'px';
+    return h;
   }
-  // Η ετικέτα γυρίζει προς τα αριστερά όταν θα έβγαινε έξω από το δεξί όριο του πίνακα.
-  function fitLabel(p,wr){
-    let lb=p.querySelector('.pinLabel');if(!lb)return;
+  function fitLabel(z,wr){
+    let lb=z.querySelector('.pinLabel');if(!lb)return;
     let r=lb.getBoundingClientRect();
-    if(r.right>wr.right-2)p.classList.add('pinFlip');
+    if(r.right>wr.right-2)z.classList.add('pinFlip');
   }
-  function showMinus(t,kind,item,x,y,wr){
-    let L=ensureLayer();clearTimeout(hideT);L.innerHTML='';
-    if(kind==='col'){
-      // μέσα στην επικεφαλίδα (ποτέ πάνω από τον πίνακα, ώστε να μην πέφτει στο banner ή σε άλλο στοιχείο)
-      let r=item.th?item.th.getBoundingClientRect():{top:wr.top};
-      let top=Math.min(Math.max(wr.top,r.top)+2,wr.bottom-40);
-      let p=mkPin('Col','−',Math.max(wr.left+2,x-13),top,item.label||item.name,()=>hide(t,'col',item.id));
-      p.onmouseenter=()=>hotCol(t,item.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
-      L.appendChild(p);fitLabel(p,wr);
-    }else{
-      let top=Math.min(Math.max(y-13,wr.top+4),wr.bottom-30);
-      let p=mkPin('Row','−',wr.left+4,top,item.name,kind==='group'?()=>hideRows(t,item.ids):()=>hide(t,'row',item.id));
-      L.appendChild(p);fitLabel(p,wr);
+  function showMany(t,kind,ids){
+    let v=load(t);
+    if(kind==='col')v.cols=v.cols.filter(x=>!ids.includes(x));
+    else{let sc=rowScope(t);v.rows[sc]=(v.rows[sc]||[]).filter(x=>!ids.includes(x));if(!v.rows[sc].length)delete v.rows[sc]}
+    save(t);refresh(t);
+  }
+  function openLayer(k){
+    let L=ensureLayer();
+    if(L.dataset.k===k)return null;
+    clearTimeout(hideT);L.innerHTML='';L.dataset.k=k;return L;
+  }
+  function colZone(t,item,r,wr){
+    let L=openLayer('c'+item.id);if(!L)return;
+    let cr=clampR(r,wr);
+    L.appendChild(mkHl({left:cr.left,top:cr.bottom-2,width:cr.width,height:2},'pinHlLine'));
+    let z=mkZone({left:Math.max(cr.left,cr.right-26),top:cr.top,width:Math.min(26,cr.width),height:cr.height},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
+    L.appendChild(z);fitLabel(z,wr);hot=t;
+  }
+  function rowZone(t,item,cell,wr){
+    let L=openLayer('r'+item.id);if(!L)return;
+    let rr=clampR(item.tr.getBoundingClientRect(),wr),cr=cell.getBoundingClientRect();
+    L.appendChild(mkHl(rr,'pinHlRow'));
+    let left=Math.max(cr.left,wr.left);
+    let z=mkZone({left:left,top:rr.top,width:28,height:rr.height},'dL','−','Απόκρυψη γραμμής: '+item.name,()=>hide(t,'row',item.id));
+    L.appendChild(z);fitLabel(z,wr);hot=t;
+  }
+  function groupZone(t,item,cell,its,label,wr){
+    let L=openLayer('g'+its[0].id);if(!L)return;
+    let cr=clampR(cell.getBoundingClientRect(),wr);
+    L.appendChild(mkHl(cr,'pinHlGroup'));
+    let z=mkZone({left:Math.max(cr.left,cr.right-28),top:cr.top,width:Math.min(28,cr.width),height:cr.height},'dR','−',label,()=>hideRows(t,its.map(q=>q.id)));
+    L.appendChild(z);hot=t;
+  }
+  // Επαναφορά: συνεχόμενα κρυμμένα στοιχεία στο σημείο της λεπτής γραμμής
+  function restoreZone(t,md,cell,wr){
+    let v=load(t),r=cell.getBoundingClientRect();
+    if(cell.classList.contains('pinColHide')){
+      let gi=t._pinGrid&&t._pinGrid.has(cell)?t._pinGrid.get(cell):cell.cellIndex;
+      const hid=j=>{let c=md.cols[j];return c&&c.ok&&v.cols.includes(c.id)};
+      if(!hid(gi))return false;
+      let a=gi,b=gi;while(hid(a-1))a--;while(hid(b+1))b++;
+      let items=md.cols.slice(a,b+1),ids=items.map(c=>c.id),names=items.map(c=>c.label||c.name);
+      let L=openLayer('R'+ids.join('|'));if(!L)return true;
+      let top=wr.top+0,h=Math.max(30,wr.height);
+      let z=mkZone({left:Math.max(wr.left,r.left-6),top:top,width:Math.min(r.width+12,wr.right-wr.left),height:h},'dTC','+','Εμφάνιση: '+names.join(', '),()=>showMany(t,'col',ids));
+      L.appendChild(z);fitLabel(z,wr);hot=t;return true;
     }
+    let tr=cell.parentElement;
+    if(tr&&tr.classList.contains('pinRowHide')){
+      let sec=tr.parentElement,rows=[...sec.rows],i=rows.indexOf(tr),a=i,b=i;
+      while(a>0&&rows[a-1].classList.contains('pinRowHide'))a--;
+      while(b<rows.length-1&&rows[b+1].classList.contains('pinRowHide'))b++;
+      let items=rows.slice(a,b+1).map(x=>md.rows.find(q=>q.tr===x)).filter(Boolean);
+      if(!items.length)return false;
+      let ids=items.map(q=>q.id),names=items.map(q=>q.name);
+      let L=openLayer('R'+ids.join('|'));if(!L)return true;
+      let top=rows[a].getBoundingClientRect().top-6,bot=rows[b].getBoundingClientRect().bottom+6;
+      let zr=clampR({left:wr.left,right:wr.right,top:top,bottom:bot},wr);
+      let z=mkZone({left:zr.left,top:zr.top,width:zr.width,height:Math.max(22,zr.height)},'dL','+','Εμφάνιση: '+names.join(', '),()=>showMany(t,'row',ids));
+      L.appendChild(z);fitLabel(z,wr);hot=t;return true;
+    }
+    return false;
   }
-  function showPlus(t){
-    let md=t._pinModel||model(t),v=load(t),sc=rowScope(t),L=ensureLayer(),wr=wrapRect(t);
-    clearTimeout(hideT);L.innerHTML='';
-    let cols=md.cols.filter(c=>c.ok&&v.cols.includes(c.id)).map(c=>({c,r:c.th.getBoundingClientRect()})).sort((a,b)=>a.r.left-b.r.left);
-    let lanes=[];
-    cols.forEach(o=>{
-      let cx=o.r.left+o.r.width/2,lane=0;
-      while(lanes[lane]!==undefined&&cx-lanes[lane]<(String(o.c.label||o.c.name).length*7+54))lane++;
-      lanes[lane]=cx;
-      let py=Math.max(wr.top,o.r.top)+2+lane*30;
-      let p=mkPin('Col','+',Math.max(wr.left+2,cx-13),Math.min(py,wr.bottom-40),o.c.label||o.c.name,()=>show(t,'col',o.c.id));
-      p.dataset.hotcol=o.c.i;p.onmouseenter=()=>hotCol(t,o.c.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
-      L.appendChild(p);fitLabel(p,wr);
-    });
-    let ids=new Set(v.rows[sc]||[]);
-    let rows=md.rows.filter(r=>r.ok&&ids.has(r.id)).map(o=>({o,r:o.tr.cells[0].getBoundingClientRect()})).sort((a,b)=>a.r.top-b.r.top);
-    let rl=[],lane2=[];
-    rows.forEach(x=>{
-      let cy=x.r.top+x.r.height/2,k=0;
-      while(rl[k]!==undefined&&cy-rl[k]<32)k++;
-      let py=Math.max(cy,(rl[k]===undefined?-1e9:rl[k]+32));
-      rl[k]=py;
-      let px=wr.left+4;
-      let p=mkPin('Row','+',px,Math.min(Math.max(py-13,wr.top+4),wr.bottom-30),x.o.name,()=>show(t,'row',x.o.id));
-      p.onmouseenter=()=>hotRow(x.o.tr,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
-      L.appendChild(p);fitLabel(p,wr);
-    });
-  }
-  function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;if(gi===i&&(c.colSpan||1)===1&&!isStickyAny(c))c.classList.add('pinHot');idx+=c.colSpan||1}}}
-  function hotRow(tr,p){unhot();p.classList.add('pinOn');for(const c of tr.cells)if(!isStickyAny(c))c.classList.add('pinHot')}
-  function isStickyAny(c){let cs=getComputedStyle(c);return cs.position==='sticky'&&(cs.left!=='auto'||cs.bottom!=='auto')&&c.tagName==='TD'}
 
-  // ---- hover: «−» στα όρια, «+» πάνω από τις λωρίδες ----
+  // ---- hover ----
   let raf=0,last=null;
   document.addEventListener('mousemove',e=>{last=e;if(!raf)raf=requestAnimationFrame(()=>{raf=0;onMove(last)})},true);
   function onMove(e){
@@ -5841,46 +5868,34 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     if(el.closest('.pinLayer')){clearTimeout(hideT);return}
     let cell=el.closest('th,td'),t=cell&&cell.closest('table');
     if(!t||!eligibleTable(t)){if(layer&&layer.firstChild)scheduleClear();return}
-    // λωρίδα: δείξε όλες τις «+»
-    if(cell.classList.contains('pinColHide')||(cell.parentElement&&cell.parentElement.classList.contains('pinRowHide'))){
-      if(hot!==t||!layer||!layer.querySelector('.pinPlus')){hot=t;t._pinModel=model(t);showPlus(t)}
-      return;
-    }
-    if(layer&&layer.querySelector('.pinPlus')&&hot===t){scheduleClear();}
     let md=t._pinModel=t._pinModel||model(t);
-    let v=load(t);
-    // στήλη: δεξί όριο επικεφαλίδας
-    if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead&&md.cols.length){
-      let hr=t.tHead.rows[t.tHead.rows.length-1];
-      if(cell.parentElement===hr||(cell.rowSpan>1&&md.cols.some(c=>c.th===cell))){
-        let r=cell.getBoundingClientRect();
-        if(r.right-e.clientX<=9&&r.right-e.clientX>=-2){
-          let item=md.cols.find(c=>c.th===cell);
-          if(item&&item.ok&&item.th===cell){let wr=wrapRect(t);let x=Math.min(r.right,wr.right-2);
-            if(!layer||!layer.querySelector('.pinCol:not(.pinPlus)')||layer.dataset.k!=='c'+item.id){showMinus(t,'col',item,x,0,wr);layer.dataset.k='c'+item.id;hot=t}
-            return}
-        }
-      }
+    let wr=wrapRect(t),x=e.clientX,y=e.clientY,r=cell.getBoundingClientRect();
+    if(y<wr.top||y>wr.bottom||x<wr.left||x>wr.right){if(layer&&layer.firstChild)scheduleClear();return}
+    // επαναφορά από το σημάδι
+    if(cell.classList.contains('pinColHide')||(cell.parentElement&&cell.parentElement.classList.contains('pinRowHide'))){
+      if(restoreZone(t,md,cell,wr))return;
     }
-    // γραμμή: κάτω όριο ΟΠΟΙΟΥΔΗΠΟΤΕ κελιού δεδομένων = μία μεμονωμένη γραμμή (ανεξάρτητα από τις κρυμμένες στήλες).
-    // Ολόκληρη ομάδα (συγχωνευμένο κελί) κρύβεται ΜΟΝΟ από το ίδιο το κελί της ομάδας.
+    // στήλη: πάνω-δεξιά γωνία της επικεφαλίδας
+    if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
+      let item=md.cols.find(c=>c.th===cell);
+      if(item&&item.ok&&x>=r.right-26&&x<=r.right+1){colZone(t,item,r,wr);return}
+    }
     if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
-      let r=cell.getBoundingClientRect();
-      if(r.bottom-e.clientY<=6&&r.bottom-e.clientY>=-2){
-        let tr=cell.parentElement;
-        let item=(md.rows.find(x=>x.tr===tr))||(t._pinModel=model(t)).rows.find(x=>x.tr===tr);
-        if(item){let wr=wrapRect(t);
-          if(cell.rowSpan>1){
+      let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
+      if(item){
+        // ομάδα: δεξιά πλευρά του συγχωνευμένου κελιού
+        if((cell.rowSpan||1)>1){
+          if(x>=r.right-28){
             let g=item.owns.find(o=>o.cell===cell);
-            let its=g?g.trs.map(x=>md.rows.find(q=>q.tr===x)).filter(q=>q&&q.ok):[];
+            let its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
             if(its.length){
-              let n=its.length,label=norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)');
-              let k='g'+its[0].id;
-              if(!layer||layer.dataset.k!==k){showMinus(t,'group',{name:label,ids:its.map(q=>q.id)},0,r.bottom,wr);layer.dataset.k=k;hot=t}
-              return}
-          }else if((cell.colSpan||1)===1&&item.ok){
-            if(!layer||layer.dataset.k!=='r'+item.id){showMinus(t,'row',item,0,r.bottom,wr);layer.dataset.k='r'+item.id;hot=t}
-            return}
+              let n=its.length;
+              groupZone(t,item,cell,its,'Απόκρυψη ομάδας: '+norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)'),wr);return}
+          }
+        }else if((cell.colSpan||1)===1&&item.ok){
+          // γραμμή: αριστερή εσωτερική πλευρά του πρώτου ορατού κελιού δεδομένων
+          let first=[...tr.cells].find(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1&&!c.classList.contains('pinColHide'));
+          if(cell===first&&x<=r.left+28){rowZone(t,item,cell,wr);return}
         }
       }
     }
