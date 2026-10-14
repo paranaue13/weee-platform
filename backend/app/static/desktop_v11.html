@@ -1142,7 +1142,8 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 .pinLayer .pinBtn:hover .pinIcon,.pinLayer .pinBtn.pinOn .pinIcon{transform:scale(1.12)}
 .pinLayer .pinLabel{position:absolute;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px;padding:0 8px;border-radius:10px;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--pin);max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .pinLayer .pinCol .pinLabel{left:100%;top:2px;margin-left:4px}
-.pinLayer .pinRow .pinLabel{right:100%;top:3px;margin-right:4px}
+.pinLayer .pinRow .pinLabel{left:100%;top:3px;margin-left:4px}
+.pinLayer .pinBtn.pinFlip .pinLabel{left:auto;right:100%;margin:0 4px 0 0}
 .pinLayer .pinBtn.pinOn .pinLabel{background:var(--pin);color:#fff}
 .pinLayer .pinLine{position:fixed;background:var(--pin);opacity:.75;pointer-events:none;border-radius:1px}
 </style>
@@ -5744,28 +5745,39 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     else{s.style.left=x1+'px';s.style.top=Math.min(y1,y2)+'px';s.style.width='2px';s.style.height=Math.abs(y2-y1)+'px'}
     return s;
   }
+  // Η ετικέτα γυρίζει προς τα αριστερά όταν θα έβγαινε έξω από το δεξί όριο του πίνακα.
+  function fitLabel(p,wr){
+    let lb=p.querySelector('.pinLabel');if(!lb)return;
+    let r=lb.getBoundingClientRect();
+    if(r.right>wr.right-2)p.classList.add('pinFlip');
+  }
   function showMinus(t,kind,item,x,y,wr){
     let L=ensureLayer();clearTimeout(hideT);L.innerHTML='';
     if(kind==='col'){
-      L.appendChild(mkPin('Col','−',x-13,wr.top-34,item.label||item.name,()=>hide(t,'col',item.id)));
+      // μέσα στην επικεφαλίδα (ποτέ πάνω από τον πίνακα, ώστε να μην πέφτει στο banner ή σε άλλο στοιχείο)
+      let r=item.th?item.th.getBoundingClientRect():{top:wr.top};
+      let top=Math.min(Math.max(wr.top,r.top)+2,wr.bottom-40);
+      let p=mkPin('Col','−',Math.max(wr.left+2,x-13),top,item.label||item.name,()=>hide(t,'col',item.id));
+      L.appendChild(p);fitLabel(p,wr);
     }else{
-      L.appendChild(mkPin('Row','−',wr.left-36,y-13,item.name,()=>hide(t,'row',item.id),-90));
+      let top=Math.min(Math.max(y-13,wr.top+4),wr.bottom-30);
+      let p=mkPin('Row','−',wr.left+4,top,item.name,()=>hide(t,'row',item.id));
+      L.appendChild(p);fitLabel(p,wr);
     }
   }
   function showPlus(t){
     let md=t._pinModel||model(t),v=load(t),sc=rowScope(t),L=ensureLayer(),wr=wrapRect(t);
     clearTimeout(hideT);L.innerHTML='';
     let cols=md.cols.filter(c=>c.ok&&v.cols.includes(c.id)).map(c=>({c,r:c.th.getBoundingClientRect()})).sort((a,b)=>a.r.left-b.r.left);
-    let lanes=[],base=wr.top-34;
+    let lanes=[];
     cols.forEach(o=>{
       let cx=o.r.left+o.r.width/2,lane=0;
       while(lanes[lane]!==undefined&&cx-lanes[lane]<(String(o.c.label||o.c.name).length*7+54))lane++;
       lanes[lane]=cx;
-      let py=base-lane*30;
-      L.appendChild(line(cx,py+34,cx,o.r.top,'pinLineCol'));
-      let p=mkPin('Col','+',cx-13,py,o.c.label||o.c.name,()=>show(t,'col',o.c.id));
+      let py=Math.max(wr.top,o.r.top)+2+lane*30;
+      let p=mkPin('Col','+',Math.max(wr.left+2,cx-13),Math.min(py,wr.bottom-40),o.c.label||o.c.name,()=>show(t,'col',o.c.id));
       p.dataset.hotcol=o.c.i;p.onmouseenter=()=>hotCol(t,o.c.i,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
-      L.appendChild(p);
+      L.appendChild(p);fitLabel(p,wr);
     });
     let ids=new Set(v.rows[sc]||[]);
     let rows=md.rows.filter(r=>r.ok&&ids.has(r.id)).map(o=>({o,r:o.tr.cells[0].getBoundingClientRect()})).sort((a,b)=>a.r.top-b.r.top);
@@ -5775,14 +5787,10 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       while(rl[k]!==undefined&&cy-rl[k]<32)k++;
       let py=Math.max(cy,(rl[k]===undefined?-1e9:rl[k]+32));
       rl[k]=py;
-      let px=wr.left-40;
-      let jx=wr.left-12-(rows.indexOf(x)%4)*4;
-      L.appendChild(line(px+34,py,jx,py,'pinLineRow'));
-      if(Math.abs(py-cy)>1)L.appendChild(line(jx,py,jx,cy,'pinLineRow'));
-      L.appendChild(line(jx,cy,x.r.left,cy,'pinLineRow'));
-      let p=mkPin('Row','+',px,py-13,x.o.name,()=>show(t,'row',x.o.id));
+      let px=wr.left+4;
+      let p=mkPin('Row','+',px,Math.min(Math.max(py-13,wr.top+4),wr.bottom-30),x.o.name,()=>show(t,'row',x.o.id));
       p.onmouseenter=()=>hotRow(x.o.tr,p);p.onmouseleave=()=>{unhot();p.classList.remove('pinOn')};
-      L.appendChild(p);
+      L.appendChild(p);fitLabel(p,wr);
     });
   }
   function hotCol(t,i,p){unhot();p.classList.add('pinOn');for(const r of [...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])]){let idx=0;for(const c of r.cells){let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;if(gi===i&&(c.colSpan||1)===1)c.classList.add('pinHot');idx+=c.colSpan||1}}}
