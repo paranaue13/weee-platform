@@ -1054,9 +1054,17 @@ button.ovCard.ovCardSel{border-color:var(--accent,#2f5fc4);box-shadow:0 0 0 3px 
 .ovR{text-align:right!important;font-variant-numeric:tabular-nums}
 .ovTot td{font-weight:700;border-top:2px solid var(--line-strong,#b9bdc9)}
 .ovFilter{position:relative;display:inline-block}
+.ovTitle{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.ovFilterBtn{min-width:32px;justify-content:center;padding:0 8px}
+.ovFilterBtn.ovFilterOn{background:var(--accent-bg,#d8e2ff);border-color:var(--accent,#2f5fc4);color:var(--accent-fg,#001a41);font-weight:700}
+.ovFilterCnt:empty{display:none}
+.ovSearch{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface,#fff);border-bottom:1px solid var(--line,#e3e5ec)}
+.ovSearch svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
+.ovSearch input{flex:1;min-width:0;height:30px;min-height:0;border:1px solid var(--line-strong,#b9bdc9);border-radius:var(--r-ctl,8px);padding:0 8px;font:inherit;background:var(--surface,#fff);color:inherit}
+.ovNone{padding:10px 12px}
 .ovFilterBtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid var(--line-strong,#b9bdc9);border-radius:var(--r-btn);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13px;cursor:pointer}
 .ovFilterBtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
-.ovFilterMenu{position:absolute;right:0;top:36px;z-index:60;min-width:260px;max-height:300px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0}
+.ovFilterMenu{position:fixed;z-index:9500;min-width:280px;max-height:340px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0}
 .ovClear{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#2f5fc4);font:inherit;font-weight:600;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--line,#e3e5ec)}
 .ovOpt{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer}
 .ovOpt:hover,.ovClear:hover{background:var(--hover,#eaf0fd)}
@@ -7321,13 +7329,17 @@ const OV={
   filter(host,cfg){
     // cfg: {options:[{id,label,num}],selected:Set,onChange}
     const sel=cfg.selected;
-    host.innerHTML=`<div class="ovFilter"><button type="button" class="ovFilterBtn" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span></span></button><div class="ovFilterMenu hidden" role="group"><button type="button" class="ovClear">Καθαρισμός επιλογής</button>${cfg.options.map(o=>`<label class="ovOpt"><input type="checkbox" value="${esc(o.id)}"${sel.has(o.id)?' checked':''}>${o.num?`<span class="ovNum">${o.num}</span>`:''}<span>${esc(o.label)}</span></label>`).join('')}</div></div>`;
-    let btn=host.querySelector('.ovFilterBtn'),menu=host.querySelector('.ovFilterMenu');
-    const label=()=>{let n=sel.size;btn.querySelector('span').textContent=n?(n===1?'1 επιλεγμένος':n+' επιλεγμένοι'):'Όλοι'};
+    host.innerHTML=`<div class="ovFilter"><button type="button" class="ovFilterBtn" aria-haspopup="true" aria-expanded="false" title="Φίλτρο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span class="ovFilterCnt"></span></button><div class="ovFilterMenu hidden" role="group"><div class="ovSearch"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M16 16l5 5"/></svg><input type="text" class="ovSearchIn" placeholder="Αναζήτηση…" autocomplete="off"></div><button type="button" class="ovClear">Καθαρισμός επιλογής</button><div class="ovOpts">${cfg.options.map(o=>`<label class="ovOpt" data-s="${esc(o.label)}"><input type="checkbox" value="${esc(o.id)}"${sel.has(o.id)?' checked':''}>${o.num?`<span class="ovNum">${o.num}</span>`:''}<span>${esc(o.label)}</span></label>`).join('')}</div><div class="ovNone muted hidden">Δεν βρέθηκαν αποτελέσματα</div></div></div>`;
+    let btn=host.querySelector('.ovFilterBtn'),menu=host.querySelector('.ovFilterMenu'),sin=host.querySelector('.ovSearchIn');
+    const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/ς/g,'σ');
+    const label=()=>{let n=sel.size;btn.querySelector('.ovFilterCnt').textContent=n?String(n):'';btn.classList.toggle('ovFilterOn',n>0)};
+    const filt=()=>{let q=norm(sin.value.trim()),c=0;menu.querySelectorAll('.ovOpt').forEach(l=>{let ok=!q||norm(l.dataset.s).includes(q);l.classList.toggle('hidden',!ok);if(ok)c++});menu.querySelector('.ovNone').classList.toggle('hidden',c>0)};
+    sin.oninput=filt;
     label();
-    btn.onclick=e=>{e.stopPropagation();let open=menu.classList.contains('hidden');document.querySelectorAll('.ovFilterMenu').forEach(m=>m.classList.add('hidden'));menu.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open))};
-    host.querySelector('.ovClear').onclick=()=>{sel.clear();menu.querySelectorAll('input').forEach(i=>i.checked=false);label();cfg.onChange()};
-    menu.querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?sel.add(i.value):sel.delete(i.value);label();cfg.onChange()});
+    btn.onclick=e=>{e.stopPropagation();let open=menu.classList.contains('hidden');document.querySelectorAll('.ovFilterMenu').forEach(m=>m.classList.add('hidden'));menu.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open));
+      if(open){sin.value='';filt();let r=btn.getBoundingClientRect();menu.style.left=Math.max(8,Math.min(r.left,innerWidth-menu.offsetWidth-8))+'px';let top=r.bottom+4;if(innerHeight-top<220&&r.top>innerHeight-top)top=Math.max(8,r.top-4-Math.min(340,menu.scrollHeight));menu.style.top=top+'px';menu.style.maxHeight=Math.max(150,Math.min(340,innerHeight-top-12))+'px';sin.focus()}};
+    host.querySelector('.ovClear').onclick=()=>{sel.clear();menu.querySelectorAll('input[type=checkbox]').forEach(i=>i.checked=false);label();cfg.onChange()};
+    menu.querySelectorAll('input[type=checkbox]').forEach(i=>i.onchange=()=>{i.checked?sel.add(i.value):sel.delete(i.value);label();cfg.onChange()});
     menu.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.add('hidden');btn.focus()}});
   },
   cardsHtml(specs){ // specs: [{key,cls,icon,title,text,sel}]
@@ -7366,8 +7378,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
       <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
       <div class="ovTables">
-        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά μεταφορέα</b><span id="recOvFC"></span></div><div class="tablewrap"><table id="recOvCTbl"><thead><tr><th style="width:46%">Μεταφορέας</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
-        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά προμηθευτή</b><span id="recOvFS"></span></div><div class="tablewrap"><table id="recOvSTbl"><thead><tr><th style="width:46%">Προμηθευτής</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Μεταφορέας</b><span id="recOvFC"></span></span></div><div class="tablewrap"><table id="recOvCTbl"><thead><tr><th style="width:46%">Μεταφορέας</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτής</b><span id="recOvFS"></span></span></div><div class="tablewrap"><table id="recOvSTbl"><thead><tr><th style="width:46%">Προμηθευτής</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
       </div>`;
     host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);render()});
     // επιλογές φίλτρων από τα πραγματικά δεδομένα (διάστημα + επιλεγμένοι τύποι)
@@ -7442,8 +7454,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
       <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων · Κλικ σε φορτίο: μόνο αυτό (Ctrl + κλικ: περισσότερα)</span></div>
       <div class="ovTables">
-        <div class="card ovTbl"><div class="ovTblHead"><b>Προμηθευτές</b><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall hidden" id="soClearLoads">Καθαρισμός φορτίων</button><span id="soFS"></span></span></div><div class="ovList" id="soLoads"></div></div>
-        <div class="card ovTbl"><div class="ovTblHead"><b>Ταξινόμηση</b><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall" id="soToggle">Ανάπτυξη όλων</button><span id="soFC"></span></span></div><div class="ovList" id="soCats"><div class="muted" style="padding:10px">Φόρτωση…</div></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτές</b><span id="soFS"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall hidden" id="soClearLoads">Καθαρισμός φορτίων</button></span></div><div class="ovList" id="soLoads"></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Ταξινόμηση</b><span id="soFC"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall" id="soToggle">Ανάπτυξη όλων</button></span></div><div class="ovList" id="soCats"><div class="muted" style="padding:10px">Φόρτωση…</div></div></div>
       </div>`;
     host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);st.loads.clear();render()});
     // φίλτρο προμηθευτή: από τα φορτία του διαστήματος και των επιλεγμένων τύπων
