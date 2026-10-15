@@ -1002,14 +1002,6 @@ body[data-theme="dark"] #master .registryTable tbody tr:not(.inactiveMaster) td 
 .schedGrid th .schedNet{display:inline-block;border:1px solid var(--st5-fg,#12532e);border-radius:var(--r-chip);padding:5px 12px;width:100%;text-align:center}
 .schedGroupRow{display:flex;align-items:center;gap:10px;margin:4px 0}
 /* Γρήγορες ρυθμίσεις, μενού που κρύβεται, split screen */
-#quickBtn{width:40px;height:40px;min-width:40px;padding:0!important;border-radius:50%!important;border:1px solid var(--line-strong,#b9bdc9)!important;display:inline-flex!important;align-items:center;justify-content:center;color:var(--fg-2,#44474f);background:var(--surface,#fff);margin:0 6px 0 0;flex:none}
-#quickBtn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-#quickPop{position:fixed;width:290px;z-index:9800;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--line);border-radius:var(--r-box);box-shadow:0 10px 30px rgba(0,0,0,.22);padding:14px}
-#quickPop h4{margin:0 0 12px;font-size:15px;font-weight:600}
-#quickPop .qRow{margin-bottom:14px}#quickPop .qRow:last-child{margin-bottom:0}
-#quickPop .qLbl{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:500;margin-bottom:6px}
-#quickPop .qSub{font-size:12px;color:var(--fg-3,#74777f);line-height:1.35}
-#quickPop .prodSegment{display:flex;width:100%}#quickPop .prodSegment button{flex:1}
 /* Κάτω μέρος μενού: γρήγορες ρυθμίσεις (Μενού που κρύβεται / Split screen) */
 .sideQuick{display:flex;flex-direction:row;justify-content:flex-start;gap:8px;padding:0 0 10px 8px}
 .sideQuick button{width:36px;height:36px;min-width:36px;padding:0;border-radius:8px;border:1px solid rgba(255,255,255,.28);background:transparent;color:var(--nav-fg,#f1f5f8);display:grid;place-items:center;cursor:pointer}
@@ -1804,7 +1796,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><div style="display:flex;align-items:center;gap:16px"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="loadingShowCancelled"><span class="slider"></span></label><span>Εμφάνιση ακυρωμένων</span></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div></div><div class="tablewrap hidden" id="loadingOrdersWrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
-<div class="prodSegment" id="loadingSubSeg" style="margin:16px 0 0;display:inline-flex;width:auto"><button type="button" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" data-lsub="hist" class="active">Ιστορικό Δελτίων Αποστολής</button><button type="button" data-lsub="ov">Συγκεντρωτικά</button></div>
+<div class="receiptViewTabs" id="loadingSubSeg" style="margin:16px 0 0"><button type="button" class="receiptMode" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" class="receiptMode active" data-lsub="hist">Ιστορικό Δελτίων Αποστολής</button><button type="button" class="receiptMode" data-lsub="ov">Συγκεντρωτικά</button></div>
 <div id="prepPanel" class="hidden">
 <div class="card prepCard"><h3 style="margin:0 0 10px">Στοιχεία φόρτωσης</h3>
 <div class="prepGrid6">
@@ -7308,24 +7300,9 @@ const SF=(function(){
   const post=(i,m)=>{try{panes[i]&&panes[i].frame.contentWindow.postMessage(m,ORIGIN)}catch(e){}};
   const viewLabel=v=>(VIEWS.find(x=>x[0]===v)||[v,v])[1];
 
-  // ---- ⚙ κουμπί + παράθυρο ----
+  // ---- συγχρονισμός κουμπιών μενού (οι ρυθμίσεις αλλάζουν μόνο από τα 3 κουμπιά κάτω αριστερά) ----
   const refreshBtn=$('refresh');
-  const qb=document.createElement('button');
-  qb.type='button';qb.className='btn alt iconOnly';qb.id='quickBtn';qb.title='Γρήγορες ρυθμίσεις';
-  qb.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.36.5.7.9.9.34.18.72.28 1.1.3h.1v4h-.1c-.38.02-.76.12-1.1.3-.4.2-.7.54-.9.9Z"/></svg>';
-  refreshBtn.parentNode.insertBefore(qb,refreshBtn);
-  const pop=document.createElement('div');pop.id='quickPop';pop.className='hidden';
-  pop.innerHTML=`<h4>Γρήγορες ρυθμίσεις</h4>
-    <div class="qRow"><div class="qLbl"><span>Μενού που κρύβεται</span><label class="toggleSwitch"><input type="checkbox" id="qAutoHide"><span class="slider"></span></label></div><div class="qSub">Το αριστερό μενού μαζεύει σε λωρίδα με εικονίδια και ανοίγει όταν περνάς το ποντίκι.</div></div>
-    <div class="qRow"><div class="qLbl"><span>Split screen</span></div><div class="prodSegment" id="qSplit"><button type="button" data-s="none">Χωρίς</button><button type="button" data-s="v">Κάθετο</button><button type="button" data-s="h">Οριζόντιο</button></div></div>`;
-  document.body.appendChild(pop);
-  const placePop=()=>{let r=qb.getBoundingClientRect();pop.style.top=(r.bottom+8)+'px';pop.style.left=Math.max(8,Math.min(window.innerWidth-298,r.right-290))+'px'};
-  const paintPop=()=>{$('qAutoHide').checked=!!prefs.autoHide;pop.querySelectorAll('#qSplit button').forEach(b=>b.classList.toggle('active',b.dataset.s===prefs.split));if(typeof paintBtns==='function')try{paintBtns()}catch(e){}};
-  qb.onclick=e=>{e.stopPropagation();if(pop.classList.contains('hidden')){placePop();paintPop();pop.classList.remove('hidden')}else pop.classList.add('hidden')};
-  document.addEventListener('mousedown',e=>{if(!pop.classList.contains('hidden')&&!pop.contains(e.target)&&e.target!==qb&&!qb.contains(e.target))pop.classList.add('hidden')},true);
-  window.addEventListener('resize',()=>{if(!pop.classList.contains('hidden'))placePop()});
-  $('qAutoHide').onchange=e=>{prefs.autoHide=e.target.checked;savePrefs();applyAutoHide()};
-  pop.querySelectorAll('#qSplit button').forEach(b=>b.onclick=()=>{prefs.split=b.dataset.s;savePrefs();paintPop();applySplit()});
+  const paintPop=()=>{try{paintBtns()}catch(e){}};
 
   // ---- κουμπιά στο κάτω μέρος του μενού (ίδιες ρυθμίσεις: prefs.autoHide / prefs.split) ----
   const sideFooter=document.querySelector('.side .sideFooter'),sideSet=$('settingsMenuBtn');
@@ -7427,7 +7404,7 @@ const SF=(function(){
     if(d.t==='ready'){p.ready=true;post(i,{t:'init',token,view:p.view})}
     else if(d.t==='view'){p.view=d.view;ensureView(p,d.view);if(i===active)setActive(i)}
     else if(d.t==='title'){p.title=d.text;if(i===active){let t=$('viewTitle');if(t)t.textContent=d.text}}
-    else if(d.t==='activate'){pop.classList.add('hidden');if(active!==i)setActive(i)}
+    else if(d.t==='activate'){if(active!==i)setActive(i)}
     else if(d.t==='unauth'){location.reload()}
     else if(d.t==='mutated'){panes.forEach((q,k)=>{if(q&&k!==i&&q.view===p.view)post(k,{t:'dataChanged'})})}
   });
