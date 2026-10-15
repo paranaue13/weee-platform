@@ -1034,6 +1034,34 @@ body.pane .side,body.pane .topbar{display:none!important}
 body.pane .shell{grid-template-columns:minmax(0,1fr)!important}
 body.pane .content{padding:12px 14px 20px!important}
 body.pane #login{display:none!important}
+/* Συγκεντρωτικά (Παραλαβές / Ταξινόμηση) */
+.receiptTopActions{flex-wrap:wrap}
+.ovPeriod{display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:12px}
+.ovCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+@media(max-width:900px){.ovCards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+button.ovCard{width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit;border:2px solid var(--line,#e3e5ec)}
+button.ovCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button.ovCard.ovCardSel{border-color:var(--accent,#2f5fc4);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#2f5fc4) 18%,transparent)}
+.ovHead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:6px 0 10px}
+.ovHead h3{margin:0}
+.ovHint{font-size:12px}
+.ovTables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:14px;align-items:start}
+.ovTbl{min-width:0;margin:0;overflow:visible!important}
+#receipts .receiptWorkspace.ovFull{grid-template-columns:minmax(0,1fr)!important}
+#receiptMonthSummary,#receiptMonthSummary .ovTables{overflow:visible}
+.ovTblHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.ovTbl .tablewrap{max-height:none}
+.ovR{text-align:right!important;font-variant-numeric:tabular-nums}
+.ovTot td{font-weight:700;border-top:2px solid var(--line-strong,#b9bdc9)}
+.ovFilter{position:relative;display:inline-block}
+.ovFilterBtn{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px solid var(--line-strong,#b9bdc9);border-radius:var(--r-btn);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13px;cursor:pointer}
+.ovFilterBtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
+.ovFilterMenu{position:absolute;right:0;top:36px;z-index:60;min-width:260px;max-height:300px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);box-shadow:0 8px 24px rgba(0,0,0,.2);padding:4px 0}
+.ovClear{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--accent,#2f5fc4);font:inherit;font-weight:600;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--line,#e3e5ec)}
+.ovOpt{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer}
+.ovOpt:hover,.ovClear:hover{background:var(--hover,#eaf0fd)}
+.ovOpt input{width:auto;min-height:0;flex:none}
+.ovNum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font-weight:700;font-size:12px}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -7199,6 +7227,133 @@ const SF=(function(){
   let started=false;
   const boot=()=>{if(started||!me)return;started=true;loadPrefs();applyAutoHide();if(prefs.split!=='none')applySplit()};
   let iv=setInterval(()=>{if(typeof me!=='undefined'&&me&&!$('app').classList.contains('hidden')){clearInterval(iv);boot()}},300);
+})();
+</script>
+<script id="overviewTabs">
+// Συγκεντρωτικά (Παραλαβές / Ταξινόμηση): κοινά εργαλεία — επιλογή περιόδου, κάρτες τύπων (κλικ / Ctrl+κλικ), φίλτρο πολλαπλής επιλογής.
+// Μόνο ανάγνωση: δεν γράφεται τίποτα στη βάση.
+const OV={
+  fmtDate:iso=>{let d=new Date(iso+'T12:00:00');return d.toLocaleDateString('el-GR')},
+  range(st){
+    if(st.period==='custom'&&st.custom)return {startISO:st.custom.start,endISO:st.custom.end,label:OV.fmtDate(st.custom.start)+' – '+OV.fmtDate(st.custom.end)};
+    let d=new Date(st.cursor),y=d.getFullYear(),m=d.getMonth(),s,e,label;
+    if(st.period==='quarter'){let q=Math.floor(m/3);s=new Date(y,q*3,1);e=new Date(y,q*3+3,0);label=`${q+1}ο τρίμηνο ${y}`}
+    else if(st.period==='year'){s=new Date(y,0,1);e=new Date(y,11,31);label=String(y)}
+    else{s=new Date(y,m,1);e=new Date(y,m+1,0);label=s.toLocaleDateString('el-GR',{month:'long',year:'numeric'})}
+    return {startISO:localISODate(s),endISO:localISODate(e),label};
+  },
+  shift(st,dir){
+    if(st.period==='custom')return;
+    let d=new Date(st.cursor);
+    if(st.period==='quarter')d.setMonth(d.getMonth()+3*dir);else if(st.period==='year')d.setFullYear(d.getFullYear()+dir);else d.setMonth(d.getMonth()+dir);
+    st.cursor=d;
+  },
+  num:n=>Math.round(n).toLocaleString('el-GR'),
+  // Εργαλειοθήκη περιόδου (το υπάρχον component «Επιλογή περιόδου» χωρίς ετικέτα): Μήνας / Τρίμηνο / Έτος + αναζήτηση, και κουτί διαστήματος
+  periodHtml(id){
+    return `<div class="ovPeriod hidden" id="${id}"><div class="prodSegment"><button type="button" data-ovp="month" class="active">Μήνας</button><button type="button" data-ovp="quarter">Τρίμηνο</button><button type="button" data-ovp="year">Έτος</button><button type="button" class="iconSeg" data-ovp="custom" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div><div class="prodPeriodNav"><button type="button" id="${id}Prev" aria-label="Προηγούμενο">‹</button><button type="button" class="periodPickerBtn"><b data-ovtitle></b></button><button type="button" id="${id}Next" aria-label="Επόμενο">›</button></div></div>`;
+  },
+  bindPeriod(id,st,rerender){
+    let box=document.getElementById(id);if(!box)return;
+    const paint=()=>{box.querySelectorAll('[data-ovp]').forEach(b=>b.classList.toggle('active',b.dataset.ovp===st.period));box.querySelector('[data-ovtitle]').textContent=OV.range(st).label};
+    box.querySelectorAll('[data-ovp]').forEach(b=>b.onclick=()=>{
+      if(b.dataset.ovp==='custom'){let r=OV.range(st);openDateRangePicker(r.startISO,r.endISO,(from,to)=>{st.period='custom';st.custom={start:from,end:to};paint();rerender()});return}
+      st.period=b.dataset.ovp;paint();rerender();
+    });
+    document.getElementById(id+'Prev').onclick=()=>{OV.shift(st,-1);paint();rerender()};
+    document.getElementById(id+'Next').onclick=()=>{OV.shift(st,1);paint();rerender()};
+    paint();
+    return paint;
+  },
+  // Κάρτες τύπων: κλικ = μόνο αυτός, Ctrl/Cmd+κλικ = πρόσθεση/αφαίρεση, Σύνολο = όλοι (αποκλειστικό)
+  toggleType(set,type,multi){
+    if(!type){set.clear();return}
+    if(!multi){set.clear();set.add(type);return}
+    if(set.has(type))set.delete(type);else set.add(type);
+  },
+  // Φίλτρο πολλαπλής επιλογής
+  filter(host,cfg){
+    // cfg: {options:[{id,label,num}],selected:Set,onChange}
+    const sel=cfg.selected;
+    host.innerHTML=`<div class="ovFilter"><button type="button" class="ovFilterBtn" aria-haspopup="true" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg><span></span></button><div class="ovFilterMenu hidden" role="group"><button type="button" class="ovClear">Καθαρισμός επιλογής</button>${cfg.options.map(o=>`<label class="ovOpt"><input type="checkbox" value="${esc(o.id)}"${sel.has(o.id)?' checked':''}>${o.num?`<span class="ovNum">${o.num}</span>`:''}<span>${esc(o.label)}</span></label>`).join('')}</div></div>`;
+    let btn=host.querySelector('.ovFilterBtn'),menu=host.querySelector('.ovFilterMenu');
+    const label=()=>{let n=sel.size;btn.querySelector('span').textContent=n?(n===1?'1 επιλεγμένος':n+' επιλεγμένοι'):'Όλοι'};
+    label();
+    btn.onclick=e=>{e.stopPropagation();let open=menu.classList.contains('hidden');document.querySelectorAll('.ovFilterMenu').forEach(m=>m.classList.add('hidden'));menu.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',String(open))};
+    host.querySelector('.ovClear').onclick=()=>{sel.clear();menu.querySelectorAll('input').forEach(i=>i.checked=false);label();cfg.onChange()};
+    menu.querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?sel.add(i.value):sel.delete(i.value);label();cfg.onChange()});
+    menu.addEventListener('keydown',e=>{if(e.key==='Escape'){menu.classList.add('hidden');btn.focus()}});
+  },
+  cardsHtml(specs){ // specs: [{key,cls,icon,title,text,sel}]
+    return specs.map(c=>`<button type="button" class="sortingKpiCard ${c.cls} ovCard${c.sel?' ovCardSel':''}" data-type="${c.key}" aria-pressed="${c.sel?'true':'false'}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${c.icon}</svg></span><span class="sortingKpiText"><small>${c.title}</small><b>${c.text}</b></span></button>`).join('');
+  }
+};
+// Κλείσιμο φίλτρων με κλικ έξω
+document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closest('.ovFilter'))document.querySelectorAll('.ovFilterMenu').forEach(m=>m.classList.add('hidden'))},true);
+
+// ================= ΠΑΡΑΛΑΒΕΣ → Συγκεντρωτικά =================
+(function(){
+  const TYPES=[['CONTAINER','Container','k1','<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>'],
+               ['CURTAIN_TRAILER','Καρότσα','k2','<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'],
+               ['SMALL_POINTS','Μικρά σημεία','k3','<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>']];
+  const TOT_ICON='<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>';
+  const st={period:'month',cursor:new Date(),custom:null,types:new Set(),carriers:new Set(),suppliers:new Set()};
+  let lastAll=[],paintTitle=null;
+  const typeName=t=>(TYPES.find(x=>x[0]===t)||[t,t])[1];
+  // Κάθε φορτίο (εντολή) μετράει ως ένα σημείο, όπως στις κάρτες Καθημερινά· παραλαβή χωρίς φορτία μετράει 1 με 0 kg
+  function loadsOf(r){
+    let ls=r.loads||[];
+    if(!ls.length)return [{type:r.receipt_type,carrier:r.carrier_id||'',supplier:'',kg:0}];
+    return ls.map(l=>({type:r.receipt_type,carrier:r.carrier_id||'',supplier:l.supplier_id||'',kg:Number(l.net_weight||0)}));
+  }
+  const orgLabel=id=>id?(orgName(orgs.find(o=>o.id===id)||{})||'—'):'—';
+  function render(all){
+    if(Array.isArray(all))lastAll=all;
+    let host=$('receiptMonthSummary');if(!host)return;
+    let rg=OV.range(st);
+    let base=[];(lastAll||[]).forEach(r=>{let d=(r.receipt_date||'').slice(0,10);if(d>=rg.startISO&&d<=rg.endISO)loadsOf(r).forEach(x=>base.push(x))});
+    const cnt=t=>base.filter(x=>!t||x.type===t).length,kgs=t=>base.filter(x=>!t||x.type===t).reduce((a,x)=>a+x.kg,0);
+    let specs=TYPES.map(([k,n,cls,ic])=>({key:k,cls,icon:ic,title:n,text:`${cnt(k)} · ${OV.num(kgs(k))} kg`,sel:st.types.has(k)}));
+    specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`${cnt()} · ${OV.num(kgs())} kg`,sel:st.types.size===0});
+    let chosen=base.filter(x=>!st.types.size||st.types.has(x.type));
+    let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
+    host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
+      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
+      <div class="ovTables">
+        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά μεταφορέα</b><span id="recOvFC"></span></div><div class="tablewrap"><table><thead><tr><th>Μεταφορέας</th><th class="ovR">Παραλαβές</th><th class="ovR">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά προμηθευτή</b><span id="recOvFS"></span></div><div class="tablewrap"><table><thead><tr><th>Προμηθευτής</th><th class="ovR">Παραλαβές</th><th class="ovR">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
+      </div>`;
+    host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);render()});
+    // επιλογές φίλτρων από τα πραγματικά δεδομένα (διάστημα + επιλεγμένοι τύποι)
+    const uniq=key=>{let m=new Map();chosen.forEach(x=>{let k=x[key]||'';if(!m.has(k))m.set(k,orgLabel(k))});return [...m].map(([id,label])=>({id,label})).sort((a,b)=>a.label.localeCompare(b.label,'el'))};
+    const cOpts=uniq('carrier'),sOpts=uniq('supplier');
+    // αφαίρεση επιλεγμένων που δεν υπάρχουν πια στο διάστημα/τύπους
+    [['carriers',cOpts],['suppliers',sOpts]].forEach(([k,o])=>{let ids=new Set(o.map(x=>x.id));[...st[k]].forEach(v=>{if(!ids.has(v))st[k].delete(v)})});
+    const fill=()=>{
+      let f=chosen.filter(x=>(!st.carriers.size||st.carriers.has(x.carrier))&&(!st.suppliers.size||st.suppliers.has(x.supplier)));
+      const group=key=>{let m=new Map();f.forEach(x=>{let k=x[key]||'',o=m.get(k)||{k,n:0,kg:0};o.n++;o.kg+=x.kg;m.set(k,o)});return [...m.values()].sort((a,b)=>b.kg-a.kg)};
+      const rows=(arr)=>arr.map(o=>`<tr><td>${esc(orgLabel(o.k))}</td><td class="ovR">${o.n}</td><td class="ovR">${OV.num(o.kg)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Δεν υπάρχουν παραλαβές.</td></tr>';
+      const tot=`<tr class="ovTot"><td>Σύνολο</td><td class="ovR">${f.length}</td><td class="ovR">${OV.num(f.reduce((a,x)=>a+x.kg,0))}</td></tr>`;
+      $('recOvCRows').innerHTML=rows(group('carrier'))+tot;
+      $('recOvSRows').innerHTML=rows(group('supplier'))+tot;
+    };
+    OV.filter($('recOvFC'),{options:cOpts,selected:st.carriers,onChange:fill});
+    OV.filter($('recOvFS'),{options:sOpts,selected:st.suppliers,onChange:fill});
+    fill();
+  }
+  // Επάνω γραμμή: επιλογή περιόδου μόνο στα Συγκεντρωτικά
+  let bar=document.querySelector('#receipts .receiptTopActions');
+  if(bar){
+    bar.insertAdjacentHTML('afterbegin','');
+    let tabs=bar.querySelector('.receiptViewTabs');
+    tabs.insertAdjacentHTML('afterend',OV.periodHtml('recOvPeriod'));
+    paintTitle=OV.bindPeriod('recOvPeriod',st,()=>render());
+  }
+  const _setMode=setReceiptMode;
+  setReceiptMode=function(mode){let r=_setMode.apply(this,arguments);let p=$('recOvPeriod');if(p){p.classList.toggle('hidden',mode!=='months');if(mode==='months'&&paintTitle)paintTitle()}let w=document.querySelector('#receipts .receiptWorkspace');if(w)w.classList.toggle('ovFull',mode==='months');return r};
+  renderReceiptMonths=function(all){render(all)};
+  // Αν η καρτέλα είναι ήδη ανοιχτή, ξαναζωγράφισε
+  if(typeof receiptMode!=='undefined'&&receiptMode==='months'){setReceiptMode('months');render(receiptRowsAll||[])}
 })();
 </script>
 </body></html>
