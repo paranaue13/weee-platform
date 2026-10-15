@@ -1010,6 +1010,27 @@ body[data-theme="dark"] #master .registryTable tbody tr:not(.inactiveMaster) td 
 #quickPop .qLbl{display:flex;align-items:center;justify-content:space-between;gap:10px;font-weight:500;margin-bottom:6px}
 #quickPop .qSub{font-size:12px;color:var(--fg-3,#74777f);line-height:1.35}
 #quickPop .prodSegment{display:flex;width:100%}#quickPop .prodSegment button{flex:1}
+/* Κάτω μέρος μενού: γρήγορες ρυθμίσεις (Μενού που κρύβεται / Split screen) */
+.sideQuick{display:flex;flex-direction:row;justify-content:flex-start;gap:8px;padding:0 0 10px 8px}
+.sideQuick button{width:36px;height:36px;min-width:36px;padding:0;border-radius:8px;border:1px solid rgba(255,255,255,.28);background:transparent;color:var(--nav-fg,#f1f5f8);display:grid;place-items:center;cursor:pointer}
+.sideQuick button svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sideQuick button:hover{background:rgba(255,255,255,.08)}
+.sideQuick button[aria-pressed="true"]{background:var(--nav-active,#2f6fde);border-color:var(--nav-active,#2f6fde);color:#fff}
+.sideQuick button:focus-visible{outline:2px solid #fff;outline-offset:1px}
+/* Κρυμμένο (μαζεμένο) μενού: μόνο εικονίδια, κεντραρισμένα στη στενή στήλη */
+body.sideAuto .side:not(:hover){padding-left:8px;padding-right:8px}
+body.sideAuto .side:not(:hover) .brand{justify-content:center;padding:4px 0 22px;gap:0}
+body.sideAuto .side:not(:hover) .brand>span{display:none}
+body.sideAuto .side:not(:hover) .nav button{width:40px;min-height:40px;height:40px;padding:0!important;gap:0;justify-content:center;margin:2px auto}
+body.sideAuto .side:not(:hover) .nav button>span:not(.navIcon){display:none}
+body.sideAuto .side:not(:hover) .sideFooter{padding-left:0;padding-right:0}
+body.sideAuto .side:not(:hover) .sideMenuButton{width:40px;height:40px;min-height:40px;padding:0!important;margin:0 auto;display:flex!important;justify-content:center;align-items:center;gap:0}
+body.sideAuto .side:not(:hover) .sideMenuButton>span:not(.sideLineIcon){display:none}
+body.sideAuto .side:not(:hover) .sideVersion{display:none}
+body.sideAuto .side:not(:hover) .sideQuick{flex-direction:column;align-items:center;padding:0 0 10px 0}
+body.sideAuto .side:hover .sideVersion{display:block}
+body.sideAuto #settingsMenu{position:fixed!important;left:64px!important;right:auto!important;bottom:12px!important;width:280px!important}
+body.sideAuto .side:hover #settingsMenu{left:208px!important}
 body.sideAuto .shell{grid-template-columns:56px minmax(0,1fr)!important}
 body.sideAuto .side{width:56px;overflow:hidden;padding-left:8px;padding-right:8px;transition:width .15s ease;z-index:60}
 body.sideAuto .side:hover{width:200px;margin-right:-144px;box-shadow:6px 0 24px rgba(0,0,0,.28)}
@@ -7299,13 +7320,37 @@ const SF=(function(){
     <div class="qRow"><div class="qLbl"><span>Split screen</span></div><div class="prodSegment" id="qSplit"><button type="button" data-s="none">Χωρίς</button><button type="button" data-s="v">Κάθετο</button><button type="button" data-s="h">Οριζόντιο</button></div></div>`;
   document.body.appendChild(pop);
   const placePop=()=>{let r=qb.getBoundingClientRect();pop.style.top=(r.bottom+8)+'px';pop.style.left=Math.max(8,Math.min(window.innerWidth-298,r.right-290))+'px'};
-  const paintPop=()=>{$('qAutoHide').checked=!!prefs.autoHide;pop.querySelectorAll('#qSplit button').forEach(b=>b.classList.toggle('active',b.dataset.s===prefs.split))};
+  const paintPop=()=>{$('qAutoHide').checked=!!prefs.autoHide;pop.querySelectorAll('#qSplit button').forEach(b=>b.classList.toggle('active',b.dataset.s===prefs.split));if(typeof paintBtns==='function')try{paintBtns()}catch(e){}};
   qb.onclick=e=>{e.stopPropagation();if(pop.classList.contains('hidden')){placePop();paintPop();pop.classList.remove('hidden')}else pop.classList.add('hidden')};
   document.addEventListener('mousedown',e=>{if(!pop.classList.contains('hidden')&&!pop.contains(e.target)&&e.target!==qb&&!qb.contains(e.target))pop.classList.add('hidden')},true);
   window.addEventListener('resize',()=>{if(!pop.classList.contains('hidden'))placePop()});
   $('qAutoHide').onchange=e=>{prefs.autoHide=e.target.checked;savePrefs();applyAutoHide()};
   pop.querySelectorAll('#qSplit button').forEach(b=>b.onclick=()=>{prefs.split=b.dataset.s;savePrefs();paintPop();applySplit()});
 
+  // ---- κουμπιά στο κάτω μέρος του μενού (ίδιες ρυθμίσεις: prefs.autoHide / prefs.split) ----
+  const sideFooter=document.querySelector('.side .sideFooter'),sideSet=$('settingsMenuBtn');
+  const QICON={hide:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/>',v:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/>',h:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 12h18"/>'};
+  const quickRow=document.createElement('div');quickRow.className='sideQuick';quickRow.setAttribute('role','group');quickRow.setAttribute('aria-label','Γρήγορες ρυθμίσεις');
+  const qBtn=(k,label)=>{let b=document.createElement('button');b.type='button';b.dataset.q=k;b.title=label;b.setAttribute('aria-label',label);b.setAttribute('aria-pressed','false');b.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+QICON[k]+'</svg>';return b};
+  const qHide=qBtn('hide','Απόκρυψη μενού'),qV=qBtn('v','Split screen: κάθετο'),qH=qBtn('h','Split screen: οριζόντιο');
+  quickRow.append(qHide,qV,qH);
+  if(sideFooter&&sideSet)sideFooter.insertBefore(quickRow,sideSet);
+  function paintBtns(){
+    qHide.setAttribute('aria-pressed',String(!!prefs.autoHide));
+    qV.setAttribute('aria-pressed',String(prefs.split==='v'));
+    qH.setAttribute('aria-pressed',String(prefs.split==='h'));
+  }
+  qHide.onclick=()=>{prefs.autoHide=!prefs.autoHide;savePrefs();applyAutoHide();paintPop();paintBtns()};
+  qV.onclick=()=>{prefs.split=prefs.split==='v'?'none':'v';savePrefs();paintPop();applySplit();paintBtns()};
+  qH.onclick=()=>{prefs.split=prefs.split==='h'?'none':'h';savePrefs();paintPop();applySplit();paintBtns()};
+  paintBtns();
+  // tooltip με το όνομα κάθε εικονιδίου όταν το μενού είναι μαζεμένο
+  document.querySelector('.side').addEventListener('mouseover',e=>{
+    let b=e.target.closest&&e.target.closest('.nav button,.sideMenuButton');
+    if(!b)return;
+    let sp=[...b.children].filter(c=>!c.classList.contains('navIcon')&&!c.classList.contains('sideLineIcon')&&!c.classList.contains('sideChevron'))[0];
+    if(sp&&sp.textContent.trim())b.title=sp.textContent.trim();
+  });
   // ---- μενού που κρύβεται ----
   function applyAutoHide(){document.body.classList.toggle('sideAuto',!!prefs.autoHide)}
 
@@ -7392,7 +7437,7 @@ const SF=(function(){
   // αρχικοποίηση μετά το login
   const _preload=preload;
   let started=false;
-  const boot=()=>{if(started||!me)return;started=true;loadPrefs();applyAutoHide();if(prefs.split!=='none')applySplit()};
+  const boot=()=>{if(started||!me)return;started=true;loadPrefs();applyAutoHide();paintBtns();if(prefs.split!=='none')applySplit()};
   let iv=setInterval(()=>{if(typeof me!=='undefined'&&me&&!$('app').classList.contains('hidden')){clearInterval(iv);boot()}},300);
 })();
 </script>
