@@ -7706,49 +7706,64 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   let panel=document.createElement('div');panel.id='loadingOvPanel';panel.className='hidden';panel.style.marginTop='16px';
   hist.parentNode.insertBefore(panel,hist.nextSibling);
   paintTitle=OV.bindPeriod('ldOvPeriod',st,()=>load());
-  const purposeList=()=>((window.PrepFortosis&&window.PrepFortosis.purposes)||[]).slice();
-  // Μία «φόρτωση» = ένα δελτίο αποστολής (Αρ. Δ.Α. ανά έτος)· οι γραμμές του είναι ανά υλικό
-  function loadsFrom(entries){
-    const m=new Map();
-    entries.forEach(e=>{
-      let y=(e.work_date||'').slice(0,4),key=e.da_number?y+'|'+e.da_number:'id|'+e.id;
-      let L=m.get(key);
-      if(!L){L={key,purpose:e.purpose||NONE_KEY,carrier:(e.transporter||'').trim()||NONE,recipient:(e.recipient||'').trim()||NONE,mats:new Map(),kg:0};m.set(key,L)}
-      let kgv=Number(e.weight_kg||0),mn=(e.description||'').trim()||NONE;
-      L.kg+=kgv;L.mats.set(mn,(L.mats.get(mn)||0)+kgv);
-    });
-    return [...m.values()];
+  // ---- Αυτόματος σκοπός ΓΡΑΜΜΗΣ (είδος μέσα σε Δ.Α.), με σειρά κανόνων ----
+  //  1) Περιγραφή «ΚΑΤΗΓΟΡΙΑ <κωδικός 6 χαρακτήρων>»  → Ενδοδιακίνηση
+  //  2) Κωδ. ΕΚΑ με αστερίσκο (*) (ΟΧΙ Reptool)       → Διάθεση
+  //  3) όλα τα υπόλοιπα                               → Ανάκτηση
+  const PURPOSES=['Ανάκτηση','Διάθεση','Ενδοδιακίνηση'];
+  const LOOK={'Α':'A','Β':'B','Ε':'E','Ζ':'Z','Η':'H','Ι':'I','Κ':'K','Μ':'M','Ν':'N','Ο':'O','Ρ':'P','Τ':'T','Υ':'Y','Χ':'X'};
+  const canon=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[Α-Ω]/g,c=>LOOK[c]||c);
+  const KEYWORD=canon('ΚΑΤΗΓΟΡΙΑ');
+  // επιστρέφει {purpose, rule, badCategory}
+  function loadingPurpose(desc,eka){
+    let t=canon(desc).replace(/^\s+/,'');
+    let badCategory=false;
+    if(t.startsWith(KEYWORD)&&!/^[A-Z0-9Α-Ω]/.test(t.slice(KEYWORD.length))){
+      let tok=t.slice(KEYWORD.length).trim().split(/\s+/)[0]||'';
+      if(/^[0-9A-ZΑ-Ω]{6}$/.test(tok))return {purpose:'Ενδοδιακίνηση',rule:1,badCategory:false};
+      badCategory=true;
+    }
+    if(String(eka||'').indexOf('*')>=0)return {purpose:'Διάθεση',rule:2,badCategory};
+    return {purpose:'Ανάκτηση',rule:3,badCategory};
   }
-  const pname=k=>k===NONE_KEY?NONE:k;
+  window.loadingPurpose=loadingPurpose;
+  // γραμμές (είδος ανά Δ.Α.) με υπολογισμένο σκοπό· κλειδί φόρτωσης = Αρ. Δ.Α. ανά έτος
+  function linesFrom(entries){
+    return entries.map(e=>{
+      let y=(e.work_date||'').slice(0,4),p=loadingPurpose(e.description,e.eka_code);
+      return {key:e.da_number?y+'|'+e.da_number:'id|'+e.id,da:e.da_number,purpose:p.purpose,rule:p.rule,bad:p.badCategory,desc:(e.description||'').trim(),eka:e.eka_code||'',
+        carrier:(e.transporter||'').trim()||NONE,recipient:(e.recipient||'').trim()||NONE,mat:(e.description||'').trim()||NONE,kg:Number(e.weight_kg||0)};
+    });
+  }
+  const distinct=a=>new Set(a.map(l=>l.key)).size;
+  const sumKg=a=>a.reduce((s,l)=>s+l.kg,0);
   function render(){
-    let loads=loadsFrom(lastRows);
-    let names=purposeList();loads.forEach(l=>{if(l.purpose!==NONE_KEY&&!names.includes(l.purpose))names.push(l.purpose)});
-    if(loads.some(l=>l.purpose===NONE_KEY))names.push(NONE_KEY);
-    const sumKg=a=>a.reduce((s,l)=>s+l.kg,0);
+    let lines=linesFrom(lastRows);
+    window.__loadingStats={rules:[1,2,3].map(r=>lines.filter(l=>l.rule===r).length),bad:lines.filter(l=>l.bad).map(l=>({da:l.da,desc:l.desc,eka:l.eka})),lines};
     const palette=['k1','k2','k3'];
-    [...st.purposes].forEach(p=>{if(!names.includes(p))st.purposes.delete(p)});
-    let specs=names.map((n,i)=>{let a=loads.filter(l=>l.purpose===n);return {key:n,cls:palette[i%3],icon:iconOf(pname(n)),title:pname(n),text:`${a.length} · ${OV.num(sumKg(a))} kg`,sel:st.purposes.has(n)}});
+    [...st.purposes].forEach(p=>{if(!PURPOSES.includes(p))st.purposes.delete(p)});
+    let specs=PURPOSES.map((n,i)=>{let a=lines.filter(l=>l.purpose===n);return {key:n,cls:palette[i%3],icon:iconOf(n),title:n,text:`${distinct(a)} · ${OV.num(sumKg(a))} kg`,sel:st.purposes.has(n)}});
     let totName=st.period==='month'?'Σύνολο μήνα':st.period==='quarter'?'Σύνολο τριμήνου':st.period==='year'?'Σύνολο έτους':'Σύνολο περιόδου';
-    specs.push({key:'',cls:'k4',icon:ICON.tot,title:totName,text:`${loads.length} · ${OV.num(sumKg(loads))} kg`,sel:st.purposes.size===0});
-    let chosen=loads.filter(l=>!st.purposes.size||st.purposes.has(l.purpose));
-    let tname=st.purposes.size?[...st.purposes].map(pname).join(' + '):totName;
+    specs.push({key:'',cls:'k4',icon:ICON.tot,title:totName,text:`${distinct(lines)} · ${OV.num(sumKg(lines))} kg`,sel:st.purposes.size===0});
+    let chosen=lines.filter(l=>!st.purposes.size||st.purposes.has(l.purpose));
+    let tname=st.purposes.size?[...st.purposes].join(' + '):totName;
     const tbl=(id,title,fid,first)=>`<div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>${title}</b><span id="${fid}"></span></span></div><div class="tablewrap"><table id="${id}"><thead><tr><th style="width:44%">${first}</th><th class="ovR" style="width:28%">Φορτώσεις</th><th class="ovR" style="width:28%">Κιλά</th></tr></thead><tbody id="${id}Rows"></tbody></table></div></div>`;
     panel.innerHTML=`<div class="ovCards ovCardsAuto" role="group" aria-label="Σκοπός φόρτωσης">${OV.cardsHtml(specs)}</div>
+      <div class="ovHint muted" style="margin:-6px 0 10px">Ένα Δ.Α. με γραμμές διαφορετικού σκοπού μετριέται σε κάθε σκοπό που έχει. Τα κιλά αθροίζουν πάντα στο Σύνολο.</div>
       <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών σκοπών</span></div>
       <div class="ovTables">${tbl('ldOvC','Μεταφορέας','ldOvFC','Μεταφορέας')}${tbl('ldOvR','Πελάτης / Παραλήπτης','ldOvFR','Πελάτης / Παραλήπτης')}${tbl('ldOvM','Υλικό','ldOvFM','Υλικό')}</div>`;
     panel.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.purposes,b.dataset.type,e.ctrlKey||e.metaKey);render()});
-    const optsOf=get=>{let s=new Set();chosen.forEach(l=>get(l).forEach(v=>s.add(v)));return [...s].sort((a,b)=>a.localeCompare(b,'el')).map(v=>({id:v,label:v}))};
-    const cOpts=optsOf(l=>[l.carrier]),rOpts=optsOf(l=>[l.recipient]),mOpts=optsOf(l=>[...l.mats.keys()]);
+    const optsOf=get=>[...new Set(chosen.map(get))].sort((a,b)=>a.localeCompare(b,'el')).map(v=>({id:v,label:v}));
+    const cOpts=optsOf(l=>l.carrier),rOpts=optsOf(l=>l.recipient),mOpts=optsOf(l=>l.mat);
     [['carriers',cOpts],['recipients',rOpts],['materials',mOpts]].forEach(([k,o])=>{let ids=new Set(o.map(x=>x.id));[...st[k]].forEach(v=>{if(!ids.has(v))st[k].delete(v)})});
-    const tot=(n,kg)=>`<tr class="ovTot"><td>Σύνολο</td><td class="ovR">${n}</td><td class="ovR">${OV.num(kg)}</td></tr>`;
-    const body=(id,arr,n,kg)=>{
-      arr.sort((a,b)=>b.kg-a.kg);
-      document.getElementById(id+'Rows').innerHTML=(arr.map(o=>`<tr><td>${esc(o.k)}</td><td class="ovR">${o.n}</td><td class="ovR">${OV.num(o.kg)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Δεν υπάρχουν φορτώσεις.</td></tr>')+tot(n,kg);
+    // κάθε πίνακας: ανά τιμή = πλήθος ΔΙΑΦΟΡΕΤΙΚΩΝ Δ.Α. με γραμμή αυτής της τιμής· Σύνολο = διαφορετικά Δ.Α. των εμφανιζόμενων γραμμών, κιλά = άθροισμα γραμμών
+    const fill=(id,sel,get)=>()=>{
+      let f=chosen.filter(l=>!sel.size||sel.has(get(l))),m=new Map();
+      f.forEach(l=>{let k=get(l),o=m.get(k)||{k,keys:new Set(),kg:0};o.keys.add(l.key);o.kg+=l.kg;m.set(k,o)});
+      let arr=[...m.values()].sort((a,b)=>b.kg-a.kg);
+      document.getElementById(id+'Rows').innerHTML=(arr.map(o=>`<tr><td>${esc(o.k)}</td><td class="ovR">${o.keys.size}</td><td class="ovR">${OV.num(o.kg)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Δεν υπάρχουν φορτώσεις.</td></tr>')+`<tr class="ovTot"><td>Σύνολο</td><td class="ovR">${distinct(f)}</td><td class="ovR">${OV.num(sumKg(f))}</td></tr>`;
     };
-    const simple=(id,sel,get)=>()=>{let m=new Map(),n=0,kg=0;chosen.forEach(l=>{let v=get(l);if(sel.size&&!sel.has(v))return;let o=m.get(v)||{k:v,n:0,kg:0};o.n++;o.kg+=l.kg;m.set(v,o);n++;kg+=l.kg});body(id,[...m.values()],n,kg)};
-    const fillC=simple('ldOvC',st.carriers,l=>l.carrier),fillR=simple('ldOvR',st.recipients,l=>l.recipient);
-    // Υλικό: μια φόρτωση με πολλά υλικά μετράει σε κάθε υλικό της· το Σύνολο φορτώσεων = ΔΙΑΦΟΡΕΤΙΚΕΣ φορτώσεις που περιέχουν κάποιο από τα εμφανιζόμενα υλικά
-    const fillM=()=>{let m=new Map(),seen=new Set(),kgT=0;chosen.forEach(l=>{l.mats.forEach((kgv,mn)=>{if(st.materials.size&&!st.materials.has(mn))return;let o=m.get(mn)||{k:mn,n:0,kg:0};o.n++;o.kg+=kgv;m.set(mn,o);seen.add(l.key);kgT+=kgv})});body('ldOvM',[...m.values()],seen.size,kgT)};
+    const fillC=fill('ldOvC',st.carriers,l=>l.carrier),fillR=fill('ldOvR',st.recipients,l=>l.recipient),fillM=fill('ldOvM',st.materials,l=>l.mat);
     ['ldOvC','ldOvR','ldOvM'].forEach(id=>{let t=document.getElementById(id);if(t&&[...t.querySelectorAll('thead tr:first-child th')].some((th,i)=>localStorage.getItem('colw:'+id+':'+i)))window.applyStoredColWidths(t)});
     OV.filter(document.getElementById('ldOvFC'),{options:cOpts,selected:st.carriers,onChange:fillC});
     OV.filter(document.getElementById('ldOvFR'),{options:rOpts,selected:st.recipients,onChange:fillR});
