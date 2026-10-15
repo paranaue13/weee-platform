@@ -1087,7 +1087,8 @@ button.ovCat:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .ovCode3{display:grid;grid-template-columns:minmax(0,1fr) 90px 70px;gap:8px;padding:5px 10px 5px 52px;font-size:13px;border-bottom:1px solid var(--line,#e3e5ec)}
 .ovCode{color:var(--accent,#2f5fc4);font-weight:700}
 .ovNumSlot{display:inline-flex}
-.colResizeLine{position:fixed;width:2px;background:var(--accent,#2f5fc4);z-index:9600;pointer-events:none}
+.colResizeLine{position:fixed;width:1px;background:#b9c2d3;z-index:9600;pointer-events:none}
+.colResizeLine.drag{background:#8d9ab4}
 /* Συγκεντρωτικά: οι 3 στήλες φαίνονται πάντα (σταθερή διάταξη), τα ονόματα σπάνε σε 2η γραμμή, αριθμοί δεξιά */
 .ovTbl .tablewrap{overflow-x:auto}
 .ovTbl .tablewrap table{width:100%;min-width:0!important;max-width:none;table-layout:fixed}
@@ -1309,7 +1310,7 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 .pinLayer .pinZone{position:fixed;pointer-events:auto;cursor:pointer;z-index:2;user-select:none}
 .pinLayer .pinDot{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--pin);color:#fff;font:700 15px/19px Roboto,system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
 .pinLayer .pinZone.plus .pinDot{background:var(--accent,#2f5fc4)}
-.pinLayer .pinZone.dTR .pinDot{top:3px;right:3px}
+.pinLayer .pinZone.dTR .pinDot{top:3px;right:3px;width:18px;height:18px;background:#fff;border:1px solid #b9c2d3;color:#e8590c;font:700 14px/16px Roboto,system-ui,sans-serif;box-shadow:none;box-sizing:border-box}
 .pinLayer .pinZone.dL .pinDot{left:4px;top:50%;margin-top:-10px}
 .pinLayer .pinZone.dR .pinDot{right:4px;top:50%;margin-top:-10px}
 .pinLayer .pinZone.dTC .pinDot{left:50%;margin-left:-10px;top:4px}
@@ -5005,7 +5006,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
 (function(){
   const COL_RESIZE_EDGE_PX=6, COL_RESIZE_MIN_PX=70;
   const RESIZABLE_TABLE_SELECTOR='.tablewrap table th, .prodTable th';
-  let state=null,guide=null;
+  let state=null;
   try{Object.keys(localStorage).filter(k=>k.startsWith('colw:')&&Number(localStorage.getItem(k))<COL_RESIZE_MIN_PX).forEach(k=>localStorage.removeItem(k))}catch(e){}
   const isStock=t=>!!t&&(t.id==='weeeProcessTable'||t.id==='weeeShipTable');
   // Το συνολικό πλάτος του πίνακα = άθροισμα των στηλών (όπως στον Explorer): οι δεξιές στήλες μετακινούνται, δεν αλλάζουν πλάτος,
@@ -5049,33 +5050,106 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let sum=0;table.querySelectorAll('thead tr:first-child th').forEach(th=>{sum+=parseFloat(th.style.width)||0});
     table.style.setProperty('min-width',(sum+170)+'px','important');
   }
-  function applyStoredColWidths(table){
-    if(table.id==='weeeProcessTable'||table.id==='weeeShipTable'){applyStockSharedWidths(table);return}
-    let ths=[...table.querySelectorAll('thead tr:first-child th')];
-    let stored=ths.map(th=>localStorage.getItem(colKey(th)));
-    // table-layout:fixed sizes EVERY column purely from the first row's cells -- a column left at
-    // width:auto here doesn't fall back to its own CSS min-width, it's forced to share whatever
-    // space is left over after the explicitly-sized ones, which can crush a many-column table's
-    // untouched columns down toward zero width (and, combined with white-space:normal, wrap their
-    // header text one letter per line) the moment even a single sibling column has a stored width.
-    // Reset to a clean auto-layout baseline FIRST, unconditionally -- this function can run again on
-    // a table an earlier call already switched to fixed-layout (re-render, resize, a hideable column
-    // whose stored width just left the visible set, etc.), and measuring "natural" width without
-    // resetting would just re-read the already-squeezed value instead of the real one. Bailing out
-    // before this reset (the old behaviour) left a table stuck in fixed-layout with no per-column
-    // hints whenever THIS render's visible columns happen to carry no stored width -- collapsing
-    // every column to an equal share instead of its natural width.
-    table.style.tableLayout='';
-    ths.forEach(th=>{th.style.width=''});
-    if(!stored.some(Boolean))return;
-    let naturalWidths=ths.map((th,i)=>stored[i]?null:th.getBoundingClientRect().width);
-    let tot=0;
-    ths.forEach((th,i)=>{let w=Math.max(COL_RESIZE_MIN_PX,Number(stored[i])||Math.round(naturalWidths[i]));th.style.width=w+'px';tot+=w});
-    setTableWidth(table,tot);
+  // ---- Πλέγμα στηλών (σωστό και για πίνακες με colspan/rowspan στις επικεφαλίδες) ----
+  const MIN_W=COL_RESIZE_MIN_PX;
+  function tableRows(table){
+    let rows=[];
+    if(table.tHead)rows.push(...table.tHead.rows);
+    [...table.tBodies].forEach(b=>rows.push(...b.rows));
+    if(table.tFoot)rows.push(...table.tFoot.rows);
+    return rows;
   }
-  // Exposed so invApplyZoom() (defined outside this IIFE) can reapply stored widths as its own
-  // baseline before scaling -- without this a bare reference from outside throws ReferenceError,
-  // silently aborting invApplyZoom mid-function every time it runs.
+  function gridMap(rows){
+    const occ=[],map=new Map();let N=0;
+    rows.forEach((tr,ri)=>{
+      occ[ri]=occ[ri]||[];let c=0;
+      for(const cell of tr.cells){
+        while(occ[ri][c])c++;
+        const cs=cell.colSpan||1,rs=cell.rowSpan||1;
+        map.set(cell,{s:c,e:c+cs-1,ri});
+        for(let r=0;r<rs;r++){occ[ri+r]=occ[ri+r]||[];for(let k=0;k<cs;k++)occ[ri+r][c+k]=1}
+        c+=cs;
+      }
+      N=Math.max(N,c);
+    });
+    return {map,N};
+  }
+  // πλάτος κάθε στήλης του πλέγματος όπως φαίνεται τώρα (0 = κρυμμένη)
+  function measureGrid(table,g){
+    const w=new Array(g.N).fill(null);
+    g.map.forEach((p,cell)=>{
+      if(p.s!==p.e)return;
+      let ww=cell.getBoundingClientRect().width;
+      if(w[p.s]==null||(w[p.s]===0&&ww>0))w[p.s]=ww;
+    });
+    g.map.forEach((p,cell)=>{
+      if(p.s===p.e)return;
+      let known=0,unk=[];
+      for(let k=p.s;k<=p.e;k++){if(w[k]==null)unk.push(k);else known+=w[k]}
+      if(unk.length){let each=Math.max(0,(cell.getBoundingClientRect().width-known)/unk.length);unk.forEach(k=>{w[k]=each})}
+    });
+    return w.map(x=>x==null?0:x);
+  }
+  function leafOf(table,g){
+    const leaf=new Array(g.N).fill(null);
+    if(!table.tHead)return leaf;
+    const hs=new Set([...table.tHead.rows].flatMap(r=>[...r.cells]));
+    g.map.forEach((p,cell)=>{
+      if(!hs.has(cell))return;
+      for(let k=p.s;k<=p.e;k++){
+        let cur=leaf[k];
+        if(!cur||(p.e-p.s)<(g.map.get(cur).e-g.map.get(cur).s)||((p.e-p.s)===(g.map.get(cur).e-g.map.get(cur).s)&&p.ri>g.map.get(cur).ri))leaf[k]=cell;
+      }
+    });
+    return leaf;
+  }
+  function gridKey(th,ri){let k=colKey(th);return ri>0?k+':r'+ri:k}
+  function clearWidths(table){
+    table.querySelectorAll('[data-cw]').forEach(c=>{c.style.removeProperty('width');c.style.removeProperty('min-width');c.style.removeProperty('max-width');c.removeAttribute('data-cw')});
+    let cg=table.querySelector(':scope>colgroup[data-cwg]');if(cg)cg.remove();
+    if(table.dataset.cwt){['width','min-width','max-width'].forEach(p=>table.style.removeProperty(p));table.style.tableLayout='';delete table.dataset.cwt}
+  }
+  // Ο κανόνας του Explorer: κάθε στήλη παίρνει ρητό πλάτος (px) απευθείας στα κελιά της (th και td)·
+  // το πλάτος του πίνακα = άθροισμα των στηλών· τίποτα δεν μοιράζεται αναλογικά.
+  function applyWidths(table,g,w,skip){
+    let total=0;w.forEach(x=>{total+=x});
+    table.dataset.cwt='1';
+    table.style.tableLayout='fixed';
+    table.style.setProperty('width',Math.round(total)+'px','important');
+    table.style.setProperty('min-width','0','important');
+    table.style.setProperty('max-width','none','important');
+    // colgroup: το fixed layout διαβάζει τα πλάτη από εδώ πρώτα (αλλιώς το colspan της 1ης γραμμής μοιράζει ίσα)
+    let cg=table.querySelector(':scope>colgroup[data-cwg]');
+    if(!cg){cg=document.createElement('colgroup');cg.setAttribute('data-cwg','1');table.insertBefore(cg,table.firstChild)}
+    while(cg.children.length<w.length)cg.appendChild(document.createElement('col'));
+    while(cg.children.length>w.length)cg.lastChild.remove();
+    w.forEach((x,k)=>{let c=cg.children[k],v=Math.round(x)+'px';c.style.setProperty('width',v,'important');c.style.setProperty('min-width',v,'important');c.style.setProperty('max-width',v,'important')});
+    g.map.forEach((p,cell)=>{
+      let all=true,px=0;
+      for(let k=p.s;k<=p.e;k++){if(!skip[k])all=false;px+=w[k]}
+      if(all){return}
+      let v=Math.round(px)+'px';
+      cell.dataset.cw='1';
+      cell.style.setProperty('width',v,'important');
+      cell.style.setProperty('min-width',v,'important');
+      cell.style.setProperty('max-width',v,'important');
+    });
+  }
+  function skipCols(table,g,w){
+    return w.map((x,k)=>x<=1);
+  }
+  function applyStoredColWidths(table){
+    if(isStock(table)){applyStockSharedWidths(table);return}
+    clearWidths(table);
+    if(!table.offsetParent){table.dataset.cwPending='1';return}
+    delete table.dataset.cwPending;
+    let g=gridMap(tableRows(table)),leaf=leafOf(table,g);
+    let stored=leaf.map(c=>c?localStorage.getItem(gridKey(c,g.map.get(c).ri)):null);
+    if(!stored.some(Boolean))return;
+    let w=measureGrid(table,g),skip=skipCols(table,g,w);
+    stored.forEach((v,k)=>{let n=Number(v);if(v&&n>0&&!skip[k])w[k]=Math.max(MIN_W,n)});
+    applyWidths(table,g,w,skip);
+  }
   window.applyStoredColWidths=applyStoredColWidths;
   // Live-mirror a resize on Αποθήκη ΑΗΗΕ's two stock tables onto each other (same column index),
   // so they stay visually aligned while dragging, not just after the next reload.
@@ -5088,59 +5162,95 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let siblingTh=th.dataset.wcol?sibling.querySelector('thead tr:first-child th[data-wcol="'+th.dataset.wcol+'"]'):null;
     if(siblingTh){siblingTh.style.width=widthPx+'px';sibling.style.tableLayout='fixed'}
   }
+  let hoverLine=null,hoverTh=null;
+  const CORNER_W=24,STRIP_IN=4,STRIP_OUT=4;
+  const cornerH=r=>Math.min(24,Math.round(r.height/2));
+  // λωρίδα πιασίματος: 4px μέσα + 4px έξω από το δεξί όριο, ΚΑΤΩ από τη γωνία της απόκρυψης
+  function edgeTarget(e){
+    let th=e.target.closest&&e.target.closest(RESIZABLE_TABLE_SELECTOR);
+    if(!th)return null;
+    let r=th.getBoundingClientRect();
+    if(e.clientY-r.top<cornerH(r))return null;
+    let cand=null;
+    if(r.right-e.clientX>=0&&r.right-e.clientX<=STRIP_IN)cand=th;
+    else if(e.clientX-r.left<=STRIP_OUT){let p=th.previousElementSibling;if(p&&p.tagName==='TH')cand=p}
+    if(cand&&cand.dataset.wcol==='stock')return null;
+    return cand;
+  }
+  function setHoverCursor(th){
+    if(hoverTh&&hoverTh!==th)hoverTh.style.cursor='';
+    hoverTh=th;if(th)th.style.cursor='col-resize';
+  }
+  function showLine(x,top,h,drag){
+    if(!hoverLine){hoverLine=document.createElement('div');hoverLine.className='colResizeLine';document.body.appendChild(hoverLine)}
+    hoverLine.classList.toggle('drag',!!drag);
+    hoverLine.style.left=Math.round(x)+'px';hoverLine.style.top=top+'px';hoverLine.style.height=h+'px';hoverLine.style.display='';
+  }
+  function hideLine(){if(hoverLine)hoverLine.style.display='none'}
+  function dragLine(){
+    let r=state.th.getBoundingClientRect(),wr=(state.table.closest('.prodTableWrap,.tablewrap')||state.table).getBoundingClientRect();
+    let top=Math.max(wr.top,0),bot=Math.min(wr.bottom,innerHeight);
+    showLine(r.right,top,Math.max(0,bot-top),true);
+  }
   document.addEventListener('mousemove',e=>{
     if(state){
       let dx=e.clientX-state.startX;
-      let newW=Math.max(COL_RESIZE_MIN_PX,state.startW+dx);
-      state.th.style.width=newW+'px';
-      // το αριστερό όριο μένει σταθερό, αλλάζει μόνο αυτή η στήλη· οι δεξιές μετακινούνται με το ίδιο πλάτος τους
-      if(!isStock(state.table))setTableWidth(state.table,state.others+newW);else state.table.style.tableLayout='fixed';
-      mirrorStockTableWidth(state.th,newW);
-      if(guide){let r=state.th.getBoundingClientRect(),tr=state.table.getBoundingClientRect();guide.style.left=(r.right-1)+'px';guide.style.top=tr.top+'px';guide.style.height=tr.height+'px'}
+      if(state.stock){
+        let newW=Math.max(MIN_W,state.startW+dx);
+        state.th.style.width=newW+'px';state.table.style.tableLayout='fixed';
+        mirrorStockTableWidth(state.th,newW);
+      }else{
+        state.w[state.b]=Math.max(MIN_W,state.startW+dx);
+        applyWidths(state.table,state.g,state.w,state.skip);
+      }
+      dragLine();
       e.preventDefault();
       return;
     }
-    let th=e.target.closest(RESIZABLE_TABLE_SELECTOR);
-    if(th){
-      let r=th.getBoundingClientRect();
-      th.style.cursor=(th.dataset.wcol!=='stock'&&(r.right-e.clientX)<=COL_RESIZE_EDGE_PX)?'col-resize':'';
-    }
+    let th=e.target.closest&&e.target.closest(RESIZABLE_TABLE_SELECTOR);
+    let tgt=edgeTarget(e);
+    if(tgt){setHoverCursor(th);let r=tgt.getBoundingClientRect();showLine(r.right,r.top,r.height,false)}
+    else{setHoverCursor(null);hideLine()}
   });
   document.addEventListener('mousedown',e=>{
-    let th=e.target.closest(RESIZABLE_TABLE_SELECTOR);
+    let th=edgeTarget(e);
     if(!th)return;
-    let r=th.getBoundingClientRect();
-    if((r.right-e.clientX)>COL_RESIZE_EDGE_PX||th.dataset.wcol==='stock')return;
     let table=th.closest('table');
     if(!table)return;
-    // The live drag below switches the table to table-layout:fixed on the very first mousemove but
-    // only ever sets an explicit width on the ONE column being dragged -- per the fixed-layout spec,
-    // every OTHER column's width comes purely from row 1's cells, so any sibling lacking an explicit
-    // width collapses to an equal share of whatever's left for the rest of the drag (and stays that
-    // way until the next full re-render happens to call applyStoredColWidths and silently repair
-    // it). Lock every row-1 column to its current rendered width up front so table-layout:fixed has
-    // a hint for all of them, not just the one being resized.
-    let others=0;
-    table.querySelectorAll('thead tr:first-child th').forEach(sib=>{
-      if((!sib.style.width||/%$/.test(sib.style.width))&&sib.dataset.wcol!=='stock')sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px';
-      if(sib!==th)others+=parseFloat(sib.style.width)||sib.getBoundingClientRect().width;
-    });
-    state={th,table,startX:e.clientX,startW:r.width,others};
-    if(!isStock(table))setTableWidth(table,Math.round(others+r.width));
-    guide=document.createElement('div');guide.className='colResizeLine';document.body.appendChild(guide);
-    let tr0=table.getBoundingClientRect();guide.style.left=(r.right-1)+'px';guide.style.top=tr0.top+'px';guide.style.height=tr0.height+'px';
+    if(isStock(table)){
+      table.querySelectorAll('thead tr:first-child th').forEach(sib=>{if(!sib.style.width&&sib.dataset.wcol!=='stock')sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px'});
+      state={stock:true,th,table,startX:e.clientX,startW:th.getBoundingClientRect().width};
+    }else{
+      let g=gridMap(tableRows(table)),p=g.map.get(th);
+      if(!p)return;
+      let leaf=leafOf(table,g),w=measureGrid(table,g),skip=skipCols(table,g,w);
+      let lk=leaf[p.e];
+      // ήδη αποθηκευμένα πλάτη των άλλων στηλών εφαρμόζονται ως έχουν (τα w είναι τα πραγματικά τρέχοντα)
+      state={th,table,g,w,skip,b:p.e,leaf:lk,ri:g.map.get(lk||th).ri,startX:e.clientX,startW:w[p.e]};
+      applyWidths(table,g,w,skip);
+    }
     document.body.style.userSelect='none';document.body.style.cursor='col-resize';
+    dragLine();
     e.preventDefault();
   });
   document.addEventListener('mouseup',()=>{
     if(state){
-      localStorage.setItem(colKey(state.th),Math.round(parseFloat(state.th.style.width)));
-      if(state.table.id==='weeeProcessTable'||state.table.id==='weeeShipTable')['weeeProcessTable','weeeShipTable'].forEach(id=>applyStockSharedWidths(document.getElementById(id)));
-      state=null;
-      if(guide){guide.remove();guide=null}
+      if(state.stock){
+        localStorage.setItem(colKey(state.th),Math.round(parseFloat(state.th.style.width)));
+        ['weeeProcessTable','weeeShipTable'].forEach(id=>applyStockSharedWidths(document.getElementById(id)));
+      }else{
+        let c=state.leaf||state.th;
+        localStorage.setItem(gridKey(c,state.ri),Math.round(state.w[state.b]));
+      }
+      state=null;hideLine();setHoverCursor(null);
       document.body.style.userSelect='';document.body.style.cursor='';
     }
   });
+  // πίνακας που δεν ήταν ορατός όταν φορτώθηκε: εφαρμογή των αποθηκευμένων πλατών μόλις εμφανιστεί
+  document.addEventListener('mouseover',e=>{
+    let t=e.target.closest&&e.target.closest('table[data-cw-pending]');
+    if(t)applyStoredColWidths(t);
+  },true);
   const colWidthObserver=new MutationObserver(muts=>{
     for(const m of muts){
       if(m.type!=='childList'||m.target.tagName!=='THEAD')continue;
@@ -6158,7 +6268,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let L=openLayer('c'+item.id);if(!L)return;
     let cr=clampR(r,wr);
     L.appendChild(mkHl({left:cr.left,top:cr.bottom-2,width:cr.width,height:2},'pinHlLine'));
-    let z=mkZone({left:Math.max(cr.left,cr.right-26),top:cr.top,width:Math.min(26,cr.width),height:cr.height},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
+    let z=mkZone({left:Math.max(cr.left,cr.right-24),top:cr.top,width:Math.min(24,cr.width),height:Math.min(24,Math.round(cr.height/2))},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
     L.appendChild(z);fitLabel(z,wr);hot=t;
   }
   // κείμενο του πρώτου ΟΡΑΤΟΥ κελιού δεδομένων της γραμμής (μετά το κελί ομάδας), όπως φαίνεται αυτή τη στιγμή
@@ -6234,7 +6344,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     // στήλη: πάνω-δεξιά γωνία της επικεφαλίδας
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
       let item=md.cols.find(c=>c.th===cell);
-      if(item&&item.ok&&x>=r.right-26&&x<=r.right+1){colZone(t,item,r,wr);return}
+      if(item&&item.ok&&x>=r.right-24&&x<=r.right&&y>=r.top&&y<=r.top+Math.min(24,Math.round(r.height/2))){colZone(t,item,r,wr);return}
     }
     if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
       let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
