@@ -1038,6 +1038,9 @@ body.pane #login{display:none!important}
 .receiptTopActions{flex-wrap:wrap}
 .ovPeriod{display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:12px}
 .ovCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
+#loadingOvPanel .ovTbl th{white-space:nowrap}
+#loadingOvPanel .ovTables{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+.ovCards.ovCardsAuto{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 @media(max-width:900px){.ovCards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 button.ovCard{width:100%;text-align:left;cursor:pointer;font:inherit;color:inherit;border:2px solid var(--line,#e3e5ec)}
 button.ovCard:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -1780,7 +1783,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </section>
 <section id="loading" class="view hidden"><div class="card"><div class="toolbar" style="justify-content:space-between"><div><h3 style="margin:0">Φορτώσεις</h3><div class="muted">Δέσμευση Logistics ή επιλογή Χειριστή, με έλεγχο μέγιστου βάρους.</div></div><div style="display:flex;align-items:center;gap:16px"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="loadingShowCancelled"><span class="slider"></span></label><span>Εμφάνιση ακυρωμένων</span></div><button class="btn" id="newLoadingBtn">+ Νέα Φόρτωση</button></div></div></div><div class="tablewrap hidden" id="loadingOrdersWrap"><table><thead><tr><th>Αριθμός</th><th>Πελάτης</th><th>Μεταφορέας</th><th>Μέγιστο kg</th><th>Δεσμευμένα</th><th>Φορτωμένα</th><th>Status</th></tr></thead><tbody id="loadingRows"></tbody></table></div>
 <div class="card" id="loadingEcCard" style="margin-top:16px"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — ΠΕΡΙΒΑΛΛΟΝΤΙΚΗ ΑΝΑΚΥΚΛΩΣΗ ΕΛΛΑΔΑΣ ΑΒΕΤΕ (ΠΡ00959)</h3><div style="display:flex;align-items:center;gap:10px"><span id="loadingEcStatus" class="muted" style="font-size:12px"></span></div></div><div class="tablewrap" id="loadingEcTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="loadingEcRows"></tbody></table></div></div>
-<div class="prodSegment" id="loadingSubSeg" style="margin:16px 0 0;display:inline-flex;width:auto"><button type="button" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" data-lsub="hist" class="active">Ιστορικό Δελτίων Αποστολής</button></div>
+<div class="prodSegment" id="loadingSubSeg" style="margin:16px 0 0;display:inline-flex;width:auto"><button type="button" data-lsub="prep">Προετοιμασία φόρτωσης</button><button type="button" data-lsub="hist" class="active">Ιστορικό Δελτίων Αποστολής</button><button type="button" data-lsub="ov">Συγκεντρωτικά</button></div>
 <div id="prepPanel" class="hidden">
 <div class="card prepCard"><h3 style="margin:0 0 10px">Στοιχεία φόρτωσης</h3>
 <div class="prepGrid6">
@@ -6648,7 +6651,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     }catch(e){msg(e.message||String(e))}
   }
   document.querySelectorAll('#loadingSubSeg [data-lsub]').forEach(b=>b.onclick=()=>show(b.dataset.lsub));
-  window.PrepFortosis={show,openDraft};
+  window.PrepFortosis={show,openDraft,purposes:PURPOSES};
 })();
 </script>
 <script id="sortForm">
@@ -7635,6 +7638,94 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   renderSortingMonths=function(all){if(typeof sortingMode!=='undefined'&&sortingMode==='months')render(all);else if(Array.isArray(all))lastRows=all;setTimeout(sync,0)};
   ['sortingDaysMode','sortingMonthsMode'].forEach(id=>$(id).addEventListener('click',()=>setTimeout(sync,0)));
   if(typeof sortingMode!=='undefined'&&sortingMode==='months'){sync();render(sortingReviewRows||[])}
+})();
+</script>
+<script id="overviewLoading">
+// ================= ΦΟΡΤΩΣΕΙΣ → Συγκεντρωτικά (επαναχρησιμοποιεί τα OV: περίοδος, κάρτες, φίλτρα με αναζήτηση) =================
+(function(){
+  const sec=document.getElementById('loading'),seg=document.getElementById('loadingSubSeg'),hist=document.getElementById('shipHistCard');
+  if(!sec||!seg||!hist)return;
+  const ICON={rec:'<path d="M7 7h8a3 3 0 0 1 3 3v1"/><path d="M15 4l3 3-3 3"/><path d="M17 17H9a3 3 0 0 1-3-3v-1"/><path d="M9 20l-3-3 3-3"/>',
+              bin:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/><path d="M10 11v6M14 11v6"/>',
+              mov:'<path d="M3 8h15"/><path d="M14 4l4 4-4 4"/><path d="M21 16H6"/><path d="M10 12l-4 4 4 4"/>',
+              gen:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+              tot:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'};
+  const iconOf=n=>/ανάκτ/i.test(n)?ICON.rec:/ενδοδιακ/i.test(n)?ICON.mov:(/διάθεση/i.test(n)&&!/διασυνορ/i.test(n))?ICON.bin:ICON.gen;
+  const NONE='Μη καθορισμένο',NONE_KEY='__none';
+  const st={period:'month',cursor:new Date(),custom:null,purposes:new Set(),carriers:new Set(),recipients:new Set(),materials:new Set()};
+  let paintTitle=null,token=0,lastRows=[];
+  // κοινή γραμμή καρτελών: καρτέλες αριστερά, περίοδος δεξιά
+  let row=document.createElement('div');row.id='loadingTabsRow';row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px';
+  seg.parentNode.insertBefore(row,seg);row.appendChild(seg);seg.style.margin='0';
+  row.insertAdjacentHTML('beforeend',OV.periodHtml('ldOvPeriod'));
+  let panel=document.createElement('div');panel.id='loadingOvPanel';panel.className='hidden';panel.style.marginTop='16px';
+  hist.parentNode.insertBefore(panel,hist.nextSibling);
+  paintTitle=OV.bindPeriod('ldOvPeriod',st,()=>load());
+  const purposeList=()=>((window.PrepFortosis&&window.PrepFortosis.purposes)||[]).slice();
+  // Μία «φόρτωση» = ένα δελτίο αποστολής (Αρ. Δ.Α. ανά έτος)· οι γραμμές του είναι ανά υλικό
+  function loadsFrom(entries){
+    const m=new Map();
+    entries.forEach(e=>{
+      let y=(e.work_date||'').slice(0,4),key=e.da_number?y+'|'+e.da_number:'id|'+e.id;
+      let L=m.get(key);
+      if(!L){L={key,purpose:e.purpose||NONE_KEY,carrier:(e.transporter||'').trim()||NONE,recipient:(e.recipient||'').trim()||NONE,mats:new Map(),kg:0};m.set(key,L)}
+      let kgv=Number(e.weight_kg||0),mn=(e.description||'').trim()||NONE;
+      L.kg+=kgv;L.mats.set(mn,(L.mats.get(mn)||0)+kgv);
+    });
+    return [...m.values()];
+  }
+  const pname=k=>k===NONE_KEY?NONE:k;
+  function render(){
+    let loads=loadsFrom(lastRows);
+    let names=purposeList();loads.forEach(l=>{if(l.purpose!==NONE_KEY&&!names.includes(l.purpose))names.push(l.purpose)});
+    if(loads.some(l=>l.purpose===NONE_KEY))names.push(NONE_KEY);
+    const sumKg=a=>a.reduce((s,l)=>s+l.kg,0);
+    const palette=['k1','k2','k3'];
+    [...st.purposes].forEach(p=>{if(!names.includes(p))st.purposes.delete(p)});
+    let specs=names.map((n,i)=>{let a=loads.filter(l=>l.purpose===n);return {key:n,cls:palette[i%3],icon:iconOf(pname(n)),title:pname(n),text:`${a.length} · ${OV.num(sumKg(a))} kg`,sel:st.purposes.has(n)}});
+    let totName=st.period==='month'?'Σύνολο μήνα':st.period==='quarter'?'Σύνολο τριμήνου':st.period==='year'?'Σύνολο έτους':'Σύνολο περιόδου';
+    specs.push({key:'',cls:'k4',icon:ICON.tot,title:totName,text:`${loads.length} · ${OV.num(sumKg(loads))} kg`,sel:st.purposes.size===0});
+    let chosen=loads.filter(l=>!st.purposes.size||st.purposes.has(l.purpose));
+    let tname=st.purposes.size?[...st.purposes].map(pname).join(' + '):totName;
+    const tbl=(id,title,fid,first)=>`<div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>${title}</b><span id="${fid}"></span></span></div><div class="tablewrap"><table id="${id}"><thead><tr><th style="width:44%">${first}</th><th class="ovR" style="width:28%">Φορτώσεις</th><th class="ovR" style="width:28%">Κιλά</th></tr></thead><tbody id="${id}Rows"></tbody></table></div></div>`;
+    panel.innerHTML=`<div class="ovCards ovCardsAuto" role="group" aria-label="Σκοπός φόρτωσης">${OV.cardsHtml(specs)}</div>
+      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών σκοπών</span></div>
+      <div class="ovTables">${tbl('ldOvC','Μεταφορέας','ldOvFC','Μεταφορέας')}${tbl('ldOvR','Πελάτης / Παραλήπτης','ldOvFR','Πελάτης / Παραλήπτης')}${tbl('ldOvM','Υλικό','ldOvFM','Υλικό')}</div>`;
+    panel.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.purposes,b.dataset.type,e.ctrlKey||e.metaKey);render()});
+    const optsOf=get=>{let s=new Set();chosen.forEach(l=>get(l).forEach(v=>s.add(v)));return [...s].sort((a,b)=>a.localeCompare(b,'el')).map(v=>({id:v,label:v}))};
+    const cOpts=optsOf(l=>[l.carrier]),rOpts=optsOf(l=>[l.recipient]),mOpts=optsOf(l=>[...l.mats.keys()]);
+    [['carriers',cOpts],['recipients',rOpts],['materials',mOpts]].forEach(([k,o])=>{let ids=new Set(o.map(x=>x.id));[...st[k]].forEach(v=>{if(!ids.has(v))st[k].delete(v)})});
+    const tot=(n,kg)=>`<tr class="ovTot"><td>Σύνολο</td><td class="ovR">${n}</td><td class="ovR">${OV.num(kg)}</td></tr>`;
+    const body=(id,arr,n,kg)=>{
+      arr.sort((a,b)=>b.kg-a.kg);
+      document.getElementById(id+'Rows').innerHTML=(arr.map(o=>`<tr><td>${esc(o.k)}</td><td class="ovR">${o.n}</td><td class="ovR">${OV.num(o.kg)}</td></tr>`).join('')||'<tr><td colspan="3" class="muted">Δεν υπάρχουν φορτώσεις.</td></tr>')+tot(n,kg);
+    };
+    const simple=(id,sel,get)=>()=>{let m=new Map(),n=0,kg=0;chosen.forEach(l=>{let v=get(l);if(sel.size&&!sel.has(v))return;let o=m.get(v)||{k:v,n:0,kg:0};o.n++;o.kg+=l.kg;m.set(v,o);n++;kg+=l.kg});body(id,[...m.values()],n,kg)};
+    const fillC=simple('ldOvC',st.carriers,l=>l.carrier),fillR=simple('ldOvR',st.recipients,l=>l.recipient);
+    // Υλικό: μια φόρτωση με πολλά υλικά μετράει σε κάθε υλικό της· το Σύνολο φορτώσεων = ΔΙΑΦΟΡΕΤΙΚΕΣ φορτώσεις που περιέχουν κάποιο από τα εμφανιζόμενα υλικά
+    const fillM=()=>{let m=new Map(),seen=new Set(),kgT=0;chosen.forEach(l=>{l.mats.forEach((kgv,mn)=>{if(st.materials.size&&!st.materials.has(mn))return;let o=m.get(mn)||{k:mn,n:0,kg:0};o.n++;o.kg+=kgv;m.set(mn,o);seen.add(l.key);kgT+=kgv})});body('ldOvM',[...m.values()],seen.size,kgT)};
+    ['ldOvC','ldOvR','ldOvM'].forEach(id=>{let t=document.getElementById(id);if(t&&[...t.querySelectorAll('thead tr:first-child th')].some((th,i)=>localStorage.getItem('colw:'+id+':'+i)))window.applyStoredColWidths(t)});
+    OV.filter(document.getElementById('ldOvFC'),{options:cOpts,selected:st.carriers,onChange:fillC});
+    OV.filter(document.getElementById('ldOvFR'),{options:rOpts,selected:st.recipients,onChange:fillR});
+    OV.filter(document.getElementById('ldOvFM'),{options:mOpts,selected:st.materials,onChange:fillM});
+    fillC();fillR();fillM();
+  }
+  async function load(){
+    let my=++token,rg=OV.range(st);
+    try{
+      let a=await api('/loading/shipment-history?start='+rg.startISO+'&end='+rg.endISO);
+      if(my!==token)return;
+      lastRows=a||[];
+    }catch(e){if(my!==token)return;lastRows=[]}
+    render();
+  }
+  function sync(sub){
+    let on=sub==='ov';
+    panel.classList.toggle('hidden',!on);
+    document.getElementById('ldOvPeriod').classList.toggle('hidden',!on);
+    if(on){if(paintTitle)paintTitle();load()}
+  }
+  seg.querySelectorAll('[data-lsub]').forEach(b=>b.addEventListener('click',()=>sync(b.dataset.lsub)));
 })();
 </script>
 </body></html>

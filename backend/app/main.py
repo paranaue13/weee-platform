@@ -4280,9 +4280,20 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
     def _perm(name):
         og=_orgs.get((name or '').strip().casefold())
         return (og.permit_number,og.permit_ada) if og else (None,None)
+    # Σκοπός φόρτωσης ανά δελτίο: από την οριστικοποιημένη φόρτωση (dispatch_reason)· για παλιές εγγραφές από το είδος (Πώληση / Ενδοδιακίνηση)
+    _reason={}
+    for lo in db.scalars(select(LoadingOrder).where(LoadingOrder.status=='COMPLETED',LoadingOrder.dispatch_document_number.is_not(None))).all():
+        try: y=datetime.fromisoformat(lo.delivery_date).year if lo.delivery_date else lo.created_at.year
+        except Exception: y=lo.created_at.year
+        _reason[(lo.dispatch_document_number,y)]=(lo.dispatch_reason or '').strip()
+    def _purpose(r):
+        v=_reason.get((r.da_number,r.work_date.year))
+        if v: return v
+        if r.source=='LOADING': return ''
+        return 'Ενδοδιακίνηση' if r.kind=='WEEE_TO_UNIT' else 'Πώληση'
     out=[{"id":r.id,"work_date":r.work_date.isoformat(),"da_number":r.da_number,"weighbridge_number":r.weighbridge_number,
           "transporter":r.transporter,"recipient":r.recipient,"description":r.description,"weight_kg":float(r.weight_kg or 0),
-          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
+          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"purpose":_purpose(r),"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
           "transporter_permit":_perm(r.transporter)[0],"transporter_ada":_perm(r.transporter)[1],"recipient_permit":_perm(r.recipient)[0],"recipient_ada":_perm(r.recipient)[1]} for r in rows]
     if ql:
         out=[r for r in out if ql in ' '.join(str(r.get(k) or '') for k in ('da_number','transporter','recipient','description','eka_code','reptool_code')).lower()]
