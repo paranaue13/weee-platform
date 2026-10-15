@@ -7718,9 +7718,10 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   function loadingPurpose(desc,eka){
     let t=canon(desc).replace(/^\s+/,'');
     let badCategory=false;
-    if(t.startsWith(KEYWORD)&&/^[A-Z0-9Α-Ω]/.test(t.slice(KEYWORD.length)))badCategory=true;   // π.χ. «ΚΑΤΗΓΟΡΙΑΣ …»: όχι ακριβώς η λέξη
-    else if(t.startsWith(KEYWORD)){
-      let tok=t.slice(KEYWORD.length).trim().split(/\s+/)[0]||'';
+    if(t.startsWith(KEYWORD)){
+      // επιτρέπεται και η πτώση «ΚΑΤΗΓΟΡΙΑΣ» (με Σ στο τέλος)
+      let rest=t.slice(KEYWORD.length).replace(/^Σ(?=\s)/,'');
+      let tok=/^[A-Z0-9Α-Ω]/.test(rest)?'':(rest.trim().split(/\s+/)[0]||'');
       if(/^[0-9A-ZΑ-Ω]{6}$/.test(tok))return {purpose:'Ενδοδιακίνηση',rule:1,badCategory:false};
       badCategory=true;
     }
