@@ -1065,10 +1065,10 @@ button.ovCard.ovCardSel{border-color:var(--accent,#2f5fc4);box-shadow:0 0 0 3px 
 .ovHeadBtns{display:inline-flex;align-items:center;gap:8px}
 .ovSmall{height:32px;min-height:32px!important;padding:0 10px!important;font-size:13px}
 .ovList{display:flex;flex-direction:column;gap:2px}
-.ovRowHead,.ovRowFoot{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px;gap:8px;padding:8px 12px;font-size:12px;color:var(--fg-3,#74777f);background:var(--surface-2,#f0f3fa);border-radius:var(--r-box)}
+.ovRowHead,.ovRowFoot{display:grid;grid-template-columns:minmax(0,1fr) 96px 80px;gap:8px;padding:8px 12px;font-size:12px;color:var(--fg-3,#74777f);background:var(--surface-2,#f0f3fa);border-radius:var(--r-box)}
 .ovRowHead3,.ovRowFoot3{grid-template-columns:minmax(0,1fr) 90px 70px}
 .ovRowFoot{font-size:14px;font-weight:700;color:var(--fg,#1a1b20);border-top:2px solid var(--line-strong,#b9bdc9);border-radius:0}
-button.ovRow{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:2px solid transparent;border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13.5px;cursor:pointer}
+button.ovRow{display:grid;grid-template-columns:minmax(0,1fr) 96px 80px;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:2px solid transparent;border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13.5px;cursor:pointer}
 button.ovRow:hover{background:var(--hover,#eaf0fd)}
 button.ovRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 button.ovRow.ovRowSel{border-color:var(--accent,#2f5fc4);background:var(--accent-bg,#d8e2ff)}
@@ -1079,6 +1079,14 @@ button.ovCat:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .ovCode3{display:grid;grid-template-columns:minmax(0,1fr) 90px 70px;gap:8px;padding:5px 10px 5px 52px;font-size:13px;border-bottom:1px solid var(--line,#e3e5ec)}
 .ovCode{color:var(--accent,#2f5fc4);font-weight:700}
 .ovNumSlot{display:inline-flex}
+.colResizeLine{position:fixed;width:2px;background:var(--accent,#2f5fc4);z-index:9600;pointer-events:none}
+/* Συγκεντρωτικά: οι 3 στήλες φαίνονται πάντα (σταθερή διάταξη), τα ονόματα σπάνε σε 2η γραμμή, αριθμοί δεξιά */
+.ovTbl .tablewrap{overflow-x:auto}
+.ovTbl .tablewrap table{width:100%;min-width:0!important;max-width:none;table-layout:fixed}
+.ovTbl th,.ovTbl td{white-space:normal;overflow-wrap:anywhere;word-break:normal;overflow:visible}
+.ovTbl th:first-child,.ovTbl td:first-child{text-align:left}
+.ovTbl th:not(:first-child),.ovTbl td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
+.ovList{overflow-x:hidden}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -4987,9 +4995,19 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   },true);
 })();
 (function(){
-  const COL_RESIZE_EDGE_PX=6, COL_RESIZE_MIN_PX=40;
+  const COL_RESIZE_EDGE_PX=6, COL_RESIZE_MIN_PX=70;
   const RESIZABLE_TABLE_SELECTOR='.tablewrap table th, .prodTable th';
-  let state=null;
+  let state=null,guide=null;
+  try{Object.keys(localStorage).filter(k=>k.startsWith('colw:')&&Number(localStorage.getItem(k))<COL_RESIZE_MIN_PX).forEach(k=>localStorage.removeItem(k))}catch(e){}
+  const isStock=t=>!!t&&(t.id==='weeeProcessTable'||t.id==='weeeShipTable');
+  // Το συνολικό πλάτος του πίνακα = άθροισμα των στηλών (όπως στον Explorer): οι δεξιές στήλες μετακινούνται, δεν αλλάζουν πλάτος,
+  // και αν ξεπεράσει το πλάτος του πλαισίου εμφανίζεται οριζόντιο scroll.
+  function setTableWidth(table,px){
+    table.style.tableLayout='fixed';
+    table.style.setProperty('width',px+'px','important');
+    table.style.setProperty('min-width','0','important');
+    table.style.setProperty('max-width','none','important');
+  }
   function colKey(th){
     let scope=th.closest('[id]');
     let scopeId=scope?scope.id:'anon';
@@ -5043,8 +5061,9 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     ths.forEach(th=>{th.style.width=''});
     if(!stored.some(Boolean))return;
     let naturalWidths=ths.map((th,i)=>stored[i]?null:th.getBoundingClientRect().width);
-    ths.forEach((th,i)=>{th.style.width=(stored[i]||Math.round(naturalWidths[i]))+'px'});
-    table.style.tableLayout='fixed';
+    let tot=0;
+    ths.forEach((th,i)=>{let w=Math.max(COL_RESIZE_MIN_PX,Number(stored[i])||Math.round(naturalWidths[i]));th.style.width=w+'px';tot+=w});
+    setTableWidth(table,tot);
   }
   // Exposed so invApplyZoom() (defined outside this IIFE) can reapply stored widths as its own
   // baseline before scaling -- without this a bare reference from outside throws ReferenceError,
@@ -5066,8 +5085,10 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
       let dx=e.clientX-state.startX;
       let newW=Math.max(COL_RESIZE_MIN_PX,state.startW+dx);
       state.th.style.width=newW+'px';
-      state.table.style.tableLayout='fixed';
+      // το αριστερό όριο μένει σταθερό, αλλάζει μόνο αυτή η στήλη· οι δεξιές μετακινούνται με το ίδιο πλάτος τους
+      if(!isStock(state.table))setTableWidth(state.table,state.others+newW);else state.table.style.tableLayout='fixed';
       mirrorStockTableWidth(state.th,newW);
+      if(guide){let r=state.th.getBoundingClientRect(),tr=state.table.getBoundingClientRect();guide.style.left=(r.right-1)+'px';guide.style.top=tr.top+'px';guide.style.height=tr.height+'px'}
       e.preventDefault();
       return;
     }
@@ -5091,9 +5112,16 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     // way until the next full re-render happens to call applyStoredColWidths and silently repair
     // it). Lock every row-1 column to its current rendered width up front so table-layout:fixed has
     // a hint for all of them, not just the one being resized.
-    table.querySelectorAll('thead tr:first-child th').forEach(sib=>{if(!sib.style.width&&sib.dataset.wcol!=='stock')sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px'});
-    state={th,table,startX:e.clientX,startW:r.width};
-    document.body.style.userSelect='none';
+    let others=0;
+    table.querySelectorAll('thead tr:first-child th').forEach(sib=>{
+      if((!sib.style.width||/%$/.test(sib.style.width))&&sib.dataset.wcol!=='stock')sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px';
+      if(sib!==th)others+=parseFloat(sib.style.width)||sib.getBoundingClientRect().width;
+    });
+    state={th,table,startX:e.clientX,startW:r.width,others};
+    if(!isStock(table))setTableWidth(table,Math.round(others+r.width));
+    guide=document.createElement('div');guide.className='colResizeLine';document.body.appendChild(guide);
+    let tr0=table.getBoundingClientRect();guide.style.left=(r.right-1)+'px';guide.style.top=tr0.top+'px';guide.style.height=tr0.height+'px';
+    document.body.style.userSelect='none';document.body.style.cursor='col-resize';
     e.preventDefault();
   });
   document.addEventListener('mouseup',()=>{
@@ -5101,7 +5129,8 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
       localStorage.setItem(colKey(state.th),Math.round(parseFloat(state.th.style.width)));
       if(state.table.id==='weeeProcessTable'||state.table.id==='weeeShipTable')['weeeProcessTable','weeeShipTable'].forEach(id=>applyStockSharedWidths(document.getElementById(id)));
       state=null;
-      document.body.style.userSelect='';
+      if(guide){guide.remove();guide=null}
+      document.body.style.userSelect='';document.body.style.cursor='';
     }
   });
   const colWidthObserver=new MutationObserver(muts=>{
@@ -7337,8 +7366,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
       <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
       <div class="ovTables">
-        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά μεταφορέα</b><span id="recOvFC"></span></div><div class="tablewrap"><table><thead><tr><th>Μεταφορέας</th><th class="ovR">Παραλαβές</th><th class="ovR">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
-        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά προμηθευτή</b><span id="recOvFS"></span></div><div class="tablewrap"><table><thead><tr><th>Προμηθευτής</th><th class="ovR">Παραλαβές</th><th class="ovR">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά μεταφορέα</b><span id="recOvFC"></span></div><div class="tablewrap"><table id="recOvCTbl"><thead><tr><th style="width:46%">Μεταφορέας</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><b>Ανά προμηθευτή</b><span id="recOvFS"></span></div><div class="tablewrap"><table id="recOvSTbl"><thead><tr><th style="width:46%">Προμηθευτής</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
       </div>`;
     host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);render()});
     // επιλογές φίλτρων από τα πραγματικά δεδομένα (διάστημα + επιλεγμένοι τύποι)
@@ -7354,6 +7383,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
       $('recOvCRows').innerHTML=rows(group('carrier'))+tot;
       $('recOvSRows').innerHTML=rows(group('supplier'))+tot;
     };
+    ['recOvCTbl','recOvSTbl'].forEach(id=>{let t=$(id);if(t&&[...t.querySelectorAll('thead tr:first-child th')].some((th,i)=>localStorage.getItem('colw:'+id+':'+i)))window.applyStoredColWidths(t)});
     OV.filter($('recOvFC'),{options:cOpts,selected:st.carriers,onChange:fill});
     OV.filter($('recOvFS'),{options:sOpts,selected:st.suppliers,onChange:fill});
     fill();
