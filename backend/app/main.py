@@ -2513,6 +2513,26 @@ def sorting_month_report(month:str=Query(pattern=r'^\d{4}-\d{2}$'), db:Session=D
         out.append({'date':day,'loads':loads,'totals':dt})
     return {'month':month,'days':out,'totals':month_totals}
 
+@app.get('/sorting/overview')
+def sorting_overview(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
+    """Μόνο ανάγνωση: κιλά ανά επίσημο κωδικό ΑΗΗΕ για κάθε φορτίο με ταξινόμηση στο διάστημα (για την καρτέλα Συγκεντρωτικά)."""
+    try:
+        d0=datetime.fromisoformat(start); d1=datetime.fromisoformat(end)+timedelta(days=1)
+    except ValueError:
+        raise HTTPException(422,'Μη έγκυρο διάστημα')
+    q=(select(InboundLoad.id,SortingEntry,WEEECategory)
+       .join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
+       .join(SortingSession,SortingSession.inbound_load_id==InboundLoad.id)
+       .join(SortingEntry,SortingEntry.session_id==SortingSession.id)
+       .join(WEEECategory,WEEECategory.id==SortingEntry.weee_category_id)
+       .where(InboundTrip.receipt_date>=d0,InboundTrip.receipt_date<d1,InboundTrip.deleted_at.is_(None)))
+    out={}
+    for lid,e,cat in db.execute(q).all():
+        code=cat.parent_code if cat.is_internal_subcategory and cat.parent_code else cat.code
+        w=float(e.approved_weight if e.approved_weight is not None else (e.raw_weight or 0))
+        d=out.setdefault(lid,{}); d[code]=d.get(code,0)+w
+    return {'loads':out}
+
 @app.get('/sorting/{load_id}/detail')
 def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     load,ses=_session_for_load(db,load_id,False)

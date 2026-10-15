@@ -1047,7 +1047,7 @@ button.ovCard.ovCardSel{border-color:var(--accent,#2f5fc4);box-shadow:0 0 0 3px 
 .ovHint{font-size:12px}
 .ovTables{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(420px,100%),1fr));gap:14px;align-items:start}
 .ovTbl{min-width:0;margin:0;overflow:visible!important}
-#receipts .receiptWorkspace.ovFull{grid-template-columns:minmax(0,1fr)!important}
+#receipts .receiptWorkspace.ovFull,#sortingReview .receiptWorkspace.ovFull{grid-template-columns:minmax(0,1fr)!important}
 #receiptMonthSummary,#receiptMonthSummary .ovTables{overflow:visible}
 .ovTblHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
 .ovTbl .tablewrap{max-height:none}
@@ -1062,6 +1062,23 @@ button.ovCard.ovCardSel{border-color:var(--accent,#2f5fc4);box-shadow:0 0 0 3px 
 .ovOpt:hover,.ovClear:hover{background:var(--hover,#eaf0fd)}
 .ovOpt input{width:auto;min-height:0;flex:none}
 .ovNum{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font-weight:700;font-size:12px}
+.ovHeadBtns{display:inline-flex;align-items:center;gap:8px}
+.ovSmall{height:32px;min-height:32px!important;padding:0 10px!important;font-size:13px}
+.ovList{display:flex;flex-direction:column;gap:2px}
+.ovRowHead,.ovRowFoot{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px;gap:8px;padding:8px 12px;font-size:12px;color:var(--fg-3,#74777f);background:var(--surface-2,#f0f3fa);border-radius:var(--r-box)}
+.ovRowHead3,.ovRowFoot3{grid-template-columns:minmax(0,1fr) 90px 70px}
+.ovRowFoot{font-size:14px;font-weight:700;color:var(--fg,#1a1b20);border-top:2px solid var(--line-strong,#b9bdc9);border-radius:0}
+button.ovRow{display:grid;grid-template-columns:minmax(0,1fr) 110px 90px;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:2px solid transparent;border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13.5px;cursor:pointer}
+button.ovRow:hover{background:var(--hover,#eaf0fd)}
+button.ovRow:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.ovRow.ovRowSel{border-color:var(--accent,#2f5fc4);background:var(--accent-bg,#d8e2ff)}
+button.ovCat{display:grid;grid-template-columns:18px 26px minmax(0,1fr) 90px 70px;gap:6px;align-items:center;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-weight:600;cursor:pointer}
+button.ovCat.ovCatNon{background:var(--surface-2,#f0f3fa)}
+button.ovCat:hover{background:var(--hover,#eaf0fd)}
+button.ovCat:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.ovCode3{display:grid;grid-template-columns:minmax(0,1fr) 90px 70px;gap:8px;padding:5px 10px 5px 52px;font-size:13px;border-bottom:1px solid var(--line,#e3e5ec)}
+.ovCode{color:var(--accent,#2f5fc4);font-weight:700}
+.ovNumSlot{display:inline-flex}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -7354,6 +7371,118 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   renderReceiptMonths=function(all){render(all)};
   // Αν η καρτέλα είναι ήδη ανοιχτή, ξαναζωγράφισε
   if(typeof receiptMode!=='undefined'&&receiptMode==='months'){setReceiptMode('months');render(receiptRowsAll||[])}
+})();
+</script>
+<script id="overviewSorting">
+// ================= ΤΑΞΙΝΟΜΗΣΗ → Συγκεντρωτικά (μόνο ανάγνωση) =================
+(function(){
+  const TYPES=[['CONTAINER','Container','k1','<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>'],
+               ['CURTAIN_TRAILER','Καρότσα','k2','<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'],
+               ['SMALL_POINTS','Μικρά σημεία','k3','<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>']];
+  const TOT_ICON='<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>';
+  const st={period:'month',cursor:new Date(),custom:null,types:new Set(),suppliers:new Set(),loads:new Set(),cats:new Set(),open:new Set()};
+  let lastRows=[],paintTitle=null,seq=0,cat=[],cache=new Map();
+  const typeName=t=>(TYPES.find(x=>x[0]===t)||[t,t])[1];
+  const pad2=n=>String(n).padStart(2,'0');
+  const dmy=iso=>{let d=(iso||'').slice(0,10).split('-');return d.length===3?`${d[2]}/${d[1]}/${d[0]}`:'—'};
+  const pct=v=>v.toLocaleString('el-GR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  // Ομαδοποίηση από τα υπάρχοντα δεδομένα: κωδικός μόνο με ψηφία = ΜΗ ΑΗΗΕ· αλλιώς ο αριθμός ομάδας της κατηγορίας (group_no ή το 1ο ψηφίο του κωδικού)
+  const isNon=c=>/^\d+$/.test(String(c.official_code||'').trim());
+  const grpOf=c=>isNon(c)?'N':String(c.group_no||prodTop(c.official_code||c.code)||'');
+  const label=c=>weeeCatLabel(c,'sorting');
+  async function getCats(){
+    if(!cat.length){try{let a=await api('/master/weee-display');cat=a.filter(x=>!x.is_internal_subcategory)}catch(e){cat=[]}}
+    return cat;
+  }
+  function visibleRows(){
+    let rg=OV.range(st);
+    let r=(lastRows||[]).filter(x=>{let d=(x.receipt_date||'').slice(0,10);return d>=rg.startISO&&d<=rg.endISO});
+    return r;
+  }
+  async function render(rows){
+    if(Array.isArray(rows))lastRows=rows;
+    let host=$('sortingMonthSummary');if(!host)return;
+    let my=++seq;
+    let rg=OV.range(st),inPeriod=visibleRows();
+    const n=t=>inPeriod.filter(r=>!t||r.receipt_type===t),sum=a=>a.reduce((s,r)=>s+Number(r.net_weight||0),0);
+    let specs=TYPES.map(([k,nm,cls,ic])=>{let a=n(k);return {key:k,cls,icon:ic,title:nm,text:`${a.length} ${a.length===1?'σημείο':'σημεία'} · ${kg(sum(a))}`,sel:st.types.has(k)}});
+    let all=n();specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`${all.length} ${all.length===1?'ταξινόμηση':'ταξινομήσεις'} · ${kg(sum(all))}`,sel:st.types.size===0});
+    let ofType=inPeriod.filter(r=>!st.types.size||st.types.has(r.receipt_type));
+    let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
+    host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
+      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων · Κλικ σε φορτίο: μόνο αυτό (Ctrl + κλικ: περισσότερα)</span></div>
+      <div class="ovTables">
+        <div class="card ovTbl"><div class="ovTblHead"><b>Προμηθευτές</b><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall hidden" id="soClearLoads">Καθαρισμός φορτίων</button><span id="soFS"></span></span></div><div class="ovList" id="soLoads"></div></div>
+        <div class="card ovTbl"><div class="ovTblHead"><b>Ταξινόμηση</b><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall" id="soToggle">Ανάπτυξη όλων</button><span id="soFC"></span></span></div><div class="ovList" id="soCats"><div class="muted" style="padding:10px">Φόρτωση…</div></div></div>
+      </div>`;
+    host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);st.loads.clear();render()});
+    // φίλτρο προμηθευτή: από τα φορτία του διαστήματος και των επιλεγμένων τύπων
+    let sNames=[...new Set(ofType.map(r=>r.supplier||'—'))].sort((a,b)=>a.localeCompare(b,'el'));
+    [...st.suppliers].forEach(v=>{if(!sNames.includes(v))st.suppliers.delete(v)});
+    OV.filter($('soFS'),{options:sNames.map(x=>({id:x,label:x})),selected:st.suppliers,onChange:()=>{st.loads.clear();paintLists()}});
+    let cats=await getCats();
+    if(my!==seq)return;
+    // φίλτρο κατηγοριών: ομάδες 1–6 με πλακίδιο αριθμού + Μη ΑΗΗΕ
+    let groups=[...new Set(cats.map(grpOf).filter(Boolean))].filter(g=>g!=='N').sort();
+    let gOpts=groups.map(g=>({id:g,num:g,label:prodTopName(g)||('Κατηγορία '+g)}));
+    if(cats.some(isNon))gOpts.push({id:'N',label:'Μη ΑΗΗΕ'});
+    OV.filter($('soFC'),{options:gOpts,selected:st.cats,onChange:()=>paintCats()});
+    $('soToggle').onclick=()=>{let ids=gOpts.map(o=>o.id).filter(id=>!st.cats.size||st.cats.has(id));let allOpen=ids.every(id=>st.open.has(id));if(allOpen)ids.forEach(id=>st.open.delete(id));else ids.forEach(id=>st.open.add(id));paintCats()};
+    $('soClearLoads').onclick=()=>{st.loads.clear();paintLists()};
+    // δεδομένα κωδικών ανά φορτίο (μόνο ανάγνωση)
+    let key=rg.startISO+'|'+rg.endISO,codes=cache.get(key);
+    if(!codes){try{let r=await api(`/sorting/overview?start=${rg.startISO}&end=${rg.endISO}`);codes=r.loads||{};cache.set(key,codes)}catch(e){codes={}}}
+    if(my!==seq)return;
+    let ctx={ofType,codes,cats,gOpts};
+    paintLists=function(){
+      let rows=ofType.filter(r=>!st.suppliers.size||st.suppliers.has(r.supplier||'—')).slice().sort((a,b)=>String(a.receipt_date).localeCompare(String(b.receipt_date)));
+      let ids=new Set(rows.map(r=>r.load_id));[...st.loads].forEach(i=>{if(!ids.has(i))st.loads.delete(i)});
+      let selRows=rows.filter(r=>st.loads.has(r.load_id));
+      ctx.rows=rows;ctx.use=selRows.length?selRows:rows;
+      $('soLoads').innerHTML=`<div class="ovRowHead"><span>Προμηθευτής</span><span>Ημερομηνία</span><span class="ovR">Κιλά</span></div>`+
+        rows.map(r=>`<button type="button" class="ovRow${st.loads.has(r.load_id)?' ovRowSel':''}" data-load="${r.load_id}" aria-pressed="${st.loads.has(r.load_id)}"><span>${esc(r.supplier||'—')}</span><span>${dmy(r.receipt_date)}</span><span class="ovR">${OV.num(Number(r.net_weight||0))}</span></button>`).join('')
+        +(rows.length?`<div class="ovRowFoot"><span>${selRows.length?`Επιλεγμένα (${selRows.length} από ${rows.length})`:`Σύνολο (${rows.length})`}</span><span></span><span class="ovR">${OV.num((selRows.length?selRows:rows).reduce((a,r)=>a+Number(r.net_weight||0),0))}</span></div>`:'<div class="muted" style="padding:10px">Δεν υπάρχουν ταξινομήσεις.</div>');
+      $('soClearLoads').classList.toggle('hidden',!selRows.length);
+      $('soLoads').querySelectorAll('.ovRow').forEach(b=>b.onclick=e=>{
+        let id=b.dataset.load;
+        if(e.ctrlKey||e.metaKey){st.loads.has(id)?st.loads.delete(id):st.loads.add(id)}
+        else if(st.loads.size===1&&st.loads.has(id))st.loads.clear();
+        else{st.loads.clear();st.loads.add(id)}
+        paintLists();
+      });
+      paintCats();
+    };
+    paintCats=function(){
+      let w={};ctx.use.forEach(r=>{let c=codes[r.load_id]||{};Object.keys(c).forEach(k=>{w[k]=(w[k]||0)+Number(c[k]||0)})});
+      let order=['1','2','3','4','5','6','N'].filter(g=>g==='N'?cats.some(isNon):cats.some(c=>grpOf(c)===g));
+      order=order.filter(g=>!st.cats.size||st.cats.has(g));
+      let data=order.map(g=>{let cs=cats.filter(c=>grpOf(c)===g),items=cs.map(c=>({c,kg:w[c.official_code]||0})).filter(x=>x.kg>0);return {g,items,kg:items.reduce((a,x)=>a+x.kg,0)}});
+      let total=data.reduce((a,x)=>a+x.kg,0),p=v=>total>0?pct(v/total*100):pct(0);
+      let h=`<div class="ovRowHead ovRowHead3"><span>Κατηγορία / Κωδικός</span><span class="ovR">Κιλά</span><span class="ovR">%</span></div>`;
+      data.forEach(x=>{
+        let open=st.open.has(x.g),name=x.g==='N'?'Μη ΑΗΗΕ':(prodTopName(x.g)||('Κατηγορία '+x.g));
+        h+=`<button type="button" class="ovCat${x.g==='N'?' ovCatNon':''}" data-g="${x.g}" aria-expanded="${open}"><span class="ovArrow">${open?'▾':'▸'}</span><span class="ovNumSlot">${x.g==='N'?'':`<span class="ovNum">${x.g}</span>`}</span><span class="ovCatName">${esc(name)}</span><span class="ovR">${OV.num(x.kg)}</span><span class="ovR">${p(x.kg)}</span></button>`;
+        if(open){h+=x.items.length?x.items.map(it=>`<div class="ovCode3"><span><b class="ovCode">${esc(it.c.official_code)}</b> ${esc(label(it.c))}</span><span class="ovR">${OV.num(it.kg)}</span><span class="ovR">${p(it.kg)}</span></div>`).join(''):'<div class="ovCode3 muted"><span>Δεν υπάρχουν καταχωρήσεις.</span><span></span><span></span></div>'}
+      });
+      h+=`<div class="ovRowFoot ovRowFoot3"><span>Σύνολο</span><span class="ovR">${OV.num(total)}</span><span class="ovR">${total>0?'100,0%':pct(0)}</span></div>`;
+      $('soCats').innerHTML=h;
+      $('soCats').querySelectorAll('.ovCat').forEach(b=>b.onclick=()=>{let g=b.dataset.g;st.open.has(g)?st.open.delete(g):st.open.add(g);paintCats()});
+      let allOpen=order.length&&order.every(g=>st.open.has(g));$('soToggle').textContent=allOpen?'Σύμπτυξη όλων':'Ανάπτυξη όλων';
+    };
+    paintLists();
+  }
+  let paintLists=()=>{},paintCats=()=>{};
+  // Επάνω γραμμή
+  let bar=document.querySelector('#sortingReview .receiptTopActions');
+  if(bar){
+    let tabs=bar.querySelector('.receiptViewTabs');
+    tabs.insertAdjacentHTML('afterend',OV.periodHtml('soOvPeriod'));
+    paintTitle=OV.bindPeriod('soOvPeriod',st,()=>render());
+  }
+  const sync=()=>{let p=$('soOvPeriod'),m=(typeof sortingMode!=='undefined'&&sortingMode==='months');if(p){p.classList.toggle('hidden',!m);if(m&&paintTitle)paintTitle()}let w=document.querySelector('#sortingReview .receiptWorkspace');if(w)w.classList.toggle('ovFull',m);let cp=document.querySelector('#sortingReview .receiptCalendarPane');if(cp)cp.classList.toggle('hidden',m)};
+  renderSortingMonths=function(all){if(typeof sortingMode!=='undefined'&&sortingMode==='months')render(all);else if(Array.isArray(all))lastRows=all;setTimeout(sync,0)};
+  ['sortingDaysMode','sortingMonthsMode'].forEach(id=>$(id).addEventListener('click',()=>setTimeout(sync,0)));
+  if(typeof sortingMode!=='undefined'&&sortingMode==='months'){sync();render(sortingReviewRows||[])}
 })();
 </script>
 </body></html>
