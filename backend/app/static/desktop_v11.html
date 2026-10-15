@@ -1052,6 +1052,7 @@ body.pane #login{display:none!important}
 .ovPeriod{display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:12px}
 .ovCards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
 #loadingOvPanel .ovTbl th{white-space:nowrap}
+#loading.ldOv #loadingEcCard,#loading.ldOv #loadingOrdersWrap{display:none!important}
 #loadingOvPanel .ovTables{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
 .ovCards.ovCardsAuto{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
 @media(max-width:900px){.ovCards{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -7677,8 +7678,16 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   const st={period:'month',cursor:new Date(),custom:null,purposes:new Set(),carriers:new Set(),recipients:new Set(),materials:new Set()};
   let paintTitle=null,token=0,lastRows=[];
   // κοινή γραμμή καρτελών: καρτέλες αριστερά, περίοδος δεξιά
-  let row=document.createElement('div');row.id='loadingTabsRow';row.style.cssText='display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:16px';
-  seg.parentNode.insertBefore(row,seg);row.appendChild(seg);seg.style.margin='0';
+  let row=document.createElement('div');row.id='loadingTabsRow';row.className='receiptTopActions';
+  sec.insertBefore(row,sec.firstChild);row.appendChild(seg);seg.style.margin='0';
+  let acts=document.createElement('div');acts.id='ldActions';acts.style.cssText='display:flex;align-items:center;gap:16px;margin-left:auto';
+  row.appendChild(acts);
+  let oldCard=[...sec.children].find(c=>c.classList.contains('card')&&c.querySelector('#newLoadingBtn'));
+  if(oldCard){
+    let tg=oldCard.querySelector('.toggleRow'),nb=oldCard.querySelector('#newLoadingBtn');
+    if(tg)acts.appendChild(tg);if(nb)acts.appendChild(nb);
+    oldCard.remove();
+  }
   row.insertAdjacentHTML('beforeend',OV.periodHtml('ldOvPeriod'));
   let panel=document.createElement('div');panel.id='loadingOvPanel';panel.className='hidden';panel.style.marginTop='16px';
   hist.parentNode.insertBefore(panel,hist.nextSibling);
@@ -7762,6 +7771,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let on=sub==='ov';
     panel.classList.toggle('hidden',!on);
     document.getElementById('ldOvPeriod').classList.toggle('hidden',!on);
+    acts.classList.toggle('hidden',on);
+    sec.classList.toggle('ldOv',on);   // στα Συγκεντρωτικά κρύβονται η Ζωντανή ροή και ο πίνακας φορτώσεων
     if(on){if(paintTitle)paintTitle();load()}
   }
   seg.querySelectorAll('[data-lsub]').forEach(b=>b.addEventListener('click',()=>sync(b.dataset.lsub)));
