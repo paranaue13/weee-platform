@@ -2968,9 +2968,10 @@ def reports_tables(data:dict, user:User=Depends(current_user)):
     story=[]
     for idx,(name,cols,rows,tot) in enumerate(parts):
         if idx: story.append(PageBreak())
-        story+= [Paragraph(title,h1),Paragraph(subtitle,nm) if subtitle else Spacer(1,2),Spacer(1,6),Paragraph(name,h2),Spacer(1,4)]
-        body=[[Paragraph(str(c),nm) for c in cols]]+[[Paragraph(('{:,.0f}'.format(v).replace(',','.') if isinstance(v,(int,float)) and not isinstance(v,bool) else str(v)),nm) for v in r] for r in rows]
-        if tot: body.append([Paragraph('<b>'+str(v)+'</b>',nm) for v in tot])
+        story+= [Paragraph(title.replace('&','&amp;').replace('<','&lt;'),h1),Paragraph(subtitle.replace('&','&amp;').replace('<','&lt;'),nm) if subtitle else Spacer(1,2),Spacer(1,6),Paragraph(name.replace('&','&amp;').replace('<','&lt;'),h2),Spacer(1,4)]
+        from xml.sax.saxutils import escape as _esc
+        body=[[Paragraph(_esc(str(c)),nm) for c in cols]]+[[Paragraph(_esc('{:,.0f}'.format(v).replace(',','.') if isinstance(v,(int,float)) and not isinstance(v,bool) else str(v)),nm) for v in r] for r in rows]
+        if tot: body.append([Paragraph('<b>'+_esc(str(v))+'</b>',nm) for v in tot])
         W=landscape(A4)[0]-56; t=Table(body,colWidths=[W/len(cols)]*len(cols),repeatRows=1)
         st=[('GRID',(0,0),(-1,-1),.3,colors.HexColor('#C9D2E3')),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#DCE6F5')),('VALIGN',(0,0),(-1,-1),'TOP')]
         if tot: st+= [('LINEABOVE',(0,len(body)-1),(-1,len(body)-1),1.6,colors.HexColor('#8d9ab4'))]
