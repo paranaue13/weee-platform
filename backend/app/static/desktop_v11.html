@@ -912,6 +912,7 @@ body[data-theme="dark"] #ready .prodTable tbody tr:hover,body[data-theme="dark"]
 #ready .prodTable tbody td{height:34px;box-sizing:border-box;padding-top:0!important;padding-bottom:0!important;line-height:20px}
 #ready .prodTable .negKgCell{display:inline-block;height:20px;line-height:20px;padding:0 7px;vertical-align:middle}
 #readyBalanceRow td{z-index:3}
+#readyBalanceRow td.stkTotal{z-index:5}
 </style>
 <style id="prodLook">
 /* Παραγωγή: πίνακες, κάρτες, εργαλειοθήκη -- μόνο εμφάνιση */
@@ -1236,6 +1237,20 @@ body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 .pinLayer .pinZone.dG .pinDot,.pinLayer .pinZone.dC .pinDot{width:22px;height:22px;background:#d9644a;color:#fff;border:0;font:700 16px/22px Roboto,system-ui,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.28);cursor:pointer}
 .pinLayer .pinZone.dG .pinDot{left:6px;top:50%;margin-top:-11px}
 .pinLayer .pinZone.dC .pinDot{left:50%;margin-left:-11px;top:auto;bottom:4px}
+/* ΑΛΛΑΓΗ ΙΖ: Φορτώσεις › Ιστορικό Δελτίων Αποστολής — γραμματοσειρά, στοίχιση αριθμών, γραμμή συνόλου */
+#shipHistCard .shipHistWrap td{font-size:15px;padding:12px}
+#shipHistCard .shipHistWrap th{font-size:14px;padding:12px}
+#shipHistCard :is(.prodSegment button,#shipHistSearch,.prodPeriodNav button,.prodPeriodNav b,.periodPickerBtn){font-size:14px}
+#shipHistCard .shipHistWrap table:not(.shipZ) :is(th,td):is(:nth-child(2),:nth-child(4)){text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
+#shipHistCard .shipHistWrap table:not(.shipZ) tbody td:nth-child(3){white-space:normal}
+#shipHistCard tfoot td{position:sticky;bottom:0;z-index:3;background:#e8f0fb;color:var(--fg,#1a1b20);font-weight:700;font-size:15px;padding:12px;border-top:2px solid #aeb7c9;border-bottom:0}
+body[data-theme="dark"] #shipHistCard tfoot td{background:var(--surface-2,#1f2a44)}
+#shipHistCard tfoot td.shipNum{text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
+.daTbl td{font-size:15px;padding:12px}.daTbl th{font-size:14px;padding:12px}
+.daTbl tr :is(th,td):nth-child(3){text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
+#daBackdrop{position:fixed;inset:0;background:transparent;z-index:89}
+/* ΑΛΛΑΓΗ ΙΖ2: οι κρυμμένες στήλες/γραμμές δεν αφήνουν κενό ή γραμμή· τα <col> κρυμμένων στηλών δεν δεσμεύουν πλάτος */
+.prodTable .pinColHide,.prodTable tr.pinRowHide{display:none!important}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1979,7 +1994,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 </div>
 <div class="periodPickerDropdown hidden" id="shipHistPeriodDropdown"><div class="periodPickerYears" id="shipHistPeriodYears"></div><div class="periodPickerGrid" id="shipHistPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="shipHistPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
-<div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><span class="muted">Σύνολο: <span id="shipHistTotal"></span></span><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th>Ημερομηνία</th><th>Αρ. Δ.Α.</th><th>Περιγραφή</th><th>Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th>Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody></table></div></div></section>
+<div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th style="width:120px">Ημερομηνία</th><th style="width:90px">Αρ. Δ.Α.</th><th style="width:190px">Περιγραφή</th><th style="width:130px">Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th style="width:110px">Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody><tfoot id="shipHistFoot"></tfoot></table></div></div></section>
 
 <section id="reports" class="view hidden"><div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode repTab active" data-reptab="receipts">Παραλαβές</button><button class="receiptMode repTab" data-reptab="processing">Επεξεργασία</button><button class="receiptMode repTab" data-reptab="dispatch">Αποστολές</button><button class="receiptMode repTab" data-reptab="statistics">Στατιστικά</button><button class="receiptMode repTab" data-reptab="recycling">Ανακύκλωση Συσκευών</button></div><div class="receiptActionButtons" id="reportsUploadWrap"><button class="btn" id="reportsUploadBtn">+ Φόρτωση αρχείου</button><input type="file" id="reportsUploadInput" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.pdf" multiple></div></div><div class="card hidden" id="reportsGenerate"><div class="toolbar" style="margin:0 0 10px"><b>Δημιουργία από τις καταγραφές</b><span id="reportsGenMsg" class="muted"></span></div><div class="toolbar" style="margin:0 0 8px"><label class="inlineCheck">Ημέρα <input type="date" id="reportsGenDay"></label><button class="btn alt repGen" data-kind="day" data-path="/sorting/daily-export?day=">Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="day" data-path="/reports/generate/daily-summary?day=">Ημερήσιο Συγκεντρωτικό</button></div><div class="toolbar" style="margin:0"><label class="inlineCheck">Μήνας <input type="month" id="reportsGenMonth"></label><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/monthly-received?month=">Μηνιαία Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/non-weee-by-supplier?month=">Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή</button></div></div><div id="reportsList"></div><div id="deviceYieldPanel" class="hidden"></div></section>
 <section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><button type="button" class="btn alt iconText" id="invReportBtn" title="Αναφορά (Excel / PDF)"></button><div class="prodPeriodNav" id="invZoomNav"><button type="button" id="invZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="invZoomLabel" style="min-width:52px">100%</b><button type="button" id="invZoomIn" title="Μεγέθυνση πίνακα">+</button></div></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
@@ -3709,6 +3724,7 @@ function invApplyZoom(){
   }
   $('invZoomLabel').textContent=invZoom+'%';
   localStorage.setItem('invZoomPct',invZoom);
+  window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
 }
 async function loadInventoryCount(){
   $('invYearLabel').textContent=invYear;
@@ -3781,6 +3797,7 @@ function renderInventoryCount(){
 $('invActiveOnlyToggle').onchange=(e)=>{invActiveOnly=e.target.checked;renderInventoryCount()};
 $('invYearPrev').onclick=()=>{invYear--;loadInventoryCount()};
 $('invYearNext').onclick=()=>{invYear++;loadInventoryCount()};
+window.addEventListener('tableLayoutChanged',e=>{let t=e&&e.detail&&e.detail.table;if(t&&t.id==='invCountTable'&&$('inventory')&&!$('inventory').classList.contains('hidden'))invApplyZoom()});
 let _invRz=0,_invW=0;window.addEventListener('resize',()=>{clearTimeout(_invRz);_invRz=setTimeout(()=>{if($('inventory')&&!$('inventory').classList.contains('hidden'))invApplyZoom()},150)});
 // όταν αλλάζει το πλάτος του πλαισίου (π.χ. εμφανίζεται κάθετη μπάρα κύλισης) ξαναγεμίζει ο πίνακας
 try{new ResizeObserver(()=>{let w=$('invTableWrap').clientWidth;if(w&&w!==_invW){_invW=w;clearTimeout(_invRz);_invRz=setTimeout(()=>{if(!$('inventory').classList.contains('hidden'))invApplyZoom()},60)}}).observe($('invTableWrap'))}catch(e){}
@@ -4153,6 +4170,22 @@ async function loadShipmentHistory(){
  try{shipLoadings=await api('/loading/orders');shipDrafts=shipLoadings.filter(o=>o.status==='OPEN')}catch(e){shipLoadings=[];shipDrafts=[]}
  renderShipmentHistory();
 }
+// Ετικέτα περιόδου για τη γραμμή συνόλου: Ημέρα → «15/9/2026», Μήνας → «Σεπτεμβρίου 2026», Τρίμηνο → «3ου τριμήνου 2026», Έτος → «2026»
+function shipHistTotLabel(){
+  let st=shipHistState,r=shipHistRange(),d=new Date(st.cursor);
+  if(st.period==='custom')return r.label;
+  if(st.period==='day')return d.toLocaleDateString('el-GR');
+  if(st.period==='month')return new Date(d.getFullYear(),d.getMonth(),1).toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'}).replace(/^\d+\s*/,'');
+  if(st.period==='quarter')return (Math.floor(d.getMonth()/3)+1)+'ου τριμήνου '+d.getFullYear();
+  return String(d.getFullYear());
+}
+// Σταθερή γραμμή συνόλου στο κάτω μέρος του πίνακα: από τις ΟΡΑΤΕΣ γραμμές (περίοδος + φίλτρο + αναζήτηση)· N = διαφορετικοί αριθμοί Δ.Α.
+function renderShipHistTotal(rows,qtyIdx,ncols){
+  let das=new Set(rows.filter(x=>x.da_number).map(x=>String(x.work_date||'').slice(0,4)+'|'+x.da_number)).size;
+  let sum=rows.reduce((s,x)=>s+Number(x.weight_kg||0),0);
+  let a=Math.max(1,qtyIdx),b=Math.max(0,ncols-qtyIdx-1);
+  $('shipHistFoot').innerHTML=`<tr class="shipTot"><td colspan="${a}">Σύνολο ${esc(shipHistTotLabel())} · ${das} Δ.Α.</td><td class="shipNum">${kg(sum)}</td>${b?`<td colspan="${b}"></td>`:''}</tr>`;
+}
 function renderShipmentHistory(){
  let r=shipHistRange();
  if($('shipHistPeriodTitle'))$('shipHistPeriodTitle').textContent=r.label;
@@ -4176,16 +4209,16 @@ function renderShipmentHistory(){
    const rowsZ=rows.map(x0=>{
      let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
      return `<tr class="ecRow" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
-   $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>`;
+   $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>`;
    $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
-   $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
+   renderShipHistTotal(rows,Math.max(1,cols.findIndex(c=>/^Ποσότητα/.test(c[0]))),cols.length);
    return;
  }
  if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
  const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td></tr>`).join('');
- $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν εγγραφές.</td></tr>';
+ $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
  $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
- $('shipHistTotal').innerHTML=`<b>${kg(rows.reduce((s,x)=>s+Number(x.weight_kg||0),0))}</b>`;
+ renderShipHistTotal(rows,3,8);
 }
 // Clicking a row opens the full Δ.Α. (dispatch note) it belongs to, with every line item under that
 // same Δ.Α. number -- one delivery note can cover several materials/rows. Looks across all of
@@ -4195,7 +4228,7 @@ function openDaDetail(daNumber,e){
  let items=shipHistEntries.filter(x=>String(x.da_number||'')===daNumber);
  if(!items.length)return;
  let total=items.reduce((s,x)=>s+Number(x.weight_kg||0),0);
- let html=`<div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Κιλά</th><th>Μεταφορέας</th><th>Παραλήπτης</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="2"><b>Σύνολο</b></td><td><b>${kg(total)}</b></td><td colspan="2"></td></tr></tfoot></table></div>`;
+ let html=`<div class="tablewrap"><table class="daTbl"><thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Κιλά</th><th>Μεταφορέας</th><th>Παραλήπτης</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="2"><b>Σύνολο</b></td><td><b>${kg(total)}</b></td><td colspan="2"></td></tr></tfoot></table></div>`;
  // Οριστικοποιημένο δελτίο φόρτωσης: ο αριθμός Δ.Α. είναι επεξεργάσιμος εδώ
  let ld=items.some(x=>x.source==='LOADING')?(shipLoadings||[]).find(o=>o.status==='COMPLETED'&&String(o.dispatch_document_number||'')===daNumber):null;
  if(ld)html=`<div class="toolbar" style="gap:10px;align-items:flex-end;margin-bottom:10px"><label style="flex:1">Αρ. Δ.Α.<input id="daNumInput" inputmode="numeric" value="${esc(daNumber)}"></label><button type="button" class="btn" id="daNumSave">Αποθήκευση αριθμού</button></div><div class="formgrid" style="margin-bottom:6px">${daFieldsHtml(ld,'dada_')}</div><div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><button type="button" class="btn alt" id="daDetSave">Αποθήκευση στοιχείων</button></div><div id="daNumErr" class="error"></div>`+html;
@@ -5212,13 +5245,14 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     if(table.tHead)rows.push(...table.tHead.rows);
     [...table.tBodies].forEach(b=>rows.push(...b.rows));
     if(table.tFoot)rows.push(...table.tFoot.rows);
-    return rows;
+    return rows.filter(r=>!r.classList.contains('pinRowHide'));
   }
   function gridMap(rows){
     const occ=[],map=new Map();let N=0;
     rows.forEach((tr,ri)=>{
       occ[ri]=occ[ri]||[];let c=0;
       for(const cell of tr.cells){
+        if(cell.classList.contains('pinColHide'))continue;   // κρυμμένο (display:none): δεν υπάρχει στο πλέγμα
         while(occ[ri][c])c++;
         const cs=cell.colSpan||1,rs=cell.rowSpan||1;
         map.set(cell,{s:c,e:c+cs-1,ri});
@@ -5276,9 +5310,11 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     // colgroup: το fixed layout διαβάζει τα πλάτη από εδώ πρώτα (αλλιώς το colspan της 1ης γραμμής μοιράζει ίσα)
     let cg=table.querySelector(':scope>colgroup[data-cwg]');
     if(!cg){cg=document.createElement('colgroup');cg.setAttribute('data-cwg','1');table.insertBefore(cg,table.firstChild)}
-    while(cg.children.length<w.length)cg.appendChild(document.createElement('col'));
-    while(cg.children.length>w.length)cg.lastChild.remove();
-    w.forEach((x,k)=>{let c=cg.children[k],v=Math.round(x)+'px';c.style.setProperty('width',v,'important');c.style.setProperty('min-width',v,'important');c.style.setProperty('max-width',v,'important')});
+    // Οι κρυμμένες στήλες (display:none) ΔΕΝ μετρούν στο πλέγμα του πίνακα: δεν παίρνουν <col>, ώστε οι επόμενες στήλες να μη μετατοπίζονται
+    let colIdx=[];w.forEach((x,k)=>{if(!skip[k])colIdx.push(k)});
+    while(cg.children.length<colIdx.length)cg.appendChild(document.createElement('col'));
+    while(cg.children.length>colIdx.length)cg.lastChild.remove();
+    colIdx.forEach((k,i)=>{let c=cg.children[i],v=Math.round(w[k])+'px';c.style.setProperty('width',v,'important');c.style.setProperty('min-width',v,'important');c.style.setProperty('max-width',v,'important')});
     g.map.forEach((p,cell)=>{
       let all=true,px=0;
       for(let k=p.s;k<=p.e;k++){if(!skip[k])all=false;px+=w[k]}
@@ -5415,6 +5451,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
         localStorage.setItem(gridKey(c,state.ri),Math.round(state.w[state.b]));
       }
       state=null;hideLine();setHoverCursor(null);
+      window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
       document.body.style.userSelect='';document.body.style.cursor='';
     }
   });
@@ -6220,7 +6257,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
 
   // ---- μοντέλο πίνακα: στήλες (ids) και γραμμές (ids) ----
   function colsSupported(t){
-    for(const r of t.tHead.rows)for(const c of r.cells)if(c.colSpan>1||c.rowSpan>1)return false;
+    for(const r of t.tHead.rows)for(const c of r.cells)if((c._pinOS||c.colSpan)>1||c.rowSpan>1)return false;
     for(const s of [...t.tBodies,t.tFoot])if(s)for(const r of s.rows)for(const c of r.cells)if(c.rowSpan>1)return false;
     return true;
   }
@@ -6235,7 +6272,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
         [...r.cells].forEach(c=>{
           while(occ[col]>ri)col++;
           map.set(c,col);
-          let cs=c.colSpan||1,rs=c.rowSpan||1;
+          let cs=c._pinOS||c.colSpan||1,rs=c.rowSpan||1;
           for(let k=0;k<cs;k++){occ[col+k]=ri+rs;if(sec===t.tHead){(headCover[col+k]=headCover[col+k]||[]).push({c,ri,rs})}}
           col+=cs;ncols=Math.max(ncols,col);
         });
@@ -6312,15 +6349,11 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   function paint(c,colOn,rowOn){
     let key=(colOn?1:0)+(rowOn?2:0);
     if(c._pinKey===key||(!c._pinKey&&!key))return;
-    setStrip(c,false);
+    setStrip(c,false);   // καθαρισμός τυχόν παλιάς λωρίδας
     c.classList.toggle('pinColHide',colOn);c.classList.toggle('pinRowHideCell',rowOn);
-    if(key){
-      setStrip(c,true,colOn,rowOn);
-      const set=(p,v)=>c.style.setProperty(p,v,'important');
-      set('box-shadow','none');
-      if(colOn){set('width',STRIP+'px');set('min-width',STRIP+'px');set('max-width',STRIP+'px')}
-      if(rowOn){set('height',STRIP+'px');set('max-height',STRIP+'px')}
-    }
+    // Η κρυμμένη στήλη/γραμμή δεν αφήνει ΚΑΝΕΝΑ ίχνος στον πίνακα (ούτε κενό, ούτε γραμμή): οι διπλανές κλείνουν πάνω της.
+    // Ο μοναδικός δείκτης είναι το chip «Κρυμμένα: Ν» + «Εμφάνιση όλων» πάνω από τον πίνακα.
+    if(key)c.style.setProperty('display','none','important');else c.style.removeProperty('display');
     c._pinKey=key;
   }
   function apply(t){
@@ -6333,13 +6366,22 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     const all=[...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])];
     for(const r of all){
       let rowOn=!!rowOnMap.get(r);
-      if(rowOn!==!!r._pinRowOn){r.classList.toggle('pinRowHide',rowOn);if(rowOn){r._pinH=[r.style.getPropertyValue('height'),r.style.getPropertyPriority('height')];r.style.setProperty('height',STRIP+'px','important')}else{r.style.removeProperty('height');if(r._pinH&&r._pinH[0])r.style.setProperty('height',r._pinH[0],r._pinH[1])}r._pinRowOn=rowOn}
+      if(rowOn!==!!r._pinRowOn){r.classList.toggle('pinRowHide',rowOn);if(rowOn)r.style.setProperty('display','none','important');else r.style.removeProperty('display');r._pinRowOn=rowOn}
       let idx=0;
       for(const c of r.cells){
         let span=c.colSpan||1,gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):idx;
         paint(c,span===1&&hiddenColIdx.has(gi),rowOn&&(c.rowSpan||1)===1);
         idx+=span;
       }
+    }
+    // Επικεφαλίδες ομάδας (colspan, π.χ. «3ο Τρίμηνο»): το colspan = πλήθος ΟΡΑΤΩΝ στηλών της ομάδας (αλλιώς μένει κενή «φάντασμα» στήλη)· πλήρως κρυμμένη ομάδα κρύβεται
+    for(const r of t.tHead.rows)for(const c of r.cells){
+      let os=c._pinOS||(c.colSpan||1);if(os<=1)continue;
+      c._pinOS=os;
+      let gi=t._pinGrid&&t._pinGrid.has(c)?t._pinGrid.get(c):-1;if(gi<0)continue;
+      let vis=0;for(let k=gi;k<gi+os;k++)if(!hiddenColIdx.has(k))vis++;
+      if(vis>0){if(c.colSpan!==vis)c.colSpan=vis;c.classList.remove('pinColHide');c.style.removeProperty('display')}
+      else{c.classList.add('pinColHide');c.style.setProperty('display','none','important')}
     }
     for(const it of md.rows){
       if(!it.owns||!it.owns.length)continue;
@@ -6387,7 +6429,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     else{let sc=rowScope(t);v.rows[sc]=(v.rows[sc]||[]).filter(x=>x!==id);if(!v.rows[sc].length)delete v.rows[sc]}
     save(t);refresh(t);
   }
-  function refresh(t){busy=true;try{t._pinApplied=true;apply(t)}finally{obs.takeRecords();busy=false}clearPins()}
+  function refresh(t){
+    busy=true;try{t._pinApplied=true;apply(t)}finally{obs.takeRecords();busy=false}
+    clearPins();
+    // τα πλάτη στηλών ξαναϋπολογίζονται χωρίς τις κρυμμένες στήλες (αλλιώς θα έμενε το πλάτος τους ως κενό)
+    try{if(window.applyStoredColWidths)window.applyStoredColWidths(t)}catch(e){}
+    window.dispatchEvent(new CustomEvent('tableLayoutChanged',{detail:{table:t}}));
+  }
 
   // ---- επικάλυψη καρφιτσών ----
   let layer=null;
@@ -6609,6 +6657,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let el=document.elementFromPoint(lm.x,lm.y);
     if(el)onMove({target:el,clientX:lm.x,clientY:lm.y});
   };
+  window.addEventListener('tableLayoutChanged',()=>requestAnimationFrame(redo));
   window.addEventListener('scroll',()=>{if(layer&&layer.firstChild)requestAnimationFrame(redo)},true);
   window.addEventListener('resize',()=>{if(layer&&layer.firstChild)requestAnimationFrame(redo)});
   document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closest('.pinLayer'))clearPins()},true);
@@ -6618,6 +6667,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   const obs=new MutationObserver(muts=>{
     if(busy)return;
     for(const m of muts){
+      if(m.type==='childList'&&m.target.tagName==='TABLE'&&[...m.addedNodes,...m.removedNodes].every(n=>n.nodeName==='COLGROUP'))continue;   // αλλαγές του <colgroup> (πλάτη στηλών) δεν είναι επαναζωγράφιση
       let tgt=m.target.nodeType===1?m.target:m.target.parentElement;
       if(!tgt||tgt.closest('.pinLayer,.pinBar'))continue;
       let t=tgt.closest('table');
@@ -6629,7 +6679,10 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   function flush(){
     tm=0;let list=[...dirty];dirty.clear();
     busy=true;
-    try{for(const t of list){if(!t.isConnected||!eligibleTable(t))continue;markHost(t);t._pinModel=null;if(hasState(t)||t._pinApplied)apply(t)}}finally{obs.takeRecords();busy=false}
+    let applied=[];
+    try{for(const t of list){if(!t.isConnected||!eligibleTable(t))continue;markHost(t);t._pinModel=null;if(hasState(t)||t._pinApplied){apply(t);if(hasState(t))applied.push(t)}}}finally{obs.takeRecords();busy=false}
+    // μετά την ξαναεφαρμογή των αποκρύψεων σε νέα επαναζωγράφιση: ξαναϋπολογισμός πλατών (π.χ. Απογραφή: αλλαγή τριμήνου με κρυμμένη στήλη)
+    applied.forEach(t=>window.dispatchEvent(new CustomEvent('tableLayoutChanged',{detail:{table:t}})));
     if(layer&&layer.firstChild)requestAnimationFrame(redo);
   }
   function start(){
@@ -8472,6 +8525,27 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   };
   b.onclick=()=>openReportPopup(b,{title:'Απογραφή',filename:'Απογραφή '+invYear,subtitle:()=>String(invYear),choicesTitle:'Τι θα περιλαμβάνει',
     choices:[{label:'Όπως φαίνεται (επιλεγμένα τρίμηνα)',get:shown},{label:'Όλα τα τρίμηνα του έτους',get:all}]});
+})();
+</script>
+<script id="daPopupOutside">
+// Το παράθυρο «Δ.Α. …» κλείνει με κλικ οπουδήποτε έξω από αυτό (όχι όταν είναι ελαχιστοποιημένο, ούτε όταν το mousedown ξεκίνησε μέσα σε αυτό).
+(function(){
+  const fe=document.getElementById('floatingEditor'),tt=document.getElementById('floatingEditorTitle');if(!fe||!tt)return;
+  let bd=null,downOnBd=false;
+  const isDa=()=>/^Δ\.Α\. /.test(tt.textContent||'');
+  function want(){return !fe.classList.contains('hidden')&&!fe.classList.contains('popupMin')&&isDa()}
+  function sync(){
+    if(want()){
+      if(!bd){
+        bd=document.createElement('div');bd.id='daBackdrop';
+        bd.addEventListener('mousedown',()=>{downOnBd=true});
+        bd.addEventListener('click',()=>{if(downOnBd){fe.classList.add('hidden');sync()}downOnBd=false});
+        fe.parentNode.insertBefore(bd,fe);
+      }
+    }else if(bd){bd.remove();bd=null;downOnBd=false}
+  }
+  new MutationObserver(sync).observe(fe,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(sync).observe(tt,{childList:true,characterData:true,subtree:true});
 })();
 </script>
 </body></html>
