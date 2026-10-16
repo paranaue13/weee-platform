@@ -1203,6 +1203,17 @@ body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:
 .ppvT th{color:var(--fg-3,#74777f);font-weight:500;font-size:12px}
 .ppvT tr.ppvGo{cursor:pointer}.ppvT tr.ppvGo:hover td{background:var(--hover,#eaf0fd)}
 .ppvBack{margin:0 0 8px}
+/* Κοινό παράθυρο «Αναφορά» */
+.repPop{position:fixed;z-index:9800;width:340px;background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box,12px);box-shadow:0 12px 34px rgba(0,0,0,.25);padding:16px 18px}
+.repPop h4{margin:0 0 10px;font-size:16px}
+.repSec{margin:12px 0 6px;font-size:12px;font-weight:600;color:var(--fg-3,#74777f)}
+.repList{display:flex;flex-direction:column;gap:4px}
+.repList label{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.repList input{width:auto;min-height:0}
+.repAll{border-bottom:1px solid var(--line,#e3e5ec);padding-bottom:6px;margin-bottom:2px;font-weight:600}
+.repAct{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+.repMsg{min-height:16px;margin-top:8px;font-size:12px}
+.repAct .btn:disabled{opacity:.45;cursor:default}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -8145,6 +8156,26 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   $('ppvCollapse').onclick=()=>{st.open.clear();render()};
   $('ppvRosterBtn').onclick=()=>{let r=$('ppvRoster');r.classList.toggle('hidden');if(!r.classList.contains('hidden')){try{renderProdRoster()}catch(e){}}};
 
+  // ---- «Αναφορά»: και οι δύο προβολές (ανά τμήμα / ανά άτομο) ----
+  window.__ppvExport=async function(){
+    await ensureAtt();D=build();
+    const hh=m=>fmtH(m)||'';
+    const dr=[];
+    const mats=x=>x.matList.map(([n,k])=>n+' '+fmtKg(k)).join('; ');
+    D.prod.forEach(x=>{
+      dr.push([uname(x),'',x.kg!==0?Math.round(x.kg):'',mats(x),'','',hh(x.mins),x.mins>0&&x.kg!==0?Math.round(x.kg/(x.mins/60)):'']);
+      x.recs.slice().sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el')).forEach(r=>dr.push(['    '+r.emp.full_name,r.pos,'','',r.from,r.to,hh(r.mins),'']));
+    });
+    if(D.supp.length){
+      dr.push(['Θέσεις υποστήριξης','','','','','',hh(D.suppMins),'']);
+      D.supp.forEach(x=>{dr.push(['    '+uname(x),'','','','','',hh(x.mins),'']);x.recs.slice().sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el')).forEach(r=>dr.push(['        '+r.emp.full_name,r.pos,'','',r.from,r.to,hh(r.mins),'']))});
+    }
+    const s1={name:'Ανά τμήμα',columns:['Τμήμα / Εργαζόμενος','Θέση','Παραγωγή (kg)','Υλικά (kg)','Προσέλευση','Αποχώρηση','Ώρες','kg / ώρα'],rows:dr,total:['Σύνολο','',Math.round(D.totalKg),'','','',hh(D.prodMins+D.suppMins),D.eff==null?'':Math.round(D.eff)]};
+    const pr=[];
+    D.persons.forEach(p=>p.parts.forEach((x,i)=>pr.push([i===0?p.emp.full_name:'',[...x.pos].join(', '),unitName(x.unit),x.from,x.to,hh(x.mins)])));
+    const s2={name:'Ανά άτομο',columns:['Άτομο','Θέση','Τμήμα','Προσέλευση','Αποχώρηση','Ώρες'],rows:pr,total:['Σύνολο ('+D.people+' άτομα)','','','','',hh(D.prodMins+D.suppMins)]};
+    return [s1,s2];
+  };
   // ---- σύνδεση με τη σελίδα Παραγωγής ----
   const _people=renderProdPeople;
   renderProdPeople=function(){try{_people.apply(this,arguments)}catch(e){}if(prodState.tab==='people'){render();ensureAtt().then(ch=>{if(ch){render();try{renderProductionKpis()}catch(e){}}})}};
@@ -8164,6 +8195,86 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let b=e.target.closest&&e.target.closest('.productionTab[data-prodtab="people"]');
     if(b&&!st.dayInit){st.dayInit=true;prodState.period='day';prodState.cursor=new Date()}
   },true);
+})();
+</script>
+<script id="reportPopup">
+// Κοινό παράθυρο «Αναφορά» (Excel + PDF με επιλογή καρτελών). Οι πίνακες φτιάχνονται από τα ΙΔΙΑ δεδομένα που εμφανίζονται στην οθόνη
+// και στέλνονται στο POST /reports/tables (μόνο μορφοποίηση αρχείου· δεν διαβάζει/γράφει τη βάση).
+(function(){
+  const REP_ICON='<svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/></svg>';
+  let pop=null,cur=null;
+  const numOf=t=>{let s=String(t).trim().replace(/−/g,'-');if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)||/^-?\d+(,\d+)?$/.test(s)){let n=Number(s.replace(/\./g,'').replace(',','.'));if(Number.isFinite(n))return n}return t};
+  // Πίνακας οθόνης -> {columns, rows, total}
+  window.reportSheetFromTable=function(table,name){
+    if(!table)return null;
+    const sec=[...(table.tHead?[...table.tHead.rows]:[])],body=[...table.tBodies].flatMap(b=>[...b.rows]).filter(r=>!r.classList.contains('pinRowHide')),foot=table.tFoot?[...table.tFoot.rows]:[];
+    const all=[...sec,...body,...foot],occ=[],map=new Map();let N=0;
+    all.forEach((tr,ri)=>{occ[ri]=occ[ri]||[];let c=0;for(const cell of tr.cells){while(occ[ri][c])c++;const cs=cell.colSpan||1,rs=cell.rowSpan||1;map.set(cell,{s:c,e:c+cs-1,ri});for(let r=0;r<rs;r++){occ[ri+r]=occ[ri+r]||[];for(let k=0;k<cs;k++)occ[ri+r][c+k]=1}c+=cs}N=Math.max(N,c)});
+    const hidden=new Set();map.forEach((p,cell)=>{if(cell.classList.contains('pinColHide'))for(let k=p.s;k<=p.e;k++)hidden.add(k)});
+    const keep=[...Array(N).keys()].filter(k=>!hidden.has(k));
+    const txt=c=>(c.innerText||c.textContent||'').replace(/\s+/g,' ').trim();
+    const cols=keep.map(k=>{const parts=[];sec.forEach(tr=>[...tr.cells].forEach(c=>{const p=map.get(c);if(p.s<=k&&k<=p.e){const t=txt(c);if(t&&!parts.includes(t))parts.push(t)}}));return parts.join(' · ')});
+    const rowOf=tr=>{const out=Array(N).fill('');[...tr.cells].forEach(c=>{const p=map.get(c);if(p.s===p.e||true){out[p.s]=numOf(txt(c))}});return keep.map(k=>out[k])};
+    const rows=body.filter(r=>r.cells.length&&!(r.cells.length===1&&r.cells[0].colSpan>1&&/Καμία|Δεν υπάρχουν|Δεν βρέθηκαν/.test(r.textContent))).map(rowOf);
+    const total=foot.length?rowOf(foot[0]):null;
+    return {name:name||'Πίνακας',columns:cols,rows,total};
+  };
+  function close(){if(pop){pop.remove();pop=null}document.removeEventListener('mousedown',outside,true)}
+  function outside(e){if(pop&&!pop.contains(e.target)&&!(cur&&cur.contains(e.target)))close()}
+  async function download(fmt,cfg,sheets){
+    const body={format:fmt,title:cfg.title,subtitle:cfg.subtitle?cfg.subtitle():'',filename:cfg.filename||cfg.title,sheets};
+    let r=await fetch('/reports/tables',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
+    if(!r.ok){let d={};try{d=await r.json()}catch(e){}throw new Error(d.detail||('Σφάλμα '+r.status))}
+    let blob=await r.blob(),name='report.'+fmt,cd=r.headers.get('content-disposition')||'',m=cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^;"]+)/i);
+    if(m)name=decodeURIComponent(m[1]||m[2]);
+    let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);
+  }
+  // cfg: {title, subtitle():string, filename, tabs:[{key,label,get:async()=>sheet|[sheets]}]}
+  window.openReportPopup=async function(btn,cfg){
+    close();cur=btn;
+    pop=document.createElement('div');pop.className='repPop';pop.setAttribute('role','dialog');
+    pop.innerHTML=`<h4>Αναφορά</h4><div class="repSec">Καρτέλες που θα συμπεριληφθούν</div><div class="repList" id="repTabs"><div class="muted">Φόρτωση…</div></div><div class="repSec">Μορφή</div><div class="repList"><label><input type="checkbox" id="repXlsx" checked> Excel</label><label><input type="checkbox" id="repPdf" checked> PDF</label></div><div class="repMsg muted" id="repMsg"></div><div class="repAct"><button type="button" class="btn alt" id="repCancel">Ακύρωση</button><button type="button" class="btn" id="repGo">Δημιουργία αναφοράς</button></div>`;
+    document.body.appendChild(pop);
+    let r=btn.getBoundingClientRect();pop.style.top=(r.bottom+6)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.right-pop.offsetWidth))+'px';
+    document.addEventListener('mousedown',outside,true);
+    const $=id=>pop.querySelector('#'+id);
+    const data=[];
+    for(const t of cfg.tabs){let g=null;try{g=await t.get()}catch(e){g=null}let arr=g?(Array.isArray(g)?g:[g]):[];data.push({t,sheets:arr,has:arr.some(s=>s&&s.rows&&s.rows.length)})}
+    if(!pop)return;
+    $('repTabs').innerHTML=`<label class="repAll"><input type="checkbox" id="repAll"> Επιλογή όλων</label>`+data.map((d,i)=>`<label class="${d.has?'':'muted'}"><input type="checkbox" data-i="${i}" ${d.has?'checked':''} ${d.has?'':'disabled'}> ${esc(d.t.label)}${d.has?'':' (χωρίς δεδομένα)'}</label>`).join('');
+    const sync=()=>{
+      const boxes=[...pop.querySelectorAll('[data-i]:not(:disabled)')];
+      $('repAll').checked=boxes.length>0&&boxes.every(b=>b.checked);
+      $('repGo').disabled=!(boxes.some(b=>b.checked)&&($('repXlsx').checked||$('repPdf').checked));
+    };
+    pop.addEventListener('change',e=>{if(e.target.id==='repAll'){pop.querySelectorAll('[data-i]:not(:disabled)').forEach(b=>b.checked=e.target.checked)}sync()});
+    sync();
+    $('repCancel').onclick=close;
+    $('repGo').onclick=async()=>{
+      const sel=[...pop.querySelectorAll('[data-i]:checked')].flatMap(b=>data[Number(b.dataset.i)].sheets).filter(s=>s&&s.rows&&s.rows.length);
+      if(!sel.length)return;
+      $('repGo').disabled=true;$('repMsg').textContent='Δημιουργία…';
+      try{
+        if($('repXlsx').checked)await download('xlsx',cfg,sel);
+        if($('repPdf').checked)await download('pdf',cfg,sel);
+        close();
+      }catch(e){$('repMsg').textContent=e.message||String(e);$('repGo').disabled=false}
+    };
+  };
+  window.REP_ICON=REP_ICON;
+})();
+</script>
+<script id="prodReportBtn">
+(function(){
+  const b=document.getElementById('productionExcel');if(!b)return;
+  b.innerHTML=REP_ICON+' Αναφορά';b.classList.add('iconText');b.title='Αναφορά (Excel / PDF)';
+  b.onclick=()=>openReportPopup(b,{
+    title:'Παραγωγή',filename:'Παραγωγή',subtitle:()=>(document.getElementById('prodPeriodTitle')||{}).textContent||'',
+    tabs:[
+      {key:'weee',label:'Παραγωγή ανά ΑΗΗΕ',get:async()=>reportSheetFromTable(document.querySelector('#productionWeeePanel table.prodTable'),'Παραγωγή ανά ΑΗΗΕ')},
+      {key:'people',label:'Παραγωγή ανά Τμήμα / Άτομο',get:async()=>window.__ppvExport?await window.__ppvExport():null}
+    ]
+  });
 })();
 </script>
 </body></html>

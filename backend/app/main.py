@@ -2879,6 +2879,75 @@ def _export_pdf(data:dict, db:Session):
     doc.build(story); return tmp.name
 
 
+@app.post('/reports/tables')
+def reports_tables(data:dict, user:User=Depends(current_user)):
+    """Κοινή «Αναφορά»: δέχεται έτοιμους πίνακες (όπως εμφανίζονται στην οθόνη) και τους επιστρέφει ως Excel ή PDF. Δεν διαβάζει/γράφει τη βάση."""
+    import os, re
+    from tempfile import NamedTemporaryFile
+    from starlette.background import BackgroundTask
+    fmt=data.get('format')
+    if fmt not in ('xlsx','pdf'): raise HTTPException(422,'Μη έγκυρη μορφή')
+    sheets=[x for x in (data.get('sheets') or []) if isinstance(x,dict)][:30]
+    if not sheets: raise HTTPException(422,'Δεν επιλέχθηκε καρτέλα')
+    title=str(data.get('title') or 'Αναφορά')[:120]; subtitle=str(data.get('subtitle') or '')[:200]
+    fname=re.sub(r'[\/:*?"<>|]+','_',str(data.get('filename') or title))[:80]
+    def norm_sheet(sh):
+        cols=[str(c) for c in (sh.get('columns') or [])][:40]
+        rows=[[('' if v is None else v) for v in list(r)[:len(cols)]] for r in (sh.get('rows') or [])[:20000] if isinstance(r,(list,tuple))]
+        tot=sh.get('total'); tot=[('' if v is None else v) for v in list(tot)[:len(cols)]] if isinstance(tot,(list,tuple)) else None
+        return str(sh.get('name') or 'Φύλλο'),cols,rows,tot
+    parts=[norm_sheet(x) for x in sheets]
+    if fmt=='xlsx':
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment
+        from openpyxl.utils import get_column_letter
+        wb=Workbook(); wb.remove(wb.active); used=set()
+        for name,cols,rows,tot in parts:
+            nm=re.sub(r'[\/*?:\[\]]+','_',name)[:31] or 'Φύλλο'; base=nm; i=2
+            while nm in used: nm=(base[:28]+f' {i}'); i+=1
+            used.add(nm); ws=wb.create_sheet(nm)
+            ws.append([title+(' · '+subtitle if subtitle else '')]); ws['A1'].font=Font(bold=True,size=13)
+            ws.append([]); ws.append(cols)
+            for c in ws[3]: c.font=Font(bold=True); c.fill=PatternFill('solid',fgColor='DCE6F5'); c.alignment=Alignment(wrap_text=True,vertical='center')
+            for r in rows: ws.append(r)
+            if tot:
+                ws.append(tot)
+                for c in ws[ws.max_row]: c.font=Font(bold=True)
+            for ci in range(1,len(cols)+1):
+                w=max([len(str(cols[ci-1]))]+[len(str(r[ci-1])) for r in rows[:300] if ci-1<len(r)])
+                ws.column_dimensions[get_column_letter(ci)].width=min(60,max(10,w+2))
+            ws.freeze_panes='A4'
+        tmp=NamedTemporaryFile(delete=False,suffix='.xlsx'); tmp.close(); wb.save(tmp.name)
+        return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=fname+'.xlsx',background=BackgroundTask(os.unlink,tmp.name))
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfbase import pdfmetrics
+    font='Helvetica'
+    for fp in ['C:/Windows/Fonts/arial.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf']:
+        if os.path.exists(fp):
+            try: pdfmetrics.registerFont(TTFont('WEEEReport',fp)); font='WEEEReport'; break
+            except Exception: pass
+    tmp=NamedTemporaryFile(delete=False,suffix='.pdf'); tmp.close()
+    doc=SimpleDocTemplate(tmp.name,pagesize=landscape(A4),leftMargin=28,rightMargin=28,topMargin=34,bottomMargin=30)
+    ss=getSampleStyleSheet(); h1=ParagraphStyle('h1',parent=ss['Heading1'],fontName=font,fontSize=15); h2=ParagraphStyle('h2',parent=ss['Heading2'],fontName=font,fontSize=12); nm=ParagraphStyle('nm',parent=ss['Normal'],fontName=font,fontSize=8,leading=10)
+    story=[]
+    for idx,(name,cols,rows,tot) in enumerate(parts):
+        if idx: story.append(PageBreak())
+        story+= [Paragraph(title,h1),Paragraph(subtitle,nm) if subtitle else Spacer(1,2),Spacer(1,6),Paragraph(name,h2),Spacer(1,4)]
+        body=[[Paragraph(str(c),nm) for c in cols]]+[[Paragraph(('{:,.0f}'.format(v).replace(',','.') if isinstance(v,(int,float)) and not isinstance(v,bool) else str(v)),nm) for v in r] for r in rows]
+        if tot: body.append([Paragraph('<b>'+str(v)+'</b>',nm) for v in tot])
+        W=landscape(A4)[0]-56; t=Table(body,colWidths=[W/len(cols)]*len(cols),repeatRows=1)
+        st=[('GRID',(0,0),(-1,-1),.3,colors.HexColor('#C9D2E3')),('BACKGROUND',(0,0),(-1,0),colors.HexColor('#DCE6F5')),('VALIGN',(0,0),(-1,-1),'TOP')]
+        if tot: st+= [('LINEABOVE',(0,len(body)-1),(-1,len(body)-1),1.6,colors.HexColor('#8d9ab4'))]
+        t.setStyle(TableStyle(st)); story.append(t)
+    def footer(c,d):
+        c.saveState(); c.setFont(font,8); c.drawRightString(landscape(A4)[0]-28,16,f'Σελίδα {d.page}'); c.restoreState()
+    doc.build(story,onFirstPage=footer,onLaterPages=footer)
+    return FileResponse(tmp.name,media_type='application/pdf',filename=fname+'.pdf',background=BackgroundTask(os.unlink,tmp.name))
+
 @app.get('/sorting/{load_id}/export')
 def sorting_export(load_id:str, format:str=Query(...,pattern='^(xlsx|pdf)$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     import os
