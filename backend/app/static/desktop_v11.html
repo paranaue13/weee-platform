@@ -1143,6 +1143,21 @@ body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:
 :is(#ready,#production) table.prodTable.prodTable:has(tfoot tr:first-child:not(.corrRow)) tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:2px solid var(--ln2)!important}
 /* η σκιά κατά το οριζόντιο scroll της πρώτης στήλης μένει όπως ήταν */
 :is(#ready,#production) .prodTableWrap.hs table.prodTable.prodTable :is(th,td):first-child{box-shadow:4px 0 6px -4px rgba(0,0,0,.15)!important}
+/* ΑΛΛΑΓΗ ΙΒ: ενιαίο πάνω μέρος σελίδων — καρτέλες αριστερά, ΕΝΑ δεξί μπλοκ (περίοδος → εύρος → ενέργειες) που σπάει μέσα στον εαυτό του, ΜΙΑ γραμμή σε όλο το πλάτος, χωρίς label «Επιλογή περιόδου» */
+:is(#production,#ready,#weee) .productionPeriod label,:is(#production,#ready,#weee) #weeeSegment~label{display:none!important}
+:is(#production,#ready,#weee) :is(.productionPeriod,.topRight) label:not(.toggleSwitch){display:none!important}
+.productionTop,.weeeTop,.receiptTopActions{display:flex!important;flex-wrap:nowrap;align-items:flex-end!important;justify-content:flex-start;gap:0!important;margin:0 0 14px!important;grid-template-columns:none!important}
+.productionTop>:is(.productionTabs,.readyGroupTabsRow),.weeeTop>.weeeTabs,.receiptTopActions>.receiptViewTabs{flex:1 0 auto!important;flex-wrap:nowrap!important;min-width:0!important;min-height:46px;align-items:flex-end}
+#receipts .receiptTopActions{flex-wrap:wrap}
+#production .productionTop,#ready .productionTop{min-height:0!important}
+.topRight:not(:has(>:not(.hidden))){display:none}
+.topWrapped>:is(.productionTabs,.readyGroupTabsRow,.weeeTabs,.receiptViewTabs){align-self:flex-start;min-height:0}
+.topRight{flex:0 1 auto;min-width:0;align-self:flex-end;display:flex;flex-wrap:wrap-reverse;justify-content:flex-end;align-items:flex-end;gap:6px 10px;padding:0 0 6px 12px;border-bottom:1px solid var(--line,#e3e5ec);box-sizing:border-box}
+.topRight>*{margin:0!important;min-height:0}
+.topRight .productionPeriod,.topRight .receiptActionButtons{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin:0}
+.productionFilter{display:flex;flex-direction:row!important;align-items:center;gap:10px}
+.productionFilter>label{margin:0;white-space:nowrap}
+#production>#productionActions{display:none}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1814,7 +1829,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 <div class="periodPickerDropdown hidden" id="readyPeriodDropdown"><div class="periodPickerYears" id="readyPeriodYears"></div><div class="periodPickerGrid" id="readyPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="readyPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
 </div>
-<div id="readyStockOnlyWrap" class="toggleRow" style="margin-bottom:12px;justify-content:space-between"><label class="toggleSwitch"><input type="checkbox" id="readyStockOnlyToggle"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span><span id="readyCorrBtns" class="hidden" style="margin-left:auto;display:inline-flex;gap:8px;align-items:center"><span id="readyCorrMsg" class="muted" style="font-size:13px"></span><button class="btn alt" id="readyCorrAddBtn" title="Νέα διόρθωση υλικού">+ Προσθήκη</button><button class="btn alt" id="readyCorrUndoBtn" title="Αναίρεση της τελευταίας διόρθωσης" disabled>↶ Αναίρεση</button><button class="btn alt" id="readyCorrRedoBtn" title="Επανάληψη της διόρθωσης που αναιρέθηκε" disabled>↷ Επανάληψη</button></span><button class="btn alt" id="readyExportBtn">+ Εξαγωγή υλικών</button></div>
+<div id="readyStockOnlyWrap" class="toggleRow" style="margin-bottom:12px;justify-content:space-between"><label class="toggleSwitch"><input type="checkbox" id="readyStockOnlyToggle"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span><span id="readyCorrBtns" class="hidden" style="margin-left:auto;display:inline-flex;gap:8px;align-items:center"><span id="readyCorrMsg" class="muted" style="font-size:13px"></span><button class="btn" id="readyCorrAddBtn" title="Νέα διόρθωση υλικού">+ Προσθήκη</button><button class="btn alt" id="readyCorrUndoBtn" title="Αναίρεση της τελευταίας διόρθωσης" disabled>↶ Αναίρεση</button><button class="btn alt" id="readyCorrRedoBtn" title="Επανάληψη της διόρθωσης που αναιρέθηκε" disabled>↷ Επανάληψη</button></span><button class="btn alt" id="readyExportBtn">+ Εξαγωγή υλικών</button></div>
 <div id="readyQuarterInventoryCard" class="card hidden"><h3>Φυσική απογραφή</h3><div id="readyQuarterInventoryBody"></div></div>
 <div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
 <div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
@@ -2698,7 +2713,10 @@ function prodShift(n){if(prodState.period==='custom')return;let d=prodState.curs
 function isProducedWeeeCat(c){return c.active!==false&&c.processable!==false&&!/^\d{6}$/.test(c.official_code||c.code||'')}
 function prodTop(code){let m=String(code||'').match(/^([1-6])/);return m?m[1]:''}function prodTopName(n){return {'1':'Κλιματιστικά','2':'Οθόνες','3':'Λαμπτήρες','4':'Μεγ. Συσκευές & Λοιπά','5':'Μικρές Συσκευές','6':'Πληροφορική & Τηλεπικοινωνίες'}[n]||n}function prodVal(v){v=Number(v||0);if(Math.abs(v)<.0005)return'';let s=Math.round(v).toLocaleString('el-GR').replace('-','−');if(v<0){flagNegativeKg();return`<span class="negKgCell" title="Αρνητικό απόθεμα -- ελέγξτε τα δεδομένα">${s}</span>`}return s}
 function prodFilteredEntries(){let q=($('productionSearch')?.value||'').trim().toLocaleLowerCase('el');return prodState.entries.filter(e=>(prodState.group==='ALL'||e.supplier_group===prodState.group)&&(!q||[e.code,e.description,e.unit_name,e.employee_name].filter(Boolean).join(' ').toLocaleLowerCase('el').includes(q)))}
-function renderProductionKpis(){let a=prodFilteredEntries(),sum=a.reduce((s,e)=>s+Number(e.weight_kg||0),0),h=prodState.entries.filter(e=>e.supplier_group==='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),o=prodState.entries.filter(e=>e.supplier_group!=='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),days=new Set(a.map(e=>(e.work_date||'').slice(0,10))).size;let units=new Set(a.map(e=>e.org_unit_id).filter(Boolean)).size,emps=new Set(a.map(e=>e.employee_id).filter(Boolean)).size;$('productionKpis').innerHTML=prodState.tab==='weee'?`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>HERMES</small><b>${prodVal(h)||'0'} kg</b></div><div class="prodKpi"><small>Λοιποί προμηθευτές</small><b>${prodVal(o)||'0'} kg</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`:`<div class="prodKpi"><small>Συνολική παραγωγή</small><b>${prodVal(sum)||'0'} kg</b></div><div class="prodKpi"><small>Τμήματα</small><b>${units}</b></div><div class="prodKpi"><small>Άτομα</small><b>${emps}</b></div><div class="prodKpi"><small>Ημέρες με παραγωγή</small><b>${days}</b></div>`}
+function renderProductionKpis(){let a=prodFilteredEntries(),sum=a.reduce((s,e)=>s+Number(e.weight_kg||0),0),h=prodState.entries.filter(e=>e.supplier_group==='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),o=prodState.entries.filter(e=>e.supplier_group!=='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),days=new Set(a.map(e=>(e.work_date||'').slice(0,10))).size;let units=new Set(a.map(e=>e.org_unit_id).filter(Boolean)).size,emps=new Set(a.map(e=>e.employee_id).filter(Boolean)).size;
+ const IC={scale:'<path d="M12 3v18"/><path d="M5 21h14"/><path d="M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/>',sq:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',person:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'};
+ const card=(cls,ic,t,v)=>`<div class="sortingKpiCard ${cls}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${IC[ic]}</svg></span><span class="sortingKpiText"><small>${t}</small><b>${v}</b></span></div>`;
+ $('productionKpis').innerHTML=prodState.tab==='weee'?card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','scale','HERMES',(prodVal(h)||'0')+' kg')+card('k3','scale','Λοιποί προμηθευτές',(prodVal(o)||'0')+' kg')+card('k4','cal','Ημέρες με παραγωγή',days):card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','sq','Τμήματα',units)+card('k3','person','Άτομα',emps)+card('k4','cal','Ημέρες με παραγωγή',days)}
 function prodDateBuckets(){let {start,end}=prodRange(),out=[];if(prodState.period==='day')out=[new Date(start)];else if(prodState.period==='month'){for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))out.push(new Date(d))}else if(prodState.period==='quarter'||prodState.period==='half'||prodState.period==='nine'){for(let d=new Date(start);d<=end;d.setMonth(d.getMonth()+1))out.push(new Date(d.getFullYear(),d.getMonth(),1))}else{for(let m=0;m<12;m++)out.push(new Date(start.getFullYear(),m,1))}return out}
 function prodBucketKey(dt){if(prodState.period==='day'||prodState.period==='month')return localISODate(dt);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`}
 function prodEntryBucket(e){let d=(e.work_date||'').slice(0,10);return prodState.period==='day'||prodState.period==='month'?d:d.slice(0,7)}
@@ -7839,6 +7857,44 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     if(on){if(paintTitle)paintTitle();load()}
   }
   seg.querySelectorAll('[data-lsub]').forEach(b=>b.addEventListener('click',()=>sync(b.dataset.lsub)));
+})();
+</script>
+<script id="topRowUnify">
+// ΑΛΛΑΓΗ ΙΒ: κοινή διάταξη πάνω μέρους (καρτέλες αριστερά, ένα δεξί μπλοκ)
+(function(){
+  const $=id=>document.getElementById(id);
+  function right(container,items,afterTabs){
+    items=items.filter(Boolean);
+    if(!container||!items.length)return;
+    let box=document.createElement('div');box.className='topRight';
+    items.forEach(e=>box.appendChild(e));
+    let tabs=afterTabs&&container.querySelector('.receiptViewTabs');
+    if(tabs)tabs.insertAdjacentElement('afterend',box);else container.appendChild(box);
+  }
+  // Παραγωγή: περίοδος + (κουμπί εξαγωγής στην ίδια γραμμή)
+  let pt=document.querySelector('#production .productionTop');
+  right(pt,[pt&&pt.querySelector('.productionPeriod'),$('productionActions')]);
+  // Υλικά: μόνο περίοδος
+  let rt=document.querySelector('#ready .productionTop');
+  right(rt,[rt&&rt.querySelector('.productionPeriod')]);
+  // Αποθήκη ΑΗΗΕ: περίοδος → πλαίσιο εύρους → ενέργειες
+  let wt=document.querySelector('#weee .weeeTop');
+  if(wt){
+    let rg=wt.querySelector('.weeeRight'),nav=wt.querySelector('.prodPeriodNav'),seg=rg&&rg.querySelector('#weeeSegment'),segBox=seg&&seg.parentElement;
+    let acts=document.createElement('div');acts.style.cssText='display:flex;gap:10px;align-items:flex-end';
+    if($('weeeToday'))acts.appendChild($('weeeToday'));
+    if($('weeeReportBtn'))acts.appendChild($('weeeReportBtn'));
+    right(wt,[segBox,nav,acts]);
+    if(rg)rg.remove();
+  }
+  // Φορτώσεις / Παραλαβές / Ταξινόμηση / Αναφορές: τα υπάρχοντα δεξιά μπλοκ μπαίνουν σε ένα κοινό δεξί μπλοκ
+  right($('loadingTabsRow'),[$('ldOvPeriod'),$('ldActions')]);
+  right(document.querySelector('#receipts .receiptTopActions'),[$('recOvPeriod')],true);
+  right(document.querySelector('#sortingReview .receiptTopActions'),[$('soOvPeriod'),document.querySelector('#sortingReview .receiptActionButtons')]);
+  right(document.querySelector('#reports .receiptTopActions'),[document.querySelector('#reports .receiptActionButtons'),$('reportsUploadWrap')]);
+  // όταν το δεξί μπλοκ σπάει σε δεύτερη γραμμή, οι καρτέλες μένουν στο πάνω μέρος
+  const ro=new ResizeObserver(es=>es.forEach(en=>{let c=en.target.parentElement;if(c)c.classList.toggle('topWrapped',en.target.getBoundingClientRect().height>60)}));
+  document.querySelectorAll('.topRight').forEach(b=>ro.observe(b));
 })();
 </script>
 </body></html>
