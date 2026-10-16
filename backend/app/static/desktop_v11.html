@@ -1124,6 +1124,25 @@ button.ovCat:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .ovTbl th:first-child,.ovTbl td:first-child{text-align:left}
 .ovTbl th:not(:first-child),.ovTbl td:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}
 .ovList{overflow-x:hidden}
+/* ΑΛΛΑΓΗ ΙΑ: ομοιόμορφο πάχος γραμμών στους πίνακες Υλικά / Παραγωγή.
+   Όλες οι γραμμές 1px στο ίδιο χρώμα (μία γραμμή ανάμεσα σε γειτονικά κελιά: μόνο δεξιά + κάτω border, χωρίς box-shadow).
+   Παχιά (2px) ΜΟΝΟ: (α) δεξιά από τις σταθερές πρώτες στήλες (ημερομηνία + σύνολο), (β) πάνω από τη γραμμή «Σύνολο …». */
+:is(#ready,#production) table.prodTable.prodTable{--ln:var(--line,#e3e5ec);--ln2:#aeb7c9}
+body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:var(--line-strong,#5a6b80)}
+:is(#ready,#production) table.prodTable.prodTable :is(th,td):not(.pinColHide){border-top:0!important;border-left:0!important;border-right:1px solid var(--ln)!important;border-bottom:1px solid var(--ln)!important;box-shadow:none!important}
+:is(#ready,#production) table.prodTable.prodTable :is(th,td):not(.pinColHide):last-child{border-right:0!important}
+:is(#ready,#production) table.prodTable.prodTable tr.pinRowHide>*{border-bottom:0!important}
+/* χωρίς διπλή γραμμή με το πλαίσιο: η τελευταία γραμμή δεν έχει κάτω border */
+:is(#ready,#production) table.prodTable.prodTable tfoot tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
+:is(#ready,#production) table.prodTable.prodTable:not(:has(tfoot)) tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
+/* (α) παχιά κάθετη γραμμή δεξιά από τις σταθερές στήλες: στη στήλη «Σύνολο» αν υπάρχει, αλλιώς στην πρώτη */
+:is(#ready,#production) table.prodTable.prodTable :is(th,td).stkTotal:not(.pinColHide){border-right:2px solid var(--ln2)!important}
+:is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) :is(th,td):first-child:not(.pinColHide){border-right:2px solid var(--ln2)!important}
+/* (β) παχιά οριζόντια γραμμή ακριβώς πάνω από το μπλοκ των συνόλων («Σύνολο …»): κάτω από την τελευταία γραμμή «Διορθώσεις…», ή κάτω από την τελευταία γραμμή δεδομένων όταν δεν υπάρχουν διορθώσεις */
+:is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow:has(+tr:not(.corrRow))>:is(th,td):not(.pinColHide){border-bottom:2px solid var(--ln2)!important}
+:is(#ready,#production) table.prodTable.prodTable:has(tfoot tr:first-child:not(.corrRow)) tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:2px solid var(--ln2)!important}
+/* η σκιά κατά το οριζόντιο scroll της πρώτης στήλης μένει όπως ήταν */
+:is(#ready,#production) .prodTableWrap.hs table.prodTable.prodTable :is(th,td):first-child{box-shadow:4px 0 6px -4px rgba(0,0,0,.15)!important}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
