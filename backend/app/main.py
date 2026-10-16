@@ -1467,6 +1467,38 @@ def production_attendance_range(start:str=Query(...), end:str=Query(...), db:Ses
     rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=d0,ProductionAttendance.work_date<d1).order_by(ProductionAttendance.work_date)).all()
     return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows]
 
+@app.get("/production/attendance/effective-range")
+def production_attendance_effective_range(start:str=Query(...), end:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Μόνο ανάγνωση: η ΠΡΑΓΜΑΤΙΚΗ παρουσία ΚΑΘΕ ημέρας ενός διαστήματος με τον ίδιο κανόνα του /production/attendance/effective
+    (όποιος δεν έχει εγγραφή είναι ΠΑΡΩΝ στην τελευταία γνωστή θέση του). Ημέρες που λογίζονται: μέχρι σήμερα, Δευτέρα–Παρασκευή,
+    και κάθε ημέρα (και Σαβ/Κυρ) που έχει παραγωγή ή ρητή παρουσία."""
+    d0=datetime.fromisoformat(start); d1=datetime.fromisoformat(end)
+    d0=datetime(d0.year,d0.month,d0.day); d1=datetime(d1.year,d1.month,d1.day)
+    today=datetime.now(); today=datetime(today.year,today.month,today.day)
+    if d1>today: d1=today
+    if d1<d0: return []
+    explicit={}
+    for r in db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=d0,ProductionAttendance.work_date<=d1)).all():
+        explicit[(datetime(r.work_date.year,r.work_date.month,r.work_date.day),r.employee_id)]=r
+    prod_days={datetime(x.year,x.month,x.day) for (x,) in db.execute(select(ProductionWorkEntry.work_date).where(ProductionWorkEntry.active==True,ProductionWorkEntry.work_date>=d0,ProductionWorkEntry.work_date<d1+timedelta(days=1))).all()}
+    att_days={k[0] for k in explicit}
+    last={}
+    for emp_id,org in db.execute(select(ProductionAttendance.employee_id,ProductionAttendance.org_unit_id).where(ProductionAttendance.work_date<d0,ProductionAttendance.org_unit_id.isnot(None)).order_by(ProductionAttendance.work_date.desc())).all():
+        last.setdefault(emp_id,org)
+    emps=db.scalars(select(Employee).where(Employee.active==True)).all()
+    out=[]; day=d0
+    while day<=d1:
+        if day.weekday()<5 or day in prod_days or day in att_days:
+            for e in emps:
+                r=explicit.get((day,e.id))
+                if r:
+                    if r.org_unit_id: last[e.id]=r.org_unit_id
+                    out.append({"id":r.id,"work_date":day,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
+                else:
+                    out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"since_at":None,"late":False,"arrived_at":None,"explicit":False})
+        day+=timedelta(days=1)
+    return out
+
 @app.put("/production/attendance", response_model=schemas.ProductionAttendanceOut)
 def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
     if not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")

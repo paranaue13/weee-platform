@@ -1184,7 +1184,7 @@ body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:
 .ppvI:hover{background:var(--accent-bg,#d8e2ff)}
 #ppv .ppvTot td{font-weight:700}
 #ppv .prodTable :is(th,td):not(:first-child){text-align:left!important}
-#ppv .prodTable.ppvDeptV :is(th,td):nth-child(3){text-align:right!important}
+#ppv .prodTable :is(th,td).ppvR{text-align:right!important}
 .ppvModal{position:fixed;inset:0;z-index:9700;background:rgba(10,20,40,.45);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
 .ppvModal.hidden{display:none}
 .ppvBox{position:relative;width:min(760px,100%);background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:var(--r-box,12px);border:1px solid var(--line,#e3e5ec);box-shadow:0 18px 50px rgba(0,0,0,.3);padding:22px 24px}
@@ -7987,7 +7987,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     if(st.attKey===key)return false;
     let my=++st.loadSeq;
     let att=[];
-    try{att=prodState.period==='day'?await api('/production/attendance/effective?date='+r.startISO):await api(`/production/attendance/range?start=${r.startISO}&end=${r.endISO}`)}catch(e){att=[]}
+    try{att=prodState.period==='day'?await api('/production/attendance/effective?date='+r.startISO):await api(`/production/attendance/effective-range?start=${r.startISO}&end=${r.endISO}`)}catch(e){att=[]}
     if(!st.sched){try{st.sched=await api('/settings/schedule')}catch(e){st.sched=null}try{st.groups=await api('/settings/break-groups')||{}}catch(e){st.groups={}}}
     if(my!==st.loadSeq)return false;
     st.att=att;st.attKey=key;return true;
@@ -8049,8 +8049,9 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     $('ppvView').querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('active',b.dataset.v===st.view));
     const q=norm(st.q.trim()),maxKg=Math.max(1,...D.prod.map(x=>x.kg));
     let head,body='',foot='';
+    const hasPos=D.recs.some(r=>r.pos),PC=v=>hasPos?`<td>${v}</td>`:'';   // η στήλη «Θέση» φαίνεται μόνο αν υπάρχει έστω μία θέση στην περίοδο
     if(st.view==='dept'){
-      head='<tr><th>Τμήμα / Εργαζόμενος</th><th>Θέση</th><th>Παραγωγή</th><th>Υλικά (ΑΗΗΕ)</th><th>Εργαζόμενοι · Παρουσία</th><th>Ώρες</th><th>kg / ώρα</th><th></th></tr>';
+      head=`<tr><th>Τμήμα / Εργαζόμενος</th>${hasPos?'<th>Θέση</th>':''}<th class="ppvR">Παραγωγή</th><th>Υλικά (ΑΗΗΕ)</th><th>Εργαζόμενοι · Παρουσία</th><th>Ώρες</th><th>kg / ώρα</th><th></th></tr>`;
       D.prod.forEach(x=>{
         let rows=x.recs.slice().sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el'));
         let emps=rows.map(r=>r.emp);
@@ -8059,8 +8060,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
         if(q&&!selfMatch&&!shown.length)return;
         let k='u:'+x.id,open=st.open.has(k)||(q&&!selfMatch);
         let eff=x.mins>0&&x.kg!==0?fmtKg(x.kg/(x.mins/60)):'';
-        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(uname(x))}</b></td><td></td><td>${x.kg!==0?`<div class="ppvKg"><span class="ppvBar"><i style="width:${Math.max(0,Math.min(100,x.kg/maxKg*100))}%"></i></span><b>${fmtKg(x.kg)}</b> kg</div>`:''}</td><td>${matCell(x)}</td><td>${avatars(emps.filter((e,i,a)=>a.findIndex(z=>z.id===e.id)===i))}<span class="ppvCnt">${x.people||''}</span></td><td>${fmtH(x.mins)}</td><td>${eff}</td><td>${infoBtn(k)}</td></tr>`;
-        if(open)shown.forEach(r=>{body+=`<tr class="ppvRow ppvSub" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd">${esc(r.emp.full_name)}</td><td>${esc(r.pos)}</td><td></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
+        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(uname(x))}</b></td>${PC('')}<td class="ppvR">${x.kg!==0?`<div class="ppvKg"><span class="ppvBar"><i style="width:${Math.max(0,Math.min(100,x.kg/maxKg*100))}%"></i></span><b>${fmtKg(x.kg)}</b> kg</div>`:''}</td><td>${matCell(x)}</td><td>${avatars(emps.filter((e,i,a)=>a.findIndex(z=>z.id===e.id)===i))}<span class="ppvCnt">${x.people||''}</span></td><td>${fmtH(x.mins)}</td><td>${eff}</td><td>${infoBtn(k)}</td></tr>`;
+        if(open)shown.forEach(r=>{body+=`<tr class="ppvRow ppvSub" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd">${esc(r.emp.full_name)}</td>${PC(esc(r.pos))}<td class="ppvR"></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
       });
       if(D.supp.length){
         let sRecs=D.supp.flatMap(x=>x.recs),selfMatch=matches(q,'Θέσεις υποστήριξης');
@@ -8068,29 +8069,29 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
         if(vis.length){
           let k='g:support',open=st.open.has(k)||(q&&!selfMatch);
           let mins=D.suppMins,ppl=[...new Map(sRecs.map(r=>[r.emp.id,r.emp])).values()];
-          body+=`<tr class="ppvRow ppvDept ppvSupp${open?' open':''}" data-k="${k}"><td>${caret(open)}<b>Θέσεις υποστήριξης</b></td><td></td><td></td><td></td><td>${avatars(ppl)}<span class="ppvCnt">${ppl.length||''}</span></td><td>${fmtH(mins)}</td><td></td><td>${infoBtn(k)}</td></tr>`;
+          body+=`<tr class="ppvRow ppvDept ppvSupp${open?' open':''}" data-k="${k}"><td>${caret(open)}<b>Θέσεις υποστήριξης</b></td>${PC('')}<td class="ppvR"></td><td></td><td>${avatars(ppl)}<span class="ppvCnt">${ppl.length||''}</span></td><td>${fmtH(mins)}</td><td></td><td>${infoBtn(k)}</td></tr>`;
           if(open)vis.forEach(x=>{
             let uk='s:'+x.id,uo=st.open.has(uk)||(q&&!matches(q,uname(x)));
             let ee=[...new Map(x.recs.map(r=>[r.emp.id,r.emp])).values()];
-            body+=`<tr class="ppvRow ppvSubD${uo?' open':''}" data-k="${esc(uk)}"><td class="ppvInd">${caret(uo)}${esc(uname(x))}</td><td></td><td></td><td></td><td>${avatars(ee)}</td><td>${fmtH(x.mins)}</td><td></td><td>${infoBtn(uk)}</td></tr>`;
-            if(uo)x.recs.filter(r=>!q||matches(q,uname(x),r.emp.full_name)).sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el')).forEach(r=>{body+=`<tr class="ppvRow ppvSub2" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd2">${esc(r.emp.full_name)}</td><td>${esc(r.pos)}</td><td></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
+            body+=`<tr class="ppvRow ppvSubD${uo?' open':''}" data-k="${esc(uk)}"><td class="ppvInd">${caret(uo)}${esc(uname(x))}</td>${PC('')}<td class="ppvR"></td><td></td><td>${avatars(ee)}</td><td>${fmtH(x.mins)}</td><td></td><td>${infoBtn(uk)}</td></tr>`;
+            if(uo)x.recs.filter(r=>!q||matches(q,uname(x),r.emp.full_name)).sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el')).forEach(r=>{body+=`<tr class="ppvRow ppvSub2" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd2">${esc(r.emp.full_name)}</td>${PC(esc(r.pos))}<td class="ppvR"></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
           });
         }
       }
-      foot=`<tr class="ppvTot"><td>Σύνολο</td><td></td><td><b>${fmtKg(D.totalKg)}</b> kg</td><td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td>${D.eff==null?'':fmtKg(D.eff)}</td><td></td></tr>`;
+      foot=`<tr class="ppvTot"><td>Σύνολο</td>${PC('')}<td class="ppvR"><b>${fmtKg(D.totalKg)}</b> kg</td><td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td>${D.eff==null?'':fmtKg(D.eff)}</td><td></td></tr>`;
     }else{
-      head='<tr><th>Άτομο / Τμήμα</th><th>Θέση</th><th>Τμήματα</th><th>Προσέλευση – Αποχώρηση</th><th>Ώρες</th><th></th></tr>';
+      head=`<tr><th>Άτομο / Τμήμα</th>${hasPos?'<th>Θέση</th>':''}<th>Τμήματα</th><th>Προσέλευση – Αποχώρηση</th><th>Ώρες</th><th></th></tr>`;
       D.persons.forEach(p=>{
         let selfMatch=matches(q,p.emp.full_name,...p.parts.map(x=>unitName(x.unit)));
         if(q&&!selfMatch)return;
         let k='a:'+p.emp.id,open=st.open.has(k);
         let first=p.parts[0],extra=p.parts.length-1;
-        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(p.emp.full_name)}</b></td><td>${esc(p.pos.join(', '))}</td><td>${esc(first?unitName(first.unit):'')}${extra>0?` <span class="ppvMore">+${extra}</span> <small class="muted">${p.parts.length} τμήματα</small>`:''}</td><td>${esc(p.from)}${p.from||p.to?' – ':''}${esc(p.to)}</td><td>${fmtH(p.mins)}</td><td>${infoBtn('p:'+p.emp.id)}</td></tr>`;
-        if(open)p.parts.forEach(x=>{body+=`<tr class="ppvRow ppvSub" data-k="u:${esc(x.unit)}"><td class="ppvInd">${esc(unitName(x.unit))}</td><td>${esc([...x.pos].join(', '))}</td><td></td><td>${esc(x.from)}${x.from||x.to?' – ':''}${esc(x.to)}</td><td>${fmtH(x.mins)}</td><td>${infoBtn(x.unit?'u:'+x.unit:'')}</td></tr>`});
+        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(p.emp.full_name)}</b></td>${PC(esc(p.pos.join(', ')))}<td>${esc(first?unitName(first.unit):'')}${extra>0?` <span class="ppvMore">+${extra}</span> <small class="muted">${p.parts.length} τμήματα</small>`:''}</td><td>${esc(p.from)}${p.from||p.to?' – ':''}${esc(p.to)}</td><td>${fmtH(p.mins)}</td><td>${infoBtn('p:'+p.emp.id)}</td></tr>`;
+        if(open)p.parts.forEach(x=>{body+=`<tr class="ppvRow ppvSub" data-k="u:${esc(x.unit)}"><td class="ppvInd">${esc(unitName(x.unit))}</td>${PC(esc([...x.pos].join(', ')))}<td></td><td>${esc(x.from)}${x.from||x.to?' – ':''}${esc(x.to)}</td><td>${fmtH(x.mins)}</td><td>${infoBtn(x.unit?'u:'+x.unit:'')}</td></tr>`});
       });
-      foot=`<tr class="ppvTot"><td>Σύνολο</td><td></td><td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td></td></tr>`;
+      foot=`<tr class="ppvTot"><td>Σύνολο</td>${PC('')}<td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td></td></tr>`;
     }
-    const cols=st.view==='dept'?8:6;
+    const cols=(st.view==='dept'?8:6)-(hasPos?0:1);
     $('ppvBody').closest('table').classList.toggle('ppvDeptV',st.view==='dept');
     $('ppvHead').innerHTML=head;
     $('ppvBody').innerHTML=body||`<tr><td class="prodEmpty" colspan="${cols}">Καμία ενεργή ημερομηνία σε αυτή την περίοδο.</td></tr>`;
@@ -8174,6 +8175,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     const pr=[];
     D.persons.forEach(p=>p.parts.forEach((x,i)=>pr.push([i===0?p.emp.full_name:'',[...x.pos].join(', '),unitName(x.unit),x.from,x.to,hh(x.mins)])));
     const s2={name:'Ανά άτομο',columns:['Άτομο','Θέση','Τμήμα','Προσέλευση','Αποχώρηση','Ώρες'],rows:pr,total:['Σύνολο ('+D.people+' άτομα)','','','','',hh(D.prodMins+D.suppMins)]};
+    if(!D.recs.some(r=>r.pos))[s1,s2].forEach(sh=>{sh.columns.splice(1,1);sh.rows.forEach(r=>r.splice(1,1));if(sh.total)sh.total.splice(1,1)});
     return [s1,s2];
   };
   // ---- σύνδεση με τη σελίδα Παραγωγής ----
