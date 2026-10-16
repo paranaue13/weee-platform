@@ -1460,6 +1460,13 @@ def production_attendance_effective(date:str=Query(...), db:Session=Depends(get_
             out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"since_at":None,"late":False,"arrived_at":None,"explicit":False})
     return out
 
+@app.get("/production/attendance/range")
+def production_attendance_range(start:str=Query(...), end:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Μόνο ανάγνωση: οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ παρουσίες (ρητές εγγραφές) ενός διαστήματος -- για την καρτέλα «Παραγωγή ανά Τμήμα / Άτομο» σε περίοδο μεγαλύτερη της ημέρας."""
+    d0=datetime.fromisoformat(start); d1=datetime.fromisoformat(end)+timedelta(days=1)
+    rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=d0,ProductionAttendance.work_date<d1).order_by(ProductionAttendance.work_date)).all()
+    return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows]
+
 @app.put("/production/attendance", response_model=schemas.ProductionAttendanceOut)
 def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
     if not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")

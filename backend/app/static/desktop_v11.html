@@ -1158,6 +1158,51 @@ body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:
 .productionFilter{display:flex;flex-direction:row!important;align-items:center;gap:10px}
 .productionFilter>label{margin:0;white-space:nowrap}
 #production>#productionActions{display:none}
+/* ΑΛΛΑΓΗ ΙΓ: Παραγωγή ανά Τμήμα / Άτομο */
+#productionPeoplePanel .ppvOld{display:none!important}
+#productionKpis.ppv5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.sortingKpiCard.k5{background:#f6e8ef}.sortingKpiCard.k5 .sortingKpiIcon{color:#9a3b66;background:rgba(154,59,102,.14)}
+.ppvTools{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px}
+.ppvTools #ppvSearch{flex:1 1 260px;min-width:200px;height:40px}
+.ppvRow{cursor:pointer}
+.ppvRow.ppvDept>td:first-child{font-weight:600}
+.ppvCaret{display:inline-block;width:18px;color:var(--fg-3,#74777f)}
+.ppvInd{padding-left:34px!important}.ppvInd2{padding-left:58px!important}
+.ppvSubD{background:var(--surface-2,#f0f3fa)}
+.ppvKg{display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap}
+.ppvBar{display:inline-block;width:110px;height:8px;border-radius:4px;background:var(--surface-2,#e8ecf5);overflow:hidden;flex:none}
+.ppvBar>i{display:block;height:100%;background:var(--accent,#2f5fc4)}
+.ppvMats{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-start}
+.ppvMat{display:inline-block;padding:2px 8px;border-radius:12px;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font-size:12px;white-space:nowrap;max-width:220px;overflow:hidden;text-overflow:ellipsis}
+.ppvMat i{font-style:normal;font-weight:700;margin-left:4px}
+.ppvMore{display:inline-block;padding:1px 7px;border-radius:12px;background:var(--surface-2,#eceff6);font-size:12px;color:var(--fg-2,#44474f);cursor:help}
+.ppvAvs{display:inline-flex;align-items:center}
+.ppvAv{display:inline-grid;place-items:center;width:26px;height:26px;margin-right:-6px;border-radius:50%;background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);border:2px solid var(--surface,#fff);font-size:11px;font-weight:700}
+.ppvAvs .ppvMore{margin-left:10px}
+.ppvCnt{margin-left:8px;font-size:12px;color:var(--fg-3,#74777f)}
+.ppvI{width:24px;height:24px;border-radius:50%;border:1px solid var(--line-strong,#b9bdc9);background:var(--surface,#fff);color:var(--accent,#2f5fc4);font:italic 700 13px/22px Georgia,serif;cursor:pointer;padding:0}
+.ppvI:hover{background:var(--accent-bg,#d8e2ff)}
+#ppv .ppvTot td{font-weight:700}
+#ppv .prodTable :is(th,td):not(:first-child){text-align:left!important}
+#ppv .prodTable.ppvDeptV :is(th,td):nth-child(3){text-align:right!important}
+.ppvModal{position:fixed;inset:0;z-index:9700;background:rgba(10,20,40,.45);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.ppvModal.hidden{display:none}
+.ppvBox{position:relative;width:min(760px,100%);background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:var(--r-box,12px);border:1px solid var(--line,#e3e5ec);box-shadow:0 18px 50px rgba(0,0,0,.3);padding:22px 24px}
+.ppvX{position:absolute;right:12px;top:10px;width:32px;height:32px;border:0;border-radius:50%;background:transparent;font-size:16px;cursor:pointer;color:var(--fg-2,#44474f)}
+.ppvX:hover{background:var(--surface-2,#eceff6)}
+.ppvBox h3{margin:0 0 2px;font-size:20px}
+.ppvBxs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.ppvBx{background:var(--surface-2,#f0f3fa);border-radius:var(--r-box,8px);padding:10px 12px}
+.ppvBx small{display:block;color:var(--fg-3,#74777f);font-size:12px;margin-bottom:2px}
+.ppvBx b{font-size:17px}
+.ppvSec{margin:16px 0 6px;font-weight:600;font-size:13px;color:var(--fg-2,#44474f)}
+.ppvMRow{display:flex;align-items:center;gap:10px;padding:4px 0}
+.ppvMRow .ppvMN{flex:1;min-width:0}.ppvMRow .ppvBar{width:140px}
+.ppvT{width:100%;border-collapse:collapse}
+.ppvT th,.ppvT td{padding:7px 8px;border-bottom:1px solid var(--line,#e3e5ec);text-align:left;font-size:13.5px}
+.ppvT th{color:var(--fg-3,#74777f);font-weight:500;font-size:12px}
+.ppvT tr.ppvGo{cursor:pointer}.ppvT tr.ppvGo:hover td{background:var(--hover,#eaf0fd)}
+.ppvBack{margin:0 0 8px}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -7895,6 +7940,230 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   // όταν το δεξί μπλοκ σπάει σε δεύτερη γραμμή, οι καρτέλες μένουν στο πάνω μέρος
   const ro=new ResizeObserver(es=>es.forEach(en=>{let c=en.target.parentElement;if(c)c.classList.toggle('topWrapped',en.target.getBoundingClientRect().height>60)}));
   document.querySelectorAll('.topRight').forEach(b=>ro.observe(b));
+})();
+</script>
+<script id="prodPeopleV2">
+// ΑΛΛΑΓΗ ΙΓ: Παραγωγή > «Παραγωγή ανά Τμήμα / Άτομο» (ανασχεδιασμός). Όλα τα νούμερα από πραγματικά δεδομένα:
+//  kg ανά τμήμα και υλικό (production_work_entries), ώρες από παρουσίες + ωράριο Ρυθμίσεων, θέση από το position_text της παρουσίας.
+//  Δεν υπάρχουν kg ανά άτομο / ομαδική καταγραφή -> δεν εμφανίζονται.
+(function(){
+  const $=id=>document.getElementById(id);
+  const panel=$('productionPeoplePanel');if(!panel)return;
+  const st={view:'dept',q:'',open:new Set(),att:[],attKey:'',sched:null,groups:{},stack:[],dayInit:false,roster:false,loadSeq:0};
+  const norm=t=>String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/ς/g,'σ');
+  const fmtKg=n=>Math.round(n).toLocaleString('el-GR');
+  const fmtH=m=>m>0?(Math.floor(m/60)+' ω '+String(Math.round(m%60)).padStart(2,'0')+' λ'):'';
+  const ini=n=>{let w=String(n||'').trim().split(/\s+/).filter(Boolean);return ((w[0]||'')[0]||'')+((w.length>1?w[w.length-1]:'')[0]||'')};
+  const isSupportU=u=>u&&(u.profile==='SUPPORT'||u.profile==='MANAGEMENT');
+  const range=()=>prodRange();
+  // ---- δομή σελίδας ----
+  const oldWraps=[...panel.children].filter(c=>c.classList.contains('prodTableWrap'));
+  const rosterWrap=oldWraps[0],oldTableWrap=oldWraps[1];
+  const hint=panel.querySelector(':scope>.productionHint');
+  if(oldTableWrap)oldTableWrap.classList.add('ppvOld');
+  if(hint)hint.classList.add('ppvOld');
+  const root=document.createElement('div');root.id='ppv';
+  root.innerHTML=`<div class="ppvTools"><div class="prodSegment" id="ppvView"><button type="button" data-v="dept" class="active">Ανά τμήμα</button><button type="button" data-v="person">Ανά άτομο</button></div><input id="ppvSearch" placeholder="Αναζήτηση τμήματος, εργαζομένου ή υλικού…" autocomplete="off"><button class="btn alt" id="ppvExpand">Ανάπτυξη όλων</button><button class="btn alt" id="ppvCollapse">Σύμπτυξη όλων</button><button class="btn alt" id="ppvRosterBtn">Τοποθέτηση εργαζομένων</button></div><div id="ppvRoster" class="hidden"></div><div class="prodTableWrap ppvWrap"><table class="prodTable ppvTable"><thead id="ppvHead"></thead><tbody id="ppvBody"></tbody><tfoot id="ppvFoot"></tfoot></table></div>`;
+  panel.insertBefore(root,panel.firstChild);
+  if(rosterWrap)$('ppvRoster').appendChild(rosterWrap);
+  const modal=document.createElement('div');modal.id='ppvModal';modal.className='ppvModal hidden';
+  modal.innerHTML='<div class="ppvBox" role="dialog" aria-modal="true"><button type="button" class="ppvX" aria-label="Κλείσιμο">✕</button><div id="ppvPop"></div></div>';
+  document.body.appendChild(modal);
+
+  // ---- δεδομένα ----
+  async function ensureAtt(){
+    let r=range(),key=prodState.period+'|'+r.startISO+'|'+r.endISO;
+    if(st.attKey===key)return false;
+    let my=++st.loadSeq;
+    let att=[];
+    try{att=prodState.period==='day'?await api('/production/attendance/effective?date='+r.startISO):await api(`/production/attendance/range?start=${r.startISO}&end=${r.endISO}`)}catch(e){att=[]}
+    if(!st.sched){try{st.sched=await api('/settings/schedule')}catch(e){st.sched=null}try{st.groups=await api('/settings/break-groups')||{}}catch(e){st.groups={}}}
+    if(my!==st.loadSeq)return false;
+    st.att=att;st.attKey=key;return true;
+  }
+  function build(){
+    const P=prodState,units=(P.units||[]),uById=Object.fromEntries(units.map(u=>[u.id,u]));   // και ανενεργά τμήματα (π.χ. «Ιστορική παραγωγή»)
+    const emps=Object.fromEntries((P.employees||[]).map(e=>[e.id,e]));
+    const t=x=>x?tfToM(deltioTimeStr(x)):null;
+    const recs=[];
+    (st.att||[]).forEach(a=>{
+      if(a.status==='ABSENT')return;
+      let e=emps[a.employee_id];if(!e)return;
+      if(e.active===false&&!a.explicit)return;
+      let unit=a.org_unit_id||e.default_org_unit_id||'';
+      let grp=(st.groups&&st.groups[unit])==='B'?'B':'A';
+      let sm=st.sched?scheduleToMinutes(st.sched,null,grp):null;
+      let left=a.status==='LEFT';
+      let mins=sm?attendanceNetMinutes({absent:false,late:!!a.late,arrived:t(a.arrived_at),left,leave:t(a.since_at)},sm):null;
+      let from=a.late&&a.arrived_at?deltioTimeStr(a.arrived_at):(sm&&sm.start)||'';
+      let to=left&&a.since_at?deltioTimeStr(a.since_at):(sm&&sm.end)||'';
+      recs.push({emp:e,unit,pos:(a.position_text||'').trim(),mins:mins||0,from,to,day:String(a.work_date||'').slice(0,10)});
+    });
+    // kg ανά τμήμα και υλικό
+    const U={};
+    const get=id=>U[id]||(U[id]={id,u:uById[id]||{id,name_el:id?'—':'Χωρίς τμήμα',profile:null},kg:0,mats:new Map(),recs:[]});
+    (P.entries||[]).forEach(e=>{let k=Number(e.weight_kg||0),x=get(e.org_unit_id||'');x.kg+=k;let n=(e.description||e.official_description||'').trim()||'—';x.mats.set(n,(x.mats.get(n)||0)+k)});
+    recs.forEach(r=>get(r.unit).recs.push(r));
+    const all=Object.values(U);
+    const prod=all.filter(x=>x.kg!==0||!isSupportU(x.u)&&x.recs.length).sort((a,b)=>b.kg-a.kg||String(a.u.name_el).localeCompare(String(b.u.name_el),'el'));
+    const supp=all.filter(x=>!(x.kg!==0||!isSupportU(x.u)&&x.recs.length)&&x.recs.length).sort((a,b)=>(a.u.sort_order||0)-(b.u.sort_order||0)||String(a.u.name_el).localeCompare(String(b.u.name_el),'el'));
+    all.forEach(x=>{x.mins=x.recs.reduce((s,r)=>s+r.mins,0);x.people=new Set(x.recs.map(r=>r.emp.id)).size;x.matList=[...x.mats].filter(m=>m[1]!==0).sort((a,b)=>b[1]-a[1])});
+    const totalKg=all.reduce((s,x)=>s+x.kg,0),prodMins=prod.reduce((s,x)=>s+x.mins,0),suppMins=supp.reduce((s,x)=>s+x.mins,0);
+    const people=new Set(recs.map(r=>r.emp.id)).size;
+    // άτομα
+    const byP={};recs.forEach(r=>{(byP[r.emp.id]||(byP[r.emp.id]={emp:r.emp,recs:[]})).recs.push(r)});
+    const persons=Object.values(byP).map(p=>{
+      let g={};p.recs.forEach(r=>{let k=r.unit;(g[k]||(g[k]={unit:k,pos:new Set(),mins:0,from:'',to:''})); let o=g[k];if(r.pos)o.pos.add(r.pos);o.mins+=r.mins;if(r.from&&(!o.from||r.from<o.from))o.from=r.from;if(r.to&&r.to>o.to)o.to=r.to});
+      let parts=Object.values(g).sort((a,b)=>b.mins-a.mins);
+      let from=parts.reduce((m,x)=>x.from&&(!m||x.from<m)?x.from:m,''),to=parts.reduce((m,x)=>x.to&&x.to>m?x.to:m,'');
+      return {emp:p.emp,parts,mins:parts.reduce((s,x)=>s+x.mins,0),from,to,pos:[...new Set(parts.flatMap(x=>[...x.pos]))]};
+    }).sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el'));
+    return {units,uById,prod,supp,all,totalKg,prodMins,suppMins,people,persons,recs,eff:prodMins>0?totalKg/(prodMins/60):null};
+  }
+  let D=null;
+  window.__ppvStats=()=>D;
+
+  // ---- εμφάνιση ----
+  const uname=x=>x.u.name_el||'';
+  const unitName=id=>{let u=(prodState.units||[]).find(x=>x.id===id);return u?u.name_el:(id?'—':'Χωρίς τμήμα')};
+  const avatars=(list,cls='')=>{let a=list.slice(0,4).map(e=>`<span class="ppvAv" title="${esc(e.full_name)}">${esc(ini(e.full_name))}</span>`).join('');return `<span class="ppvAvs ${cls}">${a}${list.length>4?`<span class="ppvMore">+${list.length-4}</span>`:''}</span>`};
+  const matCell=x=>{if(!x.matList.length)return '';let top=x.matList.slice(0,2).map(([n,k])=>`<span class="ppvMat">${esc(n)} <i>${fmtKg(k)}</i></span>`).join('');let more=x.matList.length>2?`<span class="ppvMore" title="${esc(x.matList.map(([n,k])=>n+' — '+fmtKg(k)+' kg').join('\n'))}">+${x.matList.length-2}</span>`:'';return `<div class="ppvMats">${top}${more}</div>`};
+  const infoBtn=k=>`<button type="button" class="ppvI" data-i="${esc(k)}" aria-label="Αναλυτικά στοιχεία" title="Αναλυτικά στοιχεία">i</button>`;
+  const caret=o=>`<span class="ppvCaret">${o?'▾':'▸'}</span>`;
+  const matches=(q,...txt)=>!q||txt.some(t=>norm(t).includes(q));
+
+  function render(){
+    if(prodState.tab!=='people')return;
+    D=build();
+    $('ppvView').querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('active',b.dataset.v===st.view));
+    const q=norm(st.q.trim()),maxKg=Math.max(1,...D.prod.map(x=>x.kg));
+    let head,body='',foot='';
+    if(st.view==='dept'){
+      head='<tr><th>Τμήμα / Εργαζόμενος</th><th>Θέση</th><th>Παραγωγή</th><th>Υλικά (ΑΗΗΕ)</th><th>Εργαζόμενοι · Παρουσία</th><th>Ώρες</th><th>kg / ώρα</th><th></th></tr>';
+      D.prod.forEach(x=>{
+        let rows=x.recs.slice().sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el'));
+        let emps=rows.map(r=>r.emp);
+        let selfMatch=matches(q,uname(x),...x.matList.map(m=>m[0]));
+        let shown=selfMatch?rows:rows.filter(r=>matches(q,r.emp.full_name));
+        if(q&&!selfMatch&&!shown.length)return;
+        let k='u:'+x.id,open=st.open.has(k)||(q&&!selfMatch);
+        let eff=x.mins>0&&x.kg!==0?fmtKg(x.kg/(x.mins/60)):'';
+        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(uname(x))}</b></td><td></td><td>${x.kg!==0?`<div class="ppvKg"><span class="ppvBar"><i style="width:${Math.max(0,Math.min(100,x.kg/maxKg*100))}%"></i></span><b>${fmtKg(x.kg)}</b> kg</div>`:''}</td><td>${matCell(x)}</td><td>${avatars(emps.filter((e,i,a)=>a.findIndex(z=>z.id===e.id)===i))}<span class="ppvCnt">${x.people||''}</span></td><td>${fmtH(x.mins)}</td><td>${eff}</td><td>${infoBtn(k)}</td></tr>`;
+        if(open)shown.forEach(r=>{body+=`<tr class="ppvRow ppvSub" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd">${esc(r.emp.full_name)}</td><td>${esc(r.pos)}</td><td></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
+      });
+      if(D.supp.length){
+        let sRecs=D.supp.flatMap(x=>x.recs),selfMatch=matches(q,'Θέσεις υποστήριξης');
+        let vis=D.supp.filter(x=>selfMatch||matches(q,uname(x),...x.recs.map(r=>r.emp.full_name)));
+        if(vis.length){
+          let k='g:support',open=st.open.has(k)||(q&&!selfMatch);
+          let mins=D.suppMins,ppl=[...new Map(sRecs.map(r=>[r.emp.id,r.emp])).values()];
+          body+=`<tr class="ppvRow ppvDept ppvSupp${open?' open':''}" data-k="${k}"><td>${caret(open)}<b>Θέσεις υποστήριξης</b></td><td></td><td></td><td></td><td>${avatars(ppl)}<span class="ppvCnt">${ppl.length||''}</span></td><td>${fmtH(mins)}</td><td></td><td>${infoBtn(k)}</td></tr>`;
+          if(open)vis.forEach(x=>{
+            let uk='s:'+x.id,uo=st.open.has(uk)||(q&&!matches(q,uname(x)));
+            let ee=[...new Map(x.recs.map(r=>[r.emp.id,r.emp])).values()];
+            body+=`<tr class="ppvRow ppvSubD${uo?' open':''}" data-k="${esc(uk)}"><td class="ppvInd">${caret(uo)}${esc(uname(x))}</td><td></td><td></td><td></td><td>${avatars(ee)}</td><td>${fmtH(x.mins)}</td><td></td><td>${infoBtn(uk)}</td></tr>`;
+            if(uo)x.recs.filter(r=>!q||matches(q,uname(x),r.emp.full_name)).sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el')).forEach(r=>{body+=`<tr class="ppvRow ppvSub2" data-k="p:${esc(r.emp.id)}:${esc(x.id)}"><td class="ppvInd2">${esc(r.emp.full_name)}</td><td>${esc(r.pos)}</td><td></td><td></td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td><td></td><td>${infoBtn('p:'+r.emp.id)}</td></tr>`});
+          });
+        }
+      }
+      foot=`<tr class="ppvTot"><td>Σύνολο</td><td></td><td><b>${fmtKg(D.totalKg)}</b> kg</td><td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td>${D.eff==null?'':fmtKg(D.eff)}</td><td></td></tr>`;
+    }else{
+      head='<tr><th>Άτομο / Τμήμα</th><th>Θέση</th><th>Τμήματα</th><th>Προσέλευση – Αποχώρηση</th><th>Ώρες</th><th></th></tr>';
+      D.persons.forEach(p=>{
+        let selfMatch=matches(q,p.emp.full_name,...p.parts.map(x=>unitName(x.unit)));
+        if(q&&!selfMatch)return;
+        let k='a:'+p.emp.id,open=st.open.has(k);
+        let first=p.parts[0],extra=p.parts.length-1;
+        body+=`<tr class="ppvRow ppvDept${open?' open':''}" data-k="${esc(k)}"><td>${caret(open)}<b>${esc(p.emp.full_name)}</b></td><td>${esc(p.pos.join(', '))}</td><td>${esc(first?unitName(first.unit):'')}${extra>0?` <span class="ppvMore">+${extra}</span> <small class="muted">${p.parts.length} τμήματα</small>`:''}</td><td>${esc(p.from)}${p.from||p.to?' – ':''}${esc(p.to)}</td><td>${fmtH(p.mins)}</td><td>${infoBtn('p:'+p.emp.id)}</td></tr>`;
+        if(open)p.parts.forEach(x=>{body+=`<tr class="ppvRow ppvSub" data-k="u:${esc(x.unit)}"><td class="ppvInd">${esc(unitName(x.unit))}</td><td>${esc([...x.pos].join(', '))}</td><td></td><td>${esc(x.from)}${x.from||x.to?' – ':''}${esc(x.to)}</td><td>${fmtH(x.mins)}</td><td>${infoBtn(x.unit?'u:'+x.unit:'')}</td></tr>`});
+      });
+      foot=`<tr class="ppvTot"><td>Σύνολο</td><td></td><td></td><td>${D.people} άτομα</td><td>${fmtH(D.prodMins+D.suppMins)}</td><td></td></tr>`;
+    }
+    const cols=st.view==='dept'?8:6;
+    $('ppvBody').closest('table').classList.toggle('ppvDeptV',st.view==='dept');
+    $('ppvHead').innerHTML=head;
+    $('ppvBody').innerHTML=body||`<tr><td class="prodEmpty" colspan="${cols}">Καμία ενεργή ημερομηνία σε αυτή την περίοδο.</td></tr>`;
+    $('ppvFoot').innerHTML=foot;
+    renderRosterIfOpen();
+    try{renderProductionKpis()}catch(e){}
+  }
+  function renderRosterIfOpen(){if(!$('ppvRoster').classList.contains('hidden')){try{renderProdRoster()}catch(e){}}}
+
+  // ---- popup ----
+  function matBars(x){
+    if(!x.matList.length)return '';
+    let mx=Math.max(1,...x.matList.map(m=>Math.abs(m[1])));
+    return `<div class="ppvSec">Υλικά</div>`+x.matList.map(([n,k])=>`<div class="ppvMRow"><span class="ppvMN">${esc(n)}</span><span class="ppvBar"><i style="width:${Math.min(100,Math.abs(k)/mx*100)}%"></i></span><b>${fmtKg(k)} kg</b></div>`).join('');
+  }
+  const box=(l,v)=>`<div class="ppvBx"><small>${l}</small><b>${v}</b></div>`;
+  function popHtml(top){
+    let back=st.stack.length>1?'<button type="button" class="btn alt ppvBack">‹ Πίσω</button>':'';
+    let [t,id]=[top.slice(0,1),top.slice(2)];
+    if(top.startsWith('u:')||top.startsWith('s:')){
+      let uid=top.slice(2),x=D.all.find(z=>z.id===uid);
+      if(!x)return back+'<div class="muted">Δεν βρέθηκαν στοιχεία.</div>';
+      let supp=top.startsWith('s:')||(!x.kg&&isSupportU(x.u));
+      let eff=x.mins>0&&x.kg!==0?fmtKg(x.kg/(x.mins/60))+' kg/ώρα':'';
+      let rows=x.recs.slice().sort((a,b)=>String(a.emp.full_name).localeCompare(String(b.emp.full_name),'el'));
+      return `${back}<h3>${esc(uname(x))}</h3><div class="muted">Τμήμα</div><div class="ppvBxs">${supp?'':box('Παραγωγή',fmtKg(x.kg)+' kg')}${box('Εργαζόμενοι',x.people)}${box('Ώρες παρουσίας',fmtH(x.mins)||'0')}${supp?'':box('Απόδοση',eff)}</div>${supp?'':matBars(x)}<div class="ppvSec">Εργαζόμενοι</div><table class="ppvT"><thead><tr><th>Όνομα</th><th>Θέση</th><th>Προσέλευση – Αποχώρηση</th><th>Ώρες</th></tr></thead><tbody>${rows.map(r=>`<tr class="ppvGo" data-go="p:${esc(r.emp.id)}"><td>${esc(r.emp.full_name)}</td><td>${esc(r.pos)}</td><td>${esc(r.from)}${r.from||r.to?' – ':''}${esc(r.to)}</td><td>${fmtH(r.mins)}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">Κανένας εργαζόμενος.</td></tr>'}</tbody></table>`;
+    }
+    if(top==='g:support'){
+      return `${back}<h3>Θέσεις υποστήριξης</h3><div class="muted">Ομάδα</div><div class="ppvBxs">${box('Θέσεις',D.supp.length)}${box('Εργαζόμενοι',new Set(D.supp.flatMap(x=>x.recs.map(r=>r.emp.id))).size)}${box('Ώρες παρουσίας',fmtH(D.suppMins)||'0')}</div><div class="ppvSec">Θέσεις</div><table class="ppvT"><thead><tr><th>Θέση</th><th>Εργαζόμενοι</th><th>Ώρες</th></tr></thead><tbody>${D.supp.map(x=>`<tr class="ppvGo" data-go="s:${esc(x.id)}"><td>${esc(uname(x))}</td><td>${esc([...new Set(x.recs.map(r=>r.emp.full_name))].join(', '))}</td><td>${fmtH(x.mins)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    if(top.startsWith('p:')){
+      let eid=top.slice(2).split(':')[0],p=D.persons.find(z=>z.emp.id===eid);
+      if(!p)return back+'<div class="muted">Δεν βρέθηκαν στοιχεία.</div>';
+      return `${back}<h3>${esc(p.emp.full_name)}</h3><div class="muted">Άτομο</div><div class="ppvBxs">${box('Προσέλευση – Αποχώρηση',esc(p.from)+(p.from||p.to?' – ':'')+esc(p.to))}${box('Ώρες παρουσίας',fmtH(p.mins)||'0')}${box('Θέση',esc(p.pos.join(', ')))}</div><div class="ppvSec">Τμήματα που δούλεψε</div><table class="ppvT"><thead><tr><th>Τμήμα</th><th>Θέση</th><th>Από – Έως</th><th>Ώρες</th></tr></thead><tbody>${p.parts.map(x=>`<tr class="ppvGo" data-go="${x.unit&&isSupportU(D.uById[x.unit])&&!(D.all.find(z=>z.id===x.unit)||{}).kg?'s:':'u:'}${esc(x.unit)}"><td>${esc(unitName(x.unit))}</td><td>${esc([...x.pos].join(', '))}</td><td>${esc(x.from)}${x.from||x.to?' – ':''}${esc(x.to)}</td><td>${fmtH(x.mins)}</td></tr>`).join('')}</tbody></table>`;
+    }
+    return '';
+  }
+  function openPop(k){st.stack=[k];paintPop();modal.classList.remove('hidden')}
+  function paintPop(){if(!st.stack.length)return;$('ppvPop').innerHTML=popHtml(st.stack[st.stack.length-1])}
+  modal.addEventListener('mousedown',e=>{if(e.target===modal||e.target.closest('.ppvX')){modal.classList.add('hidden');st.stack=[]}});
+  modal.addEventListener('click',e=>{
+    let b=e.target.closest('.ppvBack');if(b){st.stack.pop();paintPop();return}
+    let g=e.target.closest('[data-go]');if(g){st.stack.push(g.dataset.go);paintPop()}
+  });
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.classList.contains('hidden')){modal.classList.add('hidden');st.stack=[]}});
+
+  // ---- συμβάντα ----
+  $('ppvBody').addEventListener('click',e=>{
+    let i=e.target.closest('.ppvI');if(i){e.stopPropagation();let k=i.dataset.i;if(k)openPop(k);return}
+    let tr=e.target.closest('tr.ppvRow');if(!tr)return;
+    let k=tr.dataset.k;if(!k)return;
+    if(tr.classList.contains('ppvSub')||tr.classList.contains('ppvSub2')){openPop(k);return}   // υπογραμμή: ανοίγει το popup του ατόμου / τμήματος
+    if(st.open.has(k))st.open.delete(k);else st.open.add(k);render();
+  });
+  $('ppvView').addEventListener('click',e=>{let b=e.target.closest('[data-v]');if(!b)return;st.view=b.dataset.v;render()});
+  $('ppvSearch').addEventListener('input',e=>{st.q=e.target.value;render()});
+  $('ppvExpand').onclick=()=>{
+    if(!D)return;
+    if(st.view==='dept'){D.prod.forEach(x=>st.open.add('u:'+x.id));if(D.supp.length){st.open.add('g:support');D.supp.forEach(x=>st.open.add('s:'+x.id))}}
+    else D.persons.forEach(p=>st.open.add('a:'+p.emp.id));
+    render();
+  };
+  $('ppvCollapse').onclick=()=>{st.open.clear();render()};
+  $('ppvRosterBtn').onclick=()=>{let r=$('ppvRoster');r.classList.toggle('hidden');if(!r.classList.contains('hidden')){try{renderProdRoster()}catch(e){}}};
+
+  // ---- σύνδεση με τη σελίδα Παραγωγής ----
+  const _people=renderProdPeople;
+  renderProdPeople=function(){try{_people.apply(this,arguments)}catch(e){}if(prodState.tab==='people'){render();ensureAtt().then(ch=>{if(ch){render();try{renderProductionKpis()}catch(e){}}})}};
+  const _kpis=renderProductionKpis;
+  renderProductionKpis=function(){
+    $('productionKpis').classList.toggle('ppv5',prodState.tab==='people');
+    if(prodState.tab!=='people'||!D)return _kpis.apply(this,arguments);
+    const IC={scale:'<path d="M12 3v18"/><path d="M5 21h14"/><path d="M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/>',sq:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',person:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',gauge:'<path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/>'};
+    const card=(cls,ic,t,v)=>`<div class="sortingKpiCard ${cls}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${IC[ic]}</svg></span><span class="sortingKpiText"><small>${t}</small><b>${v}</b></span></div>`;
+    let nProd=D.prod.filter(x=>x.u.active!==false).length;
+    $('productionKpis').innerHTML=card('k2','scale','Συνολική παραγωγή (kg)',fmtKg(D.totalKg))+card('k1','sq','Τμήματα',nProd)+card('k3','person','Εργαζόμενοι',D.people)+card('k4','clock','Ώρες παρουσίας',fmtH(D.prodMins+D.suppMins)||'0')+card('k5','gauge','Απόδοση (kg/ώρα)',D.eff==null?'':fmtKg(D.eff));
+  };
+  const _paint=prodPaintTabPanels;
+  prodPaintTabPanels=function(){_paint.apply(this,arguments);let tools=document.querySelector('.productionTools');if(tools&&prodState.tab==='people')tools.classList.add('hidden')};
+  // πρώτη είσοδος στην καρτέλα: περίοδος «Ημέρα»
+  document.addEventListener('click',e=>{
+    let b=e.target.closest&&e.target.closest('.productionTab[data-prodtab="people"]');
+    if(b&&!st.dayInit){st.dayInit=true;prodState.period='day';prodState.cursor=new Date()}
+  },true);
 })();
 </script>
 </body></html>
