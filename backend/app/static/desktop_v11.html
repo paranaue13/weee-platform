@@ -1230,6 +1230,12 @@ body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 #inventory>.toolbar>#invReportBtn+#invZoomNav{margin-left:0}
 #inventory>.toolbar{flex-wrap:nowrap!important}
 @media(max-width:1400px){#inventory>.toolbar .toggleRow span{white-space:normal!important;line-height:1.15;max-width:104px}#invReportBtn{padding-left:10px;padding-right:10px}}
+/* ΑΛΛΑΓΗ ΙΣΤ: κουμπιά απόκρυψης ΕΞΩ από τον πίνακα — δεσμευμένο περιθώριο (αριστερά 34px, πάνω 30px) ώστε ο πίνακας να μη μετακινείται */
+.pinHost{margin-left:34px!important;margin-top:30px!important;width:calc(100% - 34px)!important;max-width:none!important;box-sizing:border-box}
+.pinLayer .pinZone.dG,.pinLayer .pinZone.dC{background:transparent;cursor:default}
+.pinLayer .pinZone.dG .pinDot,.pinLayer .pinZone.dC .pinDot{width:22px;height:22px;background:#d9644a;color:#fff;border:0;font:700 16px/22px Roboto,system-ui,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.28);cursor:pointer}
+.pinLayer .pinZone.dG .pinDot{left:6px;top:50%;margin-top:-11px}
+.pinLayer .pinZone.dC .pinDot{left:50%;margin-left:-11px;top:auto;bottom:4px}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -6399,14 +6405,25 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   // Στήλη: πάνω-δεξιά γωνία της επικεφαλίδας (~26px, όλο το ύψος της)· Γραμμή: αριστερή εσωτερική πλευρά του πρώτου
   // κελιού δεδομένων (~28px, όλο το ύψος της γραμμής)· Ομάδα: δεξιά (εξωτερική) πλευρά του κελιού ομάδας (~28px).
   // Επαναφορά: από τη λεπτή γραμμή του κρυμμένου στοιχείου (μπλε «+»). Όλα μένουν μέσα στα όρια του πίνακα.
-  function wrapRect(t){let w=t.closest('.prodTableWrap,.tablewrap')||t.parentElement;return w.getBoundingClientRect()}
+  // ΑΛΛΑΓΗ ΙΣΤ: τα κουμπιά απόκρυψης βγαίνουν ΕΞΩ από τον πίνακα (αριστερό περιθώριο GUT για γραμμές, λωρίδα STRIPH από πάνω για στήλες),
+  // τοποθετημένα με μέτρηση της πραγματικής θέσης (getBoundingClientRect) σε δικό τους επίπεδο (.pinLayer) έξω από το scroll κοντέινερ.
+  const GUT=34,STRIPH=30;
+  const hostOf=t=>t.closest('.prodTableWrap,.tablewrap');
+  function markHost(t){let w=hostOf(t);if(w&&!w.classList.contains('pinHost'))w.classList.add('pinHost')}
+  function wrapRect(t){let w=hostOf(t)||t.parentElement;return w.getBoundingClientRect()}
   const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   function clampR(r,w){let l=Math.max(r.left,w.left),rt=Math.min(r.right,w.right),tp=Math.max(r.top,w.top),b=Math.min(r.bottom,w.bottom);return {left:l,right:rt,top:tp,bottom:b,width:Math.max(0,rt-l),height:Math.max(0,b-tp)}}
-  function mkZone(rect,cls,sign,label,onclick){
+  function mkZone(rect,cls,sign,label,onclick,asTitle){
     let z=document.createElement('div');z.className='pinZone '+cls+(sign==='+'?' plus':'');
     z.style.left=rect.left+'px';z.style.top=rect.top+'px';z.style.width=rect.width+'px';z.style.height=rect.height+'px';
-    z.innerHTML=`<span class="pinDot">${sign}</span><span class="pinLabel">${esc2(label)}</span>`;
-    z.onclick=e=>{e.stopPropagation();e.preventDefault();onclick()};
+    if(asTitle){
+      // απλό tooltip (title) στο κουμπί· ΟΧΙ custom ετικέτα που σκεπάζει κελιά
+      z.innerHTML=`<span class="pinDot" title="${esc2(label).replace(/"/g,'&quot;')}">${sign}</span>`;
+      z.onclick=e=>{e.stopPropagation();e.preventDefault();if(e.target.closest('.pinDot'))onclick()};
+    }else{
+      z.innerHTML=`<span class="pinDot">${sign}</span><span class="pinLabel">${esc2(label)}</span>`;
+      z.onclick=e=>{e.stopPropagation();e.preventDefault();onclick()};
+    }
     return z;
   }
   function mkHl(rect,cls){
@@ -6431,11 +6448,22 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     clearTimeout(hideT);L.innerHTML='';L.dataset.k=k;return L;
   }
   function colZone(t,item,r,wr){
-    let L=openLayer('c'+item.id);if(!L)return;
+    if(hostOf(t)){
+      // κουμπί πάνω από την επικεφαλίδα, έξω από τον πίνακα, κεντραρισμένο στο ΟΡΑΤΟ τμήμα της στήλης
+      let vis=clampR(r,wr);if(vis.width<24)return false;
+      let e=document.elementFromPoint(vis.left+vis.width/2,r.top+r.height/2);
+      if(!e||!e.closest||e.closest('th')!==item.th)return false;     // η στήλη είναι κρυμμένη κάτω από κολλημένη στήλη
+      let L=openLayer('c'+item.id);if(!L)return true;
+      L.appendChild(mkHl({left:vis.left,top:vis.bottom-2,width:vis.width,height:2},'pinHlLine'));
+      let top=Math.max(0,wr.top-STRIPH);
+      L.appendChild(mkZone({left:vis.left,top:top,width:vis.width,height:wr.top-top},'dC','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id),true));
+      hot=t;return true;
+    }
+    let L=openLayer('c'+item.id);if(!L)return true;
     let cr=clampR(r,wr);
     L.appendChild(mkHl({left:cr.left,top:cr.bottom-2,width:cr.width,height:2},'pinHlLine'));
     let z=mkZone({left:Math.max(cr.left,cr.right-24),top:cr.top,width:Math.min(24,cr.width),height:Math.min(24,Math.round(cr.height/2))},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
-    L.appendChild(z);fitLabel(z,wr);hot=t;
+    L.appendChild(z);fitLabel(z,wr);hot=t;return true;
   }
   // κείμενο του πρώτου ΟΡΑΤΟΥ κελιού δεδομένων της γραμμής (μετά το κελί ομάδας), όπως φαίνεται αυτή τη στιγμή
   function rowFirstText(tr){
@@ -6446,19 +6474,42 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     return '';
   }
   function rowZone(t,item,cell,wr){
-    let L=openLayer('r'+item.id);if(!L)return;
-    let rr=clampR(item.tr.getBoundingClientRect(),wr),cr=cell.getBoundingClientRect();
+    let rr0=item.tr.getBoundingClientRect();
+    if(hostOf(t)){
+      // κουμπί στο αριστερό περιθώριο ΕΞΩ από τον πίνακα, κάθετα κεντραρισμένο στο ΟΡΑΤΟ ύψος ΑΥΤΗΣ της γραμμής (μετρημένο, όχι σταθερό ύψος)
+      let top=Math.max(rr0.top,wr.top),bot=Math.min(rr0.bottom,wr.bottom);
+      if(bot-top<10)return false;
+      let e=document.elementFromPoint(wr.left+Math.min(24,wr.width/2),(top+bot)/2);
+      if(!e||!e.closest||e.closest('tr')!==item.tr)return false;     // κομμένη / κρυμμένη κάτω από κολλημένη επικεφαλίδα ή σύνολα
+      let L=openLayer('r'+item.id);if(!L)return true;
+      L.appendChild(mkHl(clampR(rr0,wr),'pinHlRow'));
+      L.appendChild(mkZone({left:wr.left-GUT,top:top,width:GUT,height:bot-top},'dG','−','Απόκρυψη γραμμής: '+(rowFirstText(item.tr)||item.name),()=>hide(t,'row',item.id),true));
+      hot=t;return true;
+    }
+    let L=openLayer('r'+item.id);if(!L)return true;
+    let rr=clampR(rr0,wr),cr=cell.getBoundingClientRect();
     L.appendChild(mkHl(rr,'pinHlRow'));
     let left=Math.max(cr.left,wr.left);
     let z=mkZone({left:left,top:rr.top,width:28,height:rr.height},'dL','−','Απόκρυψη γραμμής: '+(rowFirstText(item.tr)||item.name),()=>hide(t,'row',item.id));
-    L.appendChild(z);fitLabel(z,wr);hot=t;
+    L.appendChild(z);fitLabel(z,wr);hot=t;return true;
   }
   function groupZone(t,item,cell,its,label,wr){
-    let L=openLayer('g'+its[0].id);if(!L)return;
-    let cr=clampR(cell.getBoundingClientRect(),wr);
+    let cr0=cell.getBoundingClientRect();
+    if(hostOf(t)){
+      let top=Math.max(cr0.top,wr.top),bot=Math.min(cr0.bottom,wr.bottom);
+      if(bot-top<10)return false;
+      let e=document.elementFromPoint(wr.left+Math.min(24,wr.width/2),(top+bot)/2);
+      if(!e||!e.closest||!e.closest('tr'))return false;
+      let L=openLayer('g'+its[0].id);if(!L)return true;
+      L.appendChild(mkHl(clampR(cr0,wr),'pinHlGroup'));
+      L.appendChild(mkZone({left:wr.left-GUT,top:top,width:GUT,height:bot-top},'dG','−',label,()=>hideRows(t,its.map(q=>q.id)),true));
+      hot=t;return true;
+    }
+    let L=openLayer('g'+its[0].id);if(!L)return true;
+    let cr=clampR(cr0,wr);
     L.appendChild(mkHl(cr,'pinHlGroup'));
     let z=mkZone({left:Math.max(cr.left,cr.right-28),top:cr.top,width:Math.min(28,cr.width),height:cr.height},'dR','−',label,()=>hideRows(t,its.map(q=>q.id)));
-    L.appendChild(z);hot=t;
+    L.appendChild(z);hot=t;return true;
   }
   // Επαναφορά: συνεχόμενα κρυμμένα στοιχεία στο σημείο της λεπτής γραμμής
   function restoreZone(t,md,cell,wr){
@@ -6495,46 +6546,71 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   let raf=0,last=null;
   document.addEventListener('mousemove',e=>{last=e;if(!raf)raf=requestAnimationFrame(()=>{raf=0;onMove(last)})},true);
   function onMove(e){
-    let el=e.target;
+    let el=e.target,x=e.clientX,y=e.clientY;
     if(!el||!el.closest)return;
-    if(el.closest('.pinLayer')){clearTimeout(hideT);return}
+    if(el.closest('.pinLayer')){
+      clearTimeout(hideT);
+      // το ποντίκι είναι πάνω στο περιθώριο / τη λωρίδα των κουμπιών: συνεχίζει ως hover της αντίστοιχης γραμμής / στήλης (δεν χάνεται το κουμπί)
+      let t0=hot;
+      if(!t0||!t0.isConnected||!hostOf(t0))return;
+      let w0=wrapRect(t0);
+      if(x<w0.left&&x>=w0.left-GUT&&y>=w0.top&&y<=w0.bottom){x=w0.left+8;el=document.elementFromPoint(x,y)}
+      else if(y<w0.top&&y>=w0.top-STRIPH&&x>=w0.left&&x<=w0.right){let hr=t0.tHead.rows[t0.tHead.rows.length-1].getBoundingClientRect();y=Math.min(w0.bottom-2,Math.max(w0.top+2,hr.top+hr.height/2));el=document.elementFromPoint(x,y)}   // η στήλη = το «φύλλο» της τελευταίας γραμμής επικεφαλίδας
+      else return;
+      if(!el||!el.closest||el.closest('.pinLayer'))return;
+    }
     let cell=el.closest('th,td'),t=cell&&cell.closest('table');
     if(!t||!eligibleTable(t)){if(layer&&layer.firstChild)scheduleClear();return}
     let md=t._pinModel=t._pinModel||model(t);
-    let wr=wrapRect(t),x=e.clientX,y=e.clientY,r=cell.getBoundingClientRect();
+    let wr=wrapRect(t),r=cell.getBoundingClientRect(),host=!!hostOf(t);
     if(y<wr.top||y>wr.bottom||x<wr.left||x>wr.right){if(layer&&layer.firstChild)scheduleClear();return}
     // επαναφορά από το σημάδι
     if(cell.classList.contains('pinColHide')||(cell.parentElement&&cell.parentElement.classList.contains('pinRowHide'))){
       if(restoreZone(t,md,cell,wr))return;
     }
-    // στήλη: πάνω-δεξιά γωνία της επικεφαλίδας
+    // στήλη: κουμπί πάνω από την επικεφαλίδα (πίνακες χωρίς wrapper: πάνω-δεξιά γωνία)
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
       let item=md.cols.find(c=>c.th===cell);
-      if(item&&item.ok&&x>=r.right-24&&x<=r.right&&y>=r.top&&y<=r.top+Math.min(24,Math.round(r.height/2))){colZone(t,item,r,wr);return}
+      if(item&&item.ok){
+        if(host){if(colZone(t,item,r,wr))return}
+        else if(x>=r.right-24&&x<=r.right&&y>=r.top&&y<=r.top+Math.min(24,Math.round(r.height/2))){colZone(t,item,r,wr);return}
+      }
     }
     if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
       let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
       if(item){
-        // ομάδα: δεξιά πλευρά του συγχωνευμένου κελιού
+        // ομάδα (συγχωνευμένο κελί)
         if((cell.rowSpan||1)>1){
-          if(x>=r.right-28){
+          if(host||x>=r.right-28){
             let g=item.owns.find(o=>o.cell===cell);
             let its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
             if(its.length){
               let n=its.length;
-              groupZone(t,item,cell,its,'Απόκρυψη ομάδας: '+norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)'),wr);return}
+              if(groupZone(t,item,cell,its,'Απόκρυψη ομάδας: '+norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)'),wr))return}
           }
         }else if((cell.colSpan||1)===1&&item.ok){
-          // γραμμή: αριστερή εσωτερική πλευρά του πρώτου ορατού κελιού δεδομένων
-          let first=[...tr.cells].find(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1&&!c.classList.contains('pinColHide'));
-          if(cell===first&&x<=r.left+28){rowZone(t,item,cell,wr);return}
+          if(host){if(rowZone(t,item,cell,wr))return}
+          else{
+            // γραμμή: αριστερή εσωτερική πλευρά του πρώτου ορατού κελιού δεδομένων
+            let first=[...tr.cells].find(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1&&!c.classList.contains('pinColHide'));
+            if(cell===first&&x<=r.left+28){rowZone(t,item,cell,wr);return}
+          }
         }
       }
     }
     if(layer&&layer.firstChild)scheduleClear();
   }
-  window.addEventListener('scroll',()=>{if(layer&&layer.firstChild)clearPins()},true);
-  window.addEventListener('resize',clearPins);
+  // Ξαναϋπολογισμός θέσης κουμπιών σε scroll / αλλαγή μεγέθους / zoom / ανάπτυξη-σύμπτυξη: καθαρίζει και ξαναϋπολογίζει στη θέση του ποντικιού
+  let lm=null;
+  document.addEventListener('mousemove',e=>{lm={x:e.clientX,y:e.clientY}},true);
+  const redo=()=>{
+    if(!(layer&&layer.firstChild)||!lm)return;
+    clearPins();
+    let el=document.elementFromPoint(lm.x,lm.y);
+    if(el)onMove({target:el,clientX:lm.x,clientY:lm.y});
+  };
+  window.addEventListener('scroll',()=>{if(layer&&layer.firstChild)requestAnimationFrame(redo)},true);
+  window.addEventListener('resize',()=>{if(layer&&layer.firstChild)requestAnimationFrame(redo)});
   document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closest('.pinLayer'))clearPins()},true);
 
   // ---- ξαναεφαρμογή μετά από κάθε επαναζωγράφιση πίνακα ----
@@ -6553,12 +6629,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   function flush(){
     tm=0;let list=[...dirty];dirty.clear();
     busy=true;
-    try{for(const t of list){if(!t.isConnected||!eligibleTable(t))continue;t._pinModel=null;if(hasState(t)||t._pinApplied)apply(t)}}finally{obs.takeRecords();busy=false}
+    try{for(const t of list){if(!t.isConnected||!eligibleTable(t))continue;markHost(t);t._pinModel=null;if(hasState(t)||t._pinApplied)apply(t)}}finally{obs.takeRecords();busy=false}
+    if(layer&&layer.firstChild)requestAnimationFrame(redo);
   }
   function start(){
     obs.observe(document.body,{childList:true,subtree:true});
     // πρώτη εφαρμογή σε ό,τι υπάρχει ήδη
-    document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)&&hasState(t))dirty.add(t)});
+    document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)){markHost(t);if(hasState(t))dirty.add(t)}});
     if(dirty.size)tm=setTimeout(flush,60);
   }
   window.PinTable={configs,register:c=>configs.push(c),model,info:t=>{let m=model(t);return {id:tableId(t),elig:eligibleTable(t),colsOk:colsSupported(t),cols:m.cols.filter(c=>c.ok).length,colsAll:m.cols.length,rows:m.rows.filter(r=>r.ok).length,rowsAll:m.rows.length,dupRows:m.rows.length-new Set(m.rows.map(r=>r.name)).size}},refreshAll:()=>{document.querySelectorAll('table').forEach(t=>{if(eligibleTable(t)){t._pinModel=null;if(hasState(t)||t._pinApplied)dirty.add(t)}});if(dirty.size&&!tm)tm=setTimeout(flush,30)},showAll};
