@@ -40,3 +40,6 @@ with sync_playwright() as p:
         print('ΠΡΟΒΛΗΜΑΤΑ:', total)
     finally:
         b.close()
+import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import check_tables_geometry
+_g = check_tables_geometry.run(B); print('ΠΡΟΒΛΗΜΑΤΑ ΓΕΩΜΕΤΡΙΑΣ:', _g)

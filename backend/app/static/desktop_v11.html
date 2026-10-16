@@ -3160,15 +3160,22 @@ function stickyStackFooter(tfootId){
  let tfoot=document.getElementById(tfootId);
  if(!tfoot)return;
  let rows=[...tfoot.querySelectorAll('tr')];
+ let wrap=tfoot.closest('.prodTableWrap');
+ // Αν οι κολλημένες γραμμές συνόλων πιάνουν πάνω από το μισό ύψος του πίνακα, δεν κολλάνε (αλλιώς σκεπάζουν τις γραμμές ημερών)· μένει κολλημένη μόνο η «Τρέχον απόθεμα».
+ // ΣΗΜΑΝΤΙΚΟ: οι γραμμές που «πέφτουν» χάνουν ΜΟΝΟ την κάθετη κόλληση (bottom:auto)· ΔΕΝ γίνονται position:static, γιατί τα κελιά τους που είναι
+ // κολλημένα αριστερά (πρώτη στήλη, «Σύνολο») θα έμεναν κολλημένα κάθετα μόνα τους και θα έβγαιναν από τη γραμμή τους.
+ let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
+ let tooTall=!!wrap&&wrap.clientHeight>0&&total>wrap.clientHeight*0.5;
  let cum=0;
  for(let i=rows.length-1;i>=0;i--){
-  let h=rows[i].getBoundingClientRect().height;
-  rows[i].querySelectorAll('td').forEach(td=>{td.style.bottom=cum+'px'});
-  cum+=h;
+  let r=rows[i],h=r.getBoundingClientRect().height,keep=tooTall&&r.id==='readyBalanceRow',drop=tooTall&&!keep;
+  r.querySelectorAll('td').forEach(td=>{
+   td.style.removeProperty('position');
+   if(drop)td.style.setProperty('bottom','auto','important');
+   else{td.style.removeProperty('bottom');td.style.bottom=(keep?0:cum)+'px'}
+  });
+  if(!drop)cum+=keep?0:h;
  }
- // Αν οι κολλημένες γραμμές συνόλων πιάνουν πάνω από το μισό ύψος του πίνακα, δεν κολλάνε (αλλιώς σκεπάζουν τις γραμμές ημερών).
- let wrap=tfoot.closest('.prodTableWrap');
- if(wrap){let tooTall=cum>wrap.clientHeight*0.5&&wrap.clientHeight>0;rows.forEach(r=>{let keep=tooTall&&r.id==='readyBalanceRow';r.querySelectorAll('td').forEach(td=>{td.style.position=keep?'sticky':(tooTall?'static':'');if(keep)td.style.bottom='0px'})})}
  // Τα ύψη αλλάζουν (πλάτος στηλών, γραμματοσειρές, μέγεθος παραθύρου): ξαναϋπολογισμός ώστε να μην πέφτουν κελιά μέσα σε άλλα
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
@@ -7302,7 +7309,8 @@ const SF=(function(){
     for(let i=rows.length-1;i>=0;i--){
       let r=rows[i],drop=tooTall&&i<rows.length-1;
       [...r.cells].forEach(c=>{
-        if(drop){c.style.setProperty('position','static','important')}
+        // «πεσμένη» γραμμή: χάνει ΜΟΝΟ την κάθετη κόλληση (bottom:auto)· position:static θα άφηνε τα κολλημένα-αριστερά κελιά της (πρώτη στήλη, «Σύνολο») να κολλούν κάθετα μόνα τους
+        if(drop){if(c.style.position==='static')c.style.removeProperty('position');c.style.setProperty('bottom','auto','important')}
         else{if(c.style.position==='static')c.style.removeProperty('position');setBottom(c,cum+'px')}
       });
       if(!drop)cum+=r.getBoundingClientRect().height;
