@@ -1313,6 +1313,22 @@ body[data-theme="dark"] .bgRow .bgName{color:var(--fg,#e3e5ec)}
 .uTab.active{color:#234a62;border-bottom-color:#234a62}
 body[data-theme="dark"] .uniChip,body[data-theme="dark"] .uniSub{background:#17232d;border-color:#2b3b48;color:#c9d6de}
 body[data-theme="dark"] #receiptRows tr.uTotal td{background:#17232d}
+/* ΑΛΛΑΓΗ ΙΛ: καρτέλα Συγκεντρωτικά — χωρίς chips/Ζωντανή ροή, επάνω γραμμή με ίδιο ύψος 40px */
+#receipts.uMonths #uniChips,#receipts.uMonths #electrocycleCard{display:none!important}
+#receipts.uMonths .receiptTopActions{align-items:center!important}
+#receipts.uMonths .receiptTopActions .topRight{align-self:center!important;align-items:center!important;flex-wrap:nowrap!important;padding:0 0 0 12px!important;border-bottom:0!important}
+#receipts.uMonths .receiptTopActions .topRight>*{align-self:center!important}
+#receipts.uMonths .receiptTopActions>*{align-self:center!important;margin-top:0!important;margin-bottom:0!important}
+#receipts.uMonths .receiptTopActions .receiptViewTabs{height:40px!important;min-height:0!important;padding:0!important;align-items:stretch}
+#receipts.uMonths .receiptTopActions .receiptMode{height:40px;box-sizing:border-box;display:inline-flex;align-items:center;padding-top:0;padding-bottom:0}
+#receipts.uMonths .receiptTopActions .ovPeriod{display:flex;align-items:center;gap:10px}
+#receipts.uMonths .receiptTopActions .ovPeriod.hidden{display:none}
+#receipts.uMonths .receiptTopActions .prodSegment{height:40px;box-sizing:border-box;display:inline-flex;align-items:stretch}
+#receipts.uMonths .receiptTopActions .prodSegment button{height:100%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+#receipts.uMonths .receiptTopActions .prodPeriodNav{height:40px;box-sizing:border-box;display:inline-flex;align-items:stretch;margin:0}
+#receipts.uMonths .receiptTopActions .prodPeriodNav button{height:100%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+#receipts.uMonths .receiptTopActions .receiptActionButtons{display:flex;align-items:center}
+#receipts.uMonths .receiptTopActions .receiptActionButtons .btn{height:40px;box-sizing:border-box;display:inline-flex;align-items:center}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -8752,6 +8768,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   window.OVSYNC=from=>{let a=window.OVST&&OVST[from],b=window.OVST&&OVST[from==='rec'?'so':'rec'];if(!a||!b)return;b.st.period=a.st.period;b.st.cursor=new Date(a.st.cursor);b.st.custom=a.st.custom;b.paint&&b.paint()};
   function applySub(){
     let months=receiptMode==='months';
+    $('receipts').classList.toggle('uMonths',months);
     $('uniSubRow').classList.toggle('hidden',!months);
     let sr=document.querySelector('#receipts .receiptSearchRow');if(sr)sr.classList.toggle('hidden',months);
     ['newReceipt','receiptUndoBtn','receiptRedoBtn','receiptExportBtn','receiptMoreBtn','receiptUndoMsg'].forEach(id=>{if($(id))$(id).classList.toggle('hidden',months)});
