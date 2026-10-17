@@ -1251,6 +1251,23 @@ body[data-theme="dark"] #shipHistCard tfoot td{background:var(--surface-2,#1f2a4
 #daBackdrop{position:fixed;inset:0;background:transparent;z-index:89}
 /* ΑΛΛΑΓΗ ΙΖ2: οι κρυμμένες στήλες/γραμμές δεν αφήνουν κενό ή γραμμή· τα <col> κρυμμένων στηλών δεν δεσμεύουν πλάτος */
 .prodTable .pinColHide,.prodTable tr.pinRowHide{display:none!important}
+/* ΑΛΛΑΓΗ ΙΗ: Ρυθμίσεις › Ποια τμήματα ανήκουν σε κάθε ομάδα — πίνακας Τμήμα | Α | Β (σταθερές στήλες 1fr 76px 76px) */
+.bgTbl{display:block}
+.bgHead,.bgRow{display:grid;grid-template-columns:minmax(0,1fr) 76px 76px;align-items:stretch}
+.bgHead{height:40px;background:#f3f5fa;border-radius:8px 8px 0 0;font-weight:700;font-size:13px;color:#3b4558;align-items:center}
+.bgHead .bgName{padding:0 10px 0 12px}
+.bgC{text-align:center}
+.bgRow{min-height:44px;border-top:1px solid #eef1f6}
+.bgRow .bgName{font-size:14px;color:#2b3548;padding:0 10px 0 12px;align-self:center;overflow-wrap:anywhere;padding-top:6px;padding-bottom:6px}
+.bgCell{display:flex;align-items:center;justify-content:center;width:76px;min-height:44px;padding:0;border:0;background:transparent;cursor:pointer;font:inherit}
+.bgCell:hover{background:rgba(47,91,214,.05)}
+.bgCell:focus-visible{outline:2px solid var(--accent,#2f5fc4);outline-offset:-2px}
+.bgDot{display:block;width:20px;height:20px;border-radius:50%;box-sizing:border-box;background:#fff;border:2px solid #b9c2d3}
+.bgDot.bgA.on{border-color:#2f5bd6;background:radial-gradient(circle,#2f5bd6 0 3px,#fff 3.5px 6px,#2f5bd6 6.5px)}
+.bgDot.bgB.on{border-color:#138a72;background:radial-gradient(circle,#138a72 0 3px,#fff 3.5px 6px,#138a72 6.5px)}
+body[data-theme="dark"] .bgHead{background:var(--surface-2,#1f2a44);color:var(--fg-2,#b4b9c6)}
+body[data-theme="dark"] .bgRow{border-top-color:var(--line,#2b3548)}
+body[data-theme="dark"] .bgRow .bgName{color:var(--fg,#e3e5ec)}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -6064,10 +6081,18 @@ async function paintBreakGroups(){
     let [units,groups]=await Promise.all([api('/master/org-units'),api('/settings/break-groups')]);
     let act=units.filter(u=>u.active!==false);
     box.className='';
-    box.innerHTML=act.map(u=>{let g=groups[u.id]==='B'?'B':'A';return `<div class="schedGroupRow" data-u="${u.id}"><span class="schedLbl" style="min-width:220px">${esc(u.name_el)}</span><span class="prodSegment"><button type="button" data-g="A" class="${g==='A'?'active':''}">Α</button><button type="button" data-g="B" class="${g==='B'?'active':''}">Β</button></span></div>`}).join('')||'<span class="muted">Δεν υπάρχουν τμήματα.</span>';
+    // Πίνακας «Τμήμα | Α | Β» με σταθερές στήλες (1fr 76px 76px): ο έλεγχος δεν εξαρτάται από το μήκος του ονόματος
+    let cur={};act.forEach(u=>{cur[u.id]=groups[u.id]==='B'?'B':'A'});
+    const dot=(g,on)=>`<i class="bgDot bg${g}${on?' on':''}"></i>`;
+    box.innerHTML=act.length?`<div class="bgTbl"><div class="bgHead"><span class="bgName">Τμήμα</span><span class="bgC" id="bgNA"></span><span class="bgC" id="bgNB"></span></div>`+act.map(u=>`<div class="bgRow" data-u="${u.id}" role="radiogroup" aria-label="${esc(u.name_el)}"><span class="bgName">${esc(u.name_el)}</span>${['A','B'].map(g=>`<button type="button" class="bgCell" data-g="${g}" role="radio" aria-checked="${cur[u.id]===g}" aria-label="${esc(u.name_el)} · ομάδα ${g==='A'?'Α':'Β'}">${dot(g,cur[u.id]===g)}</button>`).join('')}</div>`).join('')+`</div>`:'<span class="muted">Δεν υπάρχουν τμήματα.</span>';
+    const counts=()=>{let a=Object.values(cur).filter(x=>x==='A').length,b=Object.values(cur).filter(x=>x==='B').length;if($('bgNA'))$('bgNA').textContent='Α · '+a;if($('bgNB'))$('bgNB').textContent='Β · '+b};
+    counts();
     box.querySelectorAll('button[data-g]').forEach(bt=>bt.onclick=async()=>{
-      let row=bt.closest('[data-u]');row.querySelectorAll('button[data-g]').forEach(x=>x.classList.toggle('active',x===bt));
-      let map={};box.querySelectorAll('[data-u]').forEach(r=>{map[r.dataset.u]=r.querySelector('button.active')?.dataset.g||'A'});
+      let row=bt.closest('[data-u]');
+      cur[row.dataset.u]=bt.dataset.g;
+      row.querySelectorAll('button[data-g]').forEach(x=>{let on=x===bt;x.setAttribute('aria-checked',on);x.querySelector('.bgDot').classList.toggle('on',on)});
+      counts();
+      let map={};box.querySelectorAll('[data-u]').forEach(r=>{map[r.dataset.u]=cur[r.dataset.u]||'A'});
       let msg=$('scheduleMsg');try{await api('/settings/break-groups',{method:'PUT',body:JSON.stringify(map)});flashMsg(msg,'oktext','Αποθηκεύτηκε.')}catch(e){msg.className='error';msg.textContent=e.message}
     });
   }catch(e){box.textContent=e.message||String(e)}
