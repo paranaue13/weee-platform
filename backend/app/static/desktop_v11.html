@@ -1290,6 +1290,29 @@ body[data-theme="dark"] .bgRow .bgName{color:var(--fg,#e3e5ec)}
 #presence .tfIn{height:calc(var(--presRowH,32px) - 8px);width:76px;font-size:13px}
 #presence .tpk{vertical-align:middle}
 #presence .pc :is(.cp,.ct,.ca,.cl){display:inline-flex;gap:6px;align-items:center}
+/* ΑΛΛΑΓΗ ΙΚ: Παραλαβές & Ταξινόμηση */
+.uniChips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.uniChip{border:1px solid #c9d2da;background:#fff;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700;color:#4a5b66;cursor:pointer}
+.uniChip b{margin-left:7px;color:#234a62}
+.uniChip.active{background:#234a62;border-color:#234a62;color:#fff}.uniChip.active b{color:#fff}
+.uniSubRow{display:flex;gap:8px;margin:0 0 12px}
+.uniSub{height:40px;padding:0 16px;border-radius:8px;border:1px solid #c9d2da;background:#fff;font-weight:700;font-size:14px;color:#4a5b66;cursor:pointer}
+.uniSub.active{background:#234a62;border-color:#234a62;color:#fff}
+.uNumTh,#receiptRows td.uNum{text-align:right}
+#receiptRows td.uSort{white-space:nowrap}
+#receiptRows .uSortK{display:inline-block;min-width:54px;text-align:right;font-weight:700;margin-right:8px}
+#receiptRows .uPct{display:inline-block;min-width:48px;text-align:right;margin-left:8px;color:#5b6b76;font-size:13px}
+.uBar{display:inline-block;width:70px;height:6px;border-radius:4px;background:#dde6ec;overflow:hidden;vertical-align:middle}
+.uBar s{display:block;height:100%;background:#2f8f5b}
+.uKl{font-style:normal;font-weight:600;color:#687782;margin-right:8px}
+.uKsep{display:block;height:1px;background:rgba(0,0,0,.1);margin:3px 0}
+.uKbarRow{display:flex;align-items:center;gap:8px}.uKbarRow .uBar{flex:1;width:auto}.uKbarRow em{font-style:normal;font-size:12px;font-weight:700;color:#4a5b66}
+#receiptRows tr.uTotal td{font-weight:800;background:#f1f5f8;border-top:2px solid #b3bfc9}
+.uTabs{display:flex;gap:18px;padding:0 6px;border-bottom:1px solid #d6e2e8;margin:0 0 10px}
+.uTab{border:0;background:transparent;padding:8px 2px;font-weight:800;color:#677680;cursor:pointer;border-bottom:3px solid transparent}
+.uTab.active{color:#234a62;border-bottom-color:#234a62}
+body[data-theme="dark"] .uniChip,body[data-theme="dark"] .uniSub{background:#17232d;border-color:#2b3b48;color:#c9d6de}
+body[data-theme="dark"] #receiptRows tr.uTotal td{background:#17232d}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1888,7 +1911,8 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode active" id="receiptDaysMode">Καθημερινά</button><button class="receiptMode" id="receiptMonthsMode">Συγκεντρωτικά</button></div><div class="receiptActionButtons"><span id="receiptUndoMsg" class="muted" style="align-self:center;font-size:13px"></span><button class="btn alt" id="receiptUndoBtn" title="Επαναφορά της τελευταίας διαγραμμένης παραλαβής">↶ Αναίρεση</button><button class="btn alt" id="receiptRedoBtn" title="Νέα διαγραφή της παραλαβής που επαναφέρθηκε" disabled>↷ Επανάληψη</button><button class="btn" id="newReceipt">+ Νέα Παραλαβή</button><button class="btn alt" id="receiptExportBtn">Εξαγωγή</button><button class="btn alt iconOnly" id="receiptMoreBtn" title="Περισσότερα"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div></div>
 <div class="receiptSearchRow"><input id="receiptSearch" placeholder="Αναζήτηση παραλαβής..." autocomplete="off"><button class="btn alt hidden" id="openReceiptReport">ΑΝΑΦΟΡΑ</button><button class="btn alt hidden" id="receiptArchiveBtn">ΑΡΧΕΙΟ ΔΙΑΓΡΑΜΜΕΝΩΝ</button></div>
 <div class="card" id="electrocycleCard"><div class="toolbar" style="justify-content:space-between;margin-bottom:8px"><h3 style="margin:0">Ζωντανή ροή — Ανακύκλωση Συσκευών Α.Ε.<span id="ecFeedDate" class="muted" style="font-size:12px;font-weight:400"></span></h3><div style="display:flex;align-items:center;gap:10px"><span id="ecStatus" class="muted" style="font-size:12px"></span><button type="button" class="btn alt" id="ecRefreshBtn" style="padding:4px 12px;font-size:12px">⟳ Ανανέωση</button><button type="button" class="btn alt iconOnly" id="ecMinimizeBtn" title="Ελαχιστοποίηση/Μεγιστοποίηση"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div></div><div class="tablewrap" id="ecTableWrap"><table><thead><tr><th>Α/Α Εντολής</th><th>Αποστολέας</th><th>Σημείο Παραλαβής</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th></tr></thead><tbody id="ecOrderRows"></tbody></table></div></div>
-<div class="receiptWorkspace"><div class="receiptMainPane"><div id="receiptSelectedHead" class="receiptSelectedHead"></div><div id="receiptStats" class="receiptCompactOverview"></div><div id="receiptMonthSummary" class="hidden"></div><div id="receiptDailyTable" class="tablewrap"><table><thead><tr><th>Αριθμός Εντολής</th><th>ΔΠΠ</th><th>Προμηθευτής</th><th>Τύπος φορτίου</th><th>Μεταφορέας</th><th>Καθαρό Βάρος (kg)</th><th>Κατάσταση</th></tr></thead><tbody id="receiptRows"></tbody></table></div></div><aside class="receiptCalendarPane"><div class="card receiptSideCard"><h3>Επιλογή ημερομηνίας</h3><div class="receiptCalendarNav"><button class="calendarNavBtn" id="receiptCalPrev" aria-label="Προηγούμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><b id="receiptCalTitle"></b><button class="calendarNavBtn" id="receiptCalNext" aria-label="Επόμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div><div class="receiptCalendarWeek"><span>Δευ</span><span>Τρι</span><span>Τετ</span><span>Πεμ</span><span>Παρ</span><span>Σαβ</span><span>Κυρ</span></div><div id="receiptCalendar" class="receiptCalendar"></div></div><div class="card receiptSideCard receiptFilters"><h3>Φίλτρα</h3>
+<div class="uniSubRow hidden" id="uniSubRow"><button type="button" class="uniSub active" data-usub="rec">Συγκεντρωτικά παραλαβών</button><button type="button" class="uniSub" data-usub="so">Συγκεντρωτικά ταξινόμησης</button></div>
+<div class="receiptWorkspace"><div class="receiptMainPane"><div id="receiptSelectedHead" class="receiptSelectedHead"></div><div id="receiptStats" class="receiptCompactOverview"></div><div id="receiptMonthSummary" class="hidden"></div><div id="uniChips" class="uniChips"></div><div id="receiptDailyTable" class="tablewrap"><table><thead><tr><th>Αρ. εντολής</th><th>ΔΠΠ</th><th>Προμηθευτής</th><th>Τύπος</th><th>Μεταφορέας</th><th class="uNumTh">Παραλήφθηκε (kg)</th><th>Ταξινομήθηκε</th><th>Κατάσταση</th></tr></thead><tbody id="receiptRows"></tbody></table></div></div><aside class="receiptCalendarPane"><div class="card receiptSideCard"><h3>Επιλογή ημερομηνίας</h3><div class="receiptCalendarNav"><button class="calendarNavBtn" id="receiptCalPrev" aria-label="Προηγούμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><b id="receiptCalTitle"></b><button class="calendarNavBtn" id="receiptCalNext" aria-label="Επόμενο"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div><div class="receiptCalendarWeek"><span>Δευ</span><span>Τρι</span><span>Τετ</span><span>Πεμ</span><span>Παρ</span><span>Σαβ</span><span>Κυρ</span></div><div id="receiptCalendar" class="receiptCalendar"></div></div><div class="card receiptSideCard receiptFilters"><h3>Φίλτρα</h3>
 <label>Συνεργάτης / Προμηθευτής<select id="receiptPartnerFilter"><option value="">Όλοι</option></select></label>
 <label>Τύπος φορτίου<select id="receiptTypeFilter"><option value="">Όλοι</option><option value="CONTAINER">Container</option><option value="CURTAIN_TRAILER">Καρότσα</option><option value="SMALL_POINTS">Μικρά σημεία</option></select></label>
 <label>Όχημα / Μέσο<select id="receiptVehicleFilter"><option value="">Όλα</option></select></label>
@@ -2590,7 +2614,7 @@ async function openReceiptPointDetail(receiptId,loadId){
  }catch(e){alert(e.message)}
 }
 
-async function openReceipt(id,highlightLoadId=null,onlyLoad=false){try{let r=await api('/receipts/'+id);jumpReceiptNavToDay((r.receipt_date||'').slice(0,10));editingReceiptId=id;$('receiptForm').classList.remove('hidden');let l0=r.loads[0],dppVal=l0?.dpp_number||extractDpp(r.notes)||'';$('receiptFormTitle').innerHTML=`Εντολή ${esc(l0?.order_number||r.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(dppVal||'—')}</span>`;setReceiptType(r.receipt_type);$('rdate').value=storedDateTimeValue(r.receipt_date);$('carrier').value=r.carrier_id||'';$('carrierText').value=orgName(carriers.find(x=>x.id===r.carrier_id)||{});renderContainerChoices();refreshDrivers();$('driver').value=r.driver_name||'';$('vehicle').value=r.vehicle_registration||'';fillExtras(r.notes||'');$('deleteReceipt').classList.remove('hidden');let l=r.loads[0];if(l?.weighbridge_number)$('weighbridgeNo').value=l.weighbridge_number;if(l?.dispatch_note_number)$('dispatchNo').value=l.dispatch_note_number;if(l?.seal_number)$('sealNo').value=l.seal_number;$('supplier').value=l?.supplier_id||'';$('supplierText').value=orgName(suppliers.find(x=>x.id===l?.supplier_id)||{});$('orderNo').value=l?.order_number||'';$('incomingCtr').value=l?.incoming_container_number||'';$('incomingCtrText').value=l?.incoming_container_number||'';$('incomingCtrTare').value=kgText(l?.incoming_container_tare);$('outgoingCtr').value=l?.outgoing_container_id||((l?.outgoing_container_tare!=null)?'CUSTOM':'');let oc=containers.find(x=>x.id===l?.outgoing_container_id)||containerRegistry.find(x=>x.id===l?.outgoing_container_id);$('outgoingCtrText').value=oc?ctrLabel(oc):((l?.outgoing_container_tare!=null)?'Προσαρμοσμένο':'');$('outgoingCtrTare').value=oc?.tare_weight!=null?Math.round(Number(oc.tare_weight)):(l?.outgoing_container_tare!=null?Math.round(Number(l.outgoing_container_tare)):'');$('dppNo').value=l?.dpp_number||$('dppNo').value||extractDpp(r.notes)||'';if(!$('reportDate').value)$('reportDate').value=storedDateTimeValue(r.receipt_date).slice(0,10);updateTareInstruction();$('gross').value=kgText(l?.gross_weight);$('tare').value=kgText(l?.tare_weight);updateComputedWeights();smallPointRows=r.receipt_type==='SMALL_POINTS'?r.loads.map(x=>({id:x.id,supplier_id:x.supplier_id,order_number:x.order_number||'',gross_weight:x.gross_weight!=null?Number(x.gross_weight):null,tare_weight:x.tare_weight!=null?Number(x.tare_weight):null,dpp_number:x.dpp_number||null,weighbridge_number:x.weighbridge_number||'',dispatch_note_number:x.dispatch_note_number||'',seal_number:x.seal_number||'',notes:String(x.notes||'').replace(/^Ιστορική εισαγωγή από .*?\.xlsx\s*/i,'')})):[];if(smallPointRows.length)$('smallTruckGross').value=kgText(smallPointRows[0].gross_weight);$('smallWeighbridgeTotal').value=r.aggregate_weighbridge_number||'';$('smallWeighbridgeTotal').readOnly=false;adaptReceiptType();$('receiptReadInfo').classList.remove('hidden');$('receiptReadInfo').innerHTML=`<b>Καθαρό βάρος:</b> ${kg(l?.net_weight)} · <b>Φορτία:</b> ${r.loads.length}`;$('saveReceipt').classList.remove('hidden');
+async function openReceipt(id,highlightLoadId=null,onlyLoad=false){try{let r=await api('/receipts/'+id);jumpReceiptNavToDay((r.receipt_date||'').slice(0,10));editingReceiptId=id;$('receiptForm').classList.remove('hidden');let l0=r.loads[0],dppVal=l0?.dpp_number||extractDpp(r.notes)||'';$('receiptFormTitle').innerHTML=`Εντολή ${esc(l0?.order_number||r.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(dppVal||'—')}</span>`;setReceiptType(r.receipt_type);$('rdate').value=storedDateTimeValue(r.receipt_date);$('carrier').value=r.carrier_id||'';$('carrierText').value=orgName(carriers.find(x=>x.id===r.carrier_id)||{});renderContainerChoices();refreshDrivers();$('driver').value=r.driver_name||'';$('vehicle').value=r.vehicle_registration||'';fillExtras(r.notes||'');$('deleteReceipt').classList.remove('hidden');let l=r.loads[0];if(l?.weighbridge_number)$('weighbridgeNo').value=l.weighbridge_number;if(l?.dispatch_note_number)$('dispatchNo').value=l.dispatch_note_number;if(l?.seal_number)$('sealNo').value=l.seal_number;$('supplier').value=l?.supplier_id||'';$('supplierText').value=orgName(suppliers.find(x=>x.id===l?.supplier_id)||{});$('orderNo').value=l?.order_number||'';$('incomingCtr').value=l?.incoming_container_number||'';$('incomingCtrText').value=l?.incoming_container_number||'';$('incomingCtrTare').value=kgText(l?.incoming_container_tare);$('outgoingCtr').value=l?.outgoing_container_id||((l?.outgoing_container_tare!=null)?'CUSTOM':'');let oc=containers.find(x=>x.id===l?.outgoing_container_id)||containerRegistry.find(x=>x.id===l?.outgoing_container_id);$('outgoingCtrText').value=oc?ctrLabel(oc):((l?.outgoing_container_tare!=null)?'Προσαρμοσμένο':'');$('outgoingCtrTare').value=oc?.tare_weight!=null?Math.round(Number(oc.tare_weight)):(l?.outgoing_container_tare!=null?Math.round(Number(l.outgoing_container_tare)):'');$('dppNo').value=l?.dpp_number||$('dppNo').value||extractDpp(r.notes)||'';if(!$('reportDate').value)$('reportDate').value=storedDateTimeValue(r.receipt_date).slice(0,10);updateTareInstruction();$('gross').value=kgText(l?.gross_weight);$('tare').value=kgText(l?.tare_weight);updateComputedWeights();smallPointRows=r.receipt_type==='SMALL_POINTS'?r.loads.map(x=>({id:x.id,supplier_id:x.supplier_id,order_number:x.order_number||'',gross_weight:x.gross_weight!=null?Number(x.gross_weight):null,tare_weight:x.tare_weight!=null?Number(x.tare_weight):null,dpp_number:x.dpp_number||null,weighbridge_number:x.weighbridge_number||'',dispatch_note_number:x.dispatch_note_number||'',seal_number:x.seal_number||'',notes:String(x.notes||'').replace(/^Ιστορική εισαγωγή από .*?\.xlsx\s*/i,'')})):[];if(smallPointRows.length)$('smallTruckGross').value=kgText(smallPointRows[0].gross_weight);$('smallWeighbridgeTotal').value=r.aggregate_weighbridge_number||'';$('smallWeighbridgeTotal').readOnly=false;adaptReceiptType();$('receiptReadInfo').classList.remove('hidden');$('receiptReadInfo').innerHTML=`<b>Καθαρό βάρος:</b> ${kg(r.loads.reduce((a,x)=>a+Number(x.net_weight||0),0))} · <b>Φορτία:</b> ${r.loads.length}`;$('saveReceipt').classList.remove('hidden');
  if($('addSmallOrder'))$('addSmallOrder').style.display='';
  if(highlightLoadId){
   let idx=smallPointRows.findIndex(x=>x.id===highlightLoadId);
@@ -2601,7 +2625,7 @@ async function openReceipt(id,highlightLoadId=null,onlyLoad=false){try{let r=awa
     $('smallRows').querySelectorAll('.card[data-i]').forEach(c=>{if(c!==card)c.style.display='none'});
     if($('addSmallOrder'))$('addSmallOrder').style.display='none';
     let pl=r.loads.find(x=>x.id===highlightLoadId);
-    if(pl)$('receiptFormTitle').innerHTML=`Εντολή ${esc(pl.order_number||r.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(pl.dpp_number||'—')}</span>`;
+    if(pl){$('receiptFormTitle').innerHTML=`Εντολή ${esc(pl.order_number||r.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(pl.dpp_number||'—')}</span>`;$('receiptReadInfo').innerHTML=`<b>Καθαρό βάρος:</b> ${kg(pl.net_weight)} · <b>Φορτία:</b> 1`}
    }
    if(card){
     card.scrollIntoView({behavior:'smooth',block:'center'});
@@ -7834,7 +7858,7 @@ const OV={
     host.querySelector('.ovPillX').onclick=e=>{e.stopPropagation();onClear()};
   },
   cardsHtml(specs){ // specs: [{key,cls,icon,title,text,sel}]
-    return specs.map(c=>`<button type="button" class="sortingKpiCard ${c.cls} ovCard${c.sel?' ovCardSel':''}" data-type="${c.key}" aria-pressed="${c.sel?'true':'false'}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${c.icon}</svg></span><span class="sortingKpiText"><small>${c.title}</small><b>${c.text}</b></span></button>`).join('');
+    return specs.map(c=>`<button type="button" class="sortingKpiCard ${c.cls} ovCard${c.sel?' ovCardSel':''}" data-type="${c.key}" aria-pressed="${c.sel?'true':'false'}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${c.icon}</svg></span><span class="sortingKpiText"><small>${c.title}</small><b>${c.text}</b>${c.extra||''}</span></button>`).join('');
   }
 };
 // Κλείσιμο φίλτρων με κλικ έξω
@@ -7863,12 +7887,12 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let rk=rg.startISO+'|'+rg.endISO;if(st.rk!==rk){st.rk=rk;st.rowC.clear()}   // η επιλογή γραμμών μηδενίζεται όταν αλλάζει η περίοδος
     let base=[];(lastAll||[]).forEach(r=>{let d=(r.receipt_date||'').slice(0,10);if(d>=rg.startISO&&d<=rg.endISO)loadsOf(r).forEach(x=>base.push(x))});
     const cnt=t=>base.filter(x=>!t||x.type===t).length,kgs=t=>base.filter(x=>!t||x.type===t).reduce((a,x)=>a+x.kg,0);
-    let specs=TYPES.map(([k,n,cls,ic])=>({key:k,cls,icon:ic,title:n,text:`${cnt(k)} · ${OV.num(kgs(k))} kg`,sel:st.types.has(k)}));
-    specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`${cnt()} · ${OV.num(kgs())} kg`,sel:st.types.size===0});
+    let specs=TYPES.map(([k,n,cls,ic])=>({key:k,cls,icon:ic,title:n,text:`<i class="uKl">Παραλήφθηκαν</i>${cnt(k)} · ${OV.num(kgs(k))} kg`,sel:st.types.has(k)}));
+    specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`<i class="uKl">Παραλήφθηκαν</i>${cnt()} · ${OV.num(kgs())} kg`,sel:st.types.size===0});
     let chosen=base.filter(x=>!st.types.size||st.types.has(x.type));
     let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
     host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
-      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
+      <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
       <div class="ovTables">
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Μεταφορέας</b><span id="recOvFC"></span></span></div><div class="tablewrap"><table id="recOvCTbl"><thead><tr><th style="width:46%">Μεταφορέας</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτής</b><span id="recOvFS"></span><span class="ovPill" id="recOvPill" hidden></span></span></div><div class="tablewrap"><table id="recOvSTbl"><thead><tr><th style="width:46%">Προμηθευτής</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
@@ -7902,7 +7926,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     bar.insertAdjacentHTML('afterbegin','');
     let tabs=bar.querySelector('.receiptViewTabs');
     tabs.insertAdjacentHTML('afterend',OV.periodHtml('recOvPeriod'));
-    paintTitle=OV.bindPeriod('recOvPeriod',st,()=>render());
+    paintTitle=OV.bindPeriod('recOvPeriod',st,()=>{render();window.OVSYNC&&OVSYNC('rec')});window.OVST=window.OVST||{};OVST.rec={st,paint:paintTitle,render:()=>render()};
   }
   const _setMode=setReceiptMode;
   setReceiptMode=function(mode){let r=_setMode.apply(this,arguments);let p=$('recOvPeriod');if(p){p.classList.toggle('hidden',mode!=='months');if(mode==='months'&&paintTitle)paintTitle()}let w=document.querySelector('#receipts .receiptWorkspace');if(w)w.classList.toggle('ovFull',mode==='months');return r};
@@ -7942,13 +7966,19 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let host=$('sortingMonthSummary');if(!host)return;
     let my=++seq;
     let rg=OV.range(st),inPeriod=visibleRows();
+    // κιλά ταξινόμησης ανά φορτίο (μόνο ανάγνωση) — χρειάζονται ήδη για τις κάρτες
+    let key=rg.startISO+'|'+rg.endISO,codes=cache.get(key);
+    if(!codes){try{let r=await api(`/sorting/overview?start=${rg.startISO}&end=${rg.endISO}`);codes=r.loads||{};cache.set(key,codes)}catch(e){codes={}}}
+    if(my!==seq)return;
     const n=t=>inPeriod.filter(r=>!t||r.receipt_type===t),sum=a=>a.reduce((s,r)=>s+Number(r.net_weight||0),0);
-    let specs=TYPES.map(([k,nm,cls,ic])=>{let a=n(k);return {key:k,cls,icon:ic,title:nm,text:`${a.length} ${a.length===1?'σημείο':'σημεία'} · ${kg(sum(a))}`,sel:st.types.has(k)}});
-    let all=n();specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`${all.length} ${all.length===1?'ταξινόμηση':'ταξινομήσεις'} · ${kg(sum(all))}`,sel:st.types.size===0});
+    const sortedKg=a=>a.reduce((s,r)=>s+Object.values(codes[r.load_id]||{}).reduce((u,v)=>u+Number(v||0),0),0);
+    const sCard=a=>{let sk=sortedKg(a),rk=sum(a),p=rk>0?Math.min(100,sk/rk*100):0,x=a.filter(r=>stageStatus(r.status)==='CLOSED').length;return {text:`<i class="uKl">Ταξινομήθηκαν</i>${x}/${a.length} · ${kg(sk)}`,extra:`<span class="uKbarRow"><span class="uBar"><s style="width:${p}%"></s></span><em>${pct(p)}</em></span>`}};
+    let specs=TYPES.map(([k,nm,cls,ic])=>{let a=n(k);return {key:k,cls,icon:ic,title:nm,...sCard(a),sel:st.types.has(k)}});
+    let all=n();specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',...sCard(all),sel:st.types.size===0});
     let ofType=inPeriod.filter(r=>!st.types.size||st.types.has(r.receipt_type));
     let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
     host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
-      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων · Κλικ σε φορτίο: μόνο αυτό (Ctrl + κλικ: περισσότερα)</span></div>
+      <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων · Κλικ σε φορτίο: μόνο αυτό (Ctrl + κλικ: περισσότερα)</span></div>
       <div class="ovTables">
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτές</b><span id="soFS"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall hidden" id="soClearLoads">Καθαρισμός φορτίων</button></span></div><div class="ovList" id="soLoads"></div></div>
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Ταξινόμηση</b><span id="soFC"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall" id="soToggle">Ανάπτυξη όλων</button></span></div><div class="ovList" id="soCats"><div class="muted" style="padding:10px">Φόρτωση…</div></div></div>
@@ -7968,9 +7998,6 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     $('soToggle').onclick=()=>{let ids=gOpts.map(o=>o.id).filter(id=>!st.cats.size||st.cats.has(id));let allOpen=ids.every(id=>st.open.has(id));if(allOpen)ids.forEach(id=>st.open.delete(id));else ids.forEach(id=>st.open.add(id));paintCats()};
     $('soClearLoads').onclick=()=>{st.loads.clear();paintLists()};
     // δεδομένα κωδικών ανά φορτίο (μόνο ανάγνωση)
-    let key=rg.startISO+'|'+rg.endISO,codes=cache.get(key);
-    if(!codes){try{let r=await api(`/sorting/overview?start=${rg.startISO}&end=${rg.endISO}`);codes=r.loads||{};cache.set(key,codes)}catch(e){codes={}}}
-    if(my!==seq)return;
     let ctx={ofType,codes,cats,gOpts};
     paintLists=function(){
       let rows=ofType.filter(r=>!st.suppliers.size||st.suppliers.has(r.supplier||'—')).slice().sort((a,b)=>String(a.receipt_date).localeCompare(String(b.receipt_date)));
@@ -8015,7 +8042,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   if(bar){
     let tabs=bar.querySelector('.receiptViewTabs');
     tabs.insertAdjacentHTML('afterend',OV.periodHtml('soOvPeriod'));
-    paintTitle=OV.bindPeriod('soOvPeriod',st,()=>render());
+    paintTitle=OV.bindPeriod('soOvPeriod',st,()=>{render();window.OVSYNC&&OVSYNC('so')});window.OVST=window.OVST||{};OVST.so={st,paint:paintTitle,render:()=>render()};
   }
   const sync=()=>{let p=$('soOvPeriod'),m=(typeof sortingMode!=='undefined'&&sortingMode==='months');if(p){p.classList.toggle('hidden',!m);if(m&&paintTitle)paintTitle()}let w=document.querySelector('#sortingReview .receiptWorkspace');if(w)w.classList.toggle('ovFull',m);let cp=document.querySelector('#sortingReview .receiptCalendarPane');if(cp)cp.classList.toggle('hidden',m)};
   renderSortingMonths=function(all){if(typeof sortingMode!=='undefined'&&sortingMode==='months')render(all);else if(Array.isArray(all))lastRows=all;setTimeout(sync,0)};
@@ -8098,7 +8125,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     const tbl=(id,title,fid,first)=>`<div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>${title}</b><span id="${fid}"></span><span class="ovPill" id="${id}Pill" hidden></span></span></div><div class="tablewrap"><table id="${id}"><thead><tr><th style="width:44%">${first}</th><th class="ovR" style="width:28%">Φορτώσεις</th><th class="ovR" style="width:28%">Κιλά</th></tr></thead><tbody id="${id}Rows"></tbody></table></div></div>`;
     panel.innerHTML=`<div class="ovCards ovCardsAuto" role="group" aria-label="Σκοπός φόρτωσης">${OV.cardsHtml(specs)}</div>
       <div class="ovHint muted" style="margin:-6px 0 10px">Ένα Δ.Α. με γραμμές διαφορετικού σκοπού μετριέται σε κάθε σκοπό που έχει. Τα κιλά αθροίζουν πάντα στο Σύνολο.</div>
-      <div class="ovHead"><h3>Ανάλυση: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών σκοπών</span></div>
+      <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών σκοπών</span></div>
       <div class="ovTables">${tbl('ldOvC','Μεταφορέας','ldOvFC','Μεταφορέας')}${tbl('ldOvR','Πελάτης / Παραλήπτης','ldOvFR','Πελάτης / Παραλήπτης')}${tbl('ldOvM','Υλικό','ldOvFM','Υλικό')}</div>`;
     panel.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.purposes,b.dataset.type,e.ctrlKey||e.metaKey);render()});
     const optsOf=get=>[...new Set(chosen.map(get))].sort((a,b)=>a.localeCompare(b,'el')).map(v=>({id:v,label:v}));
@@ -8607,6 +8634,199 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   }
   new MutationObserver(sync).observe(fe,{attributes:true,attributeFilter:['class']});
   new MutationObserver(sync).observe(tt,{childList:true,characterData:true,subtree:true});
+})();
+</script>
+<script id="receiptsUnified">
+// ΑΛΛΑΓΗ ΙΚ: «Παραλαβές & Ταξινόμηση» — μία σελίδα (ο #receipts) με δύο καρτέλες. Οπτική ενοποίηση· τα δεδομένα, οι φόρμες και οι κανόνες μένουν ως έχουν.
+(function(){
+  const STAGES=[['READY_FOR_SORTING','Έτοιμη για ταξινόμηση'],['SORTING_IN_PROGRESS','Ταξινομείται'],['LOGISTICS_REVIEW','Προς Έλεγχο'],['CORRECTION','Προς Διόρθωση'],['CLOSED','Ολοκληρώθηκε']];
+  const U={chips:new Set(),sorted:{},sortedKey:'',pending:'',active:false,ctx:null,sub:'rec',open:new Set()};
+  window.__uni=U;
+  const pctF=v=>v.toLocaleString('el-GR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
+  const num=n=>Math.round(n).toLocaleString('el-GR');
+  const sortedOf=id=>Number(U.sorted[id]||0);
+  const bar=p=>`<span class="uBar"><s style="width:${Math.max(0,Math.min(100,p))}%"></s></span>`;
+  const ICON={CONTAINER:'<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/>',
+    CURTAIN_TRAILER:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+    SMALL_POINTS:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+    TOT:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'};
+
+  // ---- κιλά ταξινόμησης ανά φορτίο (μόνο ανάγνωση, από το υπάρχον /sorting/overview) ----
+  function ensureSorted(rows){
+    let ds=rows.map(r=>(r.receipt_date||'').slice(0,10)).filter(Boolean).sort();if(!ds.length)return;
+    let key=ds[0]+'|'+ds[ds.length-1];if(U.sortedKey===key||U.pending===key)return;
+    U.pending=key;
+    api(`/sorting/overview?start=${ds[0]}&end=${ds[ds.length-1]}`).then(r=>{
+      U.sorted=Object.fromEntries(Object.entries(r.loads||{}).map(([id,c])=>[id,Object.values(c).reduce((a,v)=>a+Number(v||0),0)]));
+      U.sortedKey=key;U.pending='';rerender();
+    }).catch(()=>{U.pending='';U.sortedKey=key});
+  }
+  function rerender(){if(!Array.isArray(receiptRowsAll))return;let rows=selectedReceiptRows(receiptRowsAll);renderCompactReceiptStats(rows);renderReceiptDailyRows(rows)}
+
+  // ---- κουτιά ημέρας: Παραλήφθηκαν + Ταξινομήθηκαν ----
+  renderCompactReceiptStats=function(rows){
+    ensureSorted(rows);
+    const specs=[['CONTAINER','Container','k1'],['CURTAIN_TRAILER','Καρότσα','k2'],['SMALL_POINTS','Μικρά σημεία','k3']];
+    const feedOk=typeof ecOrdersDay!=='undefined'&&ecOrdersDay===receiptNav.day;
+    // X/Y παραλαβών: Y = X + εντολές που απομένουν στη ζωντανή ροή της ημέρας (όπως πριν)
+    const rec=t=>rows.filter(r=>r.receipt_type===t).reduce((a,r)=>a+(r.loads?.length||1),0);
+    const rem=t=>feedOk?new Set(ecOrders.filter(o=>detectReceiptTypeFromOrder(o)===t).map(o=>o.order_no)).size:0;
+    const info=t=>{let rs=rows.filter(r=>r.receipt_type===t),ls=rs.flatMap(r=>r.loads||[]);
+      return {a:rec(t),b:rec(t)+rem(t),recKg:rs.reduce((a,r)=>a+receiptNet(r),0),sk:ls.reduce((a,l)=>a+sortedOf(l.id),0),done:ls.filter(l=>loadStage(l)==='CLOSED').length}};
+    const infos=specs.map(([t])=>info(t));
+    const T=infos.reduce((s,i)=>({a:s.a+i.a,b:s.b+i.b,recKg:s.recKg+i.recKg,sk:s.sk+i.sk,done:s.done+i.done}),{a:0,b:0,recKg:0,sk:0,done:0});
+    const card=(type,name,cls,icon,i)=>{let P=i.recKg>0?i.sk/i.recKg*100:0;
+      return `<div class="sortingKpiCard ${cls} statFilterCard uK2" data-type="${type}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${icon}</svg></span><span class="sortingKpiText"><small>${name}</small><b><i class="uKl">Παραλήφθηκαν</i>${i.a}/${i.b} · ${kg(i.recKg)}</b><span class="uKsep"></span><b><i class="uKl">Ταξινομήθηκαν</i>${i.done}/${i.a} · ${kg(i.sk)}</b><span class="uKbarRow">${bar(P)}<em>${pctF(P)}</em></span></span></div>`};
+    $('receiptStats').innerHTML=specs.map(([t,n,cls],k)=>card(t,n,cls,ICON[t],infos[k])).join('')+card('','Σύνολο ημέρας','k4',ICON.TOT,T);
+    let cards=[...document.querySelectorAll('#receiptStats .statFilterCard')];
+    cards.forEach(c=>c.onclick=()=>{
+      let type=c.dataset.type,active=c.classList.contains('statFilterActive');
+      cards.forEach(x=>x.classList.remove('statFilterActive'));
+      if(!type||active){document.querySelectorAll('#receiptRows tr[data-rtype]').forEach(tr=>tr.classList.remove('statHidden'))}
+      else{c.classList.add('statFilterActive');document.querySelectorAll('#receiptRows tr[data-rtype]').forEach(tr=>tr.classList.toggle('statHidden',tr.dataset.rtype!==type))}
+      total();
+    });
+    // chips καταστάσεων με μετρητές (εντολές)
+    let cnt={};rows.forEach(r=>(r.loads||[]).forEach(l=>{let s=loadStage(l);cnt[s]=(cnt[s]||0)+1}));
+    $('uniChips').innerHTML=`<button type="button" class="uniChip${U.chips.size?'':' active'}" data-st="">Όλες</button>`+STAGES.map(([k,n])=>`<button type="button" class="uniChip${U.chips.has(k)?' active':''}" data-st="${k}">${n}<b>${cnt[k]||0}</b></button>`).join('');
+    $('uniChips').querySelectorAll('.uniChip').forEach(b=>b.onclick=()=>{let k=b.dataset.st;if(!k)U.chips.clear();else U.chips.has(k)?U.chips.delete(k):U.chips.add(k);rerender()});
+  };
+
+  // ---- λίστα ημέρας ----
+  const sortCell=(sk,rk)=>{let p=rk>0?sk/rk*100:0;return `<td class="uSort"><span class="uSortK">${num(sk)}</span>${bar(p)}<span class="uPct">${pctF(p)}</span></td>`};
+  renderReceiptDailyRows=function(rows){
+    ensureSorted(rows);
+    const chip=s=>!U.chips.size||U.chips.has(s);
+    let html=rows.map(r=>{
+      let carrier=orgs.find(o=>o.id===r.carrier_id),ls=r.loads||[],cName=esc(orgName(carrier||{})||'—');
+      if(!ls.length){if(!chip(stageStatus(r.status)))return '';
+        return `<tr class="selectableRow" data-id="${r.id}" data-ord="1" data-rec="0" data-sort="0" data-rtype="${r.receipt_type}"><td><b class="linkLike">${esc(r.receipt_number||'—')}</b></td><td>—</td><td>—</td><td>${esc(typeLabel(r.receipt_type))}</td><td>${cName}</td><td class="uNum"><b>0</b></td>${sortCell(0,0)}<td>${statusEl(receiptStage(r))}</td></tr>`}
+      let vis=ls.filter(l=>chip(loadStage(l)));if(!vis.length)return '';
+      const sup=l=>esc(orgName(orgs.find(o=>o.id===l.supplier_id)||{})||'—');
+      if(r.receipt_type==='SMALL_POINTS'&&ls.length>1){
+        let open=U.open.has(r.id),sumR=vis.reduce((a,l)=>a+Number(l.net_weight||0),0);
+        let kids=vis.map(l=>`<tr class="selectableRow childPointRow${open?'':' hidden'}" data-group="${r.id}" data-id="${r.id}" data-load="${l.id}" data-ord="1" data-rec="${Number(l.net_weight||0)}" data-sort="${sortedOf(l.id)}" data-rtype="${r.receipt_type}"><td><b class="linkLike">${esc(l.order_number||'—')}</b></td><td>${esc(l.dpp_number||'—')}</td><td>${sup(l)}</td><td>${esc(typeLabel(r.receipt_type))}</td><td>${cName}</td><td class="uNum"><b>${num(Number(l.net_weight||0))}</b></td>${sortCell(sortedOf(l.id),Number(l.net_weight||0))}<td>${statusEl(loadStage(l))}</td></tr>`).join('');
+        // γραμμή γκρουπ (φορτηγό): χωρίς κατάσταση και χωρίς «Ταξινομήθηκε»
+        return `<tr class="selectableRow groupRow" data-id="${r.id}" data-rtype="${r.receipt_type}"><td colspan="3"><b class="linkLike spToggle" data-count="${vis.length}">${open?'▾':'▸'} ${vis.length} σημεία</b></td><td>${esc(typeLabel(r.receipt_type))}</td><td>${cName}</td><td class="uNum"><b>${num(sumR)}</b></td><td></td><td></td></tr>${kids}`;
+      }
+      let sups=[...new Set(vis.map(l=>orgName(orgs.find(o=>o.id===l.supplier_id)||{})).filter(Boolean))].join(', ')||'—';
+      let rk=vis.reduce((a,l)=>a+Number(l.net_weight||0),0),sk=vis.reduce((a,l)=>a+sortedOf(l.id),0);
+      return `<tr class="selectableRow" data-id="${r.id}" data-ord="1" data-rec="${rk}" data-sort="${sk}" data-rtype="${r.receipt_type}"><td><b class="linkLike">${esc(ls[0]?.order_number||r.receipt_number||'—')}</b></td><td>${esc(ls[0]?.dpp_number||'—')}</td><td>${esc(sups)}</td><td>${esc(typeLabel(r.receipt_type))}</td><td>${cName}</td><td class="uNum"><b>${num(rk)}</b></td>${sortCell(sk,rk)}<td>${statusEl(receiptStage(r))}</td></tr>`;
+    }).join('')||'<tr><td colspan="8" class="muted">Δεν υπάρχουν αποτελέσματα.</td></tr>';
+    $('receiptRows').innerHTML=html;
+    document.querySelectorAll('#receiptRows tr.selectableRow:not(.childPointRow)').forEach(tr=>tr.onclick=()=>openReceiptPopup(tr.dataset.id));
+    document.querySelectorAll('#receiptRows .childPointRow').forEach(tr=>tr.onclick=()=>openReceiptPopup(tr.dataset.id,tr.dataset.load,true));
+    document.querySelectorAll('#receiptRows .spToggle').forEach(b=>b.onclick=e=>{
+      e.stopPropagation();let tr=b.closest('tr'),willShow=false;
+      document.querySelectorAll(`#receiptRows .childPointRow[data-group="${tr.dataset.id}"]`).forEach(c=>{c.classList.toggle('hidden');willShow=!c.classList.contains('hidden')});
+      willShow?U.open.add(tr.dataset.id):U.open.delete(tr.dataset.id);
+      b.textContent=(willShow?'▾ ':'▸ ')+b.dataset.count+' σημεία';
+    });
+    // κάρτα τύπου ενεργή → ξαναεφαρμογή του φίλτρου στις νέες γραμμές
+    let ac=document.querySelector('#receiptStats .statFilterActive');if(ac&&ac.dataset.type)document.querySelectorAll('#receiptRows tr[data-rtype]').forEach(tr=>tr.classList.toggle('statHidden',tr.dataset.rtype!==ac.dataset.type));
+    total();
+  };
+  // κάτω σύνολο: μόνο εντολές (όχι οι γραμμές γκρουπ)
+  function total(){
+    let tb=$('receiptRows');if(!tb)return;tb.querySelectorAll('tr.uTotal').forEach(x=>x.remove());
+    let trs=[...tb.querySelectorAll('tr[data-ord]')].filter(tr=>!tr.classList.contains('statHidden'));if(!trs.length)return;
+    let rk=trs.reduce((a,t)=>a+Number(t.dataset.rec||0),0),sk=trs.reduce((a,t)=>a+Number(t.dataset.sort||0),0);
+    tb.insertAdjacentHTML('beforeend',`<tr class="uTotal"><td colspan="5">Σύνολο · ${trs.length} ${trs.length===1?'εντολή':'εντολές'}</td><td class="uNum"><b>${num(rk)}</b></td>${sortCell(sk,rk)}<td></td></tr>`);
+  }
+
+  // ---- ξαναφόρτωση κιλών ταξινόμησης · ανανέωση σελίδας όταν αλλάζει κάτι από τη φόρμα ταξινόμησης ----
+  const _lr=loadReceiptsV2;
+  loadReceiptsV2=async function(){U.sortedKey='';return _lr.apply(this,arguments)};
+  const _lsr=loadSortingReview;
+  loadSortingReview=async function(){let r=await _lsr.apply(this,arguments);if($('receipts')&&!$('receipts').classList.contains('hidden')&&receiptMode!=='months')loadReceiptsV2();return r};
+
+  // ---- καρτέλα «Συγκεντρωτικά»: δύο κουμπιά, μία όψη κάθε φορά ----
+  const sh=$('receiptMonthSummary'),sSo=$('sortingMonthSummary');
+  if(sh&&sSo)sh.after(sSo);
+  let bar0=document.querySelector('#receipts .receiptTopActions');
+  if($('recOvPeriod')&&$('soOvPeriod'))$('recOvPeriod').after($('soOvPeriod'));
+  let actBtns=bar0.querySelector('.receiptActionButtons');
+  ['sortingReportBtn','sortingDailyExport'].forEach(id=>{if($(id))actBtns.appendChild($(id))});
+  // οι δύο εξαγωγές της Ταξινόμησης δουλεύουν με την ημέρα που βλέπει ο χρήστης
+  ['sortingReportBtn','sortingDailyExport'].forEach(id=>$(id)&&$(id).addEventListener('click',()=>{sortingNav.day=receiptNav.day;sortingNav.year=receiptNav.year;sortingNav.month=receiptNav.month},true));
+  window.OVSYNC=from=>{let a=window.OVST&&OVST[from],b=window.OVST&&OVST[from==='rec'?'so':'rec'];if(!a||!b)return;b.st.period=a.st.period;b.st.cursor=new Date(a.st.cursor);b.st.custom=a.st.custom;b.paint&&b.paint()};
+  function applySub(){
+    let months=receiptMode==='months';
+    $('uniSubRow').classList.toggle('hidden',!months);
+    let sr=document.querySelector('#receipts .receiptSearchRow');if(sr)sr.classList.toggle('hidden',months);
+    ['newReceipt','receiptUndoBtn','receiptRedoBtn','receiptExportBtn','receiptMoreBtn','receiptUndoMsg'].forEach(id=>{if($(id))$(id).classList.toggle('hidden',months)});
+    document.querySelectorAll('#uniSubRow .uniSub').forEach(b=>b.classList.toggle('active',b.dataset.usub===U.sub));
+    if(!months){sh.classList.add('hidden');sSo.classList.add('hidden');$('soOvPeriod').classList.add('hidden');sortingMode='days';return}
+    sh.classList.toggle('hidden',U.sub!=='rec');sSo.classList.toggle('hidden',U.sub!=='so');
+    $('recOvPeriod').classList.toggle('hidden',U.sub!=='rec');$('soOvPeriod').classList.toggle('hidden',U.sub!=='so');
+    sortingMode=U.sub==='so'?'months':'days';
+  }
+  function refreshSub(){applySub();if(receiptMode==='months'){if(U.sub==='so')_lsr().catch(()=>{});else if(window.OVST&&OVST.rec)OVST.rec.render()}}
+  document.querySelectorAll('#uniSubRow .uniSub').forEach(b=>b.onclick=()=>{let k=b.dataset.usub;if(k===U.sub)return;window.OVSYNC&&OVSYNC(U.sub);U.sub=k;if(window.OVST&&OVST[k]&&OVST[k].paint)OVST[k].paint();refreshSub()});
+  const _srm=setReceiptMode;
+  setReceiptMode=function(mode){let r=_srm.apply(this,arguments);refreshSub();return r};
+  applySub();
+
+  // ---- φόρμα εντολής: καρτέλες Παραλαβή | Ταξινόμηση ----
+  const tabsHtml=a=>`<button type="button" class="uTab${a==='rec'?' active':''}" data-ut="rec">Παραλαβή</button><button type="button" class="uTab${a==='sort'?' active':''}" data-ut="sort">Ταξινόμηση</button>`;
+  function closeAll(){let sd=$('sortingDetail'),f=$('receiptForm');U.active=false;if(sd)sd.classList.add('hidden');if(f){f.style.display='';f.classList.add('hidden');try{resetReceipt()}catch(e){}}}
+  async function toSort(){
+    let f=$('receiptForm'),rc=f.getBoundingClientRect();f.style.display='none';
+    await openSortingDetail(U.ctx.loadId);
+    let sd=$('sortingDetail');if(sd&&!sd.classList.contains('popupMax')){sd.style.left=rc.left+'px';sd.style.top=rc.top+'px'}
+  }
+  function toRec(){let sd=$('sortingDetail'),f=$('receiptForm');if(sd){let rc=sd.getBoundingClientRect();f.style.left=rc.left+'px';f.style.top=rc.top+'px';sd.classList.add('hidden')}f.style.display=''}
+  const _orp=openReceiptPopup;
+  openReceiptPopup=async function(id,hl=null,only=false){
+    U.active=false;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
+    await _orp.apply(this,arguments);
+    let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],multi=ls.length>1&&!only,loadId=only?hl:(ls.length===1?ls[0].id:null);
+    U.ctx={id,loadId};
+    if(multi&&$('receiptFormTitle'))$('receiptFormTitle').textContent='Πολλαπλές παραλαβές';
+    let old=$('uRcTabs');if(old)old.remove();
+    if(loadId){$('receiptPopupHandle').insertAdjacentHTML('afterend',`<div class="uTabs" id="uRcTabs">${tabsHtml('rec')}</div>`);
+      $('uRcTabs').onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='sort')toSort()}}
+    U.active=true;
+  };
+  const _osd=openSortingDetail;
+  openSortingDetail=async function(loadId){
+    let r=await _osd.apply(this,arguments),sd=$('sortingDetail');
+    if(U.active&&U.ctx&&sd){
+      let old=sd.querySelector('#uSoTabs');if(old)old.remove();
+      let hd=sd.querySelector('.sortingPopupHeader');
+      if(hd){hd.insertAdjacentHTML('beforebegin',`<div class="uTabs" id="uSoTabs">${tabsHtml('sort')}</div>`);
+        sd.querySelector('#uSoTabs').onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='rec')toRec()}}
+      let x=sd.querySelector('#closeSortDetail');if(x)x.addEventListener('click',closeAll);
+    }
+    return r;
+  };
+  ['closeReceiptTop','cancelReceipt'].forEach(id=>$(id)&&$(id).addEventListener('click',()=>{U.active=false;let sd=$('sortingDetail');if(sd)sd.classList.add('hidden')},true));
+  // κλικ έξω από το παράθυρο (στη σελίδα Παραλαβές & Ταξινόμηση) το κλείνει
+  document.addEventListener('mousedown',e=>{
+    if(!U.active)return;let t=e.target;if(!t||!t.closest)return;
+    if(t.closest('#receiptForm,#sortingDetail,.autoCloseMenu,#floatingEditor,.modal,.floatPanel,.ovFilterMenu'))return;
+    if(!t.closest('#receipts .receiptWorkspace,#receipts .receiptTopActions,#receipts .uniSubRow,.side'))return;
+    closeAll();
+  },true);
+
+  // ---- μενού: «Παραλαβές» / «Ταξινόμηση» = ίδια σελίδα ----
+  let fromMenu=false;
+  document.querySelectorAll('.nav button[data-view]').forEach(b=>b.addEventListener('click',()=>{fromMenu=true;setTimeout(()=>{fromMenu=false},0)},true));
+  const _show=show;
+  show=function(name){
+    if(name!=='receipts'&&name!=='sortingReview')return _show.apply(this,arguments);
+    let toSorting=name==='sortingReview';
+    U.chips.clear();
+    if(toSorting){
+      if(fromMenu){U.chips.add('READY_FOR_SORTING');U.chips.add('SORTING_IN_PROGRESS')}
+      else if(typeof sortingNav!=='undefined'&&sortingNav.day){receiptNav.day=sortingNav.day;receiptNav.year=+sortingNav.day.slice(0,4);receiptNav.month=+sortingNav.day.slice(5,7);receiptCalCursor=new Date(receiptNav.year,receiptNav.month-1,1)}
+      receiptMode='days';
+    }
+    let r=_show.call(this,'receipts');
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+    $('viewTitle').textContent='Παραλαβές & Ταξινόμηση';
+    return r;
+  };
 })();
 </script>
 </body></html>
