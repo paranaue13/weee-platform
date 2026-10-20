@@ -1358,6 +1358,9 @@ body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 .pinMk::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#f08a24;box-shadow:0 0 0 2px var(--surface,#fff)}
 .pinMk:hover::before{content:"＋";width:14px;height:14px;margin:-7px 0 0 -7px;background:#c96a0a;color:#fff;font:700 12px/14px Roboto,system-ui,sans-serif;text-align:center}
 .pinTip{position:fixed;z-index:9600;display:none;max-width:360px;width:max-content;background:#2b3445;color:#fff;font:400 11.5px/1.35 Roboto,system-ui,sans-serif;padding:4px 8px;border-radius:4px;white-space:normal;overflow-wrap:anywhere;pointer-events:none}
+#receiptForm .uHdrWrap>.uHdr,#sortingDetail .uHdrWrap>.uHdr{cursor:move}
+#receiptForm .uHdrWrap>.uHdr :is(button,.winCtl),#sortingDetail .uHdrWrap>.uHdr :is(button,.winCtl){cursor:pointer}
+#receiptForm.popupMax .uHdrWrap>.uHdr,#sortingDetail.popupMax .uHdrWrap>.uHdr{cursor:default}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -8888,6 +8891,48 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     await openReceiptPopup(open.receipt_id,multi?open.load_id:null,!!multi);
     if(U.ctx&&U.ctx.loadId)await toSort();
   };
+
+  // ---- κατάσταση ταξινόμησης: κάθε αλλαγή (καταχώρηση/διαγραφή/ενέργεια ροής) ενημερώνει ΑΜΕΣΑ λίστα, ημερολόγιο, χρώματα, κουτιά και Συγκεντρωτικά ----
+  // Αιτία του προβλήματος: οι αλλαγές καταχωρήσεων (π.χ. διαγραφή όλων → «Έτοιμη για ταξινόμηση») ξαναζωγράφιζαν μόνο το παράθυρο· η λίστα κρατούσε την παλιά κατάσταση (loadStatusMap) μέχρι να φορτωθεί ξανά η σελίδα.
+  let rsSeq=0,rsTm=0;
+  async function refreshStatuses(){
+    let my=++rsSeq,rq;
+    try{rq=await api('/sorting/review-queue')}catch(e){return}
+    if(my!==rsSeq||!Array.isArray(rq))return;
+    loadStatusMap=Object.fromEntries(rq.map(x=>[x.load_id,x.status]));
+    sortingReviewRows=rq;
+    if($('receipts')&&!$('receipts').classList.contains('hidden')){
+      if(Array.isArray(receiptRowsAll)&&receiptMode!=='months'){rerender();try{renderReceiptCalendar(receiptRowsAll)}catch(e){}}
+      if(receiptMode==='months'&&U.sub==='so')try{renderSortingMonths(rq)}catch(e){}
+    }
+    if($('dashboard')&&!$('dashboard').classList.contains('hidden'))try{loadDashboard()}catch(e){}
+  }
+  const scheduleStatuses=()=>{clearTimeout(rsTm);rsTm=setTimeout(refreshStatuses,120)};
+  window.uniRefreshStatuses=refreshStatuses;
+  const _apiSt=api;
+  api=async function(path,opt){
+    let r=await _apiSt.apply(this,arguments);
+    try{if(opt&&String(opt.method||'GET').toUpperCase()!=='GET'&&/^\/sorting\//.test(path))scheduleStatuses()}catch(e){}
+    return r;
+  };
+  // ---- σύρσιμο παραθύρου από ΟΛΗ την ενιαία κεφαλίδα (εκτός από κουμπιά και καρτέλες)· δεμένο στο document, ώστε να δουλεύει και μετά από κάθε ξαναζωγράφιση της κεφαλίδας ----
+  let drag=null;
+  document.addEventListener('pointerdown',e=>{
+    let hd=e.target.closest&&e.target.closest('.uHdrWrap>.uHdr');if(!hd||e.button>0)return;
+    if(e.target.closest('button,input,select,textarea,a,.winCtl,.uTabs'))return;
+    let panel=hd.closest('#receiptForm,#sortingDetail');if(!panel||panel.classList.contains('popupMax'))return;
+    let r=panel.getBoundingClientRect();panel.style.transform='none';panel.style.left=r.left+'px';panel.style.top=r.top+'px';
+    drag={panel,hd,dx:e.clientX-r.left,dy:e.clientY-r.top,id:e.pointerId};
+    try{hd.setPointerCapture(e.pointerId)}catch(_){}
+    e.preventDefault();
+  },true);
+  document.addEventListener('pointermove',e=>{
+    if(!drag)return;let p=drag.panel;
+    p.style.left=Math.max(8,Math.min(window.innerWidth-p.offsetWidth-8,e.clientX-drag.dx))+'px';
+    p.style.top=Math.max(62,Math.min(window.innerHeight-80,e.clientY-drag.dy))+'px';
+  },true);
+  const endDrag=()=>{drag=null};
+  document.addEventListener('pointerup',endDrag,true);document.addEventListener('pointercancel',endDrag,true);
 
   // ---- μενού: η σελίδα είναι μία («Παραλαβές & Ταξινόμηση»)· το όνομα sortingReview μένει μόνο ως συντόμευση (Αρχική, επιλογέας διπλής οθόνης) ----
   const _show=show;
