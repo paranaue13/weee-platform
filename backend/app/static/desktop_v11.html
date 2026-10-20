@@ -6497,6 +6497,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   }
   function marks(t,md,colIds,rowIds){
     let L=ensureMk();
+    hideTip();
     [...L.children].filter(m=>m._t===t).forEach(m=>m.remove());
     const hid=i=>{let c=md.cols[i];return !!(c&&c.ok&&colIds.has(c.id))};
     let maxRun=0;
@@ -6551,13 +6552,21 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       m.style.left=(cx-8)+'px';m.style.top=(cy-8)+'px';m.style.display='';
     }
   }
-  window.addEventListener('scroll',layoutMarks,true);
-  window.addEventListener('resize',layoutMarks);
-  window.addEventListener('tableLayoutChanged',()=>{layoutMarks();requestAnimationFrame(layoutMarks)});
+  window.addEventListener('scroll',()=>{hideTip();layoutMarks()},true);
+  window.addEventListener('resize',()=>{hideTip();layoutMarks()});
+  window.addEventListener('tableLayoutChanged',()=>{hideTip();layoutMarks();requestAnimationFrame(layoutMarks)});
   document.addEventListener('mouseup',()=>requestAnimationFrame(layoutMarks),true);
   // ετικέτα «Εμφάνιση: …» σε ανώτερο επίπεδο (position:fixed), πάντα ολόκληρη· στήλη: κάτω από την επικεφαλίδα, γραμμή: δεξιά της κουκκίδας· γυρίζει αν δεν χωράει
-  let tip=null;
+  let tip=null,tipFor=null,tipTm=0;
+  // Η ετικέτα εξαφανίζεται ΠΑΝΤΑ: κλικ, κουκκίδα που χάθηκε, αποχώρηση ποντικιού, scroll/resize, Escape, απώλεια focus + δίχτυ ασφαλείας (έλεγχος ανά 200ms και σε κάθε κίνηση ότι το ποντίκι είναι ακόμα πάνω στην κουκκίδα)
+  function hideTip(){tipFor=null;clearInterval(tipTm);tipTm=0;if(tip)tip.style.display='none'}
+  function tipCheck(){
+    if(!tipFor)return;
+    if(!tipFor.isConnected||!tipFor.parentNode||tipFor.style.display==='none'||!tipFor.matches(':hover'))hideTip();
+  }
   function showTip(m){
+    if(!m.isConnected||m.style.display==='none')return;
+    tipFor=m;clearInterval(tipTm);tipTm=setInterval(()=>{layoutMarks();tipCheck()},200);
     if(!tip||!tip.isConnected){tip=document.createElement('div');tip.className='pinTip';document.body.appendChild(tip)}
     tip.textContent=m.dataset.label;tip.style.left='0px';tip.style.top='0px';tip.style.display='block';
     let d=m.getBoundingClientRect(),w=tip.offsetWidth,h=tip.offsetHeight,x,y;
@@ -6574,7 +6583,13 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     tip.style.left=Math.max(8,x)+'px';tip.style.top=Math.max(8,y)+'px';
   }
   document.addEventListener('mouseover',e=>{let m=e.target.closest&&e.target.closest('.pinMk');if(m)showTip(m)},true);
-  document.addEventListener('mouseout',e=>{let m=e.target.closest&&e.target.closest('.pinMk');if(m&&tip)tip.style.display='none'},true);
+  document.addEventListener('mouseout',e=>{let m=e.target.closest&&e.target.closest('.pinMk');if(m)hideTip()},true);
+  document.addEventListener('mouseleave',e=>{if(e.target&&e.target.closest&&e.target.closest('.pinMk'))hideTip()},true);
+  document.addEventListener('pointerleave',e=>{if(e.target&&e.target.closest&&e.target.closest('.pinMk'))hideTip()},true);
+  document.addEventListener('mousemove',e=>{if(tipFor&&!(e.target.closest&&e.target.closest('.pinMk')===tipFor))hideTip()},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip()},true);
+  window.addEventListener('blur',hideTip);
+  document.addEventListener('visibilitychange',hideTip);
   function showAll(t){let v=load(t);v.cols=[];v.rows={};save(t);refresh(t)}
   function hide(t,kind,id){
     let v=load(t);
@@ -6673,7 +6688,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   window.addEventListener('click',e=>{
     let m=e.target.closest&&e.target.closest('.pinMk');if(!m)return;
     e.stopPropagation();e.preventDefault();
-    let t=m._t;if(t)show(t,m.dataset.kind,m.dataset.id);
+    hideTip();let t=m._t;if(t)show(t,m.dataset.kind,m.dataset.id);
   },true);
   ['pointerdown','mousedown','mouseup','dblclick'].forEach(ev=>window.addEventListener(ev,e=>{if(e.target.closest&&e.target.closest('.pinMk'))e.stopPropagation()},true));
 
