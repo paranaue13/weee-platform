@@ -1296,9 +1296,6 @@ body[data-theme="dark"] .bgRow .bgName{color:var(--fg,#e3e5ec)}
 .uKsep{display:block;height:1px;background:rgba(0,0,0,.1);margin:3px 0}
 .uKbarRow{display:flex;align-items:center;gap:8px}.uKbarRow .uBar{flex:1;width:auto}.uKbarRow em{font-style:normal;font-size:12px;font-weight:700;color:#4a5b66}
 #receiptRows tr.uTotal td{font-weight:800;background:#f1f5f8;border-top:2px solid #b3bfc9}
-.uTabs{display:flex;gap:18px;padding:0 6px;border-bottom:1px solid #d6e2e8;margin:0 0 10px}
-.uTab{border:0;background:transparent;padding:8px 2px;font-weight:800;color:#677680;cursor:pointer;border-bottom:3px solid transparent}
-.uTab.active{color:#234a62;border-bottom-color:#234a62}
 body[data-theme="dark"] .uniChip,body[data-theme="dark"] .uniSub{background:#17232d;border-color:#2b3b48;color:#c9d6de}
 body[data-theme="dark"] #receiptRows tr.uTotal td{background:#17232d}
 /* ΑΛΛΑΓΗ ΙΛ: καρτέλα Συγκεντρωτικά — χωρίς chips/Ζωντανή ροή, επάνω γραμμή με ίδιο ύψος 40px */
@@ -1329,6 +1326,40 @@ tr.pinHotR>td,tr.pinHotR>th,td.pinHotR{background:#f3f6fc!important}
 .pinMk:hover::before{content:"＋";width:14px;height:14px;margin:-7px 0 0 -7px;background:#c96a0a;color:#fff;font:700 12px/14px Roboto,system-ui,sans-serif;text-align:center}
 .pinMk:hover::after{content:attr(data-label);position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);background:#2b3445;color:#fff;font:400 11.5px/1.2 Roboto,system-ui,sans-serif;padding:4px 7px;border-radius:4px;white-space:nowrap;pointer-events:none}
 .pinMk.pinMkFlip:hover::after{left:auto;right:calc(100% + 4px)}
+/* ΑΛΛΑΓΗ ΙΠ: ΕΝΙΑΙΑ κεφαλίδα καρτέλας φορτίου (Παραλαβή / Ταξινόμηση): τίτλος + chip + στοιχεία + κουμπιά παραθύρου + καρτέλες, ίδιες θέσεις και στα δύο παράθυρα */
+#receiptForm .uHdrWrap{margin:0 0 14px!important;position:relative;z-index:30;background:var(--surface);flex:none}
+#sortingDetail .uHdrWrap{margin:-16px -16px 14px!important;position:sticky;top:-16px;z-index:30;background:var(--surface);flex:none}
+#receiptForm:not(.popupMin) .uHdrWrap>.uHdr,#sortingDetail:not(.popupMin) .uHdrWrap>.uHdr{display:flex!important;flex-direction:row!important;justify-content:space-between;align-items:flex-start;gap:12px;height:64px;min-height:64px;box-sizing:border-box;margin:0!important;padding:0 0 0 20px!important;border:0!important;position:static!important;background:var(--surface)!important;cursor:move}
+#sortingDetail .uHdrWrap>.uHdr>.sortingPopupTopRow{flex:1;min-width:0;min-height:0!important;align-items:flex-start!important;gap:12px}
+#receiptForm .uHdMain,#sortingDetail .uHdMain{flex:1 1 auto;min-width:0;padding-top:10px;display:block}
+#sortingDetail .uHdrWrap .sortingPopupTitleBlock.uHdMain{align-self:flex-start!important;margin:0!important}
+#sortingDetail .uHdrWrap .sortingPopupTopRow>div:last-child{gap:0!important;align-self:flex-start!important;margin:0!important}
+#receiptForm .uHdT,#sortingDetail .uHdT{display:flex;align-items:center;gap:10px;min-width:0;height:26px}
+#receiptForm .uHdMain .uHdT h3,#sortingDetail .uHdMain .uHdT h3{font-size:18px!important;font-weight:700!important;line-height:26px!important;margin:0!important;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#receiptForm .uHdMain .uHdT .dppPlain,#sortingDetail .uHdMain .uHdT .dppPlain{font-weight:700!important}
+#receiptForm .uHdMain .uHdMeta,#sortingDetail .uHdMain .uHdMeta{margin:2px 0 0!important;font-size:12.5px;line-height:18px;color:#6a7488!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#receiptForm .uHdMain .uHdT .uChip,#sortingDetail .uHdMain .uHdT .uChip{display:inline-flex!important;align-items:center;flex:none;height:24px;padding:0 10px!important;margin:0!important;border-radius:12px!important;font-size:12.5px!important;font-weight:700!important;line-height:1!important;white-space:nowrap;box-sizing:border-box}
+#receiptForm .uHdMain .uHdT .uChip.hidden{display:none!important}
+#receiptForm .uChipRec{background:#e6f6f1;color:#0b6b57}
+#receiptForm:not(.popupMin) .uHdr .winCtl,#sortingDetail:not(.popupMin) .uHdr .winCtl{height:64px!important}
+#receiptForm .uHdrWrap>.uTabs,#sortingDetail .uHdrWrap>.uTabs{display:flex;align-items:flex-end;gap:22px;height:44px;box-sizing:border-box;padding:0 20px;margin:0;border-bottom:1px solid var(--line,#e3e5ec)}
+#receiptForm .uHdrWrap>.uTabs.hidden,#sortingDetail .uHdrWrap>.uTabs.hidden{display:none}
+.uTab{height:44px;padding:0 2px;border:0;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:#677680;cursor:pointer;box-sizing:border-box}
+.uTab.active{color:#1e3f9e;border-bottom-color:#2f5bd6}
+#sortingDetail .uHdrWrap+.sortingPopupActions{margin-top:0}
+.popupMin>.uHdrWrap{display:block!important;margin:0!important;position:static!important}
+.popupMin .uHdrWrap>.uHdr{display:flex!important;align-items:center!important;height:auto!important;min-height:0!important;padding:8px 0 8px 12px!important;margin:0!important;border:0!important}
+.popupMin .uHdrWrap .uHdMain{padding:0!important}
+.popupMin .sortingPopupTopRow>.sortingPopupTitleBlock>.uHdT{display:flex!important}
+.popupMin .uHdrWrap .uHdT{height:20px}
+#receiptForm.popupMin .uHdMain .uHdT .uChip,#sortingDetail.popupMin .uHdMain .uHdT .uChip{display:none!important}
+#sortingDetail.popupMin .uHdrWrap .sortingPopupTitleBlock.uHdMain{align-self:center!important;flex:1;min-width:0}
+#sortingDetail.popupMin .uHdrWrap .sortingPopupTopRow{align-items:center!important;min-height:0!important}
+#sortingDetail.popupMin .uHdrWrap .sortingPopupTopRow>div:last-child{align-self:center!important}
+#sortingDetail.popupMin .uHdrWrap .uHdT h3,#receiptForm.popupMin .uHdrWrap .uHdT h3{font-size:13px!important;line-height:20px!important}
+.popupMin .uHdrWrap .uHdT h3{font-size:13px!important;line-height:20px!important}
+.popupMin .uHdrWrap :is(.uTabs,.uHdMeta,.uChip){display:none!important}
+body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1909,7 +1940,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <label>Όχημα / Μέσο<select id="receiptVehicleFilter"><option value="">Όλα</option></select></label>
 <div class="receiptFilterActions"><button class="btn alt" id="receiptClearFilters">Καθαρισμός</button><button class="btn" id="receiptApplyFilters">Εφαρμογή</button></div></div></aside></div>
 <div id="receiptReport" class="card hidden"><div class="toolbar"><h3 style="margin:0">Αναφορά Παραλαβών</h3><button class="btn alt" id="closeReceiptReport">Κλείσιμο</button></div><div class="formgrid"><label>Από<input id="repFrom" type="date"></label><label>Έως<input id="repTo" type="date"></label><label>Τύπος Παραλαβής<select id="repType"><option value="">Όλοι</option><option value="CONTAINER">Container</option><option value="CURTAIN_TRAILER">Καρότσα</option><option value="SMALL_POINTS">Μικρά Σημεία</option></select></label><label>Μεταφορέας<input id="repCarrier" autocomplete="off" placeholder="Γράψε μεταφορέα..."></label><label>Προμηθευτής<input id="repSupplier" autocomplete="off" placeholder="Γράψε προμηθευτή..."></label></div><div class="toolbar"><button class="btn" id="runReceiptReport">ΕΦΑΡΜΟΓΗ ΦΙΛΤΡΩΝ</button><button class="btn alt" id="exportReceiptExcel">Εξαγωγή Excel</button><button class="btn alt" id="exportReceiptPdf">Εξαγωγή PDF</button></div><div id="receiptReportOut"></div></div>
-<div id="receiptFormHome"></div><div id="receiptForm" class="card hidden"><div class="receiptPopupHeader" id="receiptPopupHandle"><h3 id="receiptFormTitle">Νέα Παραλαβή</h3><div><button type="button" class="winCtl" id="receiptMin" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" id="receiptMax" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="closeReceiptTop" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div id="receiptReadInfo" class="notice hidden"></div><div id="supplierSourceNote" class="notice hidden" style="margin:6px 0"></div><div class="recBody" id="receiptBody">
+<div id="receiptFormHome"></div><div id="receiptForm" class="card hidden"><div class="uHdrWrap"><div class="receiptPopupHeader uHdr" id="receiptPopupHandle"><div class="uHdMain"><div class="uHdT"><h3 id="receiptFormTitle">Νέα Παραλαβή</h3><span class="uChip uChipRec hidden" id="uRcChip">Παραλήφθηκε</span></div><div class="uHdMeta hidden" id="uRcMeta"></div></div><div><button type="button" class="winCtl" id="receiptMin" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" id="receiptMax" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="closeReceiptTop" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div class="uTabs hidden" id="uRcTabs"></div></div><div id="receiptReadInfo" class="notice hidden"></div><div id="supplierSourceNote" class="notice hidden" style="margin:6px 0"></div><div class="recBody" id="receiptBody">
 <div class="recGrp formgrid" id="grpType"><label>Τύπος φορτίου<div class="toolbar" id="rtypeButtons"><button type="button" class="btn alt rtypeBtn" data-v="CONTAINER">Container</button><button type="button" class="btn alt rtypeBtn" data-v="CURTAIN_TRAILER">Καρότσα</button><button type="button" class="btn alt rtypeBtn" data-v="SMALL_POINTS">Μικρά Σημεία</button></div><input id="rtype" type="hidden" value="CONTAINER"></label><label>Ημερομηνία/ώρα<input id="rdate" type="datetime-local"></label></div>
 <div class="recGrp formgrid" id="grpTransport"><label>Μεταφορέας<div class="comboAction"><input class="comboArrow" id="carrierText" autocomplete="off" placeholder="Γράψε μεταφορέα..."><button type="button" class="comboDrop" data-combo-target="carrierText" title="Άνοιγμα λίστας">▼</button><button type="button" class="miniAdd" id="quickCarrier" title="Νέος μεταφορέας">＋</button></div><input id="carrier" type="hidden"></label><label>Οδηγός<div class="comboAction"><input class="comboArrow" id="driver" autocomplete="off" placeholder="Γράψε οδηγό..."><button type="button" class="comboDrop" data-combo-target="driver" title="Άνοιγμα λίστας">▼</button><button type="button" class="miniAdd" id="quickDriver" title="Νέος οδηγός">＋</button></div></label><label>Πινακίδα<div class="comboAction"><input class="comboArrow" id="vehicle" autocomplete="off" placeholder="Γράψε ή επίλεξε πινακίδα..."><button type="button" class="comboDrop" data-combo-target="vehicle" title="Άνοιγμα λίστας">▼</button><button type="button" class="miniAdd" id="quickVehicle" title="Νέα πινακίδα">＋</button></div></label><label id="weighbridgeWrap">Αριθμός Ζυγολογίου<input id="weighbridgeNo"></label></div>
 <div class="recGrp" id="grpWeigh">
@@ -8652,35 +8683,60 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   setReceiptMode=function(mode){let r=_srm.apply(this,arguments);refreshSub();return r};
   applySub();
 
-  // ---- φόρμα εντολής: καρτέλες Παραλαβή | Ταξινόμηση ----
-  const tabsHtml=a=>`<button type="button" class="uTab${a==='rec'?' active':''}" data-ut="rec">Παραλαβή</button><button type="button" class="uTab${a==='sort'?' active':''}" data-ut="sort">Ταξινόμηση</button>`;
+  // ---- φόρμα εντολής: ΕΝΙΑΙΑ κεφαλίδα (τίτλος + chip + στοιχεία + κουμπιά παραθύρου + καρτέλες Παραλαβή | Ταξινόμηση) ----
+  // Η ίδια κεφαλίδα (.uHdrWrap) υπάρχει στο παράθυρο Παραλαβής και στο παράθυρο Ταξινόμησης, με ίδιες θέσεις/μεγέθη· αλλάζει μόνο το περιεχόμενο από κάτω.
+  const tabsHtml=(a,both=true)=>`<button type="button" class="uTab${a==='rec'?' active':''}" data-ut="rec">Παραλαβή</button>${both?`<button type="button" class="uTab${a==='sort'?' active':''}" data-ut="sort">Ταξινόμηση</button>`:''}`;
+  const dmyEl=d=>new Date(d).toLocaleDateString('el-GR');
+  function hideHdr(){['uRcChip','uRcMeta','uRcTabs'].forEach(id=>{let e=$(id);if(e)e.classList.add('hidden')})}
   function closeAll(){let sd=$('sortingDetail'),f=$('receiptForm');U.active=false;if(sd)sd.classList.add('hidden');if(f){f.style.display='';f.classList.add('hidden');try{resetReceipt()}catch(e){}}}
-  async function toSort(){
-    let f=$('receiptForm'),rc=f.getBoundingClientRect();f.style.display='none';
-    await openSortingDetail(U.ctx.loadId);
-    let sd=$('sortingDetail');if(sd&&!sd.classList.contains('popupMax')){sd.style.left=rc.left+'px';sd.style.top=rc.top+'px'}
-  }
-  function toRec(){let sd=$('sortingDetail'),f=$('receiptForm');if(sd){let rc=sd.getBoundingClientRect();f.style.left=rc.left+'px';f.style.top=rc.top+'px';sd.classList.add('hidden')}f.style.display=''}
+  // μετάβαση στην Ταξινόμηση: το παράθυρο Ταξινόμησης στήνεται ΠΡΙΝ κρυφτεί η Παραλαβή (δες openSortingDetail) ώστε να μην αναβοσβήνει τίποτα
+  async function toSort(){U.toSort=true;try{await openSortingDetail(U.ctx.loadId)}finally{U.toSort=false}}
+  function toRec(){let sd=$('sortingDetail'),f=$('receiptForm');if(sd){let rc=sd.getBoundingClientRect();f.style.left=rc.left+'px';f.style.top=rc.top+'px';f.style.width=rc.width+'px';sd.classList.add('hidden')}f.style.display=''}
   const _orp=openReceiptPopup;
   openReceiptPopup=async function(id,hl=null,only=false){
-    U.active=false;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
+    U.active=false;U.ctx=null;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
+    hideHdr();
     await _orp.apply(this,arguments);
     let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],multi=ls.length>1&&!only,loadId=only?hl:(ls.length===1?ls[0].id:null);
     U.ctx={id,loadId};
     if(multi&&$('receiptFormTitle'))$('receiptFormTitle').textContent='Πολλαπλές παραλαβές';
-    let old=$('uRcTabs');if(old)old.remove();
-    if(loadId){$('receiptPopupHandle').insertAdjacentHTML('afterend',`<div class="uTabs" id="uRcTabs">${tabsHtml('rec')}</div>`);
-      $('uRcTabs').onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='sort')toSort()}}
+    if(r){
+      let l=ls.find(x=>x.id===loadId)||ls[0],car=orgName(orgs.find(o=>o.id===r.carrier_id)||{}),sup=multi?(ls.length+' σημεία'):orgName(orgs.find(o=>o.id===(l&&l.supplier_id))||{});
+      $('uRcChip').classList.remove('hidden');
+      let mt=$('uRcMeta');mt.textContent=[dmyEl(r.receipt_date),car,sup].filter(Boolean).join(' · ');mt.classList.remove('hidden');
+      let tb=$('uRcTabs');tb.innerHTML=tabsHtml('rec',!!loadId);tb.classList.remove('hidden');
+      tb.onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='sort'&&U.ctx&&U.ctx.loadId)toSort()};
+    }
     U.active=true;
   };
+  // νέα παραλαβή (δεν έχει ακόμα εντολή): χωρίς chip / στοιχεία / καρτέλες
+  const _pnr=prepareNewReceiptPopup;
+  prepareNewReceiptPopup=function(){U.active=false;hideHdr();return _pnr.apply(this,arguments)};
+  // κεφαλίδα του παραθύρου Ταξινόμησης: ίδια δομή με της Παραλαβής (τίτλος+chip, στοιχεία, κουμπιά παραθύρου, καρτέλες)· τα κουμπιά ροής πάνε στο περιεχόμενο
+  function uniSortHeader(sd){
+    let hd=sd.querySelector('.sortingPopupHeader');if(!hd||hd.closest('.uHdrWrap'))return;
+    let tb=hd.querySelector('.sortingPopupTitleBlock');if(!tb)return;
+    hd.classList.add('uHdr');tb.classList.add('uHdMain');
+    let h2=tb.querySelector('h2');if(h2)h2.remove();
+    let h3=tb.querySelector('h3'),pill=h3&&h3.querySelector('.pill');
+    if(h3){let t=document.createElement('div');t.className='uHdT';h3.before(t);t.appendChild(h3);if(pill){pill.classList.add('uChip');pill.removeAttribute('style');t.appendChild(pill)}}
+    let meta=tb.querySelector(':scope>div:not(.uHdT)');if(meta){meta.classList.add('uHdMeta');meta.removeAttribute('style')}
+    let acts=hd.querySelector('.sortingPopupActions');
+    let wrap=document.createElement('div');wrap.className='uHdrWrap';hd.before(wrap);wrap.appendChild(hd);
+    let tabs=document.createElement('div');tabs.className='uTabs';tabs.id='uSoTabs';tabs.innerHTML=tabsHtml('sort');wrap.appendChild(tabs);
+    tabs.onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='rec')toRec()};
+    if(acts)wrap.after(acts);
+  }
   const _osd=openSortingDetail;
   openSortingDetail=async function(loadId){
     let r=await _osd.apply(this,arguments),sd=$('sortingDetail');
     if(U.active&&U.ctx&&sd){
-      let old=sd.querySelector('#uSoTabs');if(old)old.remove();
-      let hd=sd.querySelector('.sortingPopupHeader');
-      if(hd){hd.insertAdjacentHTML('beforebegin',`<div class="uTabs" id="uSoTabs">${tabsHtml('sort')}</div>`);
-        sd.querySelector('#uSoTabs').onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='rec')toRec()}}
+      uniSortHeader(sd);
+      if(U.toSort){
+        let f=$('receiptForm'),rc=f.getBoundingClientRect();
+        if(!sd.classList.contains('popupMax')&&!sd.classList.contains('popupMin')){sd.style.left=rc.left+'px';sd.style.top=rc.top+'px';sd.style.width=rc.width+'px';sd.style.transform='none'}
+        f.style.display='none';U.toSort=false;
+      }
       let x=sd.querySelector('#closeSortDetail');if(x)x.addEventListener('click',closeAll);
     }
     return r;
