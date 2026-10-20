@@ -1296,6 +1296,8 @@ body[data-theme="dark"] .bgRow .bgName{color:var(--fg,#e3e5ec)}
 .uKsep{display:block;height:1px;background:rgba(0,0,0,.1);margin:3px 0}
 .uKbarRow{display:flex;align-items:center;gap:8px}.uKbarRow .uBar{flex:1;width:auto}.uKbarRow em{font-style:normal;font-size:12px;font-weight:700;color:#4a5b66}
 #receiptRows tr.uTotal td{font-weight:800;background:#f1f5f8;border-top:2px solid #b3bfc9}
+/* ΑΛΛΑΓΗ ΙΨ: η γραμμή συνόλου δεν εμφανίζεται (το σύνολο φαίνεται στην κάρτα «Σύνολο ημέρας»)· ο υπολογισμός της μένει στον κώδικα */
+#receiptRows tr.uTotal{display:none!important}
 body[data-theme="dark"] .uniChip,body[data-theme="dark"] .uniSub{background:#17232d;border-color:#2b3b48;color:#c9d6de}
 body[data-theme="dark"] #receiptRows tr.uTotal td{background:#17232d}
 /* ΑΛΛΑΓΗ ΙΛ: καρτέλα Συγκεντρωτικά — χωρίς chips/Ζωντανή ροή, επάνω γραμμή με ίδιο ύψος 40px */
