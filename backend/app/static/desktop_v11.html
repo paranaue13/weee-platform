@@ -6562,7 +6562,8 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   function hideTip(){tipFor=null;clearInterval(tipTm);tipTm=0;if(tip)tip.style.display='none'}
   function tipCheck(){
     if(!tipFor)return;
-    if(!tipFor.isConnected||!tipFor.parentNode||tipFor.style.display==='none'||!tipFor.matches(':hover'))hideTip();
+    let t=tipFor._t;
+    if(!tipFor.isConnected||!tipFor.parentNode||tipFor.style.display==='none'||!t||!t.isConnected||!t.offsetParent||!tipFor.matches(':hover'))hideTip();
   }
   function showTip(m){
     if(!m.isConnected||m.style.display==='none')return;
@@ -6589,6 +6590,12 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   document.addEventListener('mousemove',e=>{if(tipFor&&!(e.target.closest&&e.target.closest('.pinMk')===tipFor))hideTip()},true);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')hideTip()},true);
   window.addEventListener('blur',hideTip);
+  // κεντρικός καθαρισμός: αλλαγή σελίδας / καρτέλας / περιόδου, οποιοδήποτε πάτημα ή τροχός, αποδόμηση πίνακα
+  document.addEventListener('mousedown',hideTip,true);
+  document.addEventListener('click',e=>{if(!(e.target.closest&&e.target.closest('.pinMk')))hideTip()},true);
+  document.addEventListener('wheel',hideTip,{capture:true,passive:true});
+  window.addEventListener('pagehide',hideTip);
+  try{let _showPage=window.show;if(typeof _showPage==='function'){window.show=show=function(){hideTip();return _showPage.apply(this,arguments)}}}catch(e){}
   document.addEventListener('visibilitychange',hideTip);
   function showAll(t){let v=load(t);v.cols=[];v.rows={};save(t);refresh(t)}
   function hide(t,kind,id){
