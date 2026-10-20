@@ -1361,6 +1361,9 @@ body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 #receiptForm .uHdrWrap>.uHdr,#sortingDetail .uHdrWrap>.uHdr{cursor:move}
 #receiptForm .uHdrWrap>.uHdr :is(button,.winCtl),#sortingDetail .uHdrWrap>.uHdr :is(button,.winCtl){cursor:pointer}
 #receiptForm.popupMax .uHdrWrap>.uHdr,#sortingDetail.popupMax .uHdrWrap>.uHdr{cursor:default}
+/* ΑΛΛΑΓΗ ΙΧ: Παραλαβές & Ταξινόμηση › Καθημερινά — δεν εμφανίζονται το πάνελ «Φίλτρα», ο τίτλος «Επιλογή ημερομηνίας» και η γραμμή σταδίων (ο κώδικάς τους μένει) */
+#receipts .receiptFilters,#receipts #uniChips{display:none!important}
+#receipts .receiptCalendarPane .receiptSideCard:not(.receiptFilters)>h3{display:none}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -8639,7 +8642,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
 // ΑΛΛΑΓΗ ΙΚ: «Παραλαβές & Ταξινόμηση» — μία σελίδα (ο #receipts) με δύο καρτέλες. Οπτική ενοποίηση· τα δεδομένα, οι φόρμες και οι κανόνες μένουν ως έχουν.
 (function(){
   const STAGES=[['READY_FOR_SORTING','Έτοιμη για ταξινόμηση'],['SORTING_IN_PROGRESS','Ταξινομείται'],['LOGISTICS_REVIEW','Προς Έλεγχο'],['CORRECTION','Προς Διόρθωση'],['CLOSED','Ολοκληρώθηκε']];
-  const U={chips:new Set(),sorted:{},sortedKey:'',pending:'',active:false,ctx:null,sub:'rec',open:new Set()};
+  const U={noFilterUI:true,chips:new Set(),sorted:{},sortedKey:'',pending:'',active:false,ctx:null,sub:'rec',open:new Set()};
   window.__uni=U;
   const pctF=v=>v.toLocaleString('el-GR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%';
   const num=n=>Math.round(n).toLocaleString('el-GR');
@@ -8664,6 +8667,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
 
   // ---- κουτιά ημέρας: Παραλήφθηκαν + Ταξινομήθηκαν ----
   renderCompactReceiptStats=function(rows){
+    if(U.noFilterUI)U.chips.clear();
     ensureSorted(rows);
     const specs=[['CONTAINER','Container','k1'],['CURTAIN_TRAILER','Καρότσα','k2'],['SMALL_POINTS','Μικρά σημεία','k3']];
     const feedOk=typeof ecOrdersDay!=='undefined'&&ecOrdersDay===receiptNav.day;
@@ -8694,6 +8698,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   // ---- λίστα ημέρας ----
   const sortCell=(sk,rk)=>{let p=rk>0?sk/rk*100:0;return `<td class="uSort"><span class="uSortK">${num(sk)}</span>${bar(p)}<span class="uPct">${pctF(p)}</span></td>`};
   renderReceiptDailyRows=function(rows){
+    if(U.noFilterUI)U.chips.clear();
     ensureSorted(rows);
     const chip=s=>!U.chips.size||U.chips.has(s);
     let html=rows.map(r=>{
@@ -8735,7 +8740,9 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
 
   // ---- ξαναφόρτωση κιλών ταξινόμησης · ανανέωση σελίδας όταν αλλάζει κάτι από τη φόρμα ταξινόμησης ----
   const _lr=loadReceiptsV2;
-  loadReceiptsV2=async function(){U.sortedKey='';return _lr.apply(this,arguments)};
+  // τα πάνελ φίλτρων δεν εμφανίζονται πια: τυχόν παλιά επιλογή (προμηθευτής / τύπος / όχημα) δεν μένει ενεργή — η λίστα δείχνει πάντα ΟΛΕΣ τις εντολές της ημέρας
+  const clearHiddenFilters=()=>{['receiptPartnerFilter','receiptTypeFilter','receiptVehicleFilter'].forEach(id=>{let e=$(id);if(e&&e.value)e.value=''});U.chips.clear()};
+  loadReceiptsV2=async function(){U.sortedKey='';clearHiddenFilters();return _lr.apply(this,arguments)};
   const _lsr=loadSortingReview;
   loadSortingReview=async function(){let r=await _lsr.apply(this,arguments);if($('receipts')&&!$('receipts').classList.contains('hidden')&&receiptMode!=='months')loadReceiptsV2();return r};
 
