@@ -1225,12 +1225,6 @@ body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 #inventory>.toolbar>#invReportBtn+#invZoomNav{margin-left:0}
 #inventory>.toolbar{flex-wrap:nowrap!important}
 @media(max-width:1400px){#inventory>.toolbar .toggleRow span{white-space:normal!important;line-height:1.15;max-width:104px}#invReportBtn{padding-left:10px;padding-right:10px}}
-/* ΑΛΛΑΓΗ ΙΣΤ: κουμπιά απόκρυψης ΕΞΩ από τον πίνακα — δεσμευμένο περιθώριο (αριστερά 34px, πάνω 30px) ώστε ο πίνακας να μη μετακινείται */
-.pinHost{margin-left:34px!important;margin-top:30px!important;width:calc(100% - 34px)!important;max-width:none!important;box-sizing:border-box}
-.pinLayer .pinZone.dG,.pinLayer .pinZone.dC{background:transparent;cursor:default}
-.pinLayer .pinZone.dG .pinDot,.pinLayer .pinZone.dC .pinDot{width:22px;height:22px;background:#d9644a;color:#fff;border:0;font:700 16px/22px Roboto,system-ui,sans-serif;box-shadow:0 1px 4px rgba(0,0,0,.28);cursor:pointer}
-.pinLayer .pinZone.dG .pinDot{left:6px;top:50%;margin-top:-11px}
-.pinLayer .pinZone.dC .pinDot{left:50%;margin-left:-11px;top:auto;bottom:4px}
 /* ΑΛΛΑΓΗ ΙΖ: Φορτώσεις › Ιστορικό Δελτίων Αποστολής — γραμματοσειρά, στοίχιση αριθμών, γραμμή συνόλου */
 #shipHistCard .shipHistWrap td{font-size:15px;padding:12px}
 #shipHistCard .shipHistWrap th{font-size:14px;padding:12px}
@@ -1323,6 +1317,18 @@ body[data-theme="dark"] #receiptRows tr.uTotal td{background:#17232d}
 #receipts.uMonths .receiptTopActions .prodPeriodNav button{height:100%;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
 #receipts.uMonths .receiptTopActions .receiptActionButtons{display:flex;align-items:center}
 #receipts.uMonths .receiptTopActions .receiptActionButtons .btn{height:40px;box-sizing:border-box;display:inline-flex;align-items:center}
+/* ΑΛΛΑΓΗ ΙΟ: νέος τρόπος απόκρυψης — εικονίδιο «μάτι» στο hover, κρυμμένο = μηδενικό πάχος, πορτοκαλί κουκκίδες για επαναφορά */
+.pinLayer .pinEye{position:fixed;pointer-events:auto;z-index:3;width:18px;height:18px;padding:0;margin:0;border:0;border-radius:4px;background:rgba(243,245,250,.9);color:#9aa4b8;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.pinLayer .pinEye:hover{color:#6b7690}
+.pinLayer .pinEye svg{display:block}
+th.pinHotH{background:#eef2fa!important}
+tr.pinHotR>td,tr.pinHotR>th,td.pinHotR{background:#f3f6fc!important}
+.pinMk{position:absolute;z-index:30;width:16px;height:16px;cursor:pointer;user-select:none;box-sizing:border-box;font-size:0;white-space:nowrap}
+.pinMk::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#f08a24;box-shadow:0 0 0 2px var(--surface,#fff)}
+.pinMk:hover{z-index:9400}
+.pinMk:hover::before{content:"＋";width:14px;height:14px;margin:-7px 0 0 -7px;background:#c96a0a;color:#fff;font:700 12px/14px Roboto,system-ui,sans-serif;text-align:center}
+.pinMk:hover::after{content:attr(data-label);position:absolute;left:calc(100% + 4px);top:50%;transform:translateY(-50%);background:#2b3445;color:#fff;font:400 11.5px/1.2 Roboto,system-ui,sans-serif;padding:4px 7px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.pinMk.pinMkFlip:hover::after{left:auto;right:calc(100% + 4px)}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1418,8 +1424,6 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 /* απαλές κάθετες γραμμές ανάμεσα στις στήλες, σε όλους τους πίνακες (εκτός από τις λωρίδες απόκρυψης) */
 .content table tr>*+*:not(.pinColHide){border-left:1px solid var(--col-sep)}
 .pinColHide>*,.pinRowHideCell>*{display:none!important}
-.pinHot{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--pin) 10%,transparent)!important}
-.pinColHide.pinHot,.pinRowHideCell.pinHot{box-shadow:inset 0 0 0 9999px color-mix(in srgb,var(--pin) 22%,transparent)!important}
 #weee h3.weeeSecTitle{margin:22px 0 10px;padding-left:12px;border-left:4px solid var(--accent);font-size:20px;line-height:1.25;color:var(--fg)}
 /* Μητρώα → Μέσα συλλογής: λίστα ειδών αριστερά (ομαδοποιημένη ανά Χρήση), καρτέλα είδους δεξιά */
 #mediaM .mediaMd{display:grid;grid-template-columns:minmax(180px,250px) minmax(0,1fr);gap:16px;margin-top:12px;align-items:start}
@@ -1529,30 +1533,7 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
   #mediaM .mediaSide{max-height:280px;overflow-y:auto}
   #mediaM .mediaDet{overflow-x:hidden}
 }
-.pinBar{display:flex;align-items:center;gap:12px;margin:0 0 8px;font-size:13px;color:var(--fg-2,#44474f)}
-.pinBar .pinCount{display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:var(--r-box);background:color-mix(in srgb,var(--pin) 16%,transparent);color:var(--fg,#1a1b20);font-weight:500}
-.pinBar .pinAll{height:30px;padding:0 16px;border:0;border-radius:var(--r-btn);background:var(--accent-bg,#d8e2ff);color:var(--accent-fg,#001a41);font:inherit;font-weight:500;cursor:pointer}
-.pinBar .pinAll:hover{filter:brightness(.96)}
 .pinLayer{position:fixed;left:0;top:0;width:0;height:0;z-index:9500;pointer-events:none}
-.pinLayer .pinZone{position:fixed;pointer-events:auto;cursor:pointer;z-index:2;user-select:none}
-.pinLayer .pinDot{position:absolute;width:20px;height:20px;border-radius:50%;background:var(--pin);color:#fff;font:700 15px/19px Roboto,system-ui,sans-serif;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)}
-.pinLayer .pinZone.plus .pinDot{background:var(--accent,#2f5fc4)}
-.pinLayer .pinZone.dTR .pinDot{top:3px;right:3px;width:18px;height:18px;background:#fff;border:1px solid #b9c2d3;color:#e8590c;font:700 14px/16px Roboto,system-ui,sans-serif;box-shadow:none;box-sizing:border-box}
-.pinLayer .pinZone.dL .pinDot{left:4px;top:50%;margin-top:-10px}
-.pinLayer .pinZone.dR .pinDot{right:4px;top:50%;margin-top:-10px}
-.pinLayer .pinZone.dTC .pinDot{left:50%;margin-left:-10px;top:4px}
-.pinLayer .pinLabel{position:absolute;white-space:nowrap;font-size:12px;font-weight:500;line-height:20px;padding:0 8px;border-radius:var(--r-box);background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid var(--pin);max-width:300px;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 3px rgba(0,0,0,.18)}
-.pinLayer .pinZone.plus .pinLabel{border-color:var(--accent,#2f5fc4)}
-.pinLayer .pinZone.dTR .pinLabel{right:28px;top:3px}
-.pinLayer .pinZone.dTR.pinFlip .pinLabel{right:auto;left:0}
-.pinLayer .pinZone.dL .pinLabel{left:30px;top:50%;margin-top:-10px}
-.pinLayer .pinZone.dR .pinLabel{left:100%;margin-left:4px;top:50%;margin-top:-10px}
-.pinLayer .pinZone.dTC .pinLabel{left:calc(50% + 14px);top:4px}
-.pinLayer .pinZone.dTC.pinFlip .pinLabel{left:auto;right:calc(50% + 14px)}
-.pinLayer .pinHl{position:fixed;pointer-events:none;z-index:1}
-.pinLayer .pinHlLine{background:var(--pin)}
-.pinLayer .pinHlRow{background:color-mix(in srgb,var(--pin) 12%,transparent)}
-.pinLayer .pinHlGroup{border:2px solid var(--pin);border-radius:4px;box-sizing:border-box}
 </style>
 <style id="ecFeedLook">
 /* Ζωντανή ροή (Παραλαβές + Φορτώσεις): χωρίς κάθετες γραμμές, ίδια εμφάνιση σε όλες τις γραμμές. Κενό τύπων φορτίου (Παραλαβές): φόντο σελίδας από token */
@@ -6443,23 +6424,65 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       }
     }
     t._pinApplied=hasState(t);
-    bar(t,md,colIds,rowIds);
+    marks(t,md,colIds,rowIds);
   }
 
-  // ---- μπάρα «Κρυμμένα: Χ στήλες, Υ γραμμές» + «Εμφάνιση όλων» ----
-  function bar(t,md,colIds,rowIds){
-    let wrap=t.closest('.prodTableWrap,.tablewrap')||t.parentElement;if(!wrap||!wrap.parentElement)return;
-    let nc=md.cols.filter(c=>c.ok&&colIds.has(c.id)).length,nr=md.rows.filter(r=>r.ok&&rowIds.has(r.id)).length;
-    let b=t._pinBar;
-    if(!nc&&!nr){if(b&&b.parentElement)b.remove();return}
-    if(!b){
-      b=document.createElement('div');b.className='pinBar';
-      b.innerHTML='<span class="pinCount"></span><button type="button" class="pinAll">Εμφάνιση όλων</button>';
-      b.querySelector('.pinAll').onclick=()=>showAll(t);
-      t._pinBar=b;
+  // ---- δείκτες κρυμμένων: μικρές πορτοκαλί κουκκίδες ΜΕΣΑ στον πίνακα (η κρυμμένη στήλη/γραμμή έχει μηδενικό πάχος) ----
+  // Στήλη: στην επικεφαλίδα, στο σημείο του αριστερού ορίου της (διαδοχικές: η μία κάτω από την άλλη, ανά 13px· μετά από 3 νέα θέση 13px δεξιότερα).
+  // Γραμμή: στο τέλος της στήλης «Περιγραφή» πάνω στη γραμμή όπου ήταν (διαδοχικές: δίπλα-δίπλα προς τα δεξιά, ανά 13px).
+  // Είναι παιδιά του κελιού (position:absolute) ώστε να ακολουθούν scroll/κολλημένες στήλες, χωρίς να αλλάζουν διάταξη ή κείμενο κελιών.
+  const MK_GAP=13;
+  function relify(c){if(c._pinRel)return;if(getComputedStyle(c).position==='static')c.style.position='relative';c._pinRel=true}
+  function mkMark(kind,id,label,css){
+    let m=document.createElement('span');m.className='pinMk';m.dataset.kind=kind;m.dataset.id=id;m.dataset.label='Εμφάνιση: '+label;m.setAttribute('role','button');m.style.cssText=css;return m;
+  }
+  // στήλη «Περιγραφή» (αλλιώς η τελευταία κολλημένη από τις δύο πρώτες, αλλιώς η δεύτερη στήλη)
+  function descIdx(t,md){
+    let c=md.cols.find(c=>c.th&&/^Περιγραφή/i.test(c.label||c.name||''));if(c)return c.i;
+    let st=md.cols.slice(0,2).filter(c=>c.th&&isSticky(c.th));if(st.length)return st[st.length-1].i;
+    return md.cols.length>1?md.cols[1].i:0;
+  }
+  function descCell(t,md,tr){
+    let gi=descIdx(t,md),g=t._pinGrid;
+    return [...tr.cells].find(c=>g&&g.get(c)===gi&&!c.classList.contains('pinColHide'))||[...tr.cells].find(c=>(c.rowSpan||1)===1&&!c.classList.contains('pinColHide'));
+  }
+  // «<κωδικός> · <περιγραφή>» της γραμμής (από τις στήλες Κωδικός/Περιγραφή, αλλιώς από τα δύο πρώτα κελιά κειμένου)
+  function codeDesc(t,md,tr){
+    let g=t._pinGrid,at=re=>{let c=md.cols.find(c=>c.th&&re.test(c.label||c.name||''));if(!c)return '';let cell=[...tr.cells].find(x=>g&&g.get(x)===c.i);return cell?norm(cell.textContent):''};
+    let code=at(/^Κωδικ|^Κωδ\b/i),desc=at(/^Περιγραφή/i);
+    if(!code&&!desc){let tx=[...tr.cells].filter(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1).map(c=>norm(c.textContent)).filter(Boolean);code=tx[0]||'';desc=tx[1]||''}
+    return [code,desc].filter(Boolean).join(' · ');
+  }
+  function marks(t,md,colIds,rowIds){
+    t.querySelectorAll('.pinMk').forEach(m=>m.remove());
+    const hid=i=>{let c=md.cols[i];return !!(c&&c.ok&&colIds.has(c.id))};
+    for(let i=0;i<md.cols.length;i++){
+      if(!hid(i))continue;
+      let a=i;while(hid(i+1))i++;let b=i;
+      let j=b+1;while(j<md.cols.length&&(hid(j)||!md.cols[j].th))j++;
+      let side='L',anc=j<md.cols.length?md.cols[j].th:null;
+      if(!anc){side='R';j=a-1;while(j>=0&&(hid(j)||!md.cols[j].th))j--;anc=j>=0?md.cols[j].th:null}
+      if(!anc)continue;
+      relify(anc);
+      for(let k=0;k<=b-a;k++){
+        let c=md.cols[a+k],row=k%3,sh=Math.floor(k/3)*MK_GAP;
+        anc.appendChild(mkMark('col',c.id,c.label||c.name,`top:${4+row*MK_GAP}px;`+(side==='L'?`left:${-8+sh}px`:`right:${sh}px`)));
+      }
     }
-    b.querySelector('.pinCount').textContent='Κρυμμένα: '+[nc?nc+(nc===1?' στήλη':' στήλες'):'',nr?nr+(nr===1?' γραμμή':' γραμμές'):''].filter(Boolean).join(', ');
-    if(b.nextElementSibling!==wrap||b.parentElement!==wrap.parentElement)wrap.parentElement.insertBefore(b,wrap);
+    let rows=[...t.tBodies].flatMap(b=>[...b.rows]),isH=tr=>tr.classList.contains('pinRowHide'),vis=tr=>!isH(tr)&&getComputedStyle(tr).display!=='none';
+    for(let i=0;i<rows.length;i++){
+      if(!isH(rows[i]))continue;
+      let a=i;while(i+1<rows.length&&isH(rows[i+1]))i++;let b=i;
+      let anc=rows.slice(b+1).find(vis),side='T';
+      if(!anc){side='B';anc=rows.slice(0,a).reverse().find(vis)}
+      if(!anc)continue;
+      let dc=descCell(t,md,anc);if(!dc)continue;
+      relify(dc);
+      for(let k=0;k<=b-a;k++){
+        let tr=rows[a+k],it=md.rows.find(q=>q.tr===tr);if(!it)continue;
+        dc.appendChild(mkMark('row',it.id,codeDesc(t,md,tr)||it.name,(side==='T'?'top:-8px;':'bottom:0;')+`left:calc(100% - ${48-MK_GAP*k}px)`));
+      }
+    }
   }
   function showAll(t){let v=load(t);v.cols=[];v.rows={};save(t);refresh(t)}
   function hide(t,kind,id){
@@ -6488,7 +6511,9 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     window.dispatchEvent(new CustomEvent('tableLayoutChanged',{detail:{table:t}}));
   }
 
-  // ---- επικάλυψη καρφιτσών ----
+  // ---- επικάλυψη: εικονίδιο «μάτι» (eye-off) στο hover ----
+  // Ένα μικρό αχνό εικονίδιο στο δεξί άκρο της επικεφαλίδας / στο τέλος της στήλης «Περιγραφή» της γραμμής. Ένα κλικ = απόκρυψη (χωρίς επιβεβαίωση).
+  // Είναι επιπλέον στοιχείο (position:fixed, δικό του επίπεδο .pinLayer): δεν αλλάζει πλάτη/διάταξη και δεν αναδιπλώνει κείμενο.
   let layer=null;
   function ensureLayer(){
     if(layer&&layer.isConnected)return layer;
@@ -6499,206 +6524,74 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   }
   function clearPins(){clearTimeout(hideT);hot=null;if(layer){layer.innerHTML='';delete layer.dataset.k}unhot()}
   function scheduleClear(){clearTimeout(hideT);hideT=setTimeout(clearPins,320)}
-  function unhot(){document.querySelectorAll('.pinHot').forEach(e=>e.classList.remove('pinHot'))}
-  // ---- αόρατες περιοχές πιασίματος (zones) + κουκκίδα ΜΟΝΟ στο hover ----
-  // Στήλη: πάνω-δεξιά γωνία της επικεφαλίδας (~26px, όλο το ύψος της)· Γραμμή: αριστερή εσωτερική πλευρά του πρώτου
-  // κελιού δεδομένων (~28px, όλο το ύψος της γραμμής)· Ομάδα: δεξιά (εξωτερική) πλευρά του κελιού ομάδας (~28px).
-  // Επαναφορά: από τη λεπτή γραμμή του κρυμμένου στοιχείου (μπλε «+»). Όλα μένουν μέσα στα όρια του πίνακα.
-  // ΑΛΛΑΓΗ ΙΣΤ: τα κουμπιά απόκρυψης βγαίνουν ΕΞΩ από τον πίνακα (αριστερό περιθώριο GUT για γραμμές, λωρίδα STRIPH από πάνω για στήλες),
-  // τοποθετημένα με μέτρηση της πραγματικής θέσης (getBoundingClientRect) σε δικό τους επίπεδο (.pinLayer) έξω από το scroll κοντέινερ.
-  const GUT=34,STRIPH=30;
+  function unhot(){document.querySelectorAll('.pinHotH,.pinHotR').forEach(e=>e.classList.remove('pinHotH','pinHotR'))}
   const hostOf=t=>t.closest('.prodTableWrap,.tablewrap');
   function markHost(t){let w=hostOf(t);if(w&&!w.classList.contains('pinHost'))w.classList.add('pinHost')}
   function wrapRect(t){let w=hostOf(t)||t.parentElement;return w.getBoundingClientRect()}
-  const esc2=s=>String(s==null?'':s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
   function clampR(r,w){let l=Math.max(r.left,w.left),rt=Math.min(r.right,w.right),tp=Math.max(r.top,w.top),b=Math.min(r.bottom,w.bottom);return {left:l,right:rt,top:tp,bottom:b,width:Math.max(0,rt-l),height:Math.max(0,b-tp)}}
-  function mkZone(rect,cls,sign,label,onclick,asTitle){
-    let z=document.createElement('div');z.className='pinZone '+cls+(sign==='+'?' plus':'');
-    z.style.left=rect.left+'px';z.style.top=rect.top+'px';z.style.width=rect.width+'px';z.style.height=rect.height+'px';
-    if(asTitle){
-      // απλό tooltip (title) στο κουμπί· ΟΧΙ custom ετικέτα που σκεπάζει κελιά
-      z.innerHTML=`<span class="pinDot" title="${esc2(label).replace(/"/g,'&quot;')}">${sign}</span>`;
-      z.onclick=e=>{e.stopPropagation();e.preventDefault();if(e.target.closest('.pinDot'))onclick()};
-    }else{
-      z.innerHTML=`<span class="pinDot">${sign}</span><span class="pinLabel">${esc2(label)}</span>`;
-      z.onclick=e=>{e.stopPropagation();e.preventDefault();onclick()};
-    }
-    return z;
-  }
-  function mkHl(rect,cls){
-    let h=document.createElement('div');h.className='pinHl '+cls;
-    h.style.left=rect.left+'px';h.style.top=rect.top+'px';h.style.width=rect.width+'px';h.style.height=rect.height+'px';
-    return h;
-  }
-  function fitLabel(z,wr){
-    let lb=z.querySelector('.pinLabel');if(!lb)return;
-    let r=lb.getBoundingClientRect();
-    if(r.right>wr.right-2)z.classList.add('pinFlip');
-  }
-  function showMany(t,kind,ids){
-    let v=load(t);
-    if(kind==='col')v.cols=v.cols.filter(x=>!ids.includes(x));
-    else{let sc=rowScope(t);v.rows[sc]=(v.rows[sc]||[]).filter(x=>!ids.includes(x));if(!v.rows[sc].length)delete v.rows[sc]}
-    save(t);refresh(t);
-  }
   function openLayer(k){
     let L=ensureLayer();
     if(L.dataset.k===k)return null;
-    clearTimeout(hideT);L.innerHTML='';L.dataset.k=k;return L;
+    clearTimeout(hideT);L.innerHTML='';L.dataset.k=k;unhot();return L;
   }
-  function colZone(t,item,r,wr){
-    if(hostOf(t)){
-      // κουμπί πάνω από την επικεφαλίδα, έξω από τον πίνακα, κεντραρισμένο στο ΟΡΑΤΟ τμήμα της στήλης
-      let vis=clampR(r,wr);if(vis.width<24)return false;
-      let e=document.elementFromPoint(vis.left+vis.width/2,r.top+r.height/2);
-      if(!e||!e.closest||e.closest('th')!==item.th)return false;     // η στήλη είναι κρυμμένη κάτω από κολλημένη στήλη
-      let L=openLayer('c'+item.id);if(!L)return true;
-      L.appendChild(mkHl({left:vis.left,top:vis.bottom-2,width:vis.width,height:2},'pinHlLine'));
-      let top=Math.max(0,wr.top-STRIPH);
-      L.appendChild(mkZone({left:vis.left,top:top,width:vis.width,height:wr.top-top},'dC','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id),true));
-      hot=t;return true;
+  const EYE='<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/></svg>';
+  // εικονίδιο στο δεξί άκρο του (ορατού μέρους του) κελιού· hotEls παίρνουν το φόντο hover (cls)
+  function eyeFor(t,cell,wr,key,onclick,hotEls,cls){
+    let vr=clampR(cell.getBoundingClientRect(),wr);if(vr.width<30||vr.height<14)return false;
+    let left=vr.right-8-18,cy=vr.top+vr.height/2,e=document.elementFromPoint(left+9,cy);
+    if(!e||!e.closest||e.closest('th,td')!==cell)return false;     // κομμένο / κρυμμένο κάτω από κολλημένο κελί
+    let L=openLayer(key);
+    if(L){
+      let b=document.createElement('button');b.type='button';b.className='pinEye';b.innerHTML=EYE;b.style.left=left+'px';b.style.top=(cy-9)+'px';
+      b.onclick=ev=>{ev.stopPropagation();ev.preventDefault();onclick()};
+      L.appendChild(b);hotEls.forEach(x=>x.classList.add(cls));
     }
-    let L=openLayer('c'+item.id);if(!L)return true;
-    let cr=clampR(r,wr);
-    L.appendChild(mkHl({left:cr.left,top:cr.bottom-2,width:cr.width,height:2},'pinHlLine'));
-    let z=mkZone({left:Math.max(cr.left,cr.right-24),top:cr.top,width:Math.min(24,cr.width),height:Math.min(24,Math.round(cr.height/2))},'dTR','−','Απόκρυψη στήλης: '+(item.label||item.name),()=>hide(t,'col',item.id));
-    L.appendChild(z);fitLabel(z,wr);hot=t;return true;
+    hot=t;return true;
   }
-  // κείμενο του πρώτου ΟΡΑΤΟΥ κελιού δεδομένων της γραμμής (μετά το κελί ομάδας), όπως φαίνεται αυτή τη στιγμή
-  function rowFirstText(tr){
-    for(const c of tr.cells){
-      if((c.rowSpan||1)>1||(c.colSpan||1)>1||c.classList.contains('pinColHide'))continue;
-      let tx=norm(c.textContent);if(tx)return tx;
-    }
-    return '';
-  }
-  function rowZone(t,item,cell,wr){
-    let rr0=item.tr.getBoundingClientRect();
-    if(hostOf(t)){
-      // κουμπί στο αριστερό περιθώριο ΕΞΩ από τον πίνακα, κάθετα κεντραρισμένο στο ΟΡΑΤΟ ύψος ΑΥΤΗΣ της γραμμής (μετρημένο, όχι σταθερό ύψος)
-      let top=Math.max(rr0.top,wr.top),bot=Math.min(rr0.bottom,wr.bottom);
-      if(bot-top<10)return false;
-      let e=document.elementFromPoint(wr.left+Math.min(24,wr.width/2),(top+bot)/2);
-      if(!e||!e.closest||e.closest('tr')!==item.tr)return false;     // κομμένη / κρυμμένη κάτω από κολλημένη επικεφαλίδα ή σύνολα
-      let L=openLayer('r'+item.id);if(!L)return true;
-      L.appendChild(mkHl(clampR(rr0,wr),'pinHlRow'));
-      L.appendChild(mkZone({left:wr.left-GUT,top:top,width:GUT,height:bot-top},'dG','−','Απόκρυψη γραμμής: '+(rowFirstText(item.tr)||item.name),()=>hide(t,'row',item.id),true));
-      hot=t;return true;
-    }
-    let L=openLayer('r'+item.id);if(!L)return true;
-    let rr=clampR(rr0,wr),cr=cell.getBoundingClientRect();
-    L.appendChild(mkHl(rr,'pinHlRow'));
-    let left=Math.max(cr.left,wr.left);
-    let z=mkZone({left:left,top:rr.top,width:28,height:rr.height},'dL','−','Απόκρυψη γραμμής: '+(rowFirstText(item.tr)||item.name),()=>hide(t,'row',item.id));
-    L.appendChild(z);fitLabel(z,wr);hot=t;return true;
-  }
-  function groupZone(t,item,cell,its,label,wr){
-    let cr0=cell.getBoundingClientRect();
-    if(hostOf(t)){
-      let top=Math.max(cr0.top,wr.top),bot=Math.min(cr0.bottom,wr.bottom);
-      if(bot-top<10)return false;
-      let e=document.elementFromPoint(wr.left+Math.min(24,wr.width/2),(top+bot)/2);
-      if(!e||!e.closest||!e.closest('tr'))return false;
-      let L=openLayer('g'+its[0].id);if(!L)return true;
-      L.appendChild(mkHl(clampR(cr0,wr),'pinHlGroup'));
-      L.appendChild(mkZone({left:wr.left-GUT,top:top,width:GUT,height:bot-top},'dG','−',label,()=>hideRows(t,its.map(q=>q.id)),true));
-      hot=t;return true;
-    }
-    let L=openLayer('g'+its[0].id);if(!L)return true;
-    let cr=clampR(cr0,wr);
-    L.appendChild(mkHl(cr,'pinHlGroup'));
-    let z=mkZone({left:Math.max(cr.left,cr.right-28),top:cr.top,width:Math.min(28,cr.width),height:cr.height},'dR','−',label,()=>hideRows(t,its.map(q=>q.id)));
-    L.appendChild(z);hot=t;return true;
-  }
-  // Επαναφορά: συνεχόμενα κρυμμένα στοιχεία στο σημείο της λεπτής γραμμής
-  function restoreZone(t,md,cell,wr){
-    let v=load(t),r=cell.getBoundingClientRect();
-    if(cell.classList.contains('pinColHide')){
-      let gi=t._pinGrid&&t._pinGrid.has(cell)?t._pinGrid.get(cell):cell.cellIndex;
-      const hid=j=>{let c=md.cols[j];return c&&c.ok&&v.cols.includes(c.id)};
-      if(!hid(gi))return false;
-      let a=gi,b=gi;while(hid(a-1))a--;while(hid(b+1))b++;
-      let items=md.cols.slice(a,b+1),ids=items.map(c=>c.id),names=items.map(c=>c.label||c.name);
-      let L=openLayer('R'+ids.join('|'));if(!L)return true;
-      let top=wr.top+0,h=Math.max(30,wr.height);
-      let z=mkZone({left:Math.max(wr.left,r.left-6),top:top,width:Math.min(r.width+12,wr.right-wr.left),height:h},'dTC','+','Εμφάνιση: '+names.join(', '),()=>showMany(t,'col',ids));
-      L.appendChild(z);fitLabel(z,wr);hot=t;return true;
-    }
-    let tr=cell.parentElement;
-    if(tr&&tr.classList.contains('pinRowHide')){
-      let sec=tr.parentElement,rows=[...sec.rows],i=rows.indexOf(tr),a=i,b=i;
-      while(a>0&&rows[a-1].classList.contains('pinRowHide'))a--;
-      while(b<rows.length-1&&rows[b+1].classList.contains('pinRowHide'))b++;
-      let items=rows.slice(a,b+1).map(x=>md.rows.find(q=>q.tr===x)).filter(Boolean);
-      if(!items.length)return false;
-      let ids=items.map(q=>q.id),names=items.map(q=>rowFirstText(q.tr)||q.name);
-      let L=openLayer('R'+ids.join('|'));if(!L)return true;
-      let top=rows[a].getBoundingClientRect().top-6,bot=rows[b].getBoundingClientRect().bottom+6;
-      let zr=clampR({left:wr.left,right:wr.right,top:top,bottom:bot},wr);
-      let z=mkZone({left:zr.left,top:zr.top,width:zr.width,height:Math.max(22,zr.height)},'dL','+','Εμφάνιση: '+names.join(', '),()=>showMany(t,'row',ids));
-      L.appendChild(z);fitLabel(z,wr);hot=t;return true;
-    }
-    return false;
-  }
-
   // ---- hover ----
   let raf=0,last=null;
   document.addEventListener('mousemove',e=>{last=e;if(!raf)raf=requestAnimationFrame(()=>{raf=0;onMove(last)})},true);
   function onMove(e){
     let el=e.target,x=e.clientX,y=e.clientY;
     if(!el||!el.closest)return;
-    if(el.closest('.pinLayer')){
-      clearTimeout(hideT);
-      // το ποντίκι είναι πάνω στο περιθώριο / τη λωρίδα των κουμπιών: συνεχίζει ως hover της αντίστοιχης γραμμής / στήλης (δεν χάνεται το κουμπί)
-      let t0=hot;
-      if(!t0||!t0.isConnected||!hostOf(t0))return;
-      let w0=wrapRect(t0);
-      if(x<w0.left&&x>=w0.left-GUT&&y>=w0.top&&y<=w0.bottom){x=w0.left+8;el=document.elementFromPoint(x,y)}
-      else if(y<w0.top&&y>=w0.top-STRIPH&&x>=w0.left&&x<=w0.right){let hr=t0.tHead.rows[t0.tHead.rows.length-1].getBoundingClientRect();y=Math.min(w0.bottom-2,Math.max(w0.top+2,hr.top+hr.height/2));el=document.elementFromPoint(x,y)}   // η στήλη = το «φύλλο» της τελευταίας γραμμής επικεφαλίδας
-      else return;
-      if(!el||!el.closest||el.closest('.pinLayer'))return;
-    }
+    if(el.closest('.pinLayer')){clearTimeout(hideT);return}      // πάνω στο εικονίδιο: μένει
     let cell=el.closest('th,td'),t=cell&&cell.closest('table');
     if(!t||!eligibleTable(t)){if(layer&&layer.firstChild)scheduleClear();return}
-    let md=t._pinModel=t._pinModel||model(t);
-    let wr=wrapRect(t),r=cell.getBoundingClientRect(),host=!!hostOf(t);
+    let md=t._pinModel=t._pinModel||model(t),wr=wrapRect(t);
     if(y<wr.top||y>wr.bottom||x<wr.left||x>wr.right){if(layer&&layer.firstChild)scheduleClear();return}
-    // επαναφορά από το σημάδι
-    if(cell.classList.contains('pinColHide')||(cell.parentElement&&cell.parentElement.classList.contains('pinRowHide'))){
-      if(restoreZone(t,md,cell,wr))return;
-    }
-    // στήλη: κουμπί πάνω από την επικεφαλίδα (πίνακες χωρίς wrapper: πάνω-δεξιά γωνία)
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
       let item=md.cols.find(c=>c.th===cell);
-      if(item&&item.ok){
-        if(host){if(colZone(t,item,r,wr))return}
-        else if(x>=r.right-24&&x<=r.right&&y>=r.top&&y<=r.top+Math.min(24,Math.round(r.height/2))){colZone(t,item,r,wr);return}
-      }
+      if(item&&item.ok&&eyeFor(t,cell,wr,'c'+item.id,()=>hide(t,'col',item.id),[cell],'pinHotH'))return;
     }
     if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
       let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
       if(item){
-        // ομάδα (συγχωνευμένο κελί)
         if((cell.rowSpan||1)>1){
-          if(host||x>=r.right-28){
-            let g=item.owns.find(o=>o.cell===cell);
-            let its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
-            if(its.length){
-              let n=its.length;
-              if(groupZone(t,item,cell,its,'Απόκρυψη ομάδας: '+norm(cell.textContent)+' ('+n+(n===1?' γραμμή)':' γραμμές)'),wr))return}
-          }
+          // ομάδα (συγχωνευμένο κελί): κρύβει όλες τις γραμμές της
+          let g=item.owns.find(o=>o.cell===cell),its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
+          if(its.length&&eyeFor(t,cell,wr,'g'+its[0].id,()=>hideRows(t,its.map(q=>q.id)),g.trs,'pinHotR'))return;
         }else if((cell.colSpan||1)===1&&item.ok){
-          if(host){if(rowZone(t,item,cell,wr))return}
-          else{
-            // γραμμή: αριστερή εσωτερική πλευρά του πρώτου ορατού κελιού δεδομένων
-            let first=[...tr.cells].find(c=>(c.rowSpan||1)===1&&(c.colSpan||1)===1&&!c.classList.contains('pinColHide'));
-            if(cell===first&&x<=r.left+28){rowZone(t,item,cell,wr);return}
-          }
+          let dc=descCell(t,md,tr)||cell;
+          if(eyeFor(t,dc,wr,'r'+item.id,()=>hide(t,'row',item.id),[tr],'pinHotR'))return;
         }
       }
     }
     if(layer&&layer.firstChild)scheduleClear();
   }
+  // κλικ σε κουκκίδα: εμφανίζει ΜΟΝΟ το δικό της στοιχείο (πριν από κάθε άλλον χειριστή: κρύβεται από ταξινόμηση/αλλαγή πλάτους στήλης)
+  window.addEventListener('click',e=>{
+    let m=e.target.closest&&e.target.closest('.pinMk');if(!m)return;
+    e.stopPropagation();e.preventDefault();
+    let t=m.closest('table');if(t)show(t,m.dataset.kind,m.dataset.id);
+  },true);
+  ['pointerdown','mousedown','mouseup','dblclick'].forEach(ev=>window.addEventListener(ev,e=>{if(e.target.closest&&e.target.closest('.pinMk'))e.stopPropagation()},true));
+  // η ετικέτα της κουκκίδας γυρίζει αριστερά όταν δεν χωράει δεξιά
+  document.addEventListener('mouseover',e=>{
+    let m=e.target.closest&&e.target.closest('.pinMk');if(!m)return;
+    let t=m.closest('table'),lim=Math.min(t?wrapRect(t).right:innerWidth,innerWidth),r=m.getBoundingClientRect();
+    m.classList.toggle('pinMkFlip',r.right+(m.dataset.label||'').length*6.8+30>lim);
+  },true);
+
   // Ξαναϋπολογισμός θέσης κουμπιών σε scroll / αλλαγή μεγέθους / zoom / ανάπτυξη-σύμπτυξη: καθαρίζει και ξαναϋπολογίζει στη θέση του ποντικιού
   let lm=null;
   document.addEventListener('mousemove',e=>{lm={x:e.clientX,y:e.clientY}},true);
@@ -6720,7 +6613,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     for(const m of muts){
       if(m.type==='childList'&&m.target.tagName==='TABLE'&&[...m.addedNodes,...m.removedNodes].every(n=>n.nodeName==='COLGROUP'))continue;   // αλλαγές του <colgroup> (πλάτη στηλών) δεν είναι επαναζωγράφιση
       let tgt=m.target.nodeType===1?m.target:m.target.parentElement;
-      if(!tgt||tgt.closest('.pinLayer,.pinBar'))continue;
+      if(!tgt||tgt.closest('.pinLayer,.pinMk'))continue;
       let t=tgt.closest('table');
       if(t){dirty.add(t)}
       else if(m.addedNodes)m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.tagName==='TABLE')dirty.add(n);else if(n.querySelectorAll)n.querySelectorAll('table').forEach(x=>dirty.add(x))}});
