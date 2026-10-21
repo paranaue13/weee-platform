@@ -76,6 +76,31 @@ JS_FILL = """()=>{const out=[];
 # θέσεις y των γραμμών συνόλων (πρώτο κελί κάθε γραμμής tfoot, όπως φαίνονται -- τα κελιά είναι sticky)
 JS_FOOT = """(sel)=>{const t=document.querySelector(sel);if(!t||!t.offsetParent||!t.tFoot)return null;return [...t.tFoot.rows].filter(r=>r.offsetParent&&r.cells.length).map(r=>Math.round(r.cells[0].getBoundingClientRect().top))}"""
 
+# ΑΛΛΑΓΗ ΚΔ: το κάτω μπλοκ (tfoot) είναι πάντα ορατό μέσα στο πλαίσιο, μένει στην ίδια θέση πριν/μετά το scroll και τα ονόματα δεν κόβονται
+JS_BLOCK = """()=>{const out=[];
+for(const t of document.querySelectorAll('table.prodTable')){
+ if(!t.offsetParent||!t.tFoot)continue;
+ if(t.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail,.repPop'))continue;
+ const w=t.closest('.prodTableWrap,.tablewrap');if(!w)continue;
+ const rows=[...t.tFoot.rows].filter(r=>r.offsetParent&&r.cells.length);if(!rows.length)continue;
+ const name=(t.id||w.id||(t.parentElement&&t.parentElement.id)||'πίνακας');
+ const scrolls=w.scrollHeight>w.clientHeight+1;
+ const tops=()=>rows.map(r=>Math.round(r.cells[0].getBoundingClientRect().top));
+ const wr=w.getBoundingClientRect();
+ // ονόματα που κόβονται (χωρίς tooltip)
+ rows.forEach(r=>{const c=r.cells[0];if(c.scrollWidth>c.clientWidth+1&&!c.title)out.push('DEC0|'+name+': κομμένο όνομα γραμμής «'+c.textContent.trim()+'» χωρίς tooltip')});
+ if(!scrolls)continue;
+ const blockH=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
+ if(blockH>w.clientHeight*0.5){out.push('DEC1|'+name+': το κάτω μπλοκ ('+rows.length+' γραμμές, '+Math.round(blockH)+'px) πιάνει '+Math.round(blockH/w.clientHeight*100)+'% του πλαισίου ('+Math.round(w.clientHeight)+'px) — ΑΠΟΦΑΣΗ ΧΡΗΣΤΗ, δεν λύνεται αυτόματα');continue}
+ w.scrollTop=0;w.scrollLeft=0;const t0=tops();
+ w.scrollTop=w.scrollHeight;w.scrollLeft=w.scrollWidth;const t1=tops();
+ const wr2=w.getBoundingClientRect();
+ rows.forEach((r,i)=>{const b=r.cells[0].getBoundingClientRect();if(b.top<wr2.top-1||b.bottom>wr2.bottom+1)out.push('DEC0|'+name+': η γραμμή μπλοκ '+(i+1)+' είναι εκτός πλαισίου μετά το scroll')});
+ if(t0.some((v,i)=>Math.abs(v-t1[i])>1))out.push('DEC0|'+name+': οι θέσεις των γραμμών μπλοκ αλλάζουν με το scroll '+t0+' → '+t1);
+ w.scrollTop=0;w.scrollLeft=0;
+}
+return out}"""
+
 FILL_SIZES = [(1280, 720), (1600, 900), (1920, 1080)]
 
 
@@ -104,6 +129,9 @@ def run_fill(base):
                         pg.evaluate("document.querySelectorAll('.prodMajorHead[data-prodcat]:not(.expanded)').forEach((x,i)=>{if(i<2&&x.offsetParent)x.click()})"); pg.wait_for_timeout(600)
                         for msg in pg.evaluate(JS_FILL):
                             total += 1; print(f'[{W}x{H} · {v} / καρτέλα {i}] {msg}')
+                        for msg in pg.evaluate(JS_BLOCK):
+                            kind, txt = msg.split('|', 1)
+                            total += 1; print(f'[{W}x{H} · {v} / καρτέλα {i}] ' + ('ΑΠΟΦΑΣΗ ΧΡΗΣΤΗ: ' if kind == 'DEC1' else '') + txt)
                 # σταθερά σύνολα: ίδια θέση y για περίοδο με πολλές γραμμές (μήνας) και με λίγες (τρίμηνο = 3 γραμμές)
                 for (view, tbl, setup) in (
                     ('production', '#productionWeeePanel table', "(p)=>{prodState.tab='weee';prodState.period=p;prodState.cursor=new Date('2026-09-15T12:00:00');loadProduction()}"),

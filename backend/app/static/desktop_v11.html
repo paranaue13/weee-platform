@@ -886,7 +886,7 @@ body[data-theme="dark"] .corrPop .cpAdd{background:#8FB0FF;color:#001A41}
 #ready .prodTable :is(th,td):first-child{text-align:left!important;min-width:210px!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important}
 #ready .prodTable thead th{font-size:12px!important;font-weight:500!important;text-transform:uppercase;color:#44474F!important;line-height:1.25}
 body[data-theme="dark"] #ready .prodTable thead th{color:var(--fg-2,#B4B9C6)!important}
-#ready .prodTable tfoot td{height:40px;padding-top:0!important;padding-bottom:0!important}
+#ready .prodTable tfoot td{height:36px;padding-top:0!important;padding-bottom:0!important}
 #ready .prodTable .negKgCell{margin-right:-8px}
 #ready .corrBtn{padding-right:14px}
 /* μπάρα τίτλου: ύψος ≥56px, όλα κάθετα στο κέντρο */
@@ -915,7 +915,7 @@ body[data-theme="dark"] #ready .prodTable tbody tr:hover,body[data-theme="dark"]
 #productionPeoplePanel .prodTable :is(th,td):nth-child(n+3){text-align:right!important;padding-right:14px!important}
 #production .prodMajorHead{text-align:right!important;white-space:nowrap}
 #production .prodMajorHead .chev{margin-left:6px}
-#production .prodTable tfoot td{height:40px;padding-top:0!important;padding-bottom:0!important}
+#production .prodTable tfoot td{height:36px;padding-top:0!important;padding-bottom:0!important}
 #production .prodTable tbody td{height:34px;box-sizing:border-box;padding-top:0!important;padding-bottom:0!important;line-height:20px}
 #production .prodTable tbody tr{height:34px}
 #production .prodTable .negKgCell{display:inline-block;height:20px;line-height:20px;padding:0 7px;vertical-align:middle}
@@ -1392,13 +1392,15 @@ table[data-datefill] tr.tFill{pointer-events:none}
 #app :is(#ready,#production) table.prodTable.prodTable :is(th,td).stkTotal:not(.pinColHide),
 #app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) :is(th,td):first-child:not(.pinColHide){border-right:0!important;box-shadow:inset -2px 0 0 var(--ln2)!important}
 :is(#ready,#production) .prodTableWrap.hs table.prodTable.prodTable:not(:has(.stkTotal)) :is(th,td):first-child:not(.pinColHide){box-shadow:inset -2px 0 0 var(--ln2),4px 0 6px -4px rgba(0,0,0,.15)!important}
-/* πάνω γραμμή 2px ακριβώς πάνω από το μπλοκ των συνόλων: πρώτη γραμμή tfoot, ή η πρώτη γραμμή μετά τις «Διορθώσεις…» (corrRow) */
-#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child:not(.corrRow)>:is(th,td):not(.pinColHide),
-#app :is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td):not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2)!important}
-#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child:not(.corrRow)>:is(th,td).stkTotal:not(.pinColHide),
-#app :is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td).stkTotal:not(.pinColHide),
-#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) tfoot tr:first-child:not(.corrRow)>:is(th,td):first-child:not(.pinColHide),
-#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td):first-child:not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2),inset -2px 0 0 var(--ln2)!important}
+/* ΑΛΛΑΓΗ ΚΔ: γραμμή 2px #aeb7c9 ΠΑΝΩ από το κάτω μπλοκ = box-shadow στα κελιά της ΠΡΩΤΗΣ γραμμής του tfoot (όχι border) */
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child>:is(th,td):not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2)!important}
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child>:is(th,td).stkTotal:not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) tfoot tr:first-child>:is(th,td):first-child:not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2),inset -2px 0 0 var(--ln2)!important}
+/* ύψος γραμμών του κάτω μπλοκ: 36px σε ΟΛΟΥΣ τους πίνακες (οι θέσεις bottom υπολογίζονται αυτόματα από το πλήθος/ύψος τους: StickyTables.fixFoot / stickyStackFooter) */
+#app .prodTable tfoot :is(td,th){height:36px!important;padding-top:0!important;padding-bottom:0!important;box-sizing:border-box;white-space:nowrap}
+/* πρώτη στήλη αρκετά φαρδιά ώστε να μην κόβονται τα ονόματα των γραμμών του μπλοκ (--firstColMin από το κοινό component)· αν δεν χωράει: ellipsis + tooltip (title) */
+#app .prodTable :is(thead th,tbody td,tfoot td):first-child{min-width:var(--firstColMin,0px)}
+#app .prodTable tfoot td:first-child{overflow:hidden;text-overflow:ellipsis}
 /* ΑΛΛΑΓΗ ΚΓ.Δ: ΕΝΙΑΙΟΙ τόνοι κεφαλίδων — δύο επίπεδα, μεταβλητές στο κοινό component· οι σελίδες δεν ορίζουν δικό τους τόνο */
 :root{--th-group-bg:#e1e9f9;--th-group-line:#cdd8ee;--th-group-fg:#2f5bd6;--th-leaf-bg:#f2f5fc;--th-leaf-line:#dfe5f1;--th-leaf-fg:#1a1b20;--th-hover:rgba(47,91,214,.07)}
 body[data-theme="dark"]{--th-group-bg:#23365E;--th-group-line:#34476f;--th-group-fg:#9DB8FF;--th-leaf-bg:#1F2432;--th-leaf-line:#2f3648;--th-leaf-fg:#E3E5EC;--th-hover:rgba(157,184,255,.10)}
@@ -7646,11 +7648,28 @@ const SF=(function(){
       }
     });
   }
+  // ΑΛΛΑΓΗ ΚΔ: τα ονόματα των γραμμών του κάτω μπλοκ δεν κόβονται — η πρώτη στήλη παίρνει ελάχιστο πλάτος = το μακρύτερο όνομα (+padding)· tooltip με το πλήρες όνομα
+  function fitFootLabels(t){
+    if(!t.tFoot||!t.classList.contains('prodTable'))return;
+    let rows=[...t.tFoot.rows].filter(r=>r.cells.length&&r.offsetParent);if(!rows.length)return;
+    let need=0;
+    rows.forEach(r=>{
+      let c=r.cells[0],tx=(c.textContent||'').replace(/\s+/g,' ').trim();if(!tx)return;
+      if(c.title!==tx)c.title=tx;
+      let cs=getComputedStyle(c),sp=document.createElement('span');
+      sp.style.cssText='position:absolute;visibility:hidden;white-space:nowrap;font:'+cs.font;sp.textContent=tx;document.body.appendChild(sp);
+      let w=sp.getBoundingClientRect().width;sp.remove();
+      need=Math.max(need,w+(parseFloat(cs.paddingLeft)||0)+(parseFloat(cs.paddingRight)||0)+4);
+    });
+    need=Math.ceil(need);
+    if(t._footNeed!==need){t._footNeed=need;t.style.setProperty('--firstColMin',need+'px')}
+  }
   function fixAll(){
     timer=null;
     document.querySelectorAll('table').forEach(t=>{
       if(!t.offsetParent)return;
       try{fillDays(t)}catch(e){}
+      try{fitFootLabels(t)}catch(e){}
       try{tintHeaders(t)}catch(e){}
       let sc=scrollerOf(t);
       fixHead(t,sc);fixFoot(t,sc);fixTotalCol(t);
