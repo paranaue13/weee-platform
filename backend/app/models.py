@@ -735,6 +735,19 @@ class LoadingPlanItem(Base):
     ready_material_lot_id: Mapped[str] = mapped_column(String(36), ForeignKey("ready_material_lots.id"), index=True)
     __table_args__ = (UniqueConstraint("loading_order_id","ready_material_lot_id",name="uq_loading_plan_item"),)
 
+class LoadingBulkItem(Base):
+    """Χύμα κιλά (από το υπολογιζόμενο απόθεμα Υλικών: παραγωγή − αποστολές) σε πρόχειρο/φορτίο της Προετοιμασίας.
+    ΔΕΝ δεσμεύουν απόθεμα· αφαιρούνται ΜΟΝΟ στην οριστικοποίηση (MaterialShipmentEntry, source=LOADING, notes=LOADING:<id φόρτωσης>)."""
+    __tablename__ = "loading_bulk_items"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    loading_order_id: Mapped[str] = mapped_column(String(36), ForeignKey("loading_orders.id", ondelete="CASCADE"), index=True)
+    category_group: Mapped[str] = mapped_column(String(30))
+    material_label: Mapped[str] = mapped_column(String(150))
+    weight_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    shortage_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)      # υπέρβαση αποθέματος (kg) που επιβεβαιώθηκε στην οριστικοποίηση
+    shortage_reason: Mapped[str|None] = mapped_column(Text, nullable=True)       # υποχρεωτικός λόγος υπέρβασης
+    __table_args__ = (UniqueConstraint("loading_order_id","material_label",name="uq_loading_bulk_item"),)
+
 class LoadingReservation(Base):
     __tablename__ = "loading_reservations"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)

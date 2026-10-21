@@ -496,7 +496,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 #weeeKpis .card{padding:7px 9px!important;min-height:54px!important;margin:0!important}
 #weeeKpis .metric b{font-size:18px!important;margin-top:3px}
 #weee>h3{margin:10px 0 7px}
-#weee .sectionTableWrap{max-height:calc(100vh - 255px);overflow:auto!important;width:100%}
+#weee .sectionTableWrap{max-height:calc((100vh - 255px) / var(--vzi,1));overflow:auto!important;width:100%}
 #weee .stockTable{min-width:1280px!important}
 #weee .stockTable th,#weee .stockTable td{padding:8px 9px;font-size:13px}
 #weee .stockTable thead th{top:0!important}
@@ -505,8 +505,8 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 
 
 /* Build 2.5.33 - Production workspace */
-.productionTop{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px;flex-wrap:wrap}.productionTabs{display:flex;gap:8px;border-bottom:1px solid #e5eaf0;flex:1;min-width:340px}.productionTab{border:0;background:transparent;padding:11px 14px;font-weight:700;color:#526172;border-bottom:2px solid transparent;cursor:pointer}.productionTab.active{color:var(--accent);border-bottom-color:var(--accent)}.productionPeriod{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.productionPeriod label{font-size:11px;color:#64748b;font-weight:700}.prodSegment{display:flex;border:1px solid #dbe3ec;border-radius:var(--r-btn);overflow:hidden;background:#fff}.prodSegment button{border:0;border-right:1px solid #e4e9ef;background:#fff;padding:8px 13px;cursor:pointer;font-weight:700;color:#475569}.prodSegment button:last-child{border-right:0}.prodSegment button.active{background:var(--accent);color:#fff}.prodPeriodNav{display:flex;align-items:center;border:1px solid #dbe3ec;border-radius:var(--r-btn);background:#fff;min-height:34px}.prodPeriodNav button{border:0;background:transparent;padding:7px 10px;cursor:pointer}.prodPeriodNav b{padding:0 10px;min-width:145px;text-align:center}.productionKpis{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin:8px 0 12px}.prodKpi{border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff;padding:12px 15px}.prodKpi small{display:block;color:#6b7787;font-size:11px;margin-bottom:5px}.prodKpi b{font-size:20px}.prodKpi .sub{font-size:12px;margin-left:6px;color:#5d6b7b}.productionTools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0}.productionFilter{display:flex;flex-direction:column;gap:4px}.productionFilter label{font-size:11px;color:#64748b;font-weight:700}.productionSearch{display:flex;gap:8px;align-items:center;min-width:340px}.productionSearch input{min-width:270px}.prodTableWrap{max-height:calc(100vh - 350px);overflow:auto;border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff}.prodTable{min-width:100%;border-collapse:separate;border-spacing:0}.prodTable th,.prodTable td{white-space:nowrap;border-bottom:1px solid #edf1f5;border-right:1px solid #edf1f5;padding:8px 10px;text-align:right}.prodTable th:first-child,.prodTable td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:inherit;min-width:130px;white-space:normal;overflow-wrap:break-word;word-break:break-word}.prodTable thead th{position:sticky;top:0;z-index:4;background:#f8fafc;font-size:11px}.prodTable thead th:first-child{z-index:5;background:#f8fafc}.prodTable tbody tr:nth-child(even){background:#fafbfd}.prodTable tfoot td{position:sticky;bottom:0;background:#eaf3ff;font-weight:800;z-index:3}.prodCategoryHead{cursor:pointer;user-select:none}.prodCategoryHead .chev{margin-left:6px;color:var(--accent)}.prodSubHead{background:#f4f8fd!important;font-size:10px!important}.prodEmpty{text-align:center!important;color:#7a8797;padding:28px!important}.deptRow{font-weight:800;background:#f7f9fc!important;cursor:pointer}.employeeRow td:first-child{padding-left:32px}.prodMaterialTags{display:flex;gap:4px;flex-wrap:wrap;max-width:320px}.prodMaterialTag{display:inline-block;padding:2px 7px;border-radius:var(--r-box);background:#eef4fb;font-size:10px;color:#345}.productionHint{font-size:11px;color:#6b7787;margin-top:7px}.masterRow.inactive{background:#f8dfd5}.empName{font-weight:700}.empPhone{color:#5d6b7b;font-size:12px}
-.deltioLayout{display:flex;gap:16px;align-items:flex-start}.deltioWorkers{width:260px;flex:none;border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff;padding:12px;max-height:calc(100vh - 230px);overflow:auto}.deltioDepts{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 230px);overflow:auto;padding-right:4px}
+.productionTop{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:12px;flex-wrap:wrap}.productionTabs{display:flex;gap:8px;border-bottom:1px solid #e5eaf0;flex:1;min-width:340px}.productionTab{border:0;background:transparent;padding:11px 14px;font-weight:700;color:#526172;border-bottom:2px solid transparent;cursor:pointer}.productionTab.active{color:var(--accent);border-bottom-color:var(--accent)}.productionPeriod{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}.productionPeriod label{font-size:11px;color:#64748b;font-weight:700}.prodSegment{display:flex;border:1px solid #dbe3ec;border-radius:var(--r-btn);overflow:hidden;background:#fff}.prodSegment button{border:0;border-right:1px solid #e4e9ef;background:#fff;padding:8px 13px;cursor:pointer;font-weight:700;color:#475569}.prodSegment button:last-child{border-right:0}.prodSegment button.active{background:var(--accent);color:#fff}.prodPeriodNav{display:flex;align-items:center;border:1px solid #dbe3ec;border-radius:var(--r-btn);background:#fff;min-height:34px}.prodPeriodNav button{border:0;background:transparent;padding:7px 10px;cursor:pointer}.prodPeriodNav b{padding:0 10px;min-width:145px;text-align:center}.productionKpis{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:10px;margin:8px 0 12px}.prodKpi{border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff;padding:12px 15px}.prodKpi small{display:block;color:#6b7787;font-size:11px;margin-bottom:5px}.prodKpi b{font-size:20px}.prodKpi .sub{font-size:12px;margin-left:6px;color:#5d6b7b}.productionTools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0}.productionFilter{display:flex;flex-direction:column;gap:4px}.productionFilter label{font-size:11px;color:#64748b;font-weight:700}.productionSearch{display:flex;gap:8px;align-items:center;min-width:340px}.productionSearch input{min-width:270px}.prodTableWrap{max-height:calc((100vh - 350px) / var(--vzi,1));overflow:auto;border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff}.prodTable{min-width:100%;border-collapse:separate;border-spacing:0}.prodTable th,.prodTable td{white-space:nowrap;border-bottom:1px solid #edf1f5;border-right:1px solid #edf1f5;padding:8px 10px;text-align:right}.prodTable th:first-child,.prodTable td:first-child{text-align:left;position:sticky;left:0;z-index:2;background:inherit;min-width:130px;white-space:normal;overflow-wrap:break-word;word-break:break-word}.prodTable thead th{position:sticky;top:0;z-index:4;background:#f8fafc;font-size:11px}.prodTable thead th:first-child{z-index:5;background:#f8fafc}.prodTable tbody tr:nth-child(even){background:#fafbfd}.prodTable tfoot td{position:sticky;bottom:0;background:#eaf3ff;font-weight:800;z-index:3}.prodCategoryHead{cursor:pointer;user-select:none}.prodCategoryHead .chev{margin-left:6px;color:var(--accent)}.prodSubHead{background:#f4f8fd!important;font-size:10px!important}.prodEmpty{text-align:center!important;color:#7a8797;padding:28px!important}.deptRow{font-weight:800;background:#f7f9fc!important;cursor:pointer}.employeeRow td:first-child{padding-left:32px}.prodMaterialTags{display:flex;gap:4px;flex-wrap:wrap;max-width:320px}.prodMaterialTag{display:inline-block;padding:2px 7px;border-radius:var(--r-box);background:#eef4fb;font-size:10px;color:#345}.productionHint{font-size:11px;color:#6b7787;margin-top:7px}.masterRow.inactive{background:#f8dfd5}.empName{font-weight:700}.empPhone{color:#5d6b7b;font-size:12px}
+.deltioLayout{display:flex;gap:16px;align-items:flex-start}.deltioWorkers{width:260px;flex:none;border:1px solid #e1e7ef;border-radius:var(--r-box);background:#fff;padding:12px;max-height:calc((100vh - 230px) / var(--vzi,1));overflow:auto}.deltioDepts{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;max-height:calc((100vh - 230px) / var(--vzi,1));overflow:auto;padding-right:4px}
 .deltioChipGroup{font-size:11px;font-weight:800;color:#8a94a1;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px}.deltioChipGroup:first-child{margin-top:0}
 .deltioChip{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;text-align:left;border:1px solid #dbe3ec;background:#f7f9fc;color:#33404d;border-radius:var(--r-chip);padding:8px 10px;margin-bottom:6px;cursor:grab;font-weight:700;font-size:13px}
 .deltioChip.present{background:#e9f7ef;border-color:#bfe6cf;color:#17683a}.deltioChip.left{background:#f3f0e9;border-color:#e3d8bd;color:#8a5a00;cursor:default}.deltioChip.dragging{opacity:.4}
@@ -645,7 +645,7 @@ body[data-theme="dark"] #invCountTable tbody tr:hover,body[data-theme="dark"] #i
 .settingsCard .settingsClickRow .rowText{display:flex;flex-direction:column;min-width:0}
 .settingsCard .settingsClickRow .rowText small{margin-top:2px}
 .settingsCard .settingsArrow{font-size:18px;color:#9fb4c3;text-align:right}.settingsCard .settingsInlineChoices{display:flex;flex-direction:column;gap:2px;padding:2px 0 8px 41px}.settingsCard .settingsChoiceBtn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:0;background:transparent;color:#fff;padding:8px 10px;border-radius:var(--r-box);text-align:left;cursor:pointer;font:inherit}.settingsCard .settingsChoiceBtn:hover{background:rgba(255,255,255,.08)}.settingsCard .settingsChoiceBtn.active{background:rgba(255,255,255,.1);font-weight:700}.settingsCard .settingsChoiceCheck{width:15px;height:15px;flex:0 0 15px;fill:none;stroke:#7fd1ff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}.scheduleRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 4px;border-bottom:1px solid #eef1f3;flex-wrap:wrap}.scheduleRow:last-of-type{border-bottom:0}.scheduleOption{display:flex;align-items:center;gap:8px;font-weight:700;cursor:pointer}.scheduleTimes{display:flex;align-items:center;gap:6px}.scheduleTimes input{width:auto;min-width:0;padding:6px 8px}.appSettingsLayout{display:grid;grid-template-columns:190px 1fr;margin:-16px;min-height:380px}.appSettingsList{border-right:1px solid #e5eaf0;padding:10px;display:flex;flex-direction:column;gap:2px}.appSettingsItem{display:block;width:100%;text-align:left;background:transparent;border:0;border-radius:var(--r-box);padding:10px 12px;cursor:pointer;font:inherit}.appSettingsItem b{display:block;font-size:13.5px;color:#16212b}.appSettingsItem small{display:block;font-size:11.5px;color:#66727b;margin-top:2px}.appSettingsItem:hover{background:#f3f6f9}.appSettingsItem.active{background:linear-gradient(90deg,#0872dc,#0d62bf)}.appSettingsItem.active b,.appSettingsItem.active small{color:#fff}.appSettingsDetail{padding:18px;min-width:0}.appSettingsDetail h4{margin:0 0 14px}.appSettingsChoices{display:flex;flex-direction:column;gap:6px}.appSettingsChoices button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;border:1px solid #e5eaf0;background:#fff;color:#16212b;padding:11px 14px;border-radius:var(--r-btn);text-align:left;cursor:pointer;font:inherit}.appSettingsChoices button:hover{background:#f7f9fb}.appSettingsChoices button.active{border-color:#0872dc;background:#eaf3ff;font-weight:700;color:#0872dc}.appSettingsChoiceCheck{width:16px;height:16px;flex:0 0 16px;fill:none;stroke:#0872dc;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}@media(max-width:600px){.appSettingsLayout{grid-template-columns:1fr}.appSettingsList{border-right:0;border-bottom:1px solid #e5eaf0;flex-direction:row;overflow-x:auto}.appSettingsItem{width:auto;white-space:nowrap}}
-.prodTable .prodGroupStart{border-left:3px solid #8daabd!important}#invCountTable td.invGroupCell{text-align:center;vertical-align:middle;font-weight:500;color:var(--fg,#1a1b20);background:var(--surface,#fff)}#invCountTable td.invTextCol,#invCountTable th.invTextCol{text-align:left}#invCountTable th[draggable="true"]{cursor:grab}#invCountTable td:first-child:not(.invGroupCell){position:static;background:inherit}.cellFmtMenu{position:fixed;z-index:9999;background:#fff;border:1px solid #d9e2e8;border-radius:var(--r-box);box-shadow:0 12px 32px rgba(28,54,70,.22);padding:10px;min-width:220px;font-size:13px}.cellFmtMenu .cellFmtRow{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}.cellFmtMenu .cellFmtLabel{color:#66717c;font-size:11px;min-width:56px}.cellFmtMenu button.cellFmtBtn{border:1px solid #dbe2e8;background:#fff;border-radius:var(--r-btn);padding:4px 9px;cursor:pointer;font-weight:700;color:#17334a}.cellFmtMenu button.cellFmtBtn.active{background:#17334a;color:#fff;border-color:#17334a}.cellFmtMenu button.cellFmtSwatch{width:20px;height:20px;border-radius:5px;border:1px solid #d9e2e8;cursor:pointer;padding:0}.cellFmtMenu button.cellFmtSwatch.active{outline:2px solid #17334a;outline-offset:1px}.cellFmtSelected{outline:2px solid #2563eb!important;outline-offset:-2px;background:rgba(37,99,235,.12)!important}.cellFmtMenu .cellFmtCount{color:#66717c;font-size:11px;font-weight:700;margin-bottom:6px}.cellFmtMenu .cellFmtClear{width:100%;margin-top:2px}#invCountTable td.invTextCol{white-space:normal;min-width:110px;overflow-wrap:break-word;word-break:break-word}#invModeSeg button{min-width:110px;text-align:center}#invTableWrap{max-height:calc(100vh - 238px)}.cellFmtToolbar{display:flex;align-items:center;gap:3px;flex-wrap:wrap;background:#f8fafc;border:1px solid #e1e7ef;border-radius:var(--r-box);padding:4px 8px;margin:0 0 10px}.cellFmtToolbar .cellFmtLabel{color:#8b97a3;font-size:11px;margin-right:5px}.cellFmtToolbar .cellFmtBtn{padding:3px 7px;min-width:24px;line-height:18px}.cellFmtToolbar .cellFmtSwatch{width:16px;height:16px}.cellFmtToolbar .cellFmtDiv{width:1px;align-self:stretch;background:#e1e7ef;margin:0 3px}
+.prodTable .prodGroupStart{border-left:3px solid #8daabd!important}#invCountTable td.invGroupCell{text-align:center;vertical-align:middle;font-weight:500;color:var(--fg,#1a1b20);background:var(--surface,#fff)}#invCountTable td.invTextCol,#invCountTable th.invTextCol{text-align:left}#invCountTable th[draggable="true"]{cursor:grab}#invCountTable td:first-child:not(.invGroupCell){position:static;background:inherit}.cellFmtMenu{position:fixed;z-index:9999;background:#fff;border:1px solid #d9e2e8;border-radius:var(--r-box);box-shadow:0 12px 32px rgba(28,54,70,.22);padding:10px;min-width:220px;font-size:13px}.cellFmtMenu .cellFmtRow{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}.cellFmtMenu .cellFmtLabel{color:#66717c;font-size:11px;min-width:56px}.cellFmtMenu button.cellFmtBtn{border:1px solid #dbe2e8;background:#fff;border-radius:var(--r-btn);padding:4px 9px;cursor:pointer;font-weight:700;color:#17334a}.cellFmtMenu button.cellFmtBtn.active{background:#17334a;color:#fff;border-color:#17334a}.cellFmtMenu button.cellFmtSwatch{width:20px;height:20px;border-radius:5px;border:1px solid #d9e2e8;cursor:pointer;padding:0}.cellFmtMenu button.cellFmtSwatch.active{outline:2px solid #17334a;outline-offset:1px}.cellFmtSelected{outline:2px solid #2563eb!important;outline-offset:-2px;background:rgba(37,99,235,.12)!important}.cellFmtMenu .cellFmtCount{color:#66717c;font-size:11px;font-weight:700;margin-bottom:6px}.cellFmtMenu .cellFmtClear{width:100%;margin-top:2px}#invCountTable td.invTextCol{white-space:normal;min-width:110px;overflow-wrap:break-word;word-break:break-word}#invModeSeg button{min-width:110px;text-align:center}#invTableWrap{max-height:calc((100vh - 238px) / var(--vzi,1))}.cellFmtToolbar{display:flex;align-items:center;gap:3px;flex-wrap:wrap;background:#f8fafc;border:1px solid #e1e7ef;border-radius:var(--r-box);padding:4px 8px;margin:0 0 10px}.cellFmtToolbar .cellFmtLabel{color:#8b97a3;font-size:11px;margin-right:5px}.cellFmtToolbar .cellFmtBtn{padding:3px 7px;min-width:24px;line-height:18px}.cellFmtToolbar .cellFmtSwatch{width:16px;height:16px}.cellFmtToolbar .cellFmtDiv{width:1px;align-self:stretch;background:#e1e7ef;margin:0 3px}
 .prodOfficialHead .prodOfficialLabel{font-size:12px;font-weight:800;color:#1f3e5f;white-space:normal;line-height:1.2}
 .prodInternalHead.ownSub b{font-size:12px!important;line-height:1.2!important;color:#163e61}
 .prodTable tfoot td{position:sticky;bottom:0;background:#f4f8fb!important;z-index:4;border-top:2px solid #aebfcb;font-weight:800}
@@ -668,7 +668,7 @@ body[data-theme="dark"] #invCountTable tbody tr:hover,body[data-theme="dark"] #i
 #master .mpanel>h3{font-size:18px;margin:7px 0 12px}
 #master .masterTools{display:flex;gap:10px;align-items:center;margin:0 0 10px}
 #master .masterSearch{min-height:40px;border-radius:var(--r-box);background:#fff}
-#master .registryTableWrap{border-radius:var(--r-box);border:1px solid #d9e2e8;box-shadow:none;max-height:calc(100vh - 255px)}
+#master .registryTableWrap{border-radius:var(--r-box);border:1px solid #d9e2e8;box-shadow:none;max-height:calc((100vh - 255px) / var(--vzi,1))}
 #master .registryTable thead th{background:#f3f7f9;font-size:12.5px;padding:10px 12px;color:#334b5b}
 #master .registryTable tbody td{padding:10px 12px;font-size:13px}
 #master .registryPrimary b{font-size:13.5px}#master .registryPrimary small{font-size:11.5px}
@@ -755,7 +755,6 @@ body[data-theme="dark"]{--st1-bg:#2A3040;--st1-fg:#C9CFDC;--st2-bg:#23365E;--st2
    με separate/spacing 0 κάθε κελί κρατά τις δικές του δεξιά/κάτω γραμμές (ίδιο πάχος/χρώμα από token) σε όλα τα επίπεδα. */
 .prodTable{border-collapse:separate!important;border-spacing:0!important}
 .content .prodTable th,.content .prodTable td,.content .prodTable tr>*+*:not(.pinColHide){border-left:0!important;border-right:1px solid var(--line,#e3e5ec);border-bottom:1px solid var(--line,#e3e5ec)}
-.content .prodTable th:last-child,.content .prodTable td:last-child{border-right:0}
 .content .prodTable .prodGroupStart{border-left:2px solid #8daabd!important}
 .content .prodTable tr>.pinColHide,.content .prodTable tr.pinRowHide>*{border-right:0!important;border-bottom:0!important}
 .prodTable tbody td.stkTotal{z-index:1;background:var(--surface)!important;box-shadow:1px 0 0 var(--line-strong)}
@@ -941,18 +940,16 @@ body[data-theme="dark"] .productionKpis .prodKpi small{color:var(--fg-2,#B4B9C6)
 .prodPeriodNav>b,.prodPeriodNav>.periodPickerBtn{display:inline-flex;align-items:center;justify-content:center;border:0;font-size:14px;font-weight:700;padding:0 8px;line-height:1.2}
 .prodPeriodNav>button{background:transparent;border:0;cursor:pointer;color:var(--fg-2,#44474f)}
 .prodPeriodNav>button:hover{background:transparent}
-.prodPeriodNav>button[id$="Prev"],.prodPeriodNav>button[id$="Next"],#invZoomOut,#invZoomIn{width:34px!important;height:34px!important;min-width:34px!important;margin:0 3px;border-radius:50%;padding:0!important;font-size:0}
-#invZoomOut,#invZoomIn{font-size:20px!important;line-height:1;font-weight:500}
-.prodPeriodNav>button[id$="Prev"]:hover,.prodPeriodNav>button[id$="Next"]:hover,#invZoomOut:hover,#invZoomIn:hover{background:var(--hover,#eaf0fd)}
-#invZoomNav>b{min-width:52px}
+.prodPeriodNav>button[id$="Prev"],.prodPeriodNav>button[id$="Next"]{width:34px!important;height:34px!important;min-width:34px!important;margin:0 3px;border-radius:50%;padding:0!important;font-size:0}
+.prodPeriodNav>button[id$="Prev"]:hover,.prodPeriodNav>button[id$="Next"]:hover{background:var(--hover,#eaf0fd)}
 /* Απογραφή: όλα στην ίδια γραμμή, ίδιο ύψος· σε στενό παράθυρο μικραίνουν μόνο περιθώρια και κενά */
 #inventory>.toolbar{flex-wrap:nowrap!important;gap:10px!important}
 #inventory>.toolbar>*{flex:0 0 auto}
-#inventory>.toolbar>#invZoomNav{margin-left:auto}
+#inventory>.toolbar>#invReportBtn{margin-left:auto}
 #invModeSeg button{min-width:0!important}
-@media(max-width:1500px){#inventory>.toolbar{gap:6px!important}#inventory .prodSegment button{padding-left:9px!important;padding-right:9px!important}#invYearLabel{min-width:44px!important}#invZoomNav>b{min-width:40px}#inventory .prodPeriodNav>button[id$="Prev"],#inventory .prodPeriodNav>button[id$="Next"],#invZoomOut,#invZoomIn{width:28px!important;min-width:28px!important;margin:0 2px}}
+@media(max-width:1500px){#inventory>.toolbar{gap:6px!important}#inventory .prodSegment button{padding-left:9px!important;padding-right:9px!important}#invYearLabel{min-width:44px!important}#inventory .prodPeriodNav>button[id$="Prev"],#inventory .prodPeriodNav>button[id$="Next"]{width:28px!important;min-width:28px!important;margin:0 2px}}
 @media(max-width:1280px){#inventory .prodSegment button{padding-left:6px!important;padding-right:6px!important}#inventory>.toolbar .toggleRow span{white-space:nowrap}}
-@media(max-width:1180px){#inventory>.toolbar .toggleRow span{white-space:normal!important;line-height:1.15;max-width:104px}#inventory>.toolbar{gap:4px!important}#inventory .prodSegment button{padding-left:4px!important;padding-right:4px!important;min-width:0!important}#inventory .toggleRow{gap:6px}#invYearLabel{min-width:36px!important;padding:0 2px!important}#invZoomNav>b{min-width:36px;padding:0 2px}#inventory .prodPeriodNav>button[id$="Prev"],#inventory .prodPeriodNav>button[id$="Next"],#invZoomOut,#invZoomIn{width:24px!important;min-width:24px!important;margin:0 1px}}
+@media(max-width:1180px){#inventory>.toolbar .toggleRow span{white-space:normal!important;line-height:1.15;max-width:104px}#inventory>.toolbar{gap:4px!important}#inventory .prodSegment button{padding-left:4px!important;padding-right:4px!important;min-width:0!important}#inventory .toggleRow{gap:6px}#invYearLabel{min-width:36px!important;padding:0 2px!important}#inventory .prodPeriodNav>button[id$="Prev"],#inventory .prodPeriodNav>button[id$="Next"]{width:24px!important;min-width:24px!important;margin:0 1px}}
 /* Κύριο κουμπί: ίδιο βασικό μπλε από token σε όλη την εφαρμογή (σκούρο θέμα: σκούρο κείμενο πάνω στο ανοιχτό μπλε) */
 body[data-theme="dark"] .btn:not(.alt):not(.ok):not(.warn):not(.danger):not(.review),body[data-theme="dark"] #master .masterTools .btn:not(.alt),body[data-theme="dark"] .floatPanel .btn:not(.alt):not(.warn):not(.danger):not(.review):not(.ok){color:#001a41}
 .prodKpi{background:var(--surface,#fff);border-color:var(--line,#e1e7ef)}
@@ -1125,7 +1122,6 @@ button.ovCat:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 :is(#ready,#production) table.prodTable.prodTable{--ln:var(--line,#e3e5ec);--ln2:#aeb7c9}
 body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:var(--line-strong,#5a6b80)}
 :is(#ready,#production) table.prodTable.prodTable :is(th,td):not(.pinColHide){border-top:0!important;border-left:0!important;border-right:1px solid var(--ln)!important;border-bottom:1px solid var(--ln)!important;box-shadow:none!important}
-:is(#ready,#production) table.prodTable.prodTable :is(th,td):not(.pinColHide):last-child{border-right:0!important}
 :is(#ready,#production) table.prodTable.prodTable tr.pinRowHide>*{border-bottom:0!important}
 /* χωρίς διπλή γραμμή με το πλαίσιο: η τελευταία γραμμή δεν έχει κάτω border */
 :is(#ready,#production) table.prodTable.prodTable tfoot tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
@@ -1215,14 +1211,12 @@ body[data-theme="dark"] :is(#ready,#production) table.prodTable.prodTable{--ln2:
 #invCountTable{--ln:var(--line,#e3e5ec);--ln2:#aeb7c9}
 body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 #invCountTable :is(th,td):not(.pinColHide){border:0!important;border-right:1px solid var(--ln)!important;border-bottom:1px solid var(--ln)!important;box-shadow:none!important}
-#invCountTable :is(th,td):not(.pinColHide):last-child{border-right:0!important}
 #invCountTable tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
 #invCountTable :is(th,td).invBase:not(.pinColHide),#invCountTable :is(th,td).invQEnd:not(.pinColHide){border-right:2px solid var(--ln2)!important}
 #invTableWrap.hs #invCountTable :is(th,td):first-child{box-shadow:4px 0 6px -4px rgba(0,0,0,.15)!important}
 #invCountTable thead th:not(.invTextCol):not([colspan]):not([data-material="inv:group"]){text-align:right}
 #invCountTable thead th[colspan]{text-align:center}
 #invReportBtn{margin-left:auto;white-space:nowrap}
-#inventory>.toolbar>#invReportBtn+#invZoomNav{margin-left:0}
 #inventory>.toolbar{flex-wrap:nowrap!important}
 @media(max-width:1400px){#inventory>.toolbar .toggleRow span{white-space:normal!important;line-height:1.15;max-width:104px}#invReportBtn{padding-left:10px;padding-right:10px}}
 /* ΑΛΛΑΓΗ ΙΖ: Φορτώσεις › Ιστορικό Δελτίων Αποστολής — γραμματοσειρά, στοίχιση αριθμών, γραμμή συνόλου */
@@ -1410,12 +1404,68 @@ body[data-theme="dark"]{--th-group-bg:#23365E;--th-group-line:#34476f;--th-group
 #app .prodTable thead th.thGroup{background:var(--th-group-bg)!important;color:var(--th-group-fg)!important;font-weight:700!important}
 #app :is(#ready,#production) table.prodTable.prodTable thead th.thGroup:not(.pinColHide){border-bottom-color:var(--th-group-line)!important;border-right-color:var(--th-group-line)!important}
 #app .prodTable thead th.thGroup :is(.prodOfficialLabel,b,span,.chev){color:var(--th-group-fg)!important;font-weight:700!important}
-#app :is(#ready,#production) table.prodTable.prodTable thead th:last-child:not(.pinColHide){border-right-width:0!important}
 #app .prodTable thead th[data-prodcat]:hover,#app .prodTable thead th[data-prodmatcat]:hover{box-shadow:inset 0 0 0 9999px var(--th-hover)}
 /* ΑΛΛΑΓΗ ΚΓ.Ε: ο τίτλος της ανοιγμένης κατηγορίας στο ΚΕΝΤΡΟ των στηλών της· στο οριζόντιο scroll μένει μέσα στο ορατό τμήμα (sticky left = πλάτος σταθερών στηλών) */
 .thGroupLbl{position:sticky;left:var(--stkW,0px);right:12px;width:max-content;max-width:calc(100% - 24px);margin:0 auto;display:flex;align-items:center;justify-content:center;gap:6px;white-space:normal;text-align:center;line-height:1.2}
 /* ΑΛΛΑΓΗ ΚΓ.Γ: κάθε πίνακας με sticky γραμμές συνόλων: border-collapse:separate + border-spacing:0 (κοινό component) */
 .tablewrap table:has(tfoot td),.prodTableWrap table:has(tfoot td){border-collapse:separate!important;border-spacing:0!important}
+/* ΑΛΛΑΓΗ ΚΖ: κοινό ποσοστό μεγέθους ανά καρτέλα — γραμμή κατάστασης κάτω-κάτω, zoom ΜΟΝΟ στο περιεχόμενο των οθονών (.content>.view) */
+:root{--vz:1}
+.main{display:flex;flex-direction:column;min-height:100vh}
+.main>.content{flex:1 1 auto;padding-bottom:0!important}
+.content>.view{zoom:var(--vz);--vzi:var(--vz)}
+#zoomBar{position:sticky;bottom:0;z-index:40;flex:none;height:30px;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:0 20px;background:#fff;border-top:1px solid #dfe4ee;color:#6a7488;font-size:11px;user-select:none}
+body[data-theme="dark"] #zoomBar{background:var(--surface,#17232d);border-top-color:var(--line,#2b3b48);color:var(--fg-3,#9fb0bd)}
+body.splitOn #zoomBar{display:none}
+#zoomBar button{border:0;background:transparent;color:inherit;font:inherit;cursor:pointer;padding:0 4px;height:22px;line-height:1;border-radius:6px}
+#zoomBar .zmStep{width:22px;font-size:15px}
+#zoomBar .zmStep:hover,#zmPct:hover{background:rgba(47,91,214,.08)}
+#zmTrack{position:relative;width:150px;height:4px;border-radius:2px;background:#cfd6e4;cursor:pointer;margin:0 6px;touch-action:none}
+#zmTrack::before{content:"";position:absolute;left:-7px;right:-7px;top:-9px;bottom:-9px}
+#zmFill{position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#2f5bd6;pointer-events:none}
+#zmKnob{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#2f5bd6;cursor:grab}
+#zmPct{min-width:48px;text-align:right;color:inherit;font-weight:500}
+#zmMenu{position:absolute;right:16px;bottom:34px;min-width:176px;background:#fff;border:1px solid #dfe4ee;border-radius:8px;box-shadow:0 6px 20px rgba(15,30,54,.18);padding:4px;z-index:60}
+body[data-theme="dark"] #zmMenu{background:var(--surface,#17232d);border-color:var(--line,#2b3b48)}
+#zmMenu button{display:block;width:100%;text-align:left;height:28px;padding:0 10px;font-size:12px;color:#1a1b20}
+body[data-theme="dark"] #zmMenu button{color:var(--fg,#edf4f8)}
+#zmMenu button:hover{background:#f2f5fc}
+#zmMenu button.on{background:#e6edfc;color:#2f5bd6}
+#zmMenu hr{border:0;border-top:1px solid #dfe4ee;margin:4px 0}
+/* ΑΛΛΑΓΗ ΚΕ: ερώτημα «πόσα kg» για χύμα γραμμές */
+.prepAskBack{position:fixed;inset:0;background:rgba(15,25,45,.38);display:flex;align-items:center;justify-content:center;z-index:9700}
+.prepAsk{background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:12px;padding:20px 22px;width:360px;max-width:calc(100vw - 32px);box-shadow:0 12px 40px rgba(15,30,54,.3)}
+.prepAsk h4{margin:0 0 4px;font-size:16px;font-weight:600}
+.prepAskSub{font-size:13px;color:var(--fg-3,#74777f);margin-bottom:14px}
+.prepAsk label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500}
+.prepAsk input{height:40px;border:1px solid var(--line-strong,#b9bdc9);border-radius:8px;padding:0 12px;font-size:15px;background:var(--surface,#fff);color:inherit}
+.prepAskErr{min-height:18px;margin-top:6px;font-size:12.5px;color:#b3261e}
+.prepAskBtns{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
+#prepPanel .prepBulk .nm{font-weight:500}
+/* ΑΛΛΑΓΗ ΚΗ: υπέρβαση χύμα αποθέματος */
+.prepShort{width:600px}
+.prepShort h4{color:#8a5a00;font-size:17px}
+.prepShort p{margin:6px 0 14px;font-size:13.5px;line-height:1.45;color:var(--fg-2,#44474f)}
+.prepShort .shTblWrap{max-height:240px;overflow:auto;border:1px solid var(--line,#e3e5ec);border-radius:8px;margin-bottom:14px}
+.prepShort .shTbl{width:100%;min-width:0!important;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:13.5px}
+.prepShort .shTbl th:nth-child(1){width:37%}.prepShort .shTbl th:nth-child(n+2){width:21%}
+.prepShort .shTbl th{position:sticky;top:0;background:var(--surface-2,#f4f6fb);font-weight:500;text-align:left;padding:9px 12px;border-bottom:1px solid var(--line,#e3e5ec)}
+.prepShort .shTbl td{padding:9px 12px;border-bottom:1px solid var(--line,#e3e5ec)}
+.prepShort .shTbl tr:last-child td{border-bottom:0}
+.prepShort .shTbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.prepShort .shTbl td.over{color:#b3261e;font-weight:700}
+.prepShort input{height:40px}
+.prepShort .prepAskBtns button{height:40px;border-radius:8px;padding:0 16px;font-size:13.5px;font-weight:600;cursor:pointer}
+.prepShort .shBack{background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid #cfd6e4}
+.prepShort .shGo{background:#b3261e;color:#fff;border:1px solid #b3261e}
+.prepShort .shGo:disabled{background:#eef0f5;color:#a3abbb;border-color:#eef0f5;cursor:default}
+#app #ready table.prodTable.prodTable :is(thead th,tbody td,tfoot td).ovrCol{background:#fdecea!important}
+#app #ready table.prodTable.prodTable thead th.ovrCol,#app #ready table.prodTable.prodTable tr.prodBalanceRow td.ovrCol,#app #ready table.prodTable.prodTable tr.prodBalanceRow td.ovrCol *{color:#b3261e!important;font-weight:700!important}
+#app #ready table.prodTable.prodTable tfoot tr.ovrNoteRow>td{text-align:center!important}
+.ovrTag{display:inline-block;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;line-height:1.3;font-weight:500}
+#app #shipHistCard tr.shipOver>td{background:#fff3d6}
+#shipHistCard td.shipNote{white-space:normal;color:var(--fg-2,#44474f)}
+#shipHistCard tr.shipOver>td.shipNote{color:#8a5a00}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1577,7 +1627,7 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #carriers .carrTbl tbody tr.off.on td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
 #carriers .carrBd{display:inline-block;white-space:nowrap;padding:2px 10px;border-radius:var(--r-box);font-size:12px;font-weight:600;background:var(--st5-bg);color:var(--st5-fg)}
 #carriers .carrBd.off{background:none;color:var(--st4-fg);border:1px solid var(--st4-fg)}
-#carriers .carrCard{min-width:0;border:1px solid var(--line);border-radius:var(--r-box);padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;max-height:calc(100vh - 270px);min-height:300px}
+#carriers .carrCard{min-width:0;border:1px solid var(--line);border-radius:var(--r-box);padding:14px 16px;background:var(--surface);display:flex;flex-direction:column;max-height:calc((100vh - 270px) / var(--vzi,1));min-height:300px}
 #carriers .carrCard .registryTableWrap.carrCtrWrap{flex:1 1 auto;min-height:120px;max-height:none;overflow:auto}
 #carriers .carrHd{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 #carriers .carrHd h3{margin:0;font-size:18px;font-weight:500}
@@ -1717,7 +1767,7 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 #prepPanel .prepFreq small{color:var(--fg-3,#74777f)}
 #prepPanel .prepFreq button{border:1px solid var(--pin,#D97757);background:var(--surface,#fff);color:var(--fg,#1a1b20);border-radius:var(--r-btn);padding:4px 12px;font-size:12.5px;cursor:pointer}
 #prepPanel .prepFreq button:disabled{opacity:.45;cursor:default;border-color:var(--line-strong,#b9bdc9)}
-#prepPanel .prepTwo{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:clamp(440px,calc(100vh - 360px),680px);background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);overflow:hidden}
+#prepPanel .prepTwo{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:clamp(440px,calc((100vh - 360px) / var(--vzi,1)),680px);background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);overflow:hidden}
 #prepPanel .prepWh,#prepPanel .prepCargo{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px 16px}
 #prepPanel .prepCargo{border-left:1px solid var(--line,#e3e5ec)}
 #prepPanel .prepHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:10px}
@@ -1756,17 +1806,15 @@ body[data-theme="dark"] #prepPanel .prepMedia button.on{color:#001a41}
 #prepPanel .prepMsg.ok{color:var(--st5-fg,#12532e)}
 #prepPanel .prepActions{display:flex;justify-content:flex-end;gap:10px;margin-top:10px}
 #prepPanel .prepActions .btn{height:40px;border-radius:var(--r-btn);padding:0 20px;font-weight:500}
-#prepPanel .prepMover{position:absolute;left:50%;top:190px;transform:translateX(-50%);z-index:3;width:46px;border-radius:var(--r-btn);background:var(--surface,#fff);border:1px solid var(--line-strong,#b9bdc9);box-shadow:0 4px 14px rgba(15,30,54,.18);display:flex;flex-direction:column;align-items:center}
-#prepPanel .prepMover button{border:0;background:transparent;color:var(--accent,#2f5fc4);width:46px;height:44px;font-size:18px;cursor:pointer;border-radius:var(--r-btn)}
-#prepPanel .prepMover button:hover{background:var(--hover,#eaf0fd)}
-#prepPanel .prepMover button+.prepBadge+button{border-top:1px solid var(--line,#e3e5ec);border-radius:0 0 var(--r-box) var(--r-box)}
-#prepPanel .prepBadge{position:absolute;top:-6px;right:-4px;min-width:18px;height:18px;border-radius:var(--r-chip);background:var(--accent,#2f5fc4);color:var(--on-accent,#fff);font-size:11px;line-height:18px;text-align:center;padding:0 4px}
-body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
+#prepPanel .prepMoveBtn{height:32px;border:0;border-radius:8px;padding:0 14px;font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0;background:#eef0f5;color:#a3abbb;cursor:default}
+#prepPanel .prepMoveBtn.on{background:#2f5bd6;color:#fff;cursor:pointer}
+#prepPanel .prepMoveBtn.on:hover{background:#2850c0}
+#prepPanel .prepCargo .prepHead .prepMoveBtn{margin-left:auto}
 #prepPanel .prepToast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:#2b3040;color:#fff;border-radius:var(--r-box);padding:10px 20px;font-size:14px;z-index:9600;box-shadow:0 6px 20px rgba(0,0,0,.3)}
 #prepPanel .prepTwo.dropOn .prepCargo{outline:2px dashed var(--accent,#2f5fc4);outline-offset:-6px}
 /* Διάταξη Γ: κοινό πλαίσιο, ίδιο ύψος λιστών, τίτλοι/αναζήτηση στην ίδια γραμμή, κοινή γραμμή «Σύνολο φόρτωσης» + κουμπιά κάτω */
 #prepPanel .prepWrap{background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);overflow:hidden}
-#prepPanel .prepWrap .prepTwo{border:0;border-radius:0;background:transparent;height:clamp(380px,calc(100vh - 430px),620px)}
+#prepPanel .prepWrap .prepTwo{border:0;border-radius:0;background:transparent;height:clamp(380px,calc((100vh - 430px) / var(--vzi,1)),620px)}
 #prepPanel .prepHead{align-items:center;min-height:48px}
 #prepPanel .prepHeadWh{justify-content:flex-start;gap:14px}
 #prepPanel .prepTitle{display:flex;flex-direction:column;gap:1px;white-space:nowrap}
@@ -1783,7 +1831,6 @@ body[data-theme="dark"] #prepPanel .prepBadge{color:#001a41}
   #prepPanel .prepGrid6 .prepSpan2{grid-column:auto}
   #prepPanel .prepTwo{display:flex;flex-direction:column;height:auto}
   #prepPanel .prepWh{height:420px}#prepPanel .prepCargo{height:460px;border-left:0;border-top:1px solid var(--line,#e3e5ec)}
-  #prepPanel .prepMover{display:none}
 }
 </style>
 <style id="sfBubbleLook">
@@ -1984,7 +2031,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="app" class="shell hidden"><aside class="side"><div class="brand"><img class="brandLogo" src="data:image/png;base64,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" alt="WEEE Platform"><span>WEEE Platform</span></div><div class="nav"><button data-view="dashboard" class="active"><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M5 12l-2 0l9-9l9 9l-2 0M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span><span>Αρχική</span></button><button data-view="receipts" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span><span>Παραλαβές &amp; Ταξινόμηση</span></button><button data-view="weee" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6l9 6v12M7 21v-8h10v8M7 17h10"/></svg></span><span>Αποθήκη ΑΗΗΕ</span></button><button data-view="production" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M3 21V10l6 4v-4l6 4V5h6v16H3z"/></svg></span><span>Παραγωγή</span></button><button data-view="ready" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12v9"/></svg></span><span>Έτοιμα Υλικά</span></button><button data-view="loading" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M7 17a2 2 0 1 0 0 .01M17 17a2 2 0 1 0 0 .01M3 5h11v12M14 8h4l3 3v6h-2M9 17h6"/></svg></span><span>Φορτώσεις</span></button><button data-view="inventory" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1zM6 6h12v15H6zM9 11h6M9 15h6"/></svg></span><span>Απογραφή</span></button><button data-view="galaxy" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18M12 3v18M3 12h18"/></svg></span><span>Galaxy</span></button><button data-view="reports" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M5 21V11M12 21V4M19 21v-7"/></svg></span><span>Αναφορές και Στατιστικά</span></button><button data-view="master" class=""><span class="navIcon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span><span>Μητρώα</span></button></div><div class="sideFooter">
 <button class="sideMenuButton" id="settingsMenuBtn"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1A1.7 1.7 0 0 0 8.6 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.6 8.6a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.4 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.2.36.5.7.9.9.34.18.72.28 1.1.3h.1v4h-.1c-.38.02-.76.12-1.1.3-.4.2-.7.54-.9.9Z"/></svg></span><span>Ρυθμίσεις</span><span class="sideChevron"><svg viewBox="0 0 24 24"><path d="m7 9 5 5 5-5"/></svg></span></button><div id="settingsMenu" class="sideDrop settingsCard hidden"><div class="settingsSection"><div class="settingsLabel"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></span><span><b>Εμφάνιση</b><small>Θέμα εφαρμογής</small></span></div><select id="settingsTheme"><option value="system">Αυτόματο / Σύστημα</option><option value="light">Φωτεινό</option><option value="dark">Σκούρο</option></select></div><div class="settingsSection"><div class="settingsLabel"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span><span><b>Γλώσσα</b><small>Γλώσσα περιβάλλοντος</small></span></div><select id="settingsLanguage"><option value="el">Ελληνικά</option><option value="en">English</option></select></div><div class="settingsProfile"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span><span><b id="sideUsername">admin</b><small id="sideRole">Διαχειριστής</small></span></div><button id="roleLevelsBtn"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="8" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="10" cy="18" r="1"/></svg></span><span>Επίπεδα χρηστών</span></button><button id="logoutBtn"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5"/></svg></span><span>Αποσύνδεση</span></button><button id="appSettingsBtn"><span class="sideLineIcon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.12-1.3l2-1.56-2-3.46-2.45.99A7 7 0 0 0 14.2 5.4L13.83 3h-4l-.37 2.4a7 7 0 0 0-2.23 1.27l-2.45-.99-2 3.46 2 1.56A7 7 0 0 0 4.66 12c0 .45.04.88.12 1.3l-2 1.56 2 3.46 2.45-.99a7 7 0 0 0 2.23 1.27l.37 2.4h4l.37-2.4a7 7 0 0 0 2.23-1.27l2.45.99 2-3.46-2-1.56c.08-.42.12-.85.12-1.3Z"/></svg></span><span>Ρυθμίσεις εφαρμογής</span></button></div><div class="sideVersion">WEEE Platform · Build 2.5.35i</div></div></aside>
 <main class="main"><div class="topbar"><div><b id="viewTitle">Dashboard</b><span class="mobilehint muted"> · Windows UI</span></div><div><span id="who" class="muted"></span> <button class="btn alt iconOnly" id="refresh" title="Ανανέωση"><svg viewBox="0 -960 960 960" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg></button></div></div><div class="content">
-<section id="dashboard" class="view"><div class="homeDate" id="homeDate"></div><div class="grid" id="metrics"></div><div class="card hidden" id="dashboardDayStatus"><h3>Κατάσταση ημερών</h3><div id="dayTabs" class="dchipRow"></div></div><button type="button" class="pbtn" id="openPresence"><span class="pt">Παρουσίες</span><span class="pc"><span class="cp">Παρών <b data-pc="P">–</b></span><span class="ct">Αργοπορία <b data-pc="T">–</b></span><span class="ca">Απών <b data-pc="A">–</b></span><span class="cl">Έφυγε <b data-pc="L">–</b></span></span><span>›</span></button><button type="button" class="pbtn" id="openVisitors"><span class="pt">Βιβλίο Επισκεπτών</span><span class="pc"></span><span>›</span></button></section><section id="presence" class="view hidden"><div class="toolbar" style="margin-bottom:10px"><button type="button" class="btn alt" id="presBack"><span class="icoL"></span>Αρχική</button><span class="muted" id="presDate"></span><label style="margin:0 0 0 12px;font-weight:400">Έναρξη βάρδιας <b id="presShift"></b></label><label style="margin:0 0 0 8px;font-weight:400">Λήξη <b id="presShiftEnd"></b></label><span class="pc" style="margin-left:auto;display:flex;gap:8px"><span class="cp">Παρών <b data-pc="P"></b></span><span class="ct">Αργοπορία <b data-pc="T"></b></span><span class="ca">Απών <b data-pc="A"></b></span><span class="cl">Έφυγε <b data-pc="L"></b></span></span></div><div class="presBrkRow" id="presBreaks"></div><div class="tablewrap" id="presWrap" style="max-height:calc(100vh - 190px)"><table class="presTable"><thead><tr><th style="width:240px">Εργαζόμενος</th><th style="width:84px;text-align:center">Τμήμα</th><th style="width:330px">Κατάσταση</th><th>Αργοπορημένη προσέλευση</th><th>Πρόωρη αποχώρηση</th><th style="text-align:right;width:130px">Καθαρές ώρες</th></tr></thead><tbody id="presBody"></tbody></table></div><div id="presMsg" class="error"></div></section>
+<section id="dashboard" class="view"><div class="homeDate" id="homeDate"></div><div class="grid" id="metrics"></div><div class="card hidden" id="dashboardDayStatus"><h3>Κατάσταση ημερών</h3><div id="dayTabs" class="dchipRow"></div></div><button type="button" class="pbtn" id="openPresence"><span class="pt">Παρουσίες</span><span class="pc"><span class="cp">Παρών <b data-pc="P">–</b></span><span class="ct">Αργοπορία <b data-pc="T">–</b></span><span class="ca">Απών <b data-pc="A">–</b></span><span class="cl">Έφυγε <b data-pc="L">–</b></span></span><span>›</span></button><button type="button" class="pbtn" id="openVisitors"><span class="pt">Βιβλίο Επισκεπτών</span><span class="pc"></span><span>›</span></button></section><section id="presence" class="view hidden"><div class="toolbar" style="margin-bottom:10px"><button type="button" class="btn alt" id="presBack"><span class="icoL"></span>Αρχική</button><span class="muted" id="presDate"></span><label style="margin:0 0 0 12px;font-weight:400">Έναρξη βάρδιας <b id="presShift"></b></label><label style="margin:0 0 0 8px;font-weight:400">Λήξη <b id="presShiftEnd"></b></label><span class="pc" style="margin-left:auto;display:flex;gap:8px"><span class="cp">Παρών <b data-pc="P"></b></span><span class="ct">Αργοπορία <b data-pc="T"></b></span><span class="ca">Απών <b data-pc="A"></b></span><span class="cl">Έφυγε <b data-pc="L"></b></span></span></div><div class="presBrkRow" id="presBreaks"></div><div class="tablewrap" id="presWrap" style="max-height:calc((100vh - 190px) / var(--vzi,1))"><table class="presTable"><thead><tr><th style="width:240px">Εργαζόμενος</th><th style="width:84px;text-align:center">Τμήμα</th><th style="width:330px">Κατάσταση</th><th>Αργοπορημένη προσέλευση</th><th>Πρόωρη αποχώρηση</th><th style="text-align:right;width:130px">Καθαρές ώρες</th></tr></thead><tbody id="presBody"></tbody></table></div><div id="presMsg" class="error"></div></section>
 <section id="receipts" class="view hidden">
 <div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode active" id="receiptDaysMode">Καθημερινά</button><button class="receiptMode" id="receiptMonthsMode">Συγκεντρωτικά</button></div><div class="receiptActionButtons"><span id="receiptUndoMsg" class="muted" style="align-self:center;font-size:13px"></span><button class="btn alt" id="receiptUndoBtn" title="Επαναφορά της τελευταίας διαγραμμένης παραλαβής">↶ Αναίρεση</button><button class="btn alt" id="receiptRedoBtn" title="Νέα διαγραφή της παραλαβής που επαναφέρθηκε" disabled>↷ Επανάληψη</button><button class="btn" id="newReceipt">+ Νέα Παραλαβή</button><button class="btn alt" id="receiptExportBtn">Εξαγωγή</button><button class="btn alt iconOnly" id="receiptMoreBtn" title="Περισσότερα"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button><button class="btn alt iconText" id="uniReportBtn">Αναφορά</button></div></div>
 <div class="receiptSearchRow"><input id="receiptSearch" placeholder="Αναζήτηση παραλαβής..." autocomplete="off"><button class="btn alt hidden" id="openReceiptReport">ΑΝΑΦΟΡΑ</button><button class="btn alt hidden" id="receiptArchiveBtn">ΑΡΧΕΙΟ ΔΙΑΓΡΑΜΜΕΝΩΝ</button></div>
@@ -2024,7 +2071,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="weeeStockPane"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία</h3>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeProcessTable"><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς επεξεργασία</th><th data-wcol="done">Επεξεργασία</th><th class="hermesCol" data-wcol="herm">Επεξεργασία HERMES</th><th data-wcol="stock">Απόθεμα προς επεξεργασία</th></tr></thead><tbody id="weeeProcessRows"></tbody></table></div>
 <h3 class="weeeSecTitle">Απόθεμα προς αποστολή</h3>
-<div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable"><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div><div id="weeeMediaPane" class="hidden"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable"><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div><div class="muted" style="margin-top:6px">Πάτημα στα κιλά = αναλυτική λίστα μέσων. Πάτημα σε μέσο = ιστορικό του.</div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable"><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div><div class="muted" style="margin-top:6px">Πάτημα σε γραμμή = ιστορικό του υλικού. Τα υλικά τύπου Α καταχωρούνται και σε τεμάχια.</div></div>
+<div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable"><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div><div id="weeeMediaPane" class="hidden"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable"><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable"><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div></div>
 </section>
 <section id="production" class="view hidden">
 <div class="productionTop"><div class="productionTabs"><button class="productionTab active" data-prodtab="weee">Παραγωγή ανά ΑΗΗΕ</button><button class="productionTab" data-prodtab="people">Παραγωγή ανά Τμήμα / Άτομο</button><button class="productionTab" data-prodtab="deltio">Δελτίο Παραγωγής</button></div><div class="productionPeriod" id="productionPeriodBox"><div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-prodperiod="day">Ημέρα</button><button data-prodperiod="month" class="active">Μήνας</button><button data-prodperiod="quarter">Τρίμηνο</button><button data-prodperiod="year">Έτος</button><button type="button" id="prodRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div></div><div class="prodPeriodNav"><button id="prodPrev">‹</button><button type="button" class="periodPickerBtn" id="prodPeriodPickerBtn"><b id="prodPeriodTitle"></b></button><button id="prodNext">›</button></div></div></div>
@@ -2032,8 +2079,8 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="productionActions" class="pageActions"><button class="btn alt" id="productionExcel">Εξαγωγή Excel</button></div>
 <div id="productionKpis" class="productionKpis"></div>
 <div class="productionTools"><div class="productionFilter"><label>Προβολή ποσότητας</label><div style="display:flex;align-items:center;gap:12px"><div class="prodSegment"><button data-prodgroup="ALL" class="active">Σύνολο</button><button data-prodgroup="HERMES">HERMES</button><button data-prodgroup="OTHER">Λοιποί</button></div><div id="prodStockOnlyWrap" class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="prodStockOnlyToggle"><span class="slider"></span></label><span>Απόκρυψη μηδενικών στηλών</span></div></div></div><div class="productionSearch"><input id="productionSearch" placeholder="Αναζήτηση κωδικού, περιγραφής, τμήματος ή ατόμου..."><button class="btn alt" id="prodExpandAll">Ανάπτυξη όλων</button><button class="btn alt" id="prodCollapseAll">Σύμπτυξη όλων</button></div></div>
-<div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable" data-datefill><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div><div class="productionHint">Κλικ σε κατηγορία 1–6 για ανάπτυξη / σύμπτυξη όλων των υποκατηγοριών της. Τα μηδενικά εμφανίζονται κενά.</div></div>
-<div id="productionPeoplePanel" class="hidden"><div class="prodTableWrap" style="margin-bottom:18px"><h3 style="margin:0 0 8px">Τρέχουσα τοποθέτηση εργαζομένων ανά τμήμα</h3><table class="prodTable"><thead><tr><th>Τμήμα / Εργαζόμενος</th><th>Τοποθέτηση σε τμήμα</th><th></th></tr></thead><tbody id="prodRosterBody"></tbody></table><div class="productionHint">Η αλλαγή τμήματος εφαρμόζεται αμέσως και σημειώνεται εσωτερικά με ώρα αλλαγής (ιστορικό μεταβολών εργαζομένου). Ο εργαζόμενος μένει στο τμήμα του μέχρι να τον μετακινήσει χειριστής κλαρκ, το Logistics ή η διοίκηση.</div></div><div class="prodTableWrap"><table class="prodTable"><thead id="prodPeopleHead"></thead><tbody id="prodPeopleBody"></tbody><tfoot id="prodPeopleFoot"></tfoot></table></div><div class="productionHint">Ένα τμήμα μπορεί να έχει συγκεντρωτική ποσότητα ή ανάλυση ανά εργαζόμενο. Το υλικό/ΑΗΗΕ εμφανίζεται σε κάθε γραμμή. Οι καταχωρίσεις υποστηρίζουν πηγή Android χειριστή περονοφόρου ή Windows.</div></div>
+<div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable" data-datefill><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div></div>
+<div id="productionPeoplePanel" class="hidden"><div class="prodTableWrap" style="margin-bottom:18px"><h3 style="margin:0 0 8px">Τρέχουσα τοποθέτηση εργαζομένων ανά τμήμα</h3><table class="prodTable"><thead><tr><th>Τμήμα / Εργαζόμενος</th><th>Τοποθέτηση σε τμήμα</th><th></th></tr></thead><tbody id="prodRosterBody"></tbody></table></div><div class="prodTableWrap"><table class="prodTable"><thead id="prodPeopleHead"></thead><tbody id="prodPeopleBody"></tbody><tfoot id="prodPeopleFoot"></tfoot></table></div></div>
 <div id="productionDeltioPanel" class="hidden">
 <div class="toolbar" style="margin:4px 0 14px"><label style="margin:0">Ημερομηνία</label><input type="date" id="deltioDate"><span id="deltioExistingNote" class="muted hidden">Υπάρχει ήδη δελτίο για αυτή την ημέρα.</span></div>
 <div class="deltioLayout">
@@ -2094,10 +2141,9 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="pfFreq" class="prepFreq hidden"></div>
 <div class="prepWrap">
 <div class="prepTwo" id="prepTwo">
-<section class="prepWh"><div class="prepHead prepHeadWh"><div class="prepTitle"><h3>Αποθήκη</h3><span class="muted">τσέκαρε, ▾ για μέσα συλλογής</span></div><input id="pfSearch" class="prepSearch" placeholder="Αναζήτηση υλικού…" autocomplete="off"></div>
+<section class="prepWh"><div class="prepHead prepHeadWh"><div class="prepTitle"><h3>Αποθήκη</h3><span class="muted">τσέκαρε, ▾ για μέσα συλλογής</span></div><input id="pfSearch" class="prepSearch" placeholder="Αναζήτηση υλικού…" autocomplete="off"><button type="button" class="prepMoveBtn" id="pfAdd" title="Προσθήκη επιλεγμένων στο φορτίο" disabled>Προσθήκη επιλεγμένων (0) ▸</button></div>
 <div id="pfWhList" class="prepList"></div></section>
-<div class="prepMover" id="pfMover"><button type="button" id="pfAdd" title="Προσθήκη επιλεγμένων στο φορτίο">▶</button><span class="prepBadge hidden" id="pfBadge"></span><button type="button" id="pfRemove" title="Αφαίρεση επιλεγμένων από το φορτίο">◀</button></div>
-<section class="prepCargo" id="pfCargoPanel"><div class="prepHead"><h3>Φορτίο</h3><span class="muted" id="pfCargoCount"></span></div>
+<section class="prepCargo" id="pfCargoPanel"><div class="prepHead"><h3>Φορτίο</h3><span class="muted" id="pfCargoCount"></span><button type="button" class="prepMoveBtn" id="pfRemove" title="Αφαίρεση επιλεγμένων από το φορτίο" disabled>◂ Επιστροφή επιλεγμένων (0)</button></div>
 <div id="pfCargoList" class="prepList"></div>
 </section>
 </div>
@@ -2130,10 +2176,10 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 </div>
 <div class="periodPickerDropdown hidden" id="shipHistPeriodDropdown"><div class="periodPickerYears" id="shipHistPeriodYears"></div><div class="periodPickerGrid" id="shipHistPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="shipHistPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
-<div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th style="width:120px">Ημερομηνία</th><th style="width:90px">Αρ. Δ.Α.</th><th style="width:190px">Περιγραφή</th><th style="width:130px">Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th style="width:110px">Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody id="shipHistRows"></tbody><tfoot id="shipHistFoot"></tfoot></table></div></div></section>
+<div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><input id="shipHistSearch" placeholder="Αναζήτηση Δ.Α..." autocomplete="off"></div><div class="tablewrap shipHistWrap"><table><thead><tr><th style="width:120px">Ημερομηνία</th><th style="width:90px">Αρ. Δ.Α.</th><th style="width:190px">Περιγραφή</th><th style="width:130px">Βάρος (kg)</th><th>Μεταφορέας</th><th>Παραλήπτης</th><th style="width:110px">Κωδ. ΕΚΑ</th><th>Reptool</th><th style="width:260px">Σημείωση</th></tr></thead><tbody id="shipHistRows"></tbody><tfoot id="shipHistFoot"></tfoot></table></div></div></section>
 
 <section id="reports" class="view hidden"><div class="receiptTopActions"><div class="receiptViewTabs"><button class="receiptMode repTab active" data-reptab="receipts">Παραλαβές</button><button class="receiptMode repTab" data-reptab="processing">Επεξεργασία</button><button class="receiptMode repTab" data-reptab="dispatch">Αποστολές</button><button class="receiptMode repTab" data-reptab="statistics">Στατιστικά</button><button class="receiptMode repTab" data-reptab="recycling">Ανακύκλωση Συσκευών</button></div><div class="receiptActionButtons" id="reportsUploadWrap"><button class="btn" id="reportsUploadBtn">+ Φόρτωση αρχείου</button><input type="file" id="reportsUploadInput" class="hidden" accept=".xlsx,.xlsm,.xls,.csv,.pdf" multiple></div></div><div class="card hidden" id="reportsGenerate"><div class="toolbar" style="margin:0 0 10px"><b>Δημιουργία από τις καταγραφές</b><span id="reportsGenMsg" class="muted"></span></div><div class="toolbar" style="margin:0 0 8px"><label class="inlineCheck">Ημέρα <input type="date" id="reportsGenDay"></label><button class="btn alt repGen" data-kind="day" data-path="/sorting/daily-export?day=">Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="day" data-path="/reports/generate/daily-summary?day=">Ημερήσιο Συγκεντρωτικό</button></div><div class="toolbar" style="margin:0"><label class="inlineCheck">Μήνας <input type="month" id="reportsGenMonth"></label><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/monthly-received?month=">Μηνιαία Αναφορά Παραληφθέντων ΑΗΗΕ</button><button class="btn alt repGen" data-kind="month" data-path="/reports/generate/non-weee-by-supplier?month=">Υλικά ΜΗ ΑΗΗΕ ανά προμηθευτή</button></div></div><div id="reportsList"></div><div id="deviceYieldPanel" class="hidden"></div></section>
-<section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><button type="button" class="btn alt iconText" id="invReportBtn" title="Αναφορά (Excel / PDF)"></button><div class="prodPeriodNav" id="invZoomNav"><button type="button" id="invZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="invZoomLabel" style="min-width:52px">100%</b><button type="button" id="invZoomIn" title="Μεγέθυνση πίνακα">+</button></div></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
+<section id="inventory" class="view hidden"><div class="toolbar" style="margin:0 0 8px;flex-wrap:wrap;gap:10px;align-items:center"><div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="invActiveOnlyToggle" checked><span class="slider"></span></label><span>Εμφάνιση μόνο ενεργών</span></div><div class="prodSegment" id="invModeSeg"><button type="button" data-invmode="progressive">Προοδευτικά</button><button type="button" data-invmode="interval">Διάστημα</button></div><div class="prodSegment" id="invQuarterSeg"><button type="button" data-invq="1">1ο Τρίμηνο</button><button type="button" data-invq="2">2ο Τρίμηνο</button><button type="button" data-invq="3">3ο Τρίμηνο</button><button type="button" data-invq="4">4ο Τρίμηνο</button></div><div class="prodPeriodNav" id="invYearNav"><button type="button" id="invYearPrev">‹</button><b id="invYearLabel" style="min-width:56px"></b><button type="button" id="invYearNext">›</button></div><button type="button" class="btn alt iconText" id="invReportBtn" title="Αναφορά (Excel / PDF)"></button></div><div class="prodTableWrap" id="invTableWrap"><table class="prodTable" id="invCountTable"><thead id="invCountHead"></thead><tbody id="invCountBody"></tbody></table></div></section>
 <section id="master" class="view hidden"><div class="card masterSticky"><h3>Μητρώα</h3><div class="tabs"><button class="tab mtab active" data-mtab="suppliers">Προμηθευτές</button><button class="tab mtab" data-mtab="clients">Πελάτες</button><button class="tab mtab" data-mtab="carriers">Μεταφορείς</button><button class="tab mtab" data-mtab="partners">Συνεργάτες</button><button class="tab mtab" data-mtab="mediaM">Μέσα συλλογής</button><button class="tab mtab" data-mtab="weeeNamesM">ΑΗΗΕ</button><button class="tab mtab" data-mtab="materialsM">Υλικά</button><button class="tab mtab" data-mtab="departmentsM">Τμήματα</button><button class="tab mtab" data-mtab="employeesM">Εργαζόμενοι</button></div></div>
 <div id="suppliers" class="mpanel card"><h3>Προμηθευτές</h3><div class="masterTools"><input class="masterSearch" id="supplierSearch" placeholder="Αναζήτηση προμηθευτή, ΑΦΜ, ονομασίας…"><button class="btn" id="supplierCreate">+ Δημιουργία</button><span class="muted"><span id="supplierCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="supplierMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="supplierCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="supplierRows"></tbody></table></div></div>
 <div id="clients" class="mpanel card hidden"><h3>Πελάτες</h3><div class="masterTools"><input class="masterSearch" id="clientSearch" placeholder="Αναζήτηση πελάτη, ΑΦΜ, ονομασίας…"><button class="btn" id="clientCreate">+ Δημιουργία</button><span class="muted"><span id="clientCheckedCount">0</span> επιλεγμένα</span><button class="btn alt" id="clientMergeBtn" disabled>Συγχώνευση</button></div><div class="registryTableWrap"><table class="registryTable"><thead><tr><th><input type="checkbox" id="clientCheckAll"></th><th>Επωνυμία</th><th>Διακριτικός τίτλος</th><th>ΑΦΜ</th><th>Τηλέφωνο</th><th>Κατάσταση</th></tr></thead><tbody id="clientRows"></tbody></table></div></div>
@@ -2148,10 +2194,11 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="floatingEditor" class="floatPanel hidden"><div class="floatPanelHeader" id="floatingEditorHandle"><h3 id="floatingEditorTitle">Επεξεργασία</h3><div style="display:flex;gap:7px"><button type="button" class="winCtl" id="floatingEditorMin" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" id="floatingEditorMax" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="floatingEditorClose" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div id="floatingEditorBody"></div></div>
 <section id="visitorLog" class="view hidden"><div class="toolbar" style="margin-bottom:10px"><button type="button" class="btn alt" id="visitBack"><span class="icoL"></span>Αρχική</button></div><div class="card"><h3>Βιβλίο Επισκεπτών</h3><div class="formgrid"><label>Ημερομηνία<input id="visitDate" type="date"></label><label>Ονοματεπώνυμο<input id="visitName" placeholder="Ονοματεπώνυμο"></label><label>Προσέλευση<input id="visitArrival" type="time"></label><label>Αποχώρηση<input id="visitDeparture" type="time"></label><label class="span2">Λόγος επίσκεψης<input id="visitReason" placeholder="π.χ. Συνάντηση / Συνεργάτης"></label></div><div class="toolbar"><button class="btn" id="addVisitor">+ ΕΓΓΡΑΦΗ</button></div><div id="visitorMsg"></div></div><div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Ονοματεπώνυμο</th><th>Προσέλευση</th><th>Αποχώρηση</th><th>Λόγος επίσκεψης</th></tr></thead><tbody id="visitorRows"></tbody></table></div></section>
 <section id="galaxy" class="view hidden"><div class="grid" id="galaxyMetrics"></div><div class="card"><h3>Galaxy Sync Queue</h3><div id="galaxyNote" class="notice"></div><div id="galaxyRows"></div></div></section>
-</div></main></div>
+</div><div id="zoomBar"><span>Μέγεθος</span><button type="button" class="zmStep" id="zmMinus" title="Μείωση 10%">−</button><div id="zmTrack"><i id="zmFill"></i><b id="zmKnob"></b></div><button type="button" class="zmStep" id="zmPlus" title="Αύξηση 10%">+</button><button type="button" id="zmPct">100% ▴</button><div id="zmMenu" class="hidden"></div></div></main></div>
+<script id="vzCore">window.vzOf=function(el){return el&&el.closest&&el.closest('.content>.view')?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1):1};</script>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}async function api(path,opt={}){let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(path,{...opt,headers:h,cache:'no-store'});let d=null;try{d=await r.json()}catch{}if(!r.ok){let er=new Error(Array.isArray(d?.detail)?d.detail.join('\n'):(d?.detail||'Σφάλμα '+r.status));er.status=r.status;throw er}if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
+const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}async function api(path,opt={}){let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(path,{...opt,headers:h,cache:'no-store'});let d=null;try{d=await r.json()}catch{}if(!r.ok){let dt=d?.detail,er=new Error(Array.isArray(dt)?dt.join('\n'):(dt&&typeof dt==='object'?(dt.message||'Σφάλμα '+r.status):(dt||'Σφάλμα '+r.status)));er.status=r.status;if(dt&&typeof dt==='object'&&!Array.isArray(dt))er.detail=dt;throw er}if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
 async function downloadAuthorized(path){
  try{let exp=await api('/settings/export');if(!exp?.path){if(!confirm('Δεν έχει οριστεί φάκελος εξαγωγών στις Ρυθμίσεις εφαρμογής -- το αρχείο θα αποθηκευτεί μόνο με τη λήψη του browser. Να συνεχίσει η εξαγωγή;'))return}}catch{}
  let r=await fetch(path,{headers:token?{Authorization:'Bearer '+token}:{}});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.detail||'Σφάλμα '+r.status)}let blob=await r.blob(),name='export';let cd=r.headers.get('content-disposition')||'';let m=cd.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^;\"]+)/i);if(m)name=decodeURIComponent(m[1]||m[2]);let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
@@ -3297,7 +3344,7 @@ function buildNegUi(st){
   let h=box.scrollHeight||1,br=box.getBoundingClientRect();
   rows.forEach(tr=>{
    let first=cells.findIndex(c=>c.closest('tr')===tr);
-   let y=(tr.getBoundingClientRect().top-br.top+box.scrollTop)/h;
+   let y=((tr.getBoundingClientRect().top-br.top)/vzOf(box)+box.scrollTop)/h;
    let t=document.createElement('i');t.style.top=(Math.max(0,Math.min(.985,y))*100)+'%';t.dataset.row=String(first);t.title='Αρνητική τιμή κιλών';
    t.onclick=()=>show(first);rail.appendChild(t);
   });
@@ -3307,7 +3354,7 @@ function buildNegUi(st){
  const show=i=>{
   st.cur=(i+n)%n;let c=cells[st.cur];if(!c.isConnected)return;
   let br=box.getBoundingClientRect(),cr=c.getBoundingClientRect();
-  box.scrollTo({top:Math.max(0,cr.top-br.top+box.scrollTop-box.clientHeight/2+cr.height/2),left:Math.max(0,cr.left-br.left+box.scrollLeft-box.clientWidth/2+cr.width/2),behavior:'smooth'});
+  let zz=vzOf(box);box.scrollTo({top:Math.max(0,(cr.top-br.top)/zz+box.scrollTop-box.clientHeight/2+cr.height/zz/2),left:Math.max(0,(cr.left-br.left)/zz+box.scrollLeft-box.clientWidth/2+cr.width/zz/2),behavior:'smooth'});
   c.classList.remove('negFlash');void c.offsetWidth;c.classList.add('negFlash');
   bar.querySelector('.negGo').classList.add('hidden');bar.querySelector('.negNav').classList.remove('hidden');
   bar.querySelector('.negPos').textContent=(st.cur+1)+' / '+n;mark();
@@ -3335,11 +3382,11 @@ function stickyStackFooter(tfootId){
  // Αν οι κολλημένες γραμμές συνόλων πιάνουν πάνω από το μισό ύψος του πίνακα, δεν κολλάνε (αλλιώς σκεπάζουν τις γραμμές ημερών)· μένει κολλημένη μόνο η «Τρέχον απόθεμα».
  // ΣΗΜΑΝΤΙΚΟ: οι γραμμές που «πέφτουν» χάνουν ΜΟΝΟ την κάθετη κόλληση (bottom:auto)· ΔΕΝ γίνονται position:static, γιατί τα κελιά τους που είναι
  // κολλημένα αριστερά (πρώτη στήλη, «Σύνολο») θα έμεναν κολλημένα κάθετα μόνα τους και θα έβγαιναν από τη γραμμή τους.
- let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
+ let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height/vzOf(r),0);
  let tooTall=!!wrap&&wrap.clientHeight>0&&total>wrap.clientHeight*0.5;
  let cum=0;
  for(let i=rows.length-1;i>=0;i--){
-  let r=rows[i],h=r.getBoundingClientRect().height,keep=tooTall&&r.id==='readyBalanceRow',drop=tooTall&&!keep;
+  let r=rows[i],h=r.getBoundingClientRect().height/vzOf(r),keep=tooTall&&r.id==='readyBalanceRow',drop=tooTall&&!keep;
   r.querySelectorAll('td').forEach(td=>{
    td.style.removeProperty('position');
    if(drop)td.style.setProperty('bottom','auto','important');
@@ -3351,7 +3398,7 @@ function stickyStackFooter(tfootId){
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
 // Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
-function fitProdWraps(){document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');let h=hist?Math.max(320,window.innerHeight-240):Math.max(220,window.innerHeight-top-24);w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
+function fitProdWraps(){let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');let h=Math.floor(Math.max(hist?320:220,(window.innerHeight-top-bh)/z));w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
 (function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 function renderReadyMaterials(){
  let entries=readyState.entries||[];
@@ -3442,7 +3489,13 @@ function renderReadyMaterials(){
   +`<tr class="prodShipRow"><td>Αποστολές ${readyPW()}</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(shipGroupEntries,c))}</td>`).join('')}</tr>`
   +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
   +piecesBalanceRow
-  +invRow;
+  +invRow
+  +(bodyCols.some(c=>colBalance(c)<0)?`<tr class="ovrNoteRow"><td>Σημείωση</td><td></td>${bodyCols.map(c=>`<td>${colBalance(c)<0?'<span class="ovrTag">Υπέρβαση</span>':''}</td>`).join('')}</tr>`:'');
+ // ΑΛΛΑΓΗ ΚΗ: υλικό με αρνητικό απόθεμα → όλη η στήλη του με φόντο #fdecea, όνομα/απόθεμα κόκκινα (φεύγει αυτόματα όταν το απόθεμα γίνει 0 ή θετικό)
+ try{let tb=$('readyMatHead').closest('table');
+  tb.querySelectorAll('.ovrCol').forEach(x=>x.classList.remove('ovrCol'));
+  bodyCols.forEach((c,i)=>{if(colBalance(c)<0)tb.querySelectorAll('tr').forEach(tr=>{let cell=tr.cells[2+i];if(cell&&tr.cells.length===bodyCols.length+2)cell.classList.add('ovrCol')})});
+ }catch(e){}
  readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
  document.querySelectorAll('.corrBtn').forEach(btn=>{btn.onclick=e=>{e.stopPropagation();openCorrPopover(btn)}});
  if($('readyCorrHistLink'))$('readyCorrHistLink').onclick=()=>{if(corrections.length)readyCorrHistory(corrections)};
@@ -3821,7 +3874,6 @@ document.querySelectorAll('.repTab[data-reptab]').forEach(b=>b.onclick=()=>{repo
 let invData=null,invActiveOnly=true,invYear=new Date().getFullYear();
 let invQuarters=new Set([Math.floor(new Date().getMonth()/3)+1]);
 let invMode='progressive';
-let invZoom=Number(localStorage.getItem('invZoomPct'))||100;
 const INV_Q_LABELS=['','1ο Τρίμηνο','2ο Τρίμηνο','3ο Τρίμηνο','4ο Τρίμηνο'];
 const INV_ID_COLS={
   reptool:{label:'Reptool',text:true,get:r=>r.reptool_code},
@@ -3840,7 +3892,6 @@ const INV_Q_COLS={
 };
 const INV_Q_ORDER=['processing','sales','stock','actual','diff'];
 function invApplyZoom(){
-  invZoom=Math.max(70,Math.min(150,invZoom));
   let table=$('invCountTable');
   // Always reset to a clean natural-auto-layout baseline first, THEN re-measure -- this can run again
   // on a table a previous call (or a re-render, which rebuilds thead/tbody but keeps the <table>
@@ -3855,26 +3906,7 @@ function invApplyZoom(){
   // this function used to stop right after the reset above, silently undoing that reapply.
   applyStoredColWidths(table);
   // Ο πίνακας πιάνει ΟΛΟ το πλάτος: στήλες κειμένου + «Απόθεμα 2025» σταθερές, οι στήλες των τριμήνων μοιράζονται το υπόλοιπο (ελάχιστο 90px)
-  try{let wrap=$('invTableWrap');window.fillTableWidth(table,wrap.clientWidth/(invZoom/100)-2,th=>/^inv:(processing|sales|stock|actual|diff)$/.test(th.dataset.material||''),90)}catch(e){}
-  if(invZoom!==100){
-    // Zooming the <table> looks like it only shrinks/grows TEXT otherwise: .prodTable's min-width:100%
-    // (a percentage, resolved against the un-zoomed wrapper) and the table's own "auto" width both
-    // silently re-derive their value from the ZOOMED containing block, so the painted width always
-    // snaps back to exactly fill the wrapper regardless of the zoom factor -- min-width:0 alone isn't
-    // enough to stop that. Locking every column to an explicit px width, switching to fixed layout,
-    // and giving the table itself an explicit px width (not %, not auto) sidesteps the auto-resize
-    // entirely, so zoom scales the whole table -- column widths, row heights, padding, everything --
-    // predictably and proportionally, the way Excel's own zoom does.
-    let total=0;
-    table.querySelectorAll('thead tr:first-child th').forEach(th=>{
-      let w=Math.round(th.getBoundingClientRect().width);
-      th.style.width=w+'px';total+=w;
-    });
-    table.style.tableLayout='fixed';table.style.minWidth='0';table.style.width=total+'px';
-    table.style.zoom=(invZoom/100);
-  }
-  $('invZoomLabel').textContent=invZoom+'%';
-  localStorage.setItem('invZoomPct',invZoom);
+  try{let wrap=$('invTableWrap');window.fillTableWidth(table,wrap.clientWidth-2,th=>/^inv:(processing|sales|stock|actual|diff)$/.test(th.dataset.material||''),90)}catch(e){}
   window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
 }
 async function loadInventoryCount(){
@@ -3952,8 +3984,6 @@ window.addEventListener('tableLayoutChanged',e=>{let t=e&&e.detail&&e.detail.tab
 let _invRz=0,_invW=0;window.addEventListener('resize',()=>{clearTimeout(_invRz);_invRz=setTimeout(()=>{if($('inventory')&&!$('inventory').classList.contains('hidden'))invApplyZoom()},150)});
 // όταν αλλάζει το πλάτος του πλαισίου (π.χ. εμφανίζεται κάθετη μπάρα κύλισης) ξαναγεμίζει ο πίνακας
 try{new ResizeObserver(()=>{let w=$('invTableWrap').clientWidth;if(w&&w!==_invW){_invW=w;clearTimeout(_invRz);_invRz=setTimeout(()=>{if(!$('inventory').classList.contains('hidden'))invApplyZoom()},60)}}).observe($('invTableWrap'))}catch(e){}
-$('invZoomOut').onclick=()=>{invZoom-=10;invApplyZoom()};
-$('invZoomIn').onclick=()=>{invZoom+=10;invApplyZoom()};
 // Deferred (not a bare call): invApplyZoom() now reaches into applyStoredColWidths(), which is
 // exposed on window by a later IIFE further down this same <script> -- calling it synchronously
 // here, before that IIFE has run, throws ReferenceError and (being an uncaught top-level throw)
@@ -3987,7 +4017,7 @@ $('reportsUploadInput').onchange=async e=>{
 // ---- Ανάλυση συσκευών: πίνακας ποσοστών υλικού ανά κατηγορία ΑΗΗΕ (χειροκίνητες μετρήσεις,
 // βάση για μελλοντική ανάλυση παραγωγής -- ΔΕΝ προκύπτει από πραγματικές κινήσεις). Excel-style
 // επιλογή κελιών με σύρσιμο + Ctrl+C για αντιγραφή αλλού, διπλό κλικ για επεξεργασία ποσοστού.
-let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldActiveOnly=true,deviceYieldSysDescHidden=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false,dyClickOutsideBound=false,dyZoomPct=100;
+let deviceYieldData=null,deviceYieldCalcMode=false,deviceYieldActiveOnly=true,deviceYieldSysDescHidden=false,deviceYieldInputs={},deviceYieldPctMap={},dyKeydownBound=false,dyClickOutsideBound=false;
 async function loadDeviceYields(){
   $('deviceYieldPanel').innerHTML='<div class="card muted">Φόρτωση…</div>';
   try{
@@ -4026,10 +4056,9 @@ function renderDeviceYieldTable(){
     <button class="btn${deviceYieldCalcMode?' dyToggleActive':' alt'}" id="dyCalcToggle">${deviceYieldCalcMode?'Απόκρυψη υπολογισμού εξερχομένων':'Υπολογισμός εξερχομένων'}</button>
     <div class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="dyActiveOnlyToggle" ${deviceYieldActiveOnly?'checked':''}><span class="slider"></span></label><span>Μόνο ενεργά</span></div>
     ${hiddenChip}
-    <div class="prodPeriodNav" id="dyZoomNav" style="margin-left:auto"><button type="button" id="dyZoomOut" title="Σμίκρυνση πίνακα">−</button><b id="dyZoomLabel" style="min-width:52px">${dyZoomPct}%</b><button type="button" id="dyZoomIn" title="Μεγέθυνση πίνακα">+</button></div>
     <button class="btn alt" id="dyImportBtn">+ Εισαγωγή από Excel</button>
   </div>
-  <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc(100vh - 200px)">
+  <div class="prodTableWrap" id="dyTableWrap" style="max-height:calc((100vh - 200px) / var(--vzi,1))">
     <table class="prodTable" id="dyTable"><thead>${head1}${head2}</thead><tbody>${body}</tbody></table>
   </div>`;
   $('dyActiveOnlyToggle').onchange=e=>{deviceYieldActiveOnly=e.target.checked;renderDeviceYieldTable()};
@@ -4043,28 +4072,15 @@ function renderDeviceYieldTable(){
   setTimeout(dyApplyZoom,0);
 }
 function dyApplyZoom(){
-  dyZoomPct=Math.max(70,Math.min(150,dyZoomPct));
   let table=$('dyTable');if(!table)return;
   table.querySelectorAll('thead tr:first-child th').forEach(th=>{th.style.width=''});
   table.style.tableLayout='';table.style.minWidth='';table.style.width='';table.style.zoom='';
   applyStoredColWidths(table);
-  if(dyZoomPct!==100){
-    let total=0;
-    table.querySelectorAll('thead tr:first-child th').forEach(th=>{
-      let w=Math.round(th.getBoundingClientRect().width);
-      th.style.width=w+'px';total+=w;
-    });
-    table.style.tableLayout='fixed';table.style.minWidth='0';table.style.width=total+'px';
-    table.style.zoom=(dyZoomPct/100);
-  }
-  let lbl=$('dyZoomLabel');if(lbl)lbl.textContent=dyZoomPct+'%';
 }
 function wireDeviceYieldTable(){
   const table=$('dyTable');
   $('dyCalcToggle').onclick=()=>{deviceYieldCalcMode=!deviceYieldCalcMode;renderDeviceYieldTable()};
   $('dyImportBtn').onclick=openDeviceYieldImport;
-  $('dyZoomOut').onclick=()=>{dyZoomPct-=10;dyApplyZoom()};
-  $('dyZoomIn').onclick=()=>{dyZoomPct+=10;dyApplyZoom()};
   table.querySelectorAll('.dyBatchPickBtn').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();openDeviceYieldBatchPick(btn.dataset.cat,btn)});
   table.querySelectorAll('.dyCalcInput').forEach(inp=>inp.oninput=()=>{
     let catId=inp.dataset.cat,kgIn=Number(inp.value||0);
@@ -4359,17 +4375,17 @@ function renderShipmentHistory(){
      return `<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}">${cols.map(c=>{let v=c[1](x);return c[0]==='Δ.ΑΠ.'?`<td>${v}</td>`:cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
    const rowsZ=rows.map(x0=>{
      let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
-     return `<tr class="ecRow" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
+     return `<tr class="ecRow${x0.overrun_note?' shipOver':''}" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
    $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>`;
    $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
    renderShipHistTotal(rows,Math.max(1,cols.findIndex(c=>/^Ποσότητα/.test(c[0]))),cols.length);
    return;
  }
  if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
- const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td></tr>`).join('');
- $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td></tr>`).join('')||'<tr><td colspan="8" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
+ const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td><td></td></tr>`).join('');
+ $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow${x.overrun_note?' shipOver':''}" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td><td class="shipNote">${x.overrun_note?esc(x.overrun_note):''}</td></tr>`).join('')||'<tr><td colspan="9" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
  $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
- renderShipHistTotal(rows,3,8);
+ renderShipHistTotal(rows,3,9);
 }
 // Clicking a row opens the full Δ.Α. (dispatch note) it belongs to, with every line item under that
 // same Δ.Α. number -- one delivery note can cover several materials/rows. Looks across all of
@@ -5007,7 +5023,7 @@ async function renderWeeeMedia(){let rows=weeeLastProcessRows||[],s;try{s=await 
  document.querySelectorAll('#weeeMediaRows .mediaKg').forEach(td=>td.onclick=()=>openMediaKg(td.dataset.code,td.dataset.desc,td.dataset.type,td.dataset.tname))}
 async function openMediaKg(code,desc,typeKey,typeName){openFloat(`${code} · ${desc} — ${typeName}`,'<div class="muted">Φόρτωση...</div>');
  try{let d=await api('/inventory/weee/media-detail?official_code='+encodeURIComponent(code)+'&type_key='+encodeURIComponent(typeKey));
-  $('floatingEditorBody').innerHTML=`<div class="notice"><b>Σύνολο: ${kg(d.total)}</b></div><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Κωδικός μέσου</th><th style="text-align:right">Κιλά</th></tr></thead><tbody>${d.media.map(m=>`<tr class="mediaRow"${m.medium_id?` data-mid="${esc(m.medium_id)}"`:''}><td><b>${esc(m.code)}</b></td><td style="text-align:right">${kg(m.kg)}</td></tr>`).join('')}</tbody></table></div><div class="muted" style="margin-top:6px">Πάτημα σε γραμμή = ιστορικό του μέσου.</div>`;
+  $('floatingEditorBody').innerHTML=`<div class="notice"><b>Σύνολο: ${kg(d.total)}</b></div><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Κωδικός μέσου</th><th style="text-align:right">Κιλά</th></tr></thead><tbody>${d.media.map(m=>`<tr class="mediaRow"${m.medium_id?` data-mid="${esc(m.medium_id)}"`:''}><td><b>${esc(m.code)}</b></td><td style="text-align:right">${kg(m.kg)}</td></tr>`).join('')}</tbody></table></div>`;
   document.querySelectorAll('#floatingEditorBody .mediaRow[data-mid]').forEach(tr=>tr.onclick=()=>openMediumHistory(tr.dataset.mid,()=>openMediaKg(code,desc,typeKey,typeName)))}catch(e){$('floatingEditorBody').innerHTML=`<div class="error">${esc(e.message)}</div>`}}
 async function openMediumHistory(id,back){$('floatingEditorBody').innerHTML='<div class="muted">Φόρτωση...</div>';
  try{let h=await api('/inventory/weee/medium/'+encodeURIComponent(id)+'/history');$('floatingEditorTitle').textContent=`Ιστορικό · ${h.medium.type} ${h.medium.code}`;
@@ -5380,14 +5396,14 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     const w=new Array(g.N).fill(null);
     g.map.forEach((p,cell)=>{
       if(p.s!==p.e)return;
-      let ww=cell.getBoundingClientRect().width;
+      let ww=cell.getBoundingClientRect().width/vzOf(cell);
       if(w[p.s]==null||(w[p.s]===0&&ww>0))w[p.s]=ww;
     });
     g.map.forEach((p,cell)=>{
       if(p.s===p.e)return;
       let known=0,unk=[];
       for(let k=p.s;k<=p.e;k++){if(w[k]==null)unk.push(k);else known+=w[k]}
-      if(unk.length){let each=Math.max(0,(cell.getBoundingClientRect().width-known)/unk.length);unk.forEach(k=>{w[k]=each})}
+      if(unk.length){let each=Math.max(0,(cell.getBoundingClientRect().width/vzOf(cell)-known)/unk.length);unk.forEach(k=>{w[k]=each})}
     });
     return w.map(x=>x==null?0:x);
   }
@@ -5412,12 +5428,27 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   }
   // Ο κανόνας του Explorer: κάθε στήλη παίρνει ρητό πλάτος (px) απευθείας στα κελιά της (th και td)·
   // το πλάτος του πίνακα = άθροισμα των στηλών· τίποτα δεν μοιράζεται αναλογικά.
-  function applyWidths(table,g,w,skip){
-    // ΠΛΗΡΕΣ ΠΛΑΤΟΣ: αν οι στήλες (π.χ. μετά από σύρσιμο) αθροίζουν λιγότερο από το πλαίσιο, η τελευταία ορατή στήλη απλώνεται ώστε να μη μένει κενό δεξιά
-    // (τα w του χρήστη δεν αλλάζουν· μόνο το εφαρμοζόμενο πλάτος)
-    let box=table.closest('.prodTableWrap,.tablewrap'),avail=box?box.clientWidth:0,lastK=-1;
-    w.forEach((x,k)=>{if(!skip[k])lastK=k});
-    if(avail>0&&lastK>=0){let sum=0;w.forEach(x=>{sum+=x});if(sum<avail-0.5){w=w.slice();w[lastK]+=avail-sum}}
+  function applyWidths(table,g,w,skip,man){
+    // ΑΛΛΑΓΗ ΚΣΤ — ΠΛΗΡΕΣ ΠΛΑΤΟΣ: το περίσσιο του πλαισίου μοιράζεται ΑΝΑΛΟΓΑ (με βάση το βασικό πλάτος) σε όλες τις ορατές στήλες χωρίς χειροκίνητο πλάτος
+    // (man[k]=true = το όρισε ο χρήστης· αν όλες είναι χειροκίνητες, μοιράζεται σε όλες). Όριο 1,6× το βασικό πλάτος· ό,τι περισσεύει μένει κενό στο τέλος.
+    let box=table.closest('.prodTableWrap,.tablewrap'),avail=box?box.clientWidth:0;
+    delete table.dataset.cwGap;
+    if(avail>0){
+      let sum=0;w.forEach((x,k)=>{if(!skip[k])sum+=x});
+      let rem=avail-sum;
+      if(rem>0.5){
+        let base=w.slice(),set=[];w.forEach((x,k)=>{if(!skip[k]&&!(man&&man[k]))set.push(k)});
+        if(!set.length)w.forEach((x,k)=>{if(!skip[k])set.push(k)});
+        w=w.slice();
+        for(let it=0;it<8&&rem>0.5&&set.length;it++){
+          let tot=0;set.forEach(k=>{tot+=base[k]});if(!(tot>0))break;
+          let next=[],used=0;
+          set.forEach(k=>{let add=rem*base[k]/tot,room=base[k]*1.6-w[k];if(add>=room){let r=Math.max(0,room);w[k]+=r;used+=r}else{w[k]+=add;used+=add;next.push(k)}});
+          rem-=used;set=next;if(used<0.01)break;
+        }
+        if(rem>1)table.dataset.cwGap='1';
+      }
+    }
     let total=0;w.forEach(x=>{total+=x});
     table.dataset.cwt='1';
     table.style.tableLayout='fixed';
@@ -5454,9 +5485,9 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let g=gridMap(tableRows(table)),leaf=leafOf(table,g);
     let stored=leaf.map(c=>c?localStorage.getItem(gridKey(c,g.map.get(c).ri)):null);
     if(!stored.some(Boolean))return;
-    let w=measureGrid(table,g),skip=skipCols(table,g,w);
-    stored.forEach((v,k)=>{let n=Number(v);if(v&&n>0&&!skip[k])w[k]=Math.max(MIN_W,n)});
-    applyWidths(table,g,w,skip);
+    let w=measureGrid(table,g),skip=skipCols(table,g,w),man=[];
+    stored.forEach((v,k)=>{let n=Number(v);if(v&&n>0&&!skip[k]){w[k]=Math.max(MIN_W,n);man[k]=true}});
+    applyWidths(table,g,w,skip,man);
   }
   // Γέμισμα πλάτους: οι στήλες που ικανοποιούν το isFlex(th) (και δεν έχουν μόνιμο πλάτος από τον χρήστη) μοιράζονται ισομερώς το
   // υπόλοιπο του avail (ελάχιστο minFlex)· οι υπόλοιπες κρατούν το πλάτος τους. Αν δεν χωράνε, ο πίνακας ξεπερνά το πλαίσιο (οριζόντιο scroll).
@@ -5464,16 +5495,17 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     if(!table||!table.offsetParent||!(avail>0))return;
     if(!table.dataset.cwt)table.style.setProperty('min-width','0','important');   // φυσικά πλάτη (χωρίς το min-width:100% που τα φουσκώνει)
     let g=gridMap(tableRows(table)),leaf=leafOf(table,g),w=measureGrid(table,g),skip=skipCols(table,g,w);
-    let flex=[],fixed=0,user=0;
+    let flex=[],fixed=0,user=0,man=[];
     w.forEach((x,k)=>{
       let lf=leaf[k];
+      if(lf&&localStorage.getItem(gridKey(lf,g.map.get(lf).ri)))man[k]=true;
       if(!skip[k]&&lf&&isFlex(lf)){let st=localStorage.getItem(gridKey(lf,g.map.get(lf).ri));if(st)user+=x;else flex.push(k)}
       else fixed+=x;
     });
     if(!flex.length)return;
     let rest=avail-fixed-user,per=Math.max(minFlex||90,Math.floor(rest/flex.length)),extra=per>(minFlex||90)?Math.max(0,Math.round(rest-per*flex.length)):0;
     flex.forEach((k,i)=>{w[k]=per+(i<extra?1:0)});
-    applyWidths(table,g,w,skip);
+    applyWidths(table,g,w,skip,man);
   };
   window.applyStoredColWidths=applyStoredColWidths;
   // Live-mirror a resize on Αποθήκη ΑΗΗΕ's two stock tables onto each other (same column index),
@@ -5519,14 +5551,14 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   }
   document.addEventListener('mousemove',e=>{
     if(state){
-      let dx=e.clientX-state.startX;
+      let dx=(e.clientX-state.startX)/vzOf(state.table);
       if(state.stock){
         let newW=Math.max(MIN_W,state.startW+dx);
         state.th.style.width=newW+'px';state.table.style.tableLayout='fixed';
         mirrorStockTableWidth(state.th,newW);
       }else{
         state.w[state.b]=Math.max(MIN_W,state.startW+dx);
-        applyWidths(state.table,state.g,state.w,state.skip);
+        applyWidths(state.table,state.g,state.w,state.skip,state.man);
       }
       dragLine();
       e.preventDefault();
@@ -5549,10 +5581,10 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
       let g=gridMap(tableRows(table)),p=g.map.get(th);
       if(!p)return;
       let leaf=leafOf(table,g),w=measureGrid(table,g),skip=skipCols(table,g,w);
-      let lk=leaf[p.e];
+      let lk=leaf[p.e],man=leaf.map(c=>!!(c&&localStorage.getItem(gridKey(c,g.map.get(c).ri))));man[p.e]=true;
       // ήδη αποθηκευμένα πλάτη των άλλων στηλών εφαρμόζονται ως έχουν (τα w είναι τα πραγματικά τρέχοντα)
-      state={th,table,g,w,skip,b:p.e,leaf:lk,ri:g.map.get(lk||th).ri,startX:e.clientX,startW:w[p.e]};
-      applyWidths(table,g,w,skip);
+      state={th,table,g,w,skip,man,b:p.e,leaf:lk,ri:g.map.get(lk||th).ri,startX:e.clientX,startW:w[p.e]};
+      applyWidths(table,g,w,skip,state.man);
     }
     document.body.style.userSelect='none';document.body.style.cursor='col-resize';
     dragLine();
@@ -6861,7 +6893,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
 // Φορτώσεις → Προετοιμασία φόρτωσης: σχέδιο φορτίου (δεν δεσμεύει αποθήκη) και οριστικοποίηση με την υπάρχουσα λογική φορτώσεων.
 (function(){
   const PURPOSES=['Τελική διάθεση','Διασυνοριακή μεταφορά','Ενδοδιακίνηση','Πώληση'];
-  const P={id:null,cargo:[],sel:new Set(),cSel:new Set(),open:new Set(),stock:[],lots:new Map(),clients:[],carriers:[],ready:false,freq:null,drag:null,handled:false};
+  const P={id:null,cargo:[],bulk:[],bsel:new Set(),bcart:new Map(),cbSel:new Set(),sel:new Set(),cSel:new Set(),open:new Set(),stock:[],lots:new Map(),clients:[],carriers:[],ready:false,freq:null,drag:null,handled:false};
   const $=id=>document.getElementById(id);
   const fmt=n=>Number(n||0).toLocaleString('el-GR',{maximumFractionDigits:0});
   const escH=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -6871,7 +6903,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
 
   // ---- δεδομένα ----
   async function loadStock(){
-    let d=await api('/loading/prep/stock');P.stock=d.categories||[];P.lots=new Map();
+    let d=await api('/loading/prep/stock');P.stock=d.categories||[];P.bulk=d.bulk||[];P.lots=new Map();
     P.stock.forEach(c=>c.materials.forEach(m=>m.items.forEach(i=>P.lots.set(i.lot_id,{...i,material_id:m.material_id,material:m.material,category:c.category}))));
   }
   async function loadLists(){
@@ -6900,7 +6932,58 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
   // ---- μοντέλο ----
   const inCargo=id=>P.cargo.includes(id);
   const availItems=m=>m.items.filter(i=>!inCargo(i.lot_id));
-  function total(){return P.cargo.reduce((s,id)=>s+(P.lots.get(id)?.kg||0),0)}
+  // Χύμα κιλά (υπολογιζόμενο απόθεμα Υλικών): διαθέσιμα = απόθεμα − ό,τι ήδη μπήκε στο φορτίο
+  const BG_LABEL=g=>({AXIOPOIISIMA:'Αξιοποιήσιμα Υλικά',EIDIKIS_DIACHEIRISIS:'Υλικά Ειδικής Διαχείρισης',APORRIPSI:'Υλικά προς Απόρριψη'}[g]||g||'Χωρίς κατηγορία');
+  const nrm=s=>String(s==null?'':s).toLocaleLowerCase('el').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const bulkStock=l=>{let b=P.bulk.find(x=>x.material_label===l);return b?b.kg:0};
+  const bulkAvail=l=>Math.max(0,Math.round((bulkStock(l)-(P.bcart.has(l)?P.bcart.get(l).kg:0))*1000)/1000);
+  const bulkTotal=()=>[...P.bcart.values()].reduce((s,b)=>s+b.kg,0);
+  function total(){return P.cargo.reduce((s,id)=>s+(P.lots.get(id)?.kg||0),0)+bulkTotal()}
+  function askKg(label,avail){return new Promise(res=>{
+    let w=document.createElement('div');w.className='prepAskBack';
+    w.innerHTML=`<div class="prepAsk" role="dialog"><h4>Χύμα: ${escH(label)}</h4><div class="prepAskSub">Διαθέσιμα: <b>${fmt(avail)}</b> kg</div><label>Πόσα kg θα φορτωθούν;<input type="text" inputmode="decimal" id="pfAskKg" value="${avail}" autocomplete="off"></label><div class="prepAskErr" id="pfAskErr"></div><div class="prepAskBtns"><button type="button" class="btn alt" id="pfAskNo">Άκυρο</button><button type="button" class="btn" id="pfAskOk">Προσθήκη</button></div></div>`;
+    document.body.appendChild(w);
+    let inp=w.querySelector('#pfAskKg'),err=w.querySelector('#pfAskErr');inp.focus();inp.select();
+    const done=v=>{document.removeEventListener('keydown',kd,true);w.remove();res(v)};
+    const ok=()=>{let v=Number(String(inp.value).replace(',','.'));
+      if(!(v>0)){err.textContent='Γράψε θετικό αριθμό kg.';return}
+      if(v>avail+1e-9){err.textContent='Δεν επαρκεί: διαθέσιμα μόνο '+fmt(avail)+' kg.';return}
+      done(v)};
+    const kd=e=>{if(e.key==='Escape'){e.stopPropagation();done(null)}else if(e.key==='Enter'){e.preventDefault();e.stopPropagation();ok()}};
+    document.addEventListener('keydown',kd,true);
+    w.querySelector('#pfAskOk').onclick=ok;w.querySelector('#pfAskNo').onclick=()=>done(null);
+    w.addEventListener('mousedown',e=>{if(e.target===w)done(null)});
+  })}
+  async function addBulk(labels){
+    for(const l of labels){
+      let av=bulkAvail(l);if(av<=0)continue;
+      let kg=await askKg(l,av);P.bsel.delete(l);
+      if(kg==null)continue;
+      let cur=P.bcart.get(l);
+      P.bcart.set(l,{group:(P.bulk.find(x=>x.material_label===l)||{}).category_group,kg:Math.round(((cur?cur.kg:0)+kg)*1000)/1000});
+      toast(`Προστέθηκαν ${fmt(kg)} kg · ${l}`);
+    }
+    renderAll();
+  }
+  function removeBulk(labels){
+    let rem=labels.filter(l=>P.bcart.has(l));
+    if(!rem.length)return;
+    rem.forEach(l=>{P.bcart.delete(l);P.cbSel.delete(l)});
+    toast(`Αφαιρέθηκαν ${rem.length} χύμα γραμμές από τη φόρτωση`);
+    renderAll();
+  }
+  async function addSelected(){
+    let ids=[...P.sel],bl=[...P.bsel];
+    if(!ids.length&&!bl.length){toast('Δεν έχεις επιλέξει υλικά ή μέσα στην Αποθήκη');return}
+    if(ids.length)addLots(ids);
+    if(bl.length)await addBulk(bl);
+  }
+  function removeSelected(){
+    let ids=[...P.cSel],bl=[...P.cbSel];
+    if(!ids.length&&!bl.length){toast('Δεν έχεις επιλέξει υλικά ή μέσα στο Φορτίο');return}
+    if(ids.length)removeLots(ids);
+    if(bl.length)removeBulk(bl);
+  }
   function addLots(ids){
     let add=ids.filter(id=>P.lots.has(id)&&!inCargo(id));
     if(!add.length)return;
@@ -6926,33 +7009,52 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     box.querySelectorAll('[data-fq]').forEach(b=>b.onclick=()=>addLots(P.freq.items[Number(b.dataset.fq)].lot_ids));
   }
   function renderWh(){
-    let q=($('pfSearch').value||'').trim().toLocaleLowerCase('el'),h='';
+    let qraw=($('pfSearch').value||'').trim(),q=nrm(qraw),h='';
     for(const c of P.stock){
-      let ms=c.materials.filter(m=>availItems(m).length&&(!q||m.material.toLocaleLowerCase('el').includes(q)));
+      let cn=nrm(c.category);
+      let ms=c.materials.filter(m=>availItems(m).length&&(!q||nrm(m.material).includes(q)||cn.includes(q)||availItems(m).some(i=>nrm(i.label).includes(q)||nrm(i.code).includes(q)||nrm(i.lot_number).includes(q))));
       if(!ms.length)continue;
       h+=`<div class="prepCat">${escH(c.category)}</div>`;
       for(const m of ms){
-        let it=availItems(m),selN=it.filter(i=>P.sel.has(i.lot_id)).length,open=P.open.has(m.material_id);
+        let it=availItems(m),selN=it.filter(i=>P.sel.has(i.lot_id)).length,nameHit=!q||nrm(m.material).includes(q)||cn.includes(q),open=P.open.has(m.material_id)||!nameHit;
         let pcs=it.filter(i=>i.code).length,kg=it.reduce((s,i)=>s+i.kg,0);
         h+=`<div class="prepMat" draggable="true" data-m="${m.material_id}"><input type="checkbox" data-mc="${m.material_id}" ${selN===it.length?'checked':''}><span class="nm">${escH(m.material)}</span><span class="pc">${pcs?pcs+' τεμ.':''}</span><span class="kgc">${fmt(kg)}</span><span class="arr" data-arr="${m.material_id}">${open?'▴':'▾'}</span></div>`;
         if(open)h+=`<div class="prepMedia">${it.map(i=>`<button type="button" draggable="true" data-l="${i.lot_id}" class="${P.sel.has(i.lot_id)?'on':''}">${escH(i.label)}${i.code?' · '+escH(i.code):''} · ${fmt(i.kg)} kg</button>`).join('')}</div>`;
       }
     }
-    let L=$('pfWhList');L.innerHTML=h||'<div class="prepEmpty">Δεν υπάρχουν διαθέσιμα μέσα συλλογής.</div>';
+    // χύμα κιλά (υπολογιζόμενο απόθεμα): ομαδοποιημένα ανά κατηγορία υλικών
+    let bg=new Map();
+    P.bulk.forEach(b=>{
+      let av=bulkAvail(b.material_label);if(av<=0)return;
+      if(q&&!(nrm(b.material_label).includes(q)||nrm(BG_LABEL(b.category_group)).includes(q)||nrm('χύμα κιλά').includes(q)))return;
+      if(!bg.has(b.category_group))bg.set(b.category_group,[]);bg.get(b.category_group).push({l:b.material_label,av});
+    });
+    bg.forEach((rows,g)=>{
+      h+=`<div class="prepCat">Χύμα · ${escH(BG_LABEL(g))}</div>`;
+      rows.forEach(r=>{h+=`<div class="prepMat prepBulk" draggable="true" data-bk="${escH(r.l)}"><input type="checkbox" data-bkc="${escH(r.l)}" ${P.bsel.has(r.l)?'checked':''}><span class="nm">${escH(r.l)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(r.av)}</span></div>`});
+    });
+    let L=$('pfWhList');L.innerHTML=h||(q?`<div class="prepEmpty">Δεν βρέθηκε τίποτα για «${escH(qraw)}».</div>`:'<div class="prepEmpty">Δεν υπάρχουν διαθέσιμα μέσα συλλογής.</div>');
     L.querySelectorAll('input[data-mc]').forEach(cb=>{
       let m=findMat(cb.dataset.mc),it=m?availItems(m):[],n=it.filter(i=>P.sel.has(i.lot_id)).length;
       cb.indeterminate=n>0&&n<it.length;
       cb.onclick=e=>{e.stopPropagation();it.forEach(i=>cb.checked?P.sel.add(i.lot_id):P.sel.delete(i.lot_id));renderAll()};
     });
     L.querySelectorAll('[data-arr]').forEach(a=>a.onclick=e=>{e.stopPropagation();let k=a.dataset.arr;P.open.has(k)?P.open.delete(k):P.open.add(k);renderWh()});
-    L.querySelectorAll('.prepMat').forEach(r=>{
+    L.querySelectorAll('.prepMat:not(.prepBulk)').forEach(r=>{
       r.ondblclick=()=>{let m=findMat(r.dataset.m);if(m)addLots(availItems(m).map(i=>i.lot_id))};
-      r.ondragstart=e=>{let m=findMat(r.dataset.m);if(!m)return;let mine=availItems(m).map(i=>i.lot_id),selAll=[...P.sel].filter(id=>mine.includes(id)).length?[...P.sel]:mine;startDrag(e,'wh',selAll)};
+      r.ondragstart=e=>{let m=findMat(r.dataset.m);if(!m)return;let mine=availItems(m).map(i=>i.lot_id),selAll=[...P.sel].filter(id=>mine.includes(id)).length?[...P.sel]:mine;startDrag(e,'wh',selAll,[...P.bsel]);};
+      r.ondragend=endDrag;
+    });
+    L.querySelectorAll('.prepBulk').forEach(r=>{
+      let l=r.dataset.bk;
+      r.querySelector('input').onclick=e=>{e.stopPropagation();e.target.checked?P.bsel.add(l):P.bsel.delete(l);renderAll()};
+      r.ondblclick=()=>addBulk([l]);
+      r.ondragstart=e=>startDrag(e,'wh',[...P.sel],P.bsel.has(l)?[...P.bsel]:[l]);
       r.ondragend=endDrag;
     });
     L.querySelectorAll('.prepMedia button').forEach(b=>{
       b.onclick=()=>{let id=b.dataset.l;P.sel.has(id)?P.sel.delete(id):P.sel.add(id);renderAll()};
-      b.ondragstart=e=>{let id=b.dataset.l;startDrag(e,'wh',P.sel.has(id)?[...P.sel]:[id])};b.ondragend=endDrag;
+      b.ondragstart=e=>{let id=b.dataset.l;startDrag(e,'wh',P.sel.has(id)?[...P.sel]:[id],[...P.bsel])};b.ondragend=endDrag;
     });
   }
   function findMat(mid){for(const c of P.stock)for(const m of c.materials)if(m.material_id===mid)return m;return null}
@@ -6964,12 +7066,20 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
       h+=`<div class="cgGroup"><div class="cgHead"><span>${escH(g.name)}</span><span>${fmt(g.items.reduce((s,i)=>s+i.kg,0))} kg</span></div>`+
         g.items.map(i=>`<div class="cgRow" draggable="true" data-c="${i.lot_id}"><input type="checkbox" data-cc="${i.lot_id}" ${P.cSel.has(i.lot_id)?'checked':''}><span class="nm">${escH(i.label)}${i.code?' · '+escH(i.code):''}</span><span>${fmt(i.kg)} kg</span><button type="button" class="x" data-x="${i.lot_id}" title="Αφαίρεση">×</button></div>`).join('')+'</div>';
     });
-    let L=$('pfCargoList');L.innerHTML=h||'<div class="prepEmpty">Το φορτίο είναι κενό. Τσέκαρε υλικά ή μέσα και πάτα ▶, ή σύρε τα εδώ.</div>';
-    $('pfCargoCount').textContent=P.cargo.length?`${P.cargo.length} μέσα συλλογής`:'';
+    P.bcart.forEach((b,l)=>{
+      h+=`<div class="cgGroup"><div class="cgHead"><span>${escH(l)}</span><span>${fmt(b.kg)} kg</span></div><div class="cgRow" draggable="true" data-cb="${escH(l)}"><input type="checkbox" data-cbc="${escH(l)}" ${P.cbSel.has(l)?'checked':''}><span class="nm">Χύμα</span><span>${fmt(b.kg)} kg</span><button type="button" class="x" data-xb="${escH(l)}" title="Αφαίρεση">×</button></div></div>`;
+    });
+    let L=$('pfCargoList');L.innerHTML=h||'<div class="prepEmpty">Τσέκαρε υλικά ή μέσα και πάτα «Προσθήκη επιλεγμένων», ή σύρε τα εδώ.</div>';
+    $('pfCargoCount').textContent=[P.cargo.length?`${P.cargo.length} μέσα συλλογής`:'',P.bcart.size?`${P.bcart.size} χύμα γραμμές`:''].filter(Boolean).join(' · ');
     L.querySelectorAll('[data-cc]').forEach(cb=>cb.onclick=()=>{cb.checked?P.cSel.add(cb.dataset.cc):P.cSel.delete(cb.dataset.cc);renderBadge()});
     L.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>removeLots([b.dataset.x]));
-    L.querySelectorAll('.cgRow').forEach(r=>{
-      r.ondragstart=e=>{let id=r.dataset.c;startDrag(e,'cargo',P.cSel.has(id)?[...P.cSel]:[id])};r.ondragend=e=>{if(P.drag&&P.drag.kind==='cargo'&&!P.handled&&e.dataTransfer.dropEffect==='none')removeLots(P.drag.ids);endDrag()};
+    L.querySelectorAll('.cgRow[data-c]').forEach(r=>{
+      r.ondragstart=e=>{let id=r.dataset.c;startDrag(e,'cargo',P.cSel.has(id)?[...P.cSel]:[id],[...P.cbSel])};r.ondragend=e=>{if(P.drag&&P.drag.kind==='cargo'&&!P.handled&&e.dataTransfer.dropEffect==='none'){let d=P.drag;removeLots(d.ids);removeBulk(d.bulk||[])}endDrag()};
+    });
+    L.querySelectorAll('[data-cbc]').forEach(cb=>cb.onclick=()=>{cb.checked?P.cbSel.add(cb.dataset.cbc):P.cbSel.delete(cb.dataset.cbc);renderBadge()});
+    L.querySelectorAll('[data-xb]').forEach(b=>b.onclick=()=>removeBulk([b.dataset.xb]));
+    L.querySelectorAll('.cgRow[data-cb]').forEach(r=>{
+      r.ondragstart=e=>{let l=r.dataset.cb;startDrag(e,'cargo',[...P.cSel],P.cbSel.has(l)?[...P.cbSel]:[l])};r.ondragend=e=>{if(P.drag&&P.drag.kind==='cargo'&&!P.handled&&e.dataTransfer.dropEffect==='none'){let d=P.drag;removeLots(d.ids);removeBulk(d.bulk||[])}endDrag()};
     });
     let t=total(),mx=Math.max(1,Number($('pfMax').value)||25000);
     $('pfTotal').textContent=fmt(t);
@@ -6979,27 +7089,29 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     bar.classList.toggle('over',t>=mx);bar.classList.toggle('warn',t<mx&&mx-t<=2000);
   }
   function renderBadge(){
-    let n=P.sel.size+P.cSel.size,b=$('pfBadge');b.textContent=n;b.classList.toggle('hidden',!n);
+    let a=$('pfAdd'),r=$('pfRemove'),na=P.sel.size+P.bsel.size,nr=P.cSel.size+P.cbSel.size;
+    a.textContent='Προσθήκη επιλεγμένων ('+na+') ▸';a.disabled=!na;a.classList.toggle('on',!!na);
+    r.textContent='◂ Επιστροφή επιλεγμένων ('+nr+')';r.disabled=!nr;r.classList.toggle('on',!!nr);
   }
   function renderAll(){renderWh();renderCargo();renderFreq();renderBadge()}
 
   // ---- drag & drop ----
-  function startDrag(e,kind,ids){P.drag={kind,ids};P.handled=false;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',kind+':'+ids.length)}
+  function startDrag(e,kind,ids,bulk){P.drag={kind,ids,bulk:bulk||[]};P.handled=false;e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',kind+':'+(ids.length+(bulk||[]).length))}
   function endDrag(){P.drag=null;$('prepTwo').classList.remove('dropOn')}
   function wireDrop(){
     const cargo=$('pfCargoPanel'),wh=document.querySelector('#prepPanel .prepWh');
     cargo.ondragover=e=>{if(P.drag&&P.drag.kind==='wh'){e.preventDefault();$('prepTwo').classList.add('dropOn')}};
     cargo.ondragleave=e=>{if(!cargo.contains(e.relatedTarget))$('prepTwo').classList.remove('dropOn')};
-    cargo.ondrop=e=>{if(P.drag&&P.drag.kind==='wh'){e.preventDefault();P.handled=true;let ids=P.drag.ids;endDrag();addLots(ids)}};
+    cargo.ondrop=e=>{if(P.drag&&P.drag.kind==='wh'){e.preventDefault();P.handled=true;let ids=P.drag.ids,bl=P.drag.bulk||[];endDrag();if(ids.length)addLots(ids);if(bl.length)addBulk(bl)}};
     wh.ondragover=e=>{if(P.drag&&P.drag.kind==='cargo')e.preventDefault()};
-    wh.ondrop=e=>{if(P.drag&&P.drag.kind==='cargo'){e.preventDefault();P.handled=true;let ids=P.drag.ids;endDrag();removeLots(ids)}};
+    wh.ondrop=e=>{if(P.drag&&P.drag.kind==='cargo'){e.preventDefault();P.handled=true;let ids=P.drag.ids,bl=P.drag.bulk||[];endDrag();if(ids.length)removeLots(ids);if(bl.length)removeBulk(bl)}};
   }
 
   // ---- φόρμα / αποθήκευση ----
   function readForm(){
     return {customer_id:$('pfCustomer').value,carrier_id:$('pfCarrier').value||null,vehicle_registration:$('pfPlate').value||null,driver_name:$('pfDriver').value||null,
       dispatch_reason:$('pfPurpose').value||null,eka_code:$('pfEka').value||null,reptool_code:$('pfReptool').value||null,dispatch_document_number:$('pfDa').value||null,
-      delivery_date:$('pfDate').value||null,notes:$('pfNotes').value||null,max_allowed_weight:Math.max(1,Number($('pfMax').value)||25000),lot_ids:[...P.cargo]};
+      delivery_date:$('pfDate').value||null,notes:$('pfNotes').value||null,max_allowed_weight:Math.max(1,Number($('pfMax').value)||25000),lot_ids:[...P.cargo],bulk_items:[...P.bcart].map(([l,b])=>({material_label:l,weight_kg:b.kg}))};
   }
   function fillForm(o){
     $('pfCustomer').value=o?.customer_id||'';$('pfCarrier').value=o?.carrier_id||'';$('pfPlate').value=o?.vehicle_registration||'';$('pfDriver').value=o?.driver_name||'';
@@ -7024,18 +7136,36 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     try{let o=await save();if(!o)return;toast('Αποθηκεύτηκε ως πρόχειρο · '+o.loading_number);msg('Αποθηκεύτηκε ως πρόχειρο ('+o.loading_number+').',true);if(typeof loadShipmentHistory==='function')loadShipmentHistory()}
     catch(e){msg(e.message||String(e))}
   }
-  async function finalize(){
+  // ΑΛΛΑΓΗ ΚΗ: παράθυρο «Δεν επαρκεί το διαθέσιμο χύμα» — συνέχεια μόνο με ρητή επιβεβαίωση και υποχρεωτικό λόγο· Esc / κλικ έξω / «Πίσω» δεν αλλάζουν τίποτα
+  function askShortage(items){
+    const n1=v=>Number(v||0).toLocaleString('el-GR',{maximumFractionDigits:1});
+    let w=document.createElement('div');w.className='prepAskBack';w.id='pfShort';
+    w.innerHTML=`<div class="prepAsk prepShort" role="dialog" aria-modal="true"><h4>Δεν επαρκεί το διαθέσιμο χύμα</h4><p>Μπορείτε να συνεχίσετε. Η έλλειψη θα καταγραφεί και το απόθεμα στα Υλικά θα βγει αρνητικό μέχρι να καταχωρηθεί η παραγωγή που λείπει.</p><div class="shTblWrap"><table class="shTbl"><thead><tr><th>Υλικό</th><th class="num">Ζητούνται</th><th class="num">Διαθέσιμα</th><th class="num">Υπέρβαση</th></tr></thead><tbody>${items.map(i=>`<tr><td>${escH(i.material_label)}</td><td class="num">${n1(i.requested)} kg</td><td class="num">${n1(i.available)} kg</td><td class="num over">${n1(i.over)} kg</td></tr>`).join('')}</tbody></table></div><label>Λόγος υπέρβασης (υποχρεωτικό)<input type="text" id="pfShortReason" autocomplete="off"></label><div class="prepAskBtns"><button type="button" class="shBack" id="pfShortBack">Πίσω στο φορτίο</button><button type="button" class="shGo" id="pfShortGo" disabled>Συνέχεια παρά την έλλειψη</button></div></div>`;
+    document.body.appendChild(w);
+    let inp=w.querySelector('#pfShortReason'),go=w.querySelector('#pfShortGo'),busy=false;
+    const close=()=>{document.removeEventListener('keydown',kd,true);w.remove()};
+    const sync=()=>{go.disabled=!inp.value.trim()};
+    const run=async()=>{if(busy||go.disabled)return;busy=true;let reason=inp.value.trim();close();await finalize({allow_shortage:true,shortage_reason:reason})};
+    const kd=e=>{if(e.key==='Escape'){e.stopPropagation();close()}else if(e.key==='Enter'&&document.activeElement===inp){e.preventDefault();e.stopPropagation();run()}};
+    document.addEventListener('keydown',kd,true);
+    inp.oninput=sync;go.onclick=run;w.querySelector('#pfShortBack').onclick=close;
+    w.addEventListener('mousedown',e=>{if(e.target===w)close()});
+    inp.focus();
+  }
+  async function finalize(extra){
     msg('');
-    if(!P.cargo.length){msg('Το φορτίο είναι κενό.');return}
+    if(!P.cargo.length&&!P.bcart.size){msg('Το φορτίο είναι κενό.');return}
     try{
       let o=await save();if(!o)return;
-      let done=await api('/loading/prep/'+P.id+'/finalize',{method:'POST',body:JSON.stringify(readForm())});
+      let done=await api('/loading/prep/'+P.id+'/finalize',{method:'POST',body:JSON.stringify(Object.assign(readForm(),extra||{}))});
       toast('Οριστικοποιήθηκε · Δ.Α. '+(done.dispatch_document_number||''));
       reset();await loadStock();renderAll();
       if(typeof loadLoading==='function')loadLoading();
-    }catch(e){msg(e.message||String(e));await loadStock().catch(()=>{});renderAll()}
+    }catch(e){
+      if(e.detail&&e.detail.code==='BULK_SHORTAGE'){await loadStock().catch(()=>{});renderAll();askShortage(e.detail.items||[]);return}
+      msg(e.message||String(e));await loadStock().catch(()=>{});renderAll()}
   }
-  function reset(){P.id=null;P.cargo=[];P.sel.clear();P.cSel.clear();fillForm(null);msg('');P.freq=null;renderFreq()}
+  function reset(){P.id=null;P.cargo=[];P.bcart.clear();P.bsel.clear();P.cbSel.clear();P.sel.clear();P.cSel.clear();fillForm(null);msg('');P.freq=null;renderFreq()}
 
   // ---- είσοδος στη σελίδα ----
   async function ensure(){
@@ -7045,9 +7175,9 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     $('pfCarrier').onchange=loadCarrierLists;
     $('pfSearch').oninput=renderWh;
     $('pfMax').oninput=renderCargo;
-    $('pfAdd').onclick=()=>{let ids=[...P.sel];if(!ids.length){toast('Δεν έχεις επιλέξει μέσα στην Αποθήκη');return}addLots(ids)};
-    $('pfRemove').onclick=()=>{let ids=[...P.cSel];if(!ids.length){toast('Δεν έχεις επιλέξει μέσα στο Φορτίο');return}removeLots(ids)};
-    $('pfSaveDraft').onclick=saveDraft;$('pfFinalize').onclick=finalize;
+    $('pfAdd').onclick=addSelected;
+    $('pfRemove').onclick=removeSelected;
+    $('pfSaveDraft').onclick=saveDraft;$('pfFinalize').onclick=()=>finalize();
     P.ready=true;
   }
   async function show(sub){
@@ -7065,6 +7195,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
       P.id=d.order.id;P.sel.clear();P.cSel.clear();
       fillForm(d.order);await loadCarrierLists();
       P.cargo=d.items.map(i=>i.lot_id).filter(l=>P.lots.has(l));
+      P.bcart=new Map((d.bulk||[]).filter(b=>bulkStock(b.material_label)>0).map(b=>[b.material_label,{group:b.category_group,kg:Math.min(b.kg,bulkStock(b.material_label))}]));P.bsel.clear();P.cbSel.clear();
       let gone=d.items.filter(i=>!P.lots.has(i.lot_id));
       renderAll();loadFreq();
       msg(gone.length?`${gone.length} μέσα του πρόχειρου δεν είναι πια διαθέσιμα και δεν εμφανίζονται στο φορτίο.`:'');
@@ -7551,7 +7682,7 @@ const SF=(function(){
     rows.forEach(r=>{
       let v=cum+'px';
       [...r.cells].forEach(c=>setTop(c,v));
-      cum+=r.getBoundingClientRect().height;
+      cum+=r.getBoundingClientRect().height/vzOf(r);
     });
   }
   function fixFoot(t,sc){
@@ -7560,8 +7691,8 @@ const SF=(function(){
     if(!rows.length)return;
     let stick=rows.filter(r=>[...r.cells].some(c=>getComputedStyle(c).position==='sticky'));
     if(!stick.length)return;
-    let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
-    let avail=sc?sc.clientHeight:window.innerHeight;
+    let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height/vzOf(r),0);
+    let avail=sc?sc.clientHeight:window.innerHeight/vzOf(t);
     let tooTall=avail>0&&total>avail*0.5;
     let cum=0;
     for(let i=rows.length-1;i>=0;i--){
@@ -7571,7 +7702,7 @@ const SF=(function(){
         if(drop){if(c.style.position==='static')c.style.removeProperty('position');c.style.setProperty('bottom','auto','important')}
         else{if(c.style.position==='static')c.style.removeProperty('position');setBottom(c,cum+'px')}
       });
-      if(!drop)cum+=r.getBoundingClientRect().height;
+      if(!drop)cum+=r.getBoundingClientRect().height/vzOf(r);
     }
   }
   // Στήλη «Σύνολο» αμέσως δεξιά από sticky πρώτη στήλη: κολλά κι αυτή, με left = πλάτος της πρώτης στήλης.
@@ -7601,7 +7732,7 @@ const SF=(function(){
       prev.forEach(c=>{c.classList.remove('stkTotal');c.style.removeProperty('left')});
       t._stkTotal=null;return;
     }
-    let w=Math.round(first.getBoundingClientRect().width);
+    let w=Math.round(first.getBoundingClientRect().width/vzOf(first));
     let cells=(at[1]||[]).map(o=>o.c);
     prev.filter(c=>!cells.includes(c)).forEach(c=>{c.classList.remove('stkTotal');c.style.removeProperty('left')});
     cells.forEach(c=>{
@@ -7624,10 +7755,10 @@ const SF=(function(){
     if(!f){f=document.createElement('tr');f.className='tFill';f.setAttribute('aria-hidden','true');tb.appendChild(f)}
     else if(f!==tb.lastElementChild)tb.appendChild(f);
     if(f._sig!==sig){f.innerHTML='';cells.forEach(c=>{let td=document.createElement('td');td.className=c.className.replace(/\b(pinColHide|pinRowHideCell|prodEditableCell|negKgCell)\b/g,'').trim();f.appendChild(td)});f._sig=sig}
-    let rh=Math.max(20,Math.round(ref.getBoundingClientRect().height)||34);
+    let rh=Math.max(20,Math.round(ref.getBoundingClientRect().height/vzOf(ref))||34);
     f.style.setProperty('--tfRow',rh+'px');
     f.style.display='';
-    let used=t.getBoundingClientRect().height-f.getBoundingClientRect().height,fill=Math.floor(w.clientHeight-used);
+    let used=(t.getBoundingClientRect().height-f.getBoundingClientRect().height)/vzOf(t),fill=Math.floor(w.clientHeight-used);
     if(fill>=2){[...f.cells].forEach(td=>td.style.height=fill+'px');f.style.height=fill+'px'}
     else{f.style.display='none'}
   }
@@ -7636,7 +7767,7 @@ const SF=(function(){
   function tintHeaders(t){
     if(!t.tHead||!t.classList.contains('prodTable'))return;
     let r0=t.tHead.rows[0];if(!r0)return;
-    let stk=0;[...r0.cells].forEach(c=>{let cs=getComputedStyle(c);if(cs.position==='sticky'&&cs.left!=='auto'&&c.offsetParent&&!c.classList.contains('pinColHide'))stk+=c.getBoundingClientRect().width});
+    let stk=0;[...r0.cells].forEach(c=>{let cs=getComputedStyle(c);if(cs.position==='sticky'&&cs.left!=='auto'&&c.offsetParent&&!c.classList.contains('pinColHide'))stk+=c.getBoundingClientRect().width/vzOf(c)});
     t.style.setProperty('--stkW',Math.round(stk)+'px');
     t.tHead.querySelectorAll('th').forEach(th=>{
       let g=th.colSpan>1||th.classList.contains('prodMajorHead');
@@ -9080,6 +9211,59 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     $('viewTitle').textContent='Παραλαβές & Ταξινόμηση';
     return r;
   };
+})();
+</script>
+<script id="viewZoom">
+/* ΑΛΛΑΓΗ ΚΖ: ποσοστό μεγέθους ανά καρτέλα (σελίδα + υποκαρτέλα), αποθηκευμένο στη συσκευή (localStorage 'viewZoom:<σελίδα>[:<υποκαρτέλα>]') */
+(function(){
+  const bar=document.getElementById('zoomBar');if(!bar)return;
+  try{localStorage.removeItem('invZoomPct');localStorage.removeItem('dyZoomPct')}catch(e){}
+  const MIN=50,MAX=200,STEP=10,PRE=[70,80,90,100,110,125,150],SK='viewZoom:',TABK=['weeetab','prodtab','readygroup','lsub','reptab','mtab'];
+  const $z=id=>document.getElementById(id);
+  let pct=100,key='';
+  const curView=()=>document.querySelector('.content>.view:not(.hidden)');
+  function tabKey(v){
+    if(!v)return '';
+    let parts=[];
+    TABK.forEach(k=>{let b=v.querySelector('[data-'+k+'].active');if(b&&b.offsetParent!==null)parts.push(b.dataset[k])});
+    if(!parts.length){let m=v.querySelector('.receiptMode.active[id]');if(m)parts.push(m.id)}
+    return v.id+(parts.length?':'+parts.join('+'):'');
+  }
+  function load(k){try{let v=parseInt(localStorage.getItem(SK+k),10);if(v>=MIN&&v<=MAX)return v}catch(e){}return 100}
+  function save(k,p){try{if(p===100)localStorage.removeItem(SK+k);else localStorage.setItem(SK+k,String(p))}catch(e){}}
+  function paint(){
+    let r=(pct-MIN)/(MAX-MIN)*100;
+    $z('zmFill').style.width=r+'%';$z('zmKnob').style.left=r+'%';$z('zmPct').textContent=pct+'% ▴';
+    $z('zmMenu').querySelectorAll('button[data-p]').forEach(b=>b.classList.toggle('on',Number(b.dataset.p)===pct));
+  }
+  function apply(p){
+    pct=p;document.documentElement.style.setProperty('--vz',String(p/100));paint();
+    requestAnimationFrame(()=>{try{if(window.fitProdWraps)fitProdWraps()}catch(e){}window.dispatchEvent(new Event('resize'));window.dispatchEvent(new CustomEvent('tableLayoutChanged'))});
+  }
+  function setP(p){p=Math.max(MIN,Math.min(MAX,Math.round(p)));if(p===pct)return;apply(p);if(key)save(key,p)}
+  window.setViewZoom=setP;
+  function sync(){let k=tabKey(curView());if(k&&k!==key){key=k;apply(load(k))}}
+  // κουμπιά − / +
+  $z('zmMinus').onclick=()=>setP(pct-STEP);$z('zmPlus').onclick=()=>setP(pct+STEP);
+  // slider
+  const tr=$z('zmTrack');let drag=false;
+  const fromX=x=>{let r=tr.getBoundingClientRect(),f=Math.max(0,Math.min(1,(x-r.left)/r.width));return MIN+Math.round(f*(MAX-MIN)/STEP)*STEP};
+  tr.addEventListener('pointerdown',e=>{drag=true;try{tr.setPointerCapture(e.pointerId)}catch(_){}setP(fromX(e.clientX));e.preventDefault()});
+  tr.addEventListener('pointermove',e=>{if(drag)setP(fromX(e.clientX))});
+  const end=()=>{drag=false};tr.addEventListener('pointerup',end);tr.addEventListener('pointercancel',end);
+  // λίστα έτοιμων ποσοστών (ανοίγει προς τα πάνω)
+  const menu=$z('zmMenu');
+  menu.innerHTML=PRE.map(p=>`<button type="button" data-p="${p}">${p}%</button>`).join('')+'<hr><button type="button" data-p="100">Επαναφορά στο 100%</button>';
+  const closeMenu=()=>menu.classList.add('hidden');
+  $z('zmPct').onclick=e=>{e.stopPropagation();menu.classList.toggle('hidden');paint()};
+  menu.addEventListener('click',e=>{let b=e.target.closest('button[data-p]');if(!b)return;setP(Number(b.dataset.p));closeMenu()});
+  document.addEventListener('mousedown',e=>{if(!menu.classList.contains('hidden')&&!menu.contains(e.target)&&e.target!==$z('zmPct'))closeMenu()},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
+  // αλλαγή σελίδας / υποκαρτέλας
+  let raf=0;const later=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(sync)};
+  document.addEventListener('click',()=>setTimeout(sync,60),true);
+  try{new MutationObserver(later).observe(document.querySelector('.content'),{subtree:true,attributes:true,attributeFilter:['class']})}catch(e){}
+  paint();sync();
 })();
 </script>
 </body></html>

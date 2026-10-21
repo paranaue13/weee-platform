@@ -744,6 +744,10 @@ class DeviceYieldApplyBatchIn(BaseModel):
     weee_category_id: str
     batch_id: str | None = None
 
+class LoadingBulkIn(BaseModel):
+    material_label: str
+    weight_kg: Decimal
+
 class LoadingPrepIn(BaseModel):
     customer_id: str
     carrier_id: str|None = None
@@ -757,6 +761,9 @@ class LoadingPrepIn(BaseModel):
     notes: str|None = None
     max_allowed_weight: Decimal = Decimal('25000')
     lot_ids: list[str] = []
+    bulk_items: list[LoadingBulkIn] = []
+    allow_shortage: bool = False
+    shortage_reason: str|None = None
 
 class MediumBulkIds(BaseModel):
     ids: list[str]

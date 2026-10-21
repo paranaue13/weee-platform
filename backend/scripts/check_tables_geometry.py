@@ -55,19 +55,38 @@ JS_FILL = """()=>{const out=[];
   if(!w||t.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail,.repPop,.hidden'))continue;
   const name=(t.id||w.id||t.className||'table')+'';
   const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
-  const gap=Math.round(wr.left+w.clientWidth-tr.right);
-  if(gap>1)out.push(name+': ο πίνακας δεν γεμίζει το πλάτος του πλαισίου (κενό δεξιά '+gap+'px)');
+  const zz=w.offsetWidth>0?wr.width/w.offsetWidth:1,gap=Math.round(wr.left+w.clientWidth*zz-tr.right);
+  if(gap>1&&!t.dataset.cwGap)out.push(name+': ο πίνακας δεν γεμίζει το πλάτος του πλαισίου (κενό δεξιά '+gap+'px)');
+  // ΑΛΛΑΓΗ ΚΗ: ετικέτα «Υπέρβαση» (γραμμή Σημείωση στα Υλικά) στο κέντρο της στήλης του υλικού, μέσα στο κελί της
+  t.querySelectorAll('.ovrNoteRow .ovrTag').forEach(tag=>{const td=tag.closest('td'),r=tag.getBoundingClientRect(),c=td.getBoundingClientRect();
+    if(r.width&&(Math.abs((r.left+r.right)/2-(c.left+c.right)/2)>3||r.left<c.left-0.5||r.right>c.right+0.5))out.push(name+': η ετικέτα «Υπέρβαση» δεν είναι στοιχισμένη μέσα στη στήλη της')});
+  // ΑΛΛΑΓΗ ΚΣΤ: η τελευταία στήλη είναι κανονική στήλη (πλάτος, κάθετη γραμμή δεξιά, λαβή σύρσιμου)
+  if(t.tHead){
+   const leaf=[...t.tHead.querySelectorAll('th')].filter(th=>th.offsetParent&&th.colSpan===1&&!th.classList.contains('pinColHide'));
+   if(leaf.length>=3){
+    const lr=leaf.map(th=>th.getBoundingClientRect()),li=lr.reduce((m,r,i)=>r.right>lr[m].right?i:m,0),last=leaf[li],r=lr[li];
+    let manual=false;try{manual=Object.keys(localStorage).some(k=>k.startsWith('colw:'))}catch(e){}
+    const others=lr.filter((x,i)=>i!==li).map(x=>x.width),mx=Math.max(...others);
+    if(!manual&&r.width>mx*1.6+1)out.push(name+': η τελευταία στήλη «'+last.textContent.trim().slice(0,20)+'» απλώνεται ('+Math.round(r.width)+'px, ενώ η φαρδύτερη άλλη είναι '+Math.round(mx)+'px)');
+    const bw=th=>parseFloat(getComputedStyle(th).borderRightWidth)||0,hasV=leaf.filter((th,i)=>i!==li&&bw(th)>=1).length>leaf.length/2;
+    if(hasV&&bw(last)<1)out.push(name+': η τελευταία στήλη «'+last.textContent.trim().slice(0,20)+'» δεν έχει κάθετη γραμμή δεξιά');
+    if(!(t.dataset.cwGap)&&r.right<=wr.left+w.clientWidth+1&&last.dataset.wcol!=='stock'){
+      const py=r.top+r.height*0.7,el=(py>=0&&py<innerHeight)?document.elementFromPoint(r.right-2,py):null;
+      if(el&&el.closest('th')!==last)out.push(name+': η τελευταία στήλη «'+last.textContent.trim().slice(0,20)+'» δεν έχει λαβή σύρσιμου (το δεξί άκρο καλύπτεται)');
+    }
+   }
+  }
   // επίπεδα κεφαλίδας: όλα τα κελιά του ίδιου επιπέδου (κατηγορία/υποκατηγορία = .thGroup, στήλες = leaf) έχουν το ίδιο background-color
   if(t.tHead&&t.classList.contains('prodTable')){
     const g=new Set(),l=new Set();
-    t.tHead.querySelectorAll('th').forEach(th=>{if(!th.offsetParent)return;(th.classList.contains('thGroup')?g:l).add(getComputedStyle(th).backgroundColor)});
+    t.tHead.querySelectorAll('th').forEach(th=>{if(!th.offsetParent||th.classList.contains('ovrCol'))return;(th.classList.contains('thGroup')?g:l).add(getComputedStyle(th).backgroundColor)});
     if(g.size>1)out.push(name+': κεφαλίδες κατηγορίας με διαφορετικό τόνο: '+[...g].join(' / '));
     if(l.size>1)out.push(name+': κεφαλίδες στηλών με διαφορετικό τόνο: '+[...l].join(' / '));
   }
   // sticky γραμμές συνόλων: όχι border-collapse:collapse
   if(t.tFoot&&[...t.tFoot.rows].some(r=>[...r.cells].some(c=>getComputedStyle(c).position==='sticky'))&&getComputedStyle(t).borderCollapse==='collapse')out.push(name+': sticky γραμμές συνόλων με border-collapse:collapse');
   if(t.hasAttribute('data-datefill')){
-    const exp=Math.max(wr.top+220,innerHeight-24);
+    const zb=document.getElementById('zoomBar'),exp=Math.max(wr.top+220,innerHeight-(zb?zb.offsetHeight:0));
     if(Math.abs(wr.bottom-exp)>3)out.push(name+': το πλαίσιο του πίνακα δεν φτάνει στο κάτω άκρο του διαθέσιμου χώρου ('+Math.round(wr.bottom)+'px αντί '+Math.round(exp)+'px)');
   }
  }
@@ -153,6 +172,50 @@ def run_fill(base):
     return total
 
 
+# ΑΛΛΑΓΗ ΚΖ: ποσοστό μεγέθους 70% / 100% / 150% — ο πίνακας γεμίζει το πλάτος, φτάνει στη γραμμή κατάστασης, το κάτω μπλοκ μένει ορατό
+JS_ZOOM = """()=>{const out=[],zb=document.getElementById('zoomBar');if(!zb)return ['δεν υπάρχει γραμμή κατάστασης (#zoomBar)'];
+ const bar=zb.getBoundingClientRect();
+ if(Math.abs(bar.bottom-innerHeight)>1)out.push('η γραμμή κατάστασης δεν είναι κάτω-κάτω ('+Math.round(bar.bottom)+' αντί '+innerHeight+')');
+ for(const w of document.querySelectorAll('.prodTableWrap')){
+  if(!w.offsetParent||!w.closest('.content>.view'))continue;
+  const t=w.querySelector('table.prodTable');if(!t||!t.offsetParent)continue;
+  const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect(),name=(t.id||w.id||t.className||'πίνακας')+'';
+  if(wr.height<120)continue;
+  if(w.scrollWidth<=w.clientWidth+1&&Math.abs(wr.right-1-tr.right)>1.5)out.push(name+': δεν γεμίζει το πλάτος (διαφορά '+Math.round(wr.right-1-tr.right)+'px)');
+  if(t.hasAttribute('data-datefill')||w.id==='invTableWrap'){const g=bar.top-wr.bottom;if(g>3||g<-1)out.push(name+': το πλαίσιο δεν φτάνει στη γραμμή κατάστασης (κενό '+Math.round(g)+'px)')}
+  if(wr.bottom>bar.top+1)out.push(name+': το πλαίσιο καλύπτεται από τη γραμμή κατάστασης');
+ }
+ return out}"""
+
+ZOOMS = [70, 100, 150]
+
+
+def run_zoom(base):
+    total = 0
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        try:
+            pg = b.new_page(viewport={'width': 1600, 'height': 900})
+            pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+            pg.evaluate("try{localStorage.clear()}catch(e){}"); pg.reload(wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+            pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
+            for (view, tab) in (('inventory', None), ('production', "(()=>{let b=document.querySelector('.productionTab[data-prodtab=weee]');if(b)b.click()})()"), ('ready', None), ('loading', "(()=>{let b=document.querySelector('[data-lsub=hist]');if(b)b.click()})()")):
+                pg.evaluate(f"show('{view}')"); pg.wait_for_timeout(1300)
+                if tab: pg.evaluate(tab); pg.wait_for_timeout(1000)
+                for z in ZOOMS:
+                    pg.evaluate(f"setViewZoom({z})"); pg.wait_for_timeout(1000)
+                    for msg in pg.evaluate(JS_ZOOM):
+                        total += 1; print(f'[zoom {z}% · {view}] {msg}')
+                    for msg in pg.evaluate(JS_BLOCK):
+                        kind, txt = msg.split('|', 1)
+                        if kind == 'DEC1': continue
+                        total += 1; print(f'[zoom {z}% · {view}] ' + txt)
+                pg.evaluate("setViewZoom(100)")
+        finally:
+            b.close()
+    return total
+
+
 SIZES = [(700, 800), (1280, 800), (1900, 1000)]
 
 
@@ -184,6 +247,7 @@ def run(base='http://127.0.0.1:8000'):
         finally:
             b.close()
     total += run_fill(base)
+    total += run_zoom(base)
     return total
 
 

@@ -4056,6 +4056,7 @@ def _loading_totals(db:Session,o:LoadingOrder):
     reservations=db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.status=='RESERVED')).all()
     actuals=db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all()
     reserved=sum((x.reserved_weight for x in reservations),Decimal('0')); loaded=sum((x.loaded_weight for x in actuals),Decimal('0'))
+    if o.status=='COMPLETED': loaded+=sum((b.weight_kg for b in db.scalars(select(models.LoadingBulkItem).where(models.LoadingBulkItem.loading_order_id==o.id)).all()),Decimal('0'))
     return reserved,loaded
 
 def _loading_out(db:Session,o:LoadingOrder):
@@ -4130,7 +4131,8 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
     o=db.get(LoadingOrder,order_id)
     if not o or o.status!='OPEN': raise HTTPException(409,'Η φόρτωση δεν είναι ανοικτή')
     actuals=db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all()
-    if not actuals: raise HTTPException(422,'Δεν έχει καταγραφεί κανένα φορτωμένο υλικό')
+    bulk=_prep_bulk_items(db,o)
+    if not actuals and not bulk: raise HTTPException(422,'Δεν έχει καταγραφεί κανένα φορτωμένο υλικό')
     for a in actuals:
         lot=db.get(ReadyMaterialLot,a.ready_material_lot_id)
         if a.loaded_weight==lot.net_weight: lot.status='DISPATCHED'
@@ -4158,6 +4160,12 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         lot=db.get(ReadyMaterialLot,a.ready_material_lot_id); mat=db.get(models.Material,lot.material_id) if lot else None
         key=mat.id if mat else (lot.id if lot else a.id)
         d=per_mat.setdefault(key,{'mat':mat,'w':Decimal('0')}); d['w']+=a.loaded_weight
+    # Χύμα κιλά: αφαίρεση από το απόθεμα των Υλικών (εγγραφή αποστολής υλικού, ίδιος πίνακας που αφαιρεί ο υπολογισμός «Τρέχον απόθεμα») + γραμμή στο Ιστορικό Δ.Α.
+    for b in bulk:
+        db.add(models.MaterialShipmentEntry(work_date=wd,category_group=b.category_group,material_label=b.material_label,weight_kg=b.weight_kg,source='LOADING',notes='LOADING:'+o.id,created_by_user_id=user.id,active=True))
+        db.add(models.ShipmentHistoryEntry(work_date=wd,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
+            description=b.material_label,weight_kg=b.weight_kg,eka_code=o.eka_code,reptool_code=o.reptool_code,
+            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
     for d in per_mat.values():
         m=d['mat']
         db.add(models.ShipmentHistoryEntry(work_date=wd,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
@@ -4194,6 +4202,39 @@ def _prep_lot_info(db:Session,lot,cache:dict):
         label={'PALLET':'Παλέτα','SACK_1KG':'Σάκος 1 kg','SACK_2KG_UN':'Σάκος 2 kg'}.get(t.code if t else '', (t.name_el if t else 'Μέσο'))
     return {'lot_id':lot.id,'lot_number':lot.lot_number,'label':label,'code':md.code if md else None,'kg':float(lot.net_weight)}
 
+# ---- Χύμα κιλά στη Φόρτωση: ίδιος υπολογισμός με το «Τρέχον απόθεμα» των Υλικών (παραγωγή − αποστολές, ανά ετικέτα υλικού) ----
+_BULK_GROUP_ORDER={'AXIOPOIISIMA':0,'EIDIKIS_DIACHEIRISIS':1,'APORRIPSI':2}
+def _bulk_balances(db:Session)->dict:
+    bal={}
+    for e in db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True)).all():
+        b=bal.setdefault(e.material_label,{'group':e.category_group,'kg':Decimal('0')}); b['kg']+=(e.weight_kg or Decimal('0'))
+    for e in db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True)).all():
+        b=bal.setdefault(e.material_label,{'group':e.category_group,'kg':Decimal('0')}); b['kg']-=(e.weight_kg or Decimal('0'))
+    # διορθώσεις (χειροκίνητες κινήσεις +/-) μετράνε στο «Τρέχον απόθεμα» των Υλικών: ταίριασμα ετικέτας όπως στην οθόνη (trim + κεφαλαία)
+    corr={}
+    for e in db.scalars(select(models.MaterialCorrectionEntry)).all():
+        k=(e.material_label or '').strip().upper(); corr[k]=corr.get(k,Decimal('0'))+(e.weight_kg_delta or Decimal('0'))
+    for lb,b in bal.items(): b['kg']+=corr.get(lb.strip().upper(),Decimal('0'))
+    return bal
+def _prep_bulk_items(db:Session,o:LoadingOrder)->list:
+    return list(db.scalars(select(models.LoadingBulkItem).where(models.LoadingBulkItem.loading_order_id==o.id).order_by(models.LoadingBulkItem.material_label)).all())
+def _prep_replace_bulk(db:Session,o:LoadingOrder,items:list):
+    for it in _prep_bulk_items(db,o): db.delete(it)
+    db.flush()
+    bal=_bulk_balances(db); merged={}
+    for x in items:
+        lb=(x.material_label or '').strip()
+        if lb not in bal: raise HTTPException(422,f'Άγνωστο χύμα υλικό «{lb}»')
+        if x.weight_kg<=0: raise HTTPException(422,f'Τα κιλά για «{lb}» πρέπει να είναι θετικά')
+        merged[lb]=merged.get(lb,Decimal('0'))+x.weight_kg
+    for lb,kg in merged.items(): db.add(models.LoadingBulkItem(loading_order_id=o.id,category_group=bal[lb]['group'],material_label=lb,weight_kg=kg))
+def _release_bulk(db:Session,o:LoadingOrder):
+    """Επιστροφή χύμα κιλών στο απόθεμα: οι εγγραφές αποστολής αυτής της φόρτωσης γίνονται ανενεργές."""
+    n=0
+    for e in db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.source=='LOADING',models.MaterialShipmentEntry.notes=='LOADING:'+o.id,models.MaterialShipmentEntry.active==True)).all():
+        e.active=False; n+=1
+    return n
+
 @app.get('/loading/prep/stock')
 def loading_prep_stock(db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
     """Διαθέσιμα μέσα συλλογής (lots με status AVAILABLE) ανά κατηγορία αποθήκης και υλικό."""
@@ -4214,7 +4255,9 @@ def loading_prep_stock(db:Session=Depends(get_db),user=Depends(require_permissio
         ms=sorted(c['mats'].values(),key=lambda x:x['material'])
         for m in ms: m['pieces']=sum(1 for i in m['items'] if i['code']); m['kg']=round(sum(i['kg'] for i in m['items']),3)
         out.append({'category':c['category'],'materials':ms})
-    return {'categories':out}
+    bulk=[{'material_label':lb,'category_group':b['group'],'kg':float(b['kg'])} for lb,b in _bulk_balances(db).items() if b['kg']>0]
+    bulk.sort(key=lambda x:(_BULK_GROUP_ORDER.get(x['category_group'],9),x['material_label']))
+    return {'categories':out,'bulk':bulk}
 
 @app.get('/loading/prep/frequent')
 def loading_prep_frequent(customer_id:str,db:Session=Depends(get_db),user=Depends(require_permission('loading.view'))):
@@ -4281,8 +4324,8 @@ def _prep_replace_items(db:Session,o:LoadingOrder,lot_ids:list):
 def loading_prep_create(data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.view'))):
     o=LoadingOrder(loading_number=_loading_number(db),status='OPEN',selection_mode='OFFICE_RESERVED',prep_mode='PREP',created_by=user.id,customer_id=data.customer_id,max_allowed_weight=data.max_allowed_weight)
     _prep_apply(db,o,data); db.add(o); db.flush()
-    _prep_replace_items(db,o,data.lot_ids)
-    write_audit(db,user,'loading_order',o.id,'PREP_CREATE',new={'loading_number':o.loading_number,'items':len(data.lot_ids)})
+    _prep_replace_items(db,o,data.lot_ids); _prep_replace_bulk(db,o,data.bulk_items)
+    write_audit(db,user,'loading_order',o.id,'PREP_CREATE',new={'loading_number':o.loading_number,'items':len(data.lot_ids),'bulk':len(data.bulk_items)})
     db.commit(); return _loading_out(db,o)
 
 def _prep_order(db:Session,order_id:str)->LoadingOrder:
@@ -4294,8 +4337,8 @@ def _prep_order(db:Session,order_id:str)->LoadingOrder:
 @app.put('/loading/prep/{order_id}',response_model=schemas.LoadingOrderOut)
 def loading_prep_update(order_id:str,data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.view'))):
     o=_prep_order(db,order_id)
-    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids)
-    write_audit(db,user,'loading_order',o.id,'PREP_UPDATE',new={'items':len(data.lot_ids)})
+    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids); _prep_replace_bulk(db,o,data.bulk_items)
+    write_audit(db,user,'loading_order',o.id,'PREP_UPDATE',new={'items':len(data.lot_ids),'bulk':len(data.bulk_items)})
     db.commit(); return _loading_out(db,o)
 
 @app.get('/loading/prep/{order_id}')
@@ -4310,15 +4353,16 @@ def loading_prep_get(order_id:str,db:Session=Depends(get_db),user=Depends(requir
         m=mats.get(l.material_id)
         info=_prep_lot_info(db,l,cache); info['material_id']=l.material_id; info['material']=(m.official_description or m.internal_name) if m else None
         info['available']=(l.status=='AVAILABLE'); items.append(info)
-    return {'order':_loading_out(db,o),'items':items}
+    return {'order':_loading_out(db,o),'items':items,'bulk':[{'material_label':b.material_label,'category_group':b.category_group,'kg':float(b.weight_kg)} for b in _prep_bulk_items(db,o)]}
 
 @app.post('/loading/prep/{order_id}/finalize',response_model=schemas.LoadingOrderOut)
 def loading_prep_finalize(order_id:str,data:schemas.LoadingPrepIn,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.execute'))):
     """Οριστικοποίηση: δέσμευση ανά lot (έλεγχος διαθεσιμότητας και μέγιστου βάρους), στάδιο «Φορτωμένο» και ολοκλήρωση με την υπάρχουσα λογική."""
     o=_prep_order(db,order_id)
-    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids); db.flush()
+    _prep_apply(db,o,data); _prep_replace_items(db,o,data.lot_ids); _prep_replace_bulk(db,o,data.bulk_items); db.flush()
     plan=[it.ready_material_lot_id for it in db.scalars(select(models.LoadingPlanItem).where(models.LoadingPlanItem.loading_order_id==o.id)).all()]
-    if not plan: raise HTTPException(422,'Το φορτίο είναι κενό')
+    bulk=_prep_bulk_items(db,o)
+    if not plan and not bulk: raise HTTPException(422,'Το φορτίο είναι κενό')
     mats={m.id:m for m in db.scalars(select(Material)).all()}; cache={}; missing=[]; lots=[]
     for lid in plan:
         l=db.get(ReadyMaterialLot,lid)
@@ -4328,8 +4372,24 @@ def loading_prep_finalize(order_id:str,data:schemas.LoadingPrepIn,db:Session=Dep
             why={'RESERVED':'έχει δεσμευτεί από άλλη φόρτωση','LOADING':'φορτώνεται σε άλλη φόρτωση','DISPATCHED':'έχει ήδη αποσταλεί'}.get(l.status,'δεν είναι διαθέσιμο')
             missing.append(f"{info['label']} {info['code'] or ''} · {(m.official_description or m.internal_name) if m else ''} · {info['kg']:g} kg — {why}".replace('  ',' '))
         else: lots.append(l)
-    if missing: raise HTTPException(409,'Δεν μπορεί να οριστικοποιηθεί. Λείπουν: '+'; '.join(missing)+'. Αφαίρεσέ τα από το φορτίο και ξαναδοκίμασε.')
-    total=sum((l.net_weight for l in lots),Decimal('0'))
+    if missing: raise HTTPException(409,'Δεν μπορεί να οριστικοποιηθεί. Λείπουν μέσα: '+'; '.join(missing)+'. Αφαίρεσέ τα από το φορτίο και ξαναδοκίμασε. Το πρόχειρο έχει αποθηκευτεί.')
+    # Υπέρβαση χύμα αποθέματος: ξαναϋπολογίζεται εδώ (ίδια συναλλαγή)· χωρίς ρητή επιβεβαίωση + λόγο η οριστικοποίηση δεν προχωρά
+    short=[]
+    if bulk:
+        bal=_bulk_balances(db)
+        for b in bulk:
+            av=max(bal.get(b.material_label,{'kg':Decimal('0')})['kg'],Decimal('0'))
+            if b.weight_kg>av: short.append((b,av,b.weight_kg-av))
+            b.shortage_kg=Decimal('0'); b.shortage_reason=None
+    if short:
+        reason=(data.shortage_reason or '').strip()
+        if not data.allow_shortage:
+            raise HTTPException(409,{'code':'BULK_SHORTAGE','message':'Δεν επαρκεί το διαθέσιμο χύμα: '+'; '.join(f"«{b.material_label}»: ζητήθηκαν {float(b.weight_kg):g} kg, διαθέσιμα {float(av):g} kg" for b,av,ov in short)+'. Το πρόχειρο έχει αποθηκευτεί.',
+                'items':[{'material_label':b.material_label,'requested':float(b.weight_kg),'available':float(av),'over':float(ov)} for b,av,ov in short]})
+        if not reason: raise HTTPException(422,'Γράψε τον λόγο της υπέρβασης.')
+        for b,av,ov in short: b.shortage_kg=ov; b.shortage_reason=reason
+        write_audit(db,user,'loading_order',o.id,'BULK_SHORTAGE_CONFIRMED',new={'reason':reason,'items':[{'material':b.material_label,'requested':str(b.weight_kg),'available':str(av),'over':str(ov)} for b,av,ov in short]})
+    total=sum((l.net_weight for l in lots),Decimal('0'))+sum((b.weight_kg for b in bulk),Decimal('0'))
     if total>o.max_allowed_weight: raise HTTPException(422,f'Υπέρβαση μέγιστου βάρους κατά {float(total-o.max_allowed_weight):g} kg')
     for l in lots:
         db.add(LoadingReservation(loading_order_id=o.id,ready_material_lot_id=l.id,reserved_weight=l.net_weight,created_by=user.id,status='LOADED'))
@@ -4392,7 +4452,7 @@ def loading_cancel(order_id:str,db:Session=Depends(get_db),user:User=Depends(req
     for a in db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all():
         lot=db.get(ReadyMaterialLot,a.ready_material_lot_id)
         if lot and lot.status=='LOADING': lot.status='AVAILABLE'
-    o.status='CANCELLED'; write_audit(db,user,'loading_order',o.id,'CANCEL',new={})
+    o.status='CANCELLED'; released=_release_bulk(db,o); write_audit(db,user,'loading_order',o.id,'CANCEL',new={'bulk_released':released})
     db.commit(); return _loading_out(db,o)
 
 @app.get('/loading/shipment-history')
@@ -4418,6 +4478,12 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
         try: y=datetime.fromisoformat(lo.delivery_date).year if lo.delivery_date else lo.created_at.year
         except Exception: y=lo.created_at.year
         _reason[(lo.dispatch_document_number,y)]=(lo.dispatch_reason or '').strip()
+    # Υπέρβαση χύμα αποθέματος: σημείωση «Υπέρβαση N kg: λόγος» ανά (Δ.Α., έτος, υλικό)
+    _over={}
+    for bi,lo in db.execute(select(models.LoadingBulkItem,LoadingOrder).join(LoadingOrder,LoadingOrder.id==models.LoadingBulkItem.loading_order_id).where(LoadingOrder.status=='COMPLETED',LoadingOrder.dispatch_document_number.is_not(None),models.LoadingBulkItem.shortage_kg>0)).all():
+        try: y=datetime.fromisoformat(lo.delivery_date).year if lo.delivery_date else lo.created_at.year
+        except Exception: y=lo.created_at.year
+        _over[(lo.dispatch_document_number,y,bi.material_label)]=f"Υπέρβαση {float(bi.shortage_kg):g} kg: {bi.shortage_reason or ''}".strip()
     def _purpose(r):
         v=_reason.get((r.da_number,r.work_date.year))
         if v: return v
@@ -4425,7 +4491,7 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
         return 'Ενδοδιακίνηση' if r.kind=='WEEE_TO_UNIT' else 'Πώληση'
     out=[{"id":r.id,"work_date":r.work_date.isoformat(),"da_number":r.da_number,"weighbridge_number":r.weighbridge_number,
           "transporter":r.transporter,"recipient":r.recipient,"description":r.description,"weight_kg":float(r.weight_kg or 0),
-          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"purpose":_purpose(r),"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
+          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"purpose":_purpose(r),"overrun_note":_over.get((r.da_number,r.work_date.year,r.description)),"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
           "transporter_permit":_perm(r.transporter)[0],"transporter_ada":_perm(r.transporter)[1],"recipient_permit":_perm(r.recipient)[0],"recipient_ada":_perm(r.recipient)[1]} for r in rows]
     if ql:
         out=[r for r in out if ql in ' '.join(str(r.get(k) or '') for k in ('da_number','transporter','recipient','description','eka_code','reptool_code')).lower()]
