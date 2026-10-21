@@ -2552,6 +2552,27 @@ def sorting_month_report(month:str=Query(pattern=r'^\d{4}-\d{2}$'), db:Session=D
         out.append({'date':day,'loads':loads,'totals':dt})
     return {'month':month,'days':out,'totals':month_totals}
 
+# ---- Μέσα συλλογής στην Ταξινόμηση: ΕΝΑ κοινό φίλτρο (Windows + Android) ----
+# Στην Ταξινόμηση ο εργαζόμενος επιλέγει μέσο για υλικό που ΕΙΣΕΡΧΕΤΑΙ: μόνο είδη με Χρήση «Εισερχόμενο» ή «Και τα δύο» (ΟΧΙ «Εξερχόμενο»),
+# και μόνο μέσα διαθέσιμα: κατάσταση AVAILABLE (άδειο) ή WEEE_STORAGE (κρατά απόθεμα που μπορεί να συνεχιστεί). IN_PRODUCTION / READY_STORAGE / κάθε άλλη
+# κατάσταση (σε παραγωγή, έτοιμο υλικό, δεσμευμένο…) δεν εμφανίζεται. Από το παράθυρο ταξινόμησης δημιουργούνται μόνο Παλέτα / Σάκος 1kg (+Χύμα ως επιλογή).
+SORTING_MEDIUM_STATUSES=('AVAILABLE','WEEE_STORAGE')
+SORTING_CREATABLE_TYPES=('PALLET','MATERIAL_PALLET','SACK_1KG','SACK_2KG_UN')
+def _sorting_medium_types(db:Session)->list:
+    return [t for t in db.scalars(select(CollectionMediumType).where(CollectionMediumType.active==True).order_by(CollectionMediumType.name_el)).all() if (t.usage or 'BOTH') in ('IN','BOTH')]
+def _sorting_media(db:Session,type_ids)->list:
+    ids=list(type_ids)
+    if not ids: return []
+    return db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(ids),CollectionMedium.status.in_(SORTING_MEDIUM_STATUSES)).order_by(CollectionMedium.code)).all()
+
+@app.get('/sorting/medium-options')
+def sorting_medium_options(db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
+    """Τα είδη και τα μέσα που προσφέρονται στην Ταξινόμηση (κοινό φίλτρο για Windows και Android)."""
+    types=_sorting_medium_types(db)
+    media=_sorting_media(db,[t.id for t in types])
+    return {'types':[{'id':t.id,'code':t.code,'name_el':t.name_el,'usage':t.usage or 'BOTH','active':bool(t.active),'default_tare_weight':float(t.default_tare_weight) if t.default_tare_weight is not None else None,'tare_fixed':bool(t.tare_fixed),'creatable':t.code in SORTING_CREATABLE_TYPES} for t in types],
+            'media':[{'id':m.id,'type_id':m.type_id,'code':m.code,'tare_weight':float(m.tare_weight) if m.tare_weight is not None else None,'status':m.status,'active':bool(m.active)} for m in media]}
+
 @app.get('/sorting/overview')
 def sorting_overview(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Μόνο ανάγνωση: κιλά ανά επίσημο κωδικό ΑΗΗΕ για κάθε φορτίο με ταξινόμηση στο διάστημα (για την καρτέλα Συγκεντρωτικά)."""
@@ -2729,7 +2750,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
 def sorting_medium_type_suggestions(load_id:str, weee_category_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     from sqlalchemy import func
     rows=db.execute(select(CollectionMedium.type_id, func.count(models.SortingEntry.id).label('n')).join(models.SortingEntry, models.SortingEntry.collection_medium_id==CollectionMedium.id).where(models.SortingEntry.weee_category_id==weee_category_id, CollectionMedium.active==True).group_by(CollectionMedium.type_id).order_by(func.count(models.SortingEntry.id).desc())).all()
-    types={x.id:x for x in db.scalars(select(CollectionMediumType).where(CollectionMediumType.active==True)).all()}
+    types={x.id:x for x in _sorting_medium_types(db)}
     ranked=[]; seen=set()
     for tid,n in rows:
         if tid in types: ranked.append({'id':tid,'code':types[tid].code,'name_el':types[tid].name_el,'usage_count':n}); seen.add(tid)
@@ -2743,6 +2764,7 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
     _session_for_load(db,load_id,True,user)
     mt=db.get(CollectionMediumType,data.type_id)
     if not mt or not mt.active: raise HTTPException(404,'Άγνωστος τύπος μέσου')
+    if (mt.usage or 'BOTH') not in ('IN','BOTH'): raise HTTPException(422,'Το είδος «'+mt.name_el+'» είναι εξερχόμενο και δεν χρησιμοποιείται στην Ταξινόμηση')
     code=(data.code or '').strip()
     if mt.code=='BULK': raise HTTPException(422,'Το Χύμα δεν έχει αριθμό: καταχώρησέ το χωρίς μέσο συλλογής')
     if not code: raise HTTPException(422,'Γράψε αριθμό / κωδικό μέσου')
@@ -2759,11 +2781,12 @@ def sorting_medium_suggestions(load_id:str, weee_category_id:str, db:Session=Dep
     load,ses=_session_for_load(db,load_id,False)
     if not ses: return []
     entries=db.scalars(select(SortingEntry).where(SortingEntry.weee_category_id==weee_category_id,SortingEntry.collection_medium_id.is_not(None)).order_by(SortingEntry.created_at.desc())).all()
+    allowed_types={t.id for t in _sorting_medium_types(db)}
     seen=set(); out=[]
     for e in entries:
         if e.collection_medium_id in seen: continue
         med=db.get(CollectionMedium,e.collection_medium_id)
-        if not med or not med.active: continue
+        if not med or not med.active or med.status not in SORTING_MEDIUM_STATUSES or med.type_id not in allowed_types: continue
         seen.add(med.id)
         out.append({'id':med.id,'type_id':med.type_id,'code':med.code,'tare_weight':float(med.tare_weight) if med.tare_weight is not None else None,'used_by_me':e.created_by==user.id,'last_used_at':e.created_at.isoformat()})
     out.sort(key=lambda x:(not x['used_by_me'], x['last_used_at']), reverse=False)

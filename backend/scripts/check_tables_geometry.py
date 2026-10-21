@@ -4,6 +4,8 @@
 (αρχή / τέλος) ελέγχει:
  1. κάθε κελί της ίδιας γραμμής έχει την ίδια κάθετη θέση και το ίδιο ύψος (διαφορά ≤ 1px) -- πιάνει κολλημένα (sticky) κελιά που βγαίνουν από τη γραμμή τους
  2. δεν επικαλύπτονται κελιά διαφορετικών γραμμών της ΙΔΙΑΣ ενότητας (thead / tbody / tfoot)
+ 3. (ΑΛΛΑΓΗ ΚΓ, σε 1280x720 / 1600x900 / 1920x1080) το δεξί άκρο κάθε πίνακα = δεξί άκρο του πλαισίου του (κενό ≤1px)· στους πίνακες ανά ημέρα/μήνα (data-datefill)
+    το κάτω άκρο του πλαισίου = κάτω άκρο της περιοχής περιεχομένου· και οι γραμμές συνόλων (tfoot) έχουν την ΙΔΙΑ θέση y για περίοδο με λίγες γραμμές και για περίοδο με πολλές
 Τυπώνει ΜΟΝΟ προβλήματα. Μόνο ανάγνωση (login + πλοήγηση)· τα κελιά με rowspan και οι κρυμμένες στήλες εξαιρούνται."""
 import sys
 from playwright.sync_api import sync_playwright
@@ -46,6 +48,83 @@ for(const t of document.querySelectorAll('table')){
 }
 return [...new Set(out)]}"""
 
+JS_FILL = """()=>{const out=[];
+ for(const t of document.querySelectorAll('table')){
+  if(!t.offsetParent)continue;
+  const w=t.closest('.prodTableWrap,.tablewrap');
+  if(!w||t.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail,.repPop,.hidden'))continue;
+  const name=(t.id||w.id||t.className||'table')+'';
+  const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
+  const gap=Math.round(wr.left+w.clientWidth-tr.right);
+  if(gap>1)out.push(name+': ο πίνακας δεν γεμίζει το πλάτος του πλαισίου (κενό δεξιά '+gap+'px)');
+  // επίπεδα κεφαλίδας: όλα τα κελιά του ίδιου επιπέδου (κατηγορία/υποκατηγορία = .thGroup, στήλες = leaf) έχουν το ίδιο background-color
+  if(t.tHead&&t.classList.contains('prodTable')){
+    const g=new Set(),l=new Set();
+    t.tHead.querySelectorAll('th').forEach(th=>{if(!th.offsetParent)return;(th.classList.contains('thGroup')?g:l).add(getComputedStyle(th).backgroundColor)});
+    if(g.size>1)out.push(name+': κεφαλίδες κατηγορίας με διαφορετικό τόνο: '+[...g].join(' / '));
+    if(l.size>1)out.push(name+': κεφαλίδες στηλών με διαφορετικό τόνο: '+[...l].join(' / '));
+  }
+  // sticky γραμμές συνόλων: όχι border-collapse:collapse
+  if(t.tFoot&&[...t.tFoot.rows].some(r=>[...r.cells].some(c=>getComputedStyle(c).position==='sticky'))&&getComputedStyle(t).borderCollapse==='collapse')out.push(name+': sticky γραμμές συνόλων με border-collapse:collapse');
+  if(t.hasAttribute('data-datefill')){
+    const exp=Math.max(wr.top+220,innerHeight-24);
+    if(Math.abs(wr.bottom-exp)>3)out.push(name+': το πλαίσιο του πίνακα δεν φτάνει στο κάτω άκρο του διαθέσιμου χώρου ('+Math.round(wr.bottom)+'px αντί '+Math.round(exp)+'px)');
+  }
+ }
+ return [...new Set(out)]}"""
+
+# θέσεις y των γραμμών συνόλων (πρώτο κελί κάθε γραμμής tfoot, όπως φαίνονται -- τα κελιά είναι sticky)
+JS_FOOT = """(sel)=>{const t=document.querySelector(sel);if(!t||!t.offsetParent||!t.tFoot)return null;return [...t.tFoot.rows].filter(r=>r.offsetParent&&r.cells.length).map(r=>Math.round(r.cells[0].getBoundingClientRect().top))}"""
+
+FILL_SIZES = [(1280, 720), (1600, 900), (1920, 1080)]
+
+
+def run_fill(base):
+    """ΑΛΛΑΓΗ ΚΓ: πλήρες πλάτος / πλήρες ύψος / σταθερά σύνολα."""
+    total = 0
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        try:
+            for (W, H) in FILL_SIZES:
+                pg = b.new_page(viewport={'width': W, 'height': H})
+                pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+                pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
+                pg.evaluate("try{localStorage.setItem('invZoomPct','100')}catch(e){}")
+                for v in pg.evaluate("[...document.querySelectorAll('.nav button')].map(b=>b.dataset.view)"):
+                    pg.evaluate(f"show('{v}')"); pg.wait_for_timeout(1200)
+                    pg.evaluate("""(()=>{try{if(typeof readyState!=='undefined'&&document.getElementById('ready')&&!document.getElementById('ready').classList.contains('hidden')){readyState.period='month';readyState.cursor=new Date('2026-09-15T12:00:00');readyRefreshActive()}}catch(e){}
+                      try{if(typeof prodState!=='undefined'&&document.getElementById('production')&&!document.getElementById('production').classList.contains('hidden')){prodState.period='month';prodState.cursor=new Date('2026-09-15T12:00:00');loadProduction()}}catch(e){}})()""")
+                    pg.wait_for_timeout(1500)
+                    sel = f"#{v} .tab,#{v} .mtab,#{v} .productionTab,#{v} .weeeTabBtn,#{v} .readyGroupTab,#{v} .receiptMode,#{v} .profileTabBtn,#{v} [data-lsub]"
+                    n = max(pg.evaluate(f"[...document.querySelectorAll('{sel}')].filter(b=>b.offsetParent).length"), 1)
+                    for i in range(n):
+                        pg.evaluate(f"(()=>{{let l=[...document.querySelectorAll('{sel}')].filter(b=>b.offsetParent);if(l[{i}])l[{i}].click()}})()")
+                        pg.wait_for_timeout(1100)
+                        # ανοιχτές κατηγορίες (έλεγχος τόνων κεφαλίδας σε πολυεπίπεδη κεφαλίδα)
+                        pg.evaluate("document.querySelectorAll('.prodMajorHead[data-prodcat]:not(.expanded)').forEach((x,i)=>{if(i<2&&x.offsetParent)x.click()})"); pg.wait_for_timeout(600)
+                        for msg in pg.evaluate(JS_FILL):
+                            total += 1; print(f'[{W}x{H} · {v} / καρτέλα {i}] {msg}')
+                # σταθερά σύνολα: ίδια θέση y για περίοδο με πολλές γραμμές (μήνας) και με λίγες (τρίμηνο = 3 γραμμές)
+                for (view, tbl, setup) in (
+                    ('production', '#productionWeeePanel table', "(p)=>{prodState.tab='weee';prodState.period=p;prodState.cursor=new Date('2026-09-15T12:00:00');loadProduction()}"),
+                    ('ready', '#readyMatPanel table', "(p)=>{readyState.period=p;readyState.cursor=new Date('2026-09-15T12:00:00');readyRefreshActive()}")):
+                    pg.evaluate(f"show('{view}')"); pg.wait_for_timeout(1200)
+                    if view == 'production':
+                        pg.evaluate("(()=>{let b=document.querySelector('.productionTab[data-prodtab=weee]');if(b)b.click()})()"); pg.wait_for_timeout(800)
+                    pos = {}
+                    for per in ('month', 'quarter', 'year'):
+                        pg.evaluate(setup, per); pg.wait_for_timeout(2200)
+                        pos[per] = pg.evaluate(JS_FOOT, tbl)
+                    base_pos = pos.get('month')
+                    for per in ('quarter', 'year'):
+                        if base_pos and pos[per] and (len(base_pos) != len(pos[per]) or any(abs(a - b2) > 1 for a, b2 in zip(base_pos, pos[per]))):
+                            total += 1; print(f'[{W}x{H} · {view}] γραμμές συνόλων: διαφορετική θέση y για περίοδο «{per}» {pos[per]} και «μήνας» {base_pos}')
+                pg.close()
+        finally:
+            b.close()
+    return total
+
+
 SIZES = [(700, 800), (1280, 800), (1900, 1000)]
 
 
@@ -76,6 +155,7 @@ def run(base='http://127.0.0.1:8000'):
                 pg.close()
         finally:
             b.close()
+    total += run_fill(base)
     return total
 
 

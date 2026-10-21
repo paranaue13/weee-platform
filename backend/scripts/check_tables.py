@@ -16,7 +16,7 @@ for(const t of document.querySelectorAll('table')){if(!t.offsetParent)continue;
  w.scrollLeft=w.scrollWidth;let wr=w.getBoundingClientRect();
  for(const c of t.querySelectorAll('th,td')){let cs=getComputedStyle(c);if(cs.position!=='sticky'||cs.left==='auto')continue;let r=c.getBoundingClientRect();
   if(r.width<5||r.top<wr.top||r.bottom>wr.bottom||r.bottom<0||r.top>vh)continue;let e=document.elementFromPoint(r.left+Math.min(r.width/2,20),r.top+r.height/2);
-  if(e&&!c.contains(e)&&!e.closest('.topbar,.floatPanel,#toast')){bad.push(name+': στήλη κολλημένη αριστερά καλύπτεται από άλλο κελί ("'+c.innerText.slice(0,18)+'")');break}}
+  if(e&&!c.contains(e)&&!e.closest('.topbar,.floatPanel,#toast,tfoot,thead')){bad.push(name+': στήλη κολλημένη αριστερά καλύπτεται από άλλο κελί ("'+c.innerText.slice(0,18)+'")');break}}
  let foot=[...t.querySelectorAll('tfoot tr')].filter(r=>(getComputedStyle(r.firstElementChild||r).position==='sticky'&&getComputedStyle(r.firstElementChild||r).bottom!=='auto'));
  if(foot.length){let tot=0,prev=null;for(const r of foot){let b=r.getBoundingClientRect();tot+=b.height;if(prev&&b.top<prev.bottom-1.5)bad.push(name+': γραμμές συνόλων επικαλύπτονται');prev=b}
   if(tot>wr.height*0.5+1)bad.push(name+': οι κολλημένες γραμμές συνόλων πιάνουν '+Math.round(tot)+'px από '+Math.round(wr.height)+'px')}

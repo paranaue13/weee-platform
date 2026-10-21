@@ -1231,7 +1231,7 @@ body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 #shipHistCard :is(.prodSegment button,#shipHistSearch,.prodPeriodNav button,.prodPeriodNav b,.periodPickerBtn){font-size:14px}
 #shipHistCard .shipHistWrap table:not(.shipZ) :is(th,td):is(:nth-child(2),:nth-child(4)){text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
 #shipHistCard .shipHistWrap table:not(.shipZ) tbody td:nth-child(3){white-space:normal}
-#shipHistCard tfoot td{position:sticky;bottom:0;z-index:3;background:#e8f0fb;color:var(--fg,#1a1b20);font-weight:700;font-size:15px;padding:12px;border-top:2px solid #aeb7c9;border-bottom:0}
+#shipHistCard tfoot td{position:sticky;bottom:0;z-index:3;background:#e8f0fb;color:var(--fg,#1a1b20);font-weight:700;font-size:15px;padding:12px;border-top:0;border-bottom:0;box-shadow:inset 0 2px 0 #aeb7c9}
 body[data-theme="dark"] #shipHistCard tfoot td{background:var(--surface-2,#1f2a44)}
 #shipHistCard tfoot td.shipNum{text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
 .daTbl td{font-size:15px;padding:12px}.daTbl th{font-size:14px;padding:12px}
@@ -1380,6 +1380,40 @@ body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 #receiptForm .comboAction1{display:flex;align-items:center;gap:8px}
 #receiptForm .comboAction1 input{flex:1 1 auto;width:100%;min-width:0}
 #receiptForm .comboAction1>.miniAdd{flex:none}
+/* ΑΛΛΑΓΗ ΚΓ: κενός ενδιάμεσος χώρος σε πίνακες ανά ημέρα/μήνα (data-datefill): οι γραμμές συνεχίζονται κενές με την ίδια λεπτή γραμμή */
+#app table[data-datefill] tr.tFill>td{padding:0!important;border-bottom:0!important;color:transparent;background-color:var(--surface,#fff)!important;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--tfRow,34px) - 1px),#eef1f6 calc(var(--tfRow,34px) - 1px),#eef1f6 var(--tfRow,34px))!important}
+table[data-datefill] tr.tFill{pointer-events:none}
+/* ΑΛΛΑΓΗ ΚΓ.Γ: γραμμή πάνω από τα σύνολα και δεξιά διαχωριστική γραμμή 2px = box-shadow (όχι border) — δεν χάνει πάχος σε sticky κελιά / scroll. Το κοινό component πινάκων έχει ήδη border-collapse:separate; border-spacing:0 */
+#app :is(#ready,#production) table.prodTable.prodTable tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:1px solid var(--ln)!important}
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow:has(+tr:not(.corrRow))>:is(th,td):not(.pinColHide){border-bottom:1px solid var(--ln)!important}
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
+#app :is(#ready,#production) table.prodTable.prodTable:not(:has(tfoot)) tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:0!important}
+/* δεξιά διαχωριστική γραμμή των σταθερών στηλών (στήλη «Σύνολο», αλλιώς πρώτη στήλη) */
+#app :is(#ready,#production) table.prodTable.prodTable :is(th,td).stkTotal:not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) :is(th,td):first-child:not(.pinColHide){border-right:0!important;box-shadow:inset -2px 0 0 var(--ln2)!important}
+:is(#ready,#production) .prodTableWrap.hs table.prodTable.prodTable:not(:has(.stkTotal)) :is(th,td):first-child:not(.pinColHide){box-shadow:inset -2px 0 0 var(--ln2),4px 0 6px -4px rgba(0,0,0,.15)!important}
+/* πάνω γραμμή 2px ακριβώς πάνω από το μπλοκ των συνόλων: πρώτη γραμμή tfoot, ή η πρώτη γραμμή μετά τις «Διορθώσεις…» (corrRow) */
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child:not(.corrRow)>:is(th,td):not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td):not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2)!important}
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr:first-child:not(.corrRow)>:is(th,td).stkTotal:not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td).stkTotal:not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) tfoot tr:first-child:not(.corrRow)>:is(th,td):first-child:not(.pinColHide),
+#app :is(#ready,#production) table.prodTable.prodTable:not(:has(.stkTotal)) tfoot tr.corrRow+tr:not(.corrRow)>:is(th,td):first-child:not(.pinColHide){box-shadow:inset 0 2px 0 var(--ln2),inset -2px 0 0 var(--ln2)!important}
+/* ΑΛΛΑΓΗ ΚΓ.Δ: ΕΝΙΑΙΟΙ τόνοι κεφαλίδων — δύο επίπεδα, μεταβλητές στο κοινό component· οι σελίδες δεν ορίζουν δικό τους τόνο */
+:root{--th-group-bg:#e1e9f9;--th-group-line:#cdd8ee;--th-group-fg:#2f5bd6;--th-leaf-bg:#f2f5fc;--th-leaf-line:#dfe5f1;--th-leaf-fg:#1a1b20;--th-hover:rgba(47,91,214,.07)}
+body[data-theme="dark"]{--th-group-bg:#23365E;--th-group-line:#34476f;--th-group-fg:#9DB8FF;--th-leaf-bg:#1F2432;--th-leaf-line:#2f3648;--th-leaf-fg:#E3E5EC;--th-hover:rgba(157,184,255,.10)}
+#app .prodTable thead th{background:var(--th-leaf-bg)!important;color:var(--th-leaf-fg)!important;font-weight:500!important}
+#app :is(#ready,#production) table.prodTable.prodTable thead th:not(.pinColHide){border-bottom:1px solid var(--th-leaf-line)!important;border-right:1px solid var(--th-leaf-line)!important}
+#app .prodTable thead th :is(.prodOfficialLabel,b,span){color:var(--th-leaf-fg)!important;font-weight:500!important}
+#app .prodTable thead th.thGroup{background:var(--th-group-bg)!important;color:var(--th-group-fg)!important;font-weight:700!important}
+#app :is(#ready,#production) table.prodTable.prodTable thead th.thGroup:not(.pinColHide){border-bottom-color:var(--th-group-line)!important;border-right-color:var(--th-group-line)!important}
+#app .prodTable thead th.thGroup :is(.prodOfficialLabel,b,span,.chev){color:var(--th-group-fg)!important;font-weight:700!important}
+#app :is(#ready,#production) table.prodTable.prodTable thead th:last-child:not(.pinColHide){border-right-width:0!important}
+#app .prodTable thead th[data-prodcat]:hover,#app .prodTable thead th[data-prodmatcat]:hover{box-shadow:inset 0 0 0 9999px var(--th-hover)}
+/* ΑΛΛΑΓΗ ΚΓ.Ε: ο τίτλος της ανοιγμένης κατηγορίας στο ΚΕΝΤΡΟ των στηλών της· στο οριζόντιο scroll μένει μέσα στο ορατό τμήμα (sticky left = πλάτος σταθερών στηλών) */
+.thGroupLbl{position:sticky;left:var(--stkW,0px);right:12px;width:max-content;max-width:calc(100% - 24px);margin:0 auto;display:flex;align-items:center;justify-content:center;gap:6px;white-space:normal;text-align:center;line-height:1.2}
+/* ΑΛΛΑΓΗ ΚΓ.Γ: κάθε πίνακας με sticky γραμμές συνόλων: border-collapse:separate + border-spacing:0 (κοινό component) */
+.tablewrap table:has(tfoot td),.prodTableWrap table:has(tfoot td){border-collapse:separate!important;border-spacing:0!important}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -1996,7 +2030,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div id="productionActions" class="pageActions"><button class="btn alt" id="productionExcel">Εξαγωγή Excel</button></div>
 <div id="productionKpis" class="productionKpis"></div>
 <div class="productionTools"><div class="productionFilter"><label>Προβολή ποσότητας</label><div style="display:flex;align-items:center;gap:12px"><div class="prodSegment"><button data-prodgroup="ALL" class="active">Σύνολο</button><button data-prodgroup="HERMES">HERMES</button><button data-prodgroup="OTHER">Λοιποί</button></div><div id="prodStockOnlyWrap" class="toggleRow"><label class="toggleSwitch"><input type="checkbox" id="prodStockOnlyToggle"><span class="slider"></span></label><span>Απόκρυψη μηδενικών στηλών</span></div></div></div><div class="productionSearch"><input id="productionSearch" placeholder="Αναζήτηση κωδικού, περιγραφής, τμήματος ή ατόμου..."><button class="btn alt" id="prodExpandAll">Ανάπτυξη όλων</button><button class="btn alt" id="prodCollapseAll">Σύμπτυξη όλων</button></div></div>
-<div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable"><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div><div class="productionHint">Κλικ σε κατηγορία 1–6 για ανάπτυξη / σύμπτυξη όλων των υποκατηγοριών της. Τα μηδενικά εμφανίζονται κενά.</div></div>
+<div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable" data-datefill><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div><div class="productionHint">Κλικ σε κατηγορία 1–6 για ανάπτυξη / σύμπτυξη όλων των υποκατηγοριών της. Τα μηδενικά εμφανίζονται κενά.</div></div>
 <div id="productionPeoplePanel" class="hidden"><div class="prodTableWrap" style="margin-bottom:18px"><h3 style="margin:0 0 8px">Τρέχουσα τοποθέτηση εργαζομένων ανά τμήμα</h3><table class="prodTable"><thead><tr><th>Τμήμα / Εργαζόμενος</th><th>Τοποθέτηση σε τμήμα</th><th></th></tr></thead><tbody id="prodRosterBody"></tbody></table><div class="productionHint">Η αλλαγή τμήματος εφαρμόζεται αμέσως και σημειώνεται εσωτερικά με ώρα αλλαγής (ιστορικό μεταβολών εργαζομένου). Ο εργαζόμενος μένει στο τμήμα του μέχρι να τον μετακινήσει χειριστής κλαρκ, το Logistics ή η διοίκηση.</div></div><div class="prodTableWrap"><table class="prodTable"><thead id="prodPeopleHead"></thead><tbody id="prodPeopleBody"></tbody><tfoot id="prodPeopleFoot"></tfoot></table></div><div class="productionHint">Ένα τμήμα μπορεί να έχει συγκεντρωτική ποσότητα ή ανάλυση ανά εργαζόμενο. Το υλικό/ΑΗΗΕ εμφανίζεται σε κάθε γραμμή. Οι καταχωρίσεις υποστηρίζουν πηγή Android χειριστή περονοφόρου ή Windows.</div></div>
 <div id="productionDeltioPanel" class="hidden">
 <div class="toolbar" style="margin:4px 0 14px"><label style="margin:0">Ημερομηνία</label><input type="date" id="deltioDate"><span id="deltioExistingNote" class="muted hidden">Υπάρχει ήδη δελτίο για αυτή την ημέρα.</span></div>
@@ -2024,7 +2058,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 </div>
 <div id="readyStockOnlyWrap" class="toggleRow" style="margin-bottom:12px;justify-content:space-between"><label class="toggleSwitch"><input type="checkbox" id="readyStockOnlyToggle"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span><span id="readyCorrBtns" class="hidden" style="margin-left:auto;display:inline-flex;gap:8px;align-items:center"><span id="readyCorrMsg" class="muted" style="font-size:13px"></span><button class="btn" id="readyCorrAddBtn" title="Νέα διόρθωση υλικού">+ Προσθήκη</button><button class="btn alt" id="readyCorrUndoBtn" title="Αναίρεση της τελευταίας διόρθωσης" disabled>↶ Αναίρεση</button><button class="btn alt" id="readyCorrRedoBtn" title="Επανάληψη της διόρθωσης που αναιρέθηκε" disabled>↷ Επανάληψη</button></span><button class="btn alt" id="readyExportBtn">+ Εξαγωγή υλικών</button></div>
 <div id="readyQuarterInventoryCard" class="card hidden"><h3>Φυσική απογραφή</h3><div id="readyQuarterInventoryBody"></div></div>
-<div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable"><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
+<div id="readyMatPanel"><div class="prodTableWrap"><table class="prodTable" data-datefill><thead id="readyMatHead"></thead><tbody id="readyMatBody"></tbody><tfoot id="readyMatFoot"></tfoot></table></div></div>
 <div id="readyPressPanel" class="hidden"><div class="muted" id="readyPressPeriodLabel" style="margin:6px 0"></div><div class="prodTableWrap"><table class="prodTable"><thead id="readyPressHead"></thead><tbody id="readyPressBody"></tbody><tfoot id="readyPressFoot"></tfoot></table></div></div>
 <div class="hidden"><table><tbody id="readyRows"></tbody></table></div>
 <div id="readyWarehousePanel" class="hidden">
@@ -3315,7 +3349,7 @@ function stickyStackFooter(tfootId){
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
 // Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
-function fitProdWraps(){document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');w.style.maxHeight=(hist?Math.max(320,window.innerHeight-240):Math.max(220,window.innerHeight-top-24))+'px'})}
+function fitProdWraps(){document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');let h=hist?Math.max(320,window.innerHeight-240):Math.max(220,window.innerHeight-top-24);w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
 (function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 function renderReadyMaterials(){
  let entries=readyState.entries||[];
@@ -3354,7 +3388,8 @@ function renderReadyMaterials(){
    // Only show buckets (days/months) with actual activity -- a month view listing all 30 days,
    // most blank, was mostly dead space to scroll past. Standing rule for every date-bucketed table.
    let activeBuckets=buckets.filter(dt=>groupEntries.some(e=>readyEntryBucket(e)===readyBucketKey(dt)));
-   $('readyMatBody').innerHTML=(activeBuckets.length?activeBuckets:buckets).map(dt=>{
+   // ΑΛΛΑΓΗ ΚΓ: όλες οι ημέρες/μήνες της περιόδου ως γραμμές (οι κενές μένουν κενές)
+   $('readyMatBody').innerHTML=buckets.map(dt=>{
      let key=readyBucketKey(dt),a=groupEntries.filter(e=>readyEntryBucket(e)===key),total=a.reduce((s,e)=>s+Number(e.weight_kg||0),0);
      let label=readyState.period==='day'||readyState.period==='month'?dt.toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):dt.toLocaleDateString('el-GR',{month:'short',year:'numeric'});
      return `<tr><td>${label}</td><td><b>${prodVal(total)}</b></td>${bodyCols.map(c=>`<td>${prodVal(colValue(a,c))}</td>`).join('')}</tr>`;
@@ -4433,7 +4468,7 @@ function sfBubbleInner(net,sorting){
 }
 async function openSortingDetail(loadId,sourceRow=null){
  try{
-  let [d,cats,media,medTypes]=await Promise.all([api('/sorting/'+loadId+'/detail'),api('/master/weee-display'),api('/master/media'),api('/master/medium-types')]);
+  let [d,cats,media,medTypes,medOpts]=await Promise.all([api('/sorting/'+loadId+'/detail'),api('/master/weee-display'),api('/master/media'),api('/master/medium-types'),api('/sorting/medium-options')]);
   let sd=$('sortingDetail');
   if(!sd)throw new Error('Δεν βρέθηκε το παράθυρο Ταξινόμησης');
   document.body.appendChild(sd);
@@ -4468,7 +4503,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   ['sortCheckSpecial','sortCheckKday','sortCheckNonInteger','sortPure'].forEach(id=>$(id).onchange=saveSortMetaNow);
   ['sortForeignWeight','sortSpecialWeight'].forEach(id=>$(id).onchange=saveSortMetaNow);
   $('sortForeignWeight').addEventListener('input',()=>{$('sortHasForeign').checked=Number($('sortForeignWeight').value||0)>0});
-  if(editable)SF.bind({loadId,d,cats,media,medTypes,reload:()=>openSortingDetail(loadId)});
+  if(editable)SF.bind({loadId,d,cats,media,medTypes,medOpts,reload:()=>openSortingDetail(loadId)});
  }catch(e){console.error('openSortingDetail',e);alert('Δεν άνοιξε η Ταξινόμηση: '+e.message)}
 }
 let currentMasterTab='suppliers';function masterTab(name){currentMasterTab=name;document.querySelectorAll('.mpanel').forEach(x=>x.classList.add('hidden'));$(name).classList.remove('hidden');document.querySelectorAll('.mtab').forEach(x=>x.classList.toggle('active',x.dataset.mtab===name))}document.querySelectorAll('.mtab').forEach(b=>b.onclick=()=>masterTab(b.dataset.mtab));
@@ -5376,6 +5411,11 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   // Ο κανόνας του Explorer: κάθε στήλη παίρνει ρητό πλάτος (px) απευθείας στα κελιά της (th και td)·
   // το πλάτος του πίνακα = άθροισμα των στηλών· τίποτα δεν μοιράζεται αναλογικά.
   function applyWidths(table,g,w,skip){
+    // ΠΛΗΡΕΣ ΠΛΑΤΟΣ: αν οι στήλες (π.χ. μετά από σύρσιμο) αθροίζουν λιγότερο από το πλαίσιο, η τελευταία ορατή στήλη απλώνεται ώστε να μη μένει κενό δεξιά
+    // (τα w του χρήστη δεν αλλάζουν· μόνο το εφαρμοζόμενο πλάτος)
+    let box=table.closest('.prodTableWrap,.tablewrap'),avail=box?box.clientWidth:0,lastK=-1;
+    w.forEach((x,k)=>{if(!skip[k])lastK=k});
+    if(avail>0&&lastK>=0){let sum=0;w.forEach(x=>{sum+=x});if(sum<avail-0.5){w=w.slice();w[lastK]+=avail-sum}}
     let total=0;w.forEach(x=>{total+=x});
     table.dataset.cwt='1';
     table.style.tableLayout='fixed';
@@ -5543,6 +5583,9 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     }
   });
   colWidthObserver.observe(document.body,{childList:true,subtree:true});
+  // αλλαγή μεγέθους παραθύρου / διάταξης: ξαναϋπολογισμός ώστε ο πίνακας να γεμίζει πάντα το πλαίσιό του
+  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
+  window.addEventListener('resize',rzFill);window.addEventListener('tableLayoutChanged',rzFill);
   ['weeeProcessTable','weeeShipTable'].forEach(id=>{let t=document.getElementById(id);if(t)applyStoredColWidths(t)});
 })();
 
@@ -6043,7 +6086,8 @@ renderProdWeee=function(){
  const cellCls=c=>[c.groupStart?'prodGroupStart':'',c.kind==='category'?'prodEditableCell':''].filter(Boolean).join(' ');
  const cellAttrs=(c,key)=>c.kind==='category'?` data-bucket="${key}" data-cat="${c.id}" title="Κλικ για διόρθωση"`:'';
  // Only show buckets (days/months) with actual activity -- standing rule for every date-bucketed table.
- let buckets=prodDateBuckets().filter(dt=>entries.some(e=>prodEntryBucket(e)===prodBucketKey(dt)));
+ // ΑΛΛΑΓΗ ΚΓ: κάθε ημέρα/μήνας της περιόδου εμφανίζεται ως γραμμή, ακόμα και χωρίς καταγραφές (κενή)· ο κενός χώρος κάτω συμπληρώνεται από το κοινό component πινάκων (data-datefill)
+ let buckets=prodDateBuckets();
  $('prodWeeeBody').innerHTML=buckets.map(dt=>{let key=prodBucketKey(dt),a=entries.filter(e=>prodEntryBucket(e)===key),total=a.reduce((sum,e)=>sum+Number(e.weight_kg||0),0),label=prodState.period==='day'||prodState.period==='month'?dt.toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):dt.toLocaleDateString('el-GR',{month:'short',year:'numeric'});return `<tr><td>${label}</td><td><b>${prodVal(total)}</b></td>${bodyCols.map(c=>`<td class="${cellCls(c)}"${cellAttrs(c,key)}>${prodVal(colValue(a,c))}</td>`).join('')}</tr>`}).join('')||`<tr><td class="prodEmpty" colspan="${2+bodyCols.length}">Καμία ενεργή ημερομηνία σε αυτή την περίοδο.</td></tr>`;
  let total=entries.reduce((sum,e)=>sum+Number(e.weight_kg||0),0);
  // Source workbooks (κάρτελες 1-2) carry an unlabeled correction row just above their "HERMES"
@@ -6403,6 +6447,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
       return pick?norm(pick.textContent):'';
     };
     for(const tb of t.tBodies)for(const tr of tb.rows){
+      if(tr.classList.contains('tFill'))continue;
       let ok=tr.cells.length>1&&![...tr.cells].some(c=>c.colSpan>1)&&!tr.classList.contains('statHidden');
       let d=tr.dataset,key=norm(d.pinRow||d.id||d.receipt||d.month||d.date||d.mid||d.code);
       let owns=[...tr.cells].filter(c=>c.rowSpan>1).map(c=>({cell:c,trs:[...tb.rows].slice(tr.sectionRowIndex,tr.sectionRowIndex+c.rowSpan)}));
@@ -6451,6 +6496,7 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     let rowOnMap=new Map(md.rows.map(r=>[r.tr,r.ok&&rowIds.has(r.id)]));
     const all=[...t.tHead.rows,...[...t.tBodies].flatMap(b=>[...b.rows]),...(t.tFoot?[...t.tFoot.rows]:[])];
     for(const r of all){
+      if(r.classList&&r.classList.contains('tFill'))continue;
       let rowOn=!!rowOnMap.get(r);
       if(rowOn!==!!r._pinRowOn){r.classList.toggle('pinRowHide',rowOn);if(rowOn)r.style.setProperty('display','none','important');else r.style.removeProperty('display');r._pinRowOn=rowOn}
       let idx=0;
@@ -7201,7 +7247,7 @@ const SF=(function(){
     return best.pre+String(mx+1).padStart(best.len,'0');
   }
   function newFormHtml(noBack){
-    let types=CRT.map(c=>C.medTypes.find(t=>t.code===c)).filter(Boolean);
+    let types=C.outTypes.filter(t=>t.creatable);      // μόνο τα είδη που επιτρέπονται στην Ταξινόμηση (Εισερχόμενα / Και τα δύο) και δημιουργούνται από εδώ
     let hasBulk=C.outTypes.some(t=>t.code==='BULK');
     if(!(DD.nt==='BULK'&&hasBulk)&&!types.some(t=>t.id===DD.nt))DD.nt=(types[0]||{}).id;
     let bulk=DD.nt==='BULK',t=types.find(x=>x.id===DD.nt)||{},std=(t.code==='SACK_1KG'||t.code==='SACK_2KG_UN')&&t.default_tare_weight!=null;
@@ -7326,10 +7372,11 @@ const SF=(function(){
     closeDD();
     C={...ctx};
     C.rows=ctx.cats.filter(c=>!c.is_internal_subcategory);
-    const outType=new Set((ctx.medTypes||[]).filter(t=>t.usage!=='IN').map(t=>t.id));       // Χρήση: Εξερχόμενο ή Και τα δύο
-    C.outTypes=(ctx.medTypes||[]).filter(t=>t.usage!=='IN'&&t.active!==false);
-    let bulkTypeId=((ctx.medTypes||[]).find(t=>t.code==='BULK')||{}).id;
-    C.pickable=ctx.media.filter(m=>m.active!==false&&outType.has(m.type_id)&&m.type_id!==bulkTypeId);   // το Χύμα βγαίνει ΜΙΑ φορά (η επιλογή «Χύμα»), όχι ως BULK-…
+    // Είδη και μέσα της Ταξινόμησης: ΚΟΙΝΟ φίλτρο του server (/sorting/medium-options): Χρήση Εισερχόμενο ή Και τα δύο, μόνο μέσα AVAILABLE / WEEE_STORAGE
+    const opts=ctx.medOpts||{types:[],media:[]};
+    C.outTypes=(opts.types||[]).filter(t=>t.active!==false);
+    let bulkTypeId=((opts.types||[]).find(t=>t.code==='BULK')||{}).id;
+    C.pickable=(opts.media||[]).filter(m=>m.active!==false&&m.type_id!==bulkTypeId);   // το Χύμα βγαίνει ΜΙΑ φορά (η επιλογή «Χύμα»), όχι ως BULK-…
     // κατάσταση: διατηρείται μόνο η αναζήτηση/διακόπτης ανάμεσα σε ξαναζωγραφίσματα της ίδιας ταξινόμησης
     let keep=(S&&S.loadId===ctx.loadId)?{q:S.q,only:S.only}:{q:'',only:false};
     S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH};
@@ -7562,15 +7609,56 @@ const SF=(function(){
     });
     t._stkTotal=cells;
   }
+  // ΠΛΗΡΕΣ ΥΨΟΣ (πίνακες με γραμμές ανά ημέρα/μήνα, data-datefill): το πλαίσιο γεμίζει τον διαθέσιμο χώρο (fitProdWraps)· αν οι γραμμές δεν φτάνουν,
+  // μπαίνει ΜΙΑ κενή γραμμή (tr.tFill, με τις λεπτές γραμμές γραμμών του πίνακα) που γεμίζει τον ενδιάμεσο χώρο, ώστε «Διορθώσεις»/«Σύνολο» να μένουν στο κάτω άκρο.
+  function fillDays(t){
+    if(!t.hasAttribute('data-datefill'))return;
+    let w=t.closest('.prodTableWrap,.tablewrap'),tb=t.tBodies[0];if(!w||!tb)return;
+    try{if(typeof fitProdWraps==='function')fitProdWraps()}catch(e){}
+    let rows=[...tb.rows].filter(r=>!r.classList.contains('tFill')),f=tb.querySelector('tr.tFill');
+    let ref=rows.filter(r=>r.cells.length>2&&r.offsetParent).slice(-1)[0];
+    if(!ref){if(f)f.remove();return}
+    let cells=[...ref.cells].filter(c=>!c.classList.contains('pinColHide')),sig=cells.map(c=>c.className.replace(/\b(pinColHide|pinRowHideCell|prodEditableCell|negKgCell)\b/g,'').trim()).join('|');
+    if(!f){f=document.createElement('tr');f.className='tFill';f.setAttribute('aria-hidden','true');tb.appendChild(f)}
+    else if(f!==tb.lastElementChild)tb.appendChild(f);
+    if(f._sig!==sig){f.innerHTML='';cells.forEach(c=>{let td=document.createElement('td');td.className=c.className.replace(/\b(pinColHide|pinRowHideCell|prodEditableCell|negKgCell)\b/g,'').trim();f.appendChild(td)});f._sig=sig}
+    let rh=Math.max(20,Math.round(ref.getBoundingClientRect().height)||34);
+    f.style.setProperty('--tfRow',rh+'px');
+    f.style.display='';
+    let used=t.getBoundingClientRect().height-f.getBoundingClientRect().height,fill=Math.floor(w.clientHeight-used);
+    if(fill>=2){[...f.cells].forEach(td=>td.style.height=fill+'px');f.style.height=fill+'px'}
+    else{f.style.display='none'}
+  }
+  // ΑΛΛΑΓΗ ΚΓ.Δ/Ε: επίπεδα επικεφαλίδας (.thGroup = κατηγορία/υποκατηγορία που απλώνεται σε στήλες ή κλειστή κατηγορία· οι υπόλοιπες = στήλες) +
+  // τίτλος ομάδας στο κέντρο των στηλών της (στοιχείο sticky .thGroupLbl). Idempotent.
+  function tintHeaders(t){
+    if(!t.tHead||!t.classList.contains('prodTable'))return;
+    let r0=t.tHead.rows[0];if(!r0)return;
+    let stk=0;[...r0.cells].forEach(c=>{let cs=getComputedStyle(c);if(cs.position==='sticky'&&cs.left!=='auto'&&c.offsetParent&&!c.classList.contains('pinColHide'))stk+=c.getBoundingClientRect().width});
+    t.style.setProperty('--stkW',Math.round(stk)+'px');
+    t.tHead.querySelectorAll('th').forEach(th=>{
+      let g=th.colSpan>1||th.classList.contains('prodMajorHead');
+      if(th.classList.contains('thGroup')!==g)th.classList.toggle('thGroup',g);
+      if(g&&th.colSpan>1&&!th.querySelector(':scope>.thGroupLbl')){
+        let d=document.createElement('div');d.className='thGroupLbl';
+        while(th.firstChild)d.appendChild(th.firstChild);
+        th.appendChild(d);
+      }
+    });
+  }
   function fixAll(){
     timer=null;
     document.querySelectorAll('table').forEach(t=>{
       if(!t.offsetParent)return;
+      try{fillDays(t)}catch(e){}
+      try{tintHeaders(t)}catch(e){}
       let sc=scrollerOf(t);
       fixHead(t,sc);fixFoot(t,sc);fixTotalCol(t);
       if(window.ResizeObserver){
         if(!ro)ro=new ResizeObserver(()=>schedule());
         if(!seen.has(t)){seen.add(t);ro.observe(t)}
+        // το πλαίσιο αλλάζει ύψος/πλάτος (π.χ. εμφανίζεται/κρύβεται μήνυμα πάνω από τον πίνακα): ξαναϋπολογισμός γεμίσματος
+        let bw=t.closest('.prodTableWrap,.tablewrap');if(bw&&!seen.has(bw)){seen.add(bw);ro.observe(bw)}
       }
     });
   }
@@ -8528,7 +8616,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   // Πίνακας οθόνης -> {columns, rows, total}
   window.reportSheetFromTable=function(table,name){
     if(!table)return null;
-    const sec=[...(table.tHead?[...table.tHead.rows]:[])],body=[...table.tBodies].flatMap(b=>[...b.rows]).filter(r=>!r.classList.contains('pinRowHide')),foot=table.tFoot?[...table.tFoot.rows]:[];
+    const sec=[...(table.tHead?[...table.tHead.rows]:[])],body=[...table.tBodies].flatMap(b=>[...b.rows]).filter(r=>!r.classList.contains('pinRowHide')&&!r.classList.contains('tFill')),foot=table.tFoot?[...table.tFoot.rows]:[];
     const all=[...sec,...body,...foot],occ=[],map=new Map();let N=0;
     all.forEach((tr,ri)=>{occ[ri]=occ[ri]||[];let c=0;for(const cell of tr.cells){while(occ[ri][c])c++;const cs=cell.colSpan||1,rs=cell.rowSpan||1;map.set(cell,{s:c,e:c+cs-1,ri});for(let r=0;r<rs;r++){occ[ri+r]=occ[ri+r]||[];for(let k=0;k<cs;k++)occ[ri+r][c+k]=1}c+=cs}N=Math.max(N,c)});
     const hidden=new Set();map.forEach((p,cell)=>{if(cell.classList.contains('pinColHide'))for(let k=p.s;k<=p.e;k++)hidden.add(k)});
