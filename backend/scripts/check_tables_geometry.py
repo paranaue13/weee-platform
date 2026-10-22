@@ -10,6 +10,7 @@
 import sys
 from playwright.sync_api import sync_playwright
 
+from _browser import launch   # δικός μας browser, κλείνει μόνο με το handle του (ποτέ τερματισμός με όνομα εικόνας)
 JS = """()=>{
 const out=[];const R=c=>c.getBoundingClientRect();
 const vst=c=>{const k=getComputedStyle(c);return k.position==='sticky'&&(k.bottom!=='auto'||k.top!=='auto')};
@@ -126,7 +127,7 @@ def run_fill(base):
     """ΑΛΛΑΓΗ ΚΓ: πλήρες πλάτος / πλήρες ύψος / σταθερά σύνολα."""
     total = 0
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = launch(p)
         try:
             for (W, H) in FILL_SIZES:
                 pg = b.new_page(viewport={'width': W, 'height': H})
@@ -200,7 +201,7 @@ def run_zoom(base):
     cfgs += [('ready', 'Υλικά/' + t, f"(()=>{{let b=[...document.querySelectorAll('#ready .readyGroupTab')].find(x=>x.dataset.readygroup==='{t}');if(b)b.click()}})()") for t in READY_TABS]
     cfgs += [('loading', 'Φορτώσεις/ιστορικό', "(()=>{let b=document.querySelector('[data-lsub=hist]');if(b)b.click()})()")]
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = launch(p)
         try:
             for (W, H) in ZOOM_SIZES:
                 pg = b.new_page(viewport={'width': W, 'height': H})
@@ -230,7 +231,7 @@ SIZES = [(700, 800), (1280, 800), (1900, 1000)]
 def run(base='http://127.0.0.1:8000'):
     total = 0
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        b = launch(p)
         try:
             for (W, H) in SIZES:
                 pg = b.new_page(viewport={'width': W, 'height': H})

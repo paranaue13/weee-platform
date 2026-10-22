@@ -6,11 +6,12 @@ r"""Στιγμιότυπα της οθόνης Android (/mobile) όπως τη �
 Δεν κλείνει κανένα άλλο Chrome· ανοίγει/κλείνει μόνο το δικό του."""
 import sys, os
 from playwright.sync_api import sync_playwright
+from _browser import launch   # δικός μας browser, κλείνει μόνο με το handle του (ποτέ τερματισμός με όνομα εικόνας)
 base = (sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8010').rstrip('/')
 out = sys.argv[2] if len(sys.argv) > 2 else os.path.join(os.environ.get('TEMP', '.'), 'mobile_shots')
 os.makedirs(out, exist_ok=True)
 with sync_playwright() as p:
-    b = p.chromium.launch()
+    b = launch(p)
     try:
         pg = b.new_page(viewport={'width': 412, 'height': 915}, device_scale_factor=2, is_mobile=True, has_touch=True)
         pg.set_default_timeout(20000)

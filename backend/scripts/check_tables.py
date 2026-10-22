@@ -7,6 +7,7 @@
 Τυπώνει ΜΟΝΟ προβλήματα. Μόνο ανάγνωση (login + πλοήγηση)."""
 import sys
 from playwright.sync_api import sync_playwright
+from _browser import launch   # δικός μας browser, κλείνει μόνο με το handle του (ποτέ τερματισμός με όνομα εικόνας)
 sys.stdout.reconfigure(encoding='utf-8')
 B = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8000'
 JS = """()=>{let bad=[];const vh=innerHeight;
@@ -23,7 +24,7 @@ for(const t of document.querySelectorAll('table')){if(!t.offsetParent)continue;
  if(w.scrollHeight>w.clientHeight+2&&wr.bottom<vh-60&&!w.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail'))bad.push(name+': ο πίνακας δεν γεμίζει το παράθυρο (άδειο '+Math.round(vh-wr.bottom)+'px κάτω)');
 }return [...new Set(bad)]}"""
 with sync_playwright() as p:
-    b = p.chromium.launch()
+    b = launch(p)
     try:
         pg = b.new_page(viewport={'width': 1366, 'height': 800})
         pg.goto(B + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000); pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
