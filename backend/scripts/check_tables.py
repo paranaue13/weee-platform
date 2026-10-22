@@ -2,7 +2,7 @@
   python backend/scripts/check_tables.py [http://127.0.0.1:8000]
 Για κάθε οθόνη/καρτέλα με πίνακα ελέγχει:
  1. sticky αριστερή στήλη: κανένα άλλο κελί δεν περνά από πάνω της στο οριζόντιο scroll
- 2. sticky γραμμές συνόλων (tfoot): δεν επικαλύπτονται μεταξύ τους και δεν πιάνουν πάνω από το μισό ύψος του πίνακα
+ 2. sticky γραμμές συνόλων (tfoot): δεν επικαλύπτονται μεταξύ τους (η ορατότητα ΟΛΩΝ των γραμμών ελέγχεται στο check_tables_geometry.py)
  3. ο πίνακας γεμίζει τον διαθέσιμο χώρο (δεν μένει άδειος χώρος κάτω από τον πίνακα όταν το περιεχόμενο είναι μεγαλύτερο)
 Τυπώνει ΜΟΝΟ προβλήματα. Μόνο ανάγνωση (login + πλοήγηση)."""
 import sys
@@ -19,7 +19,7 @@ for(const t of document.querySelectorAll('table')){if(!t.offsetParent)continue;
   if(e&&!c.contains(e)&&!e.closest('.topbar,.floatPanel,#toast,tfoot,thead')){bad.push(name+': στήλη κολλημένη αριστερά καλύπτεται από άλλο κελί ("'+c.innerText.slice(0,18)+'")');break}}
  let foot=[...t.querySelectorAll('tfoot tr')].filter(r=>(getComputedStyle(r.firstElementChild||r).position==='sticky'&&getComputedStyle(r.firstElementChild||r).bottom!=='auto'));
  if(foot.length){let tot=0,prev=null;for(const r of foot){let b=r.getBoundingClientRect();tot+=b.height;if(prev&&b.top<prev.bottom-1.5)bad.push(name+': γραμμές συνόλων επικαλύπτονται');prev=b}
-  if(tot>wr.height*0.5+1)bad.push(name+': οι κολλημένες γραμμές συνόλων πιάνουν '+Math.round(tot)+'px από '+Math.round(wr.height)+'px')}
+  /* ΑΛΛΑΓΗ ΚΗ-2: το κάτω μπλοκ είναι ΠΑΝΤΑ ολόκληρο ορατό — ο παλιός περιορισμός «μισό ύψος» αφαιρέθηκε (η ορατότητα ελέγχεται στο check_tables_geometry.py) */}
  if(w.scrollHeight>w.clientHeight+2&&wr.bottom<vh-60&&!w.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail'))bad.push(name+': ο πίνακας δεν γεμίζει το παράθυρο (άδειο '+Math.round(vh-wr.bottom)+'px κάτω)');
 }return [...new Set(bad)]}"""
 with sync_playwright() as p:

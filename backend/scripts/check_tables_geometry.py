@@ -57,9 +57,6 @@ JS_FILL = """()=>{const out=[];
   const wr=w.getBoundingClientRect(),tr=t.getBoundingClientRect();
   const zz=w.offsetWidth>0?wr.width/w.offsetWidth:1,gap=Math.round(wr.left+w.clientWidth*zz-tr.right);
   if(gap>1&&!t.dataset.cwGap)out.push(name+': ο πίνακας δεν γεμίζει το πλάτος του πλαισίου (κενό δεξιά '+gap+'px)');
-  // ΑΛΛΑΓΗ ΚΗ: ετικέτα «Υπέρβαση» (γραμμή Σημείωση στα Υλικά) στο κέντρο της στήλης του υλικού, μέσα στο κελί της
-  t.querySelectorAll('.ovrNoteRow .ovrTag').forEach(tag=>{const td=tag.closest('td'),r=tag.getBoundingClientRect(),c=td.getBoundingClientRect();
-    if(r.width&&(Math.abs((r.left+r.right)/2-(c.left+c.right)/2)>3||r.left<c.left-0.5||r.right>c.right+0.5))out.push(name+': η ετικέτα «Υπέρβαση» δεν είναι στοιχισμένη μέσα στη στήλη της')});
   // ΑΛΛΑΓΗ ΚΣΤ: η τελευταία στήλη είναι κανονική στήλη (πλάτος, κάθετη γραμμή δεξιά, λαβή σύρσιμου)
   if(t.tHead){
    const leaf=[...t.tHead.querySelectorAll('th')].filter(th=>th.offsetParent&&th.colSpan===1&&!th.classList.contains('pinColHide'));
@@ -96,7 +93,7 @@ JS_FILL = """()=>{const out=[];
 JS_FOOT = """(sel)=>{const t=document.querySelector(sel);if(!t||!t.offsetParent||!t.tFoot)return null;return [...t.tFoot.rows].filter(r=>r.offsetParent&&r.cells.length).map(r=>Math.round(r.cells[0].getBoundingClientRect().top))}"""
 
 # ΑΛΛΑΓΗ ΚΔ: το κάτω μπλοκ (tfoot) είναι πάντα ορατό μέσα στο πλαίσιο, μένει στην ίδια θέση πριν/μετά το scroll και τα ονόματα δεν κόβονται
-JS_BLOCK = """()=>{const out=[];
+JS_BLOCK = """()=>{window.scrollTo(0,document.documentElement.scrollHeight);const out=[];
 for(const t of document.querySelectorAll('table.prodTable')){
  if(!t.offsetParent||!t.tFoot)continue;
  if(t.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail,.repPop'))continue;
@@ -108,17 +105,19 @@ for(const t of document.querySelectorAll('table.prodTable')){
  const wr=w.getBoundingClientRect();
  // ονόματα που κόβονται (χωρίς tooltip)
  rows.forEach(r=>{const c=r.cells[0];if(c.scrollWidth>c.clientWidth+1&&!c.title)out.push('DEC0|'+name+': κομμένο όνομα γραμμής «'+c.textContent.trim()+'» χωρίς tooltip')});
+ // ΑΛΛΑΓΗ ΚΗ-2: ΟΛΕΣ οι γραμμές του κάτω μπλοκ πρέπει να φαίνονται ολόκληρες: πάνω από την οριζόντια μπάρα του πλαισίου και πάνω από τη γραμμή κατάστασης
+ const zb=document.getElementById('zoomBar'),barTop=zb?zb.getBoundingClientRect().top:innerHeight;
+ const seeAll=(when)=>{const wq=w.getBoundingClientRect(),zz=w.offsetHeight>0?wq.height/w.offsetHeight:1,sb=Math.min(wq.top+w.clientTop*zz+w.clientHeight*zz,barTop);
+   rows.forEach((r,i)=>{const bb=r.cells[0].getBoundingClientRect();if(bb.top<wq.top-1||bb.bottom>sb+1)out.push('DEC0|'+name+': η γραμμή «'+r.cells[0].textContent.trim().slice(0,28)+'» του κάτω μπλοκ κόβεται ('+when+')')})};
+ seeAll('χωρίς scroll');
  if(!scrolls)continue;
- const blockH=rows.reduce((a,r)=>a+r.getBoundingClientRect().height,0);
- if(blockH>w.clientHeight*0.5){out.push('DEC1|'+name+': το κάτω μπλοκ ('+rows.length+' γραμμές, '+Math.round(blockH)+'px) πιάνει '+Math.round(blockH/w.clientHeight*100)+'% του πλαισίου ('+Math.round(w.clientHeight)+'px) — ΑΠΟΦΑΣΗ ΧΡΗΣΤΗ, δεν λύνεται αυτόματα');continue}
  w.scrollTop=0;w.scrollLeft=0;const t0=tops();
  w.scrollTop=w.scrollHeight;w.scrollLeft=w.scrollWidth;const t1=tops();
- const wr2=w.getBoundingClientRect();
- rows.forEach((r,i)=>{const b=r.cells[0].getBoundingClientRect();if(b.top<wr2.top-1||b.bottom>wr2.bottom+1)out.push('DEC0|'+name+': η γραμμή μπλοκ '+(i+1)+' είναι εκτός πλαισίου μετά το scroll')});
+ seeAll('μετά το scroll κάτω-δεξιά');
  if(t0.some((v,i)=>Math.abs(v-t1[i])>1))out.push('DEC0|'+name+': οι θέσεις των γραμμών μπλοκ αλλάζουν με το scroll '+t0+' → '+t1);
  w.scrollTop=0;w.scrollLeft=0;
 }
-return out}"""
+window.scrollTo(0,0);return out}"""
 
 FILL_SIZES = [(1280, 720), (1600, 900), (1920, 1080)]
 
@@ -173,7 +172,7 @@ def run_fill(base):
 
 
 # ΑΛΛΑΓΗ ΚΖ: ποσοστό μεγέθους 70% / 100% / 150% — ο πίνακας γεμίζει το πλάτος, φτάνει στη γραμμή κατάστασης, το κάτω μπλοκ μένει ορατό
-JS_ZOOM = """()=>{const out=[],zb=document.getElementById('zoomBar');if(!zb)return ['δεν υπάρχει γραμμή κατάστασης (#zoomBar)'];
+JS_ZOOM = """()=>{window.scrollTo(0,document.documentElement.scrollHeight);const out=[],zb=document.getElementById('zoomBar');if(!zb)return ['δεν υπάρχει γραμμή κατάστασης (#zoomBar)'];
  const bar=zb.getBoundingClientRect();
  if(Math.abs(bar.bottom-innerHeight)>1)out.push('η γραμμή κατάστασης δεν είναι κάτω-κάτω ('+Math.round(bar.bottom)+' αντί '+innerHeight+')');
  for(const w of document.querySelectorAll('.prodTableWrap')){
@@ -185,32 +184,41 @@ JS_ZOOM = """()=>{const out=[],zb=document.getElementById('zoomBar');if(!zb)retu
   if(t.hasAttribute('data-datefill')||w.id==='invTableWrap'){const g=bar.top-wr.bottom;if(g>3||g<-1)out.push(name+': το πλαίσιο δεν φτάνει στη γραμμή κατάστασης (κενό '+Math.round(g)+'px)')}
   if(wr.bottom>bar.top+1)out.push(name+': το πλαίσιο καλύπτεται από τη γραμμή κατάστασης');
  }
- return out}"""
+ window.scrollTo(0,0);return out}"""
 
 ZOOMS = [70, 100, 150]
 
 
+ZOOM_SIZES = [(1280, 720), (1920, 1080)]
+READY_TABS = ['AXIOPOIISIMA', 'EIDIKIS_DIACHEIRISIS', 'PLAKETES', 'APORRIPSI', 'PRESS', 'WAREHOUSE']
+
+
 def run_zoom(base):
     total = 0
+    cfgs = [('inventory', 'Απογραφή', None)]
+    cfgs += [('production', 'Παραγωγή/' + t, f"(()=>{{let b=document.querySelector('.productionTab[data-prodtab={t}]');if(b)b.click()}})()") for t in ('weee', 'people', 'deltio')]
+    cfgs += [('ready', 'Υλικά/' + t, f"(()=>{{let b=[...document.querySelectorAll('#ready .readyGroupTab')].find(x=>x.dataset.readygroup==='{t}');if(b)b.click()}})()") for t in READY_TABS]
+    cfgs += [('loading', 'Φορτώσεις/ιστορικό', "(()=>{let b=document.querySelector('[data-lsub=hist]');if(b)b.click()})()")]
     with sync_playwright() as p:
         b = p.chromium.launch()
         try:
-            pg = b.new_page(viewport={'width': 1600, 'height': 900})
-            pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
-            pg.evaluate("try{localStorage.clear()}catch(e){}"); pg.reload(wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
-            pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
-            for (view, tab) in (('inventory', None), ('production', "(()=>{let b=document.querySelector('.productionTab[data-prodtab=weee]');if(b)b.click()})()"), ('ready', None), ('loading', "(()=>{let b=document.querySelector('[data-lsub=hist]');if(b)b.click()})()")):
-                pg.evaluate(f"show('{view}')"); pg.wait_for_timeout(1300)
-                if tab: pg.evaluate(tab); pg.wait_for_timeout(1000)
-                for z in ZOOMS:
-                    pg.evaluate(f"setViewZoom({z})"); pg.wait_for_timeout(1000)
-                    for msg in pg.evaluate(JS_ZOOM):
-                        total += 1; print(f'[zoom {z}% · {view}] {msg}')
-                    for msg in pg.evaluate(JS_BLOCK):
-                        kind, txt = msg.split('|', 1)
-                        if kind == 'DEC1': continue
-                        total += 1; print(f'[zoom {z}% · {view}] ' + txt)
-                pg.evaluate("setViewZoom(100)")
+            for (W, H) in ZOOM_SIZES:
+                pg = b.new_page(viewport={'width': W, 'height': H})
+                pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+                pg.evaluate("try{localStorage.clear()}catch(e){}"); pg.reload(wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+                pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
+                for (view, label, tab) in cfgs:
+                    pg.evaluate(f"show('{view}')"); pg.wait_for_timeout(1000)
+                    if tab: pg.evaluate(tab); pg.wait_for_timeout(1100)
+                    for z in ZOOMS:
+                        pg.evaluate(f"setViewZoom({z})"); pg.wait_for_timeout(900)
+                        for msg in pg.evaluate(JS_ZOOM):
+                            total += 1; print(f'[{W}x{H} · zoom {z}% · {label}] {msg}')
+                        for msg in pg.evaluate(JS_BLOCK):
+                            kind, txt = msg.split('|', 1)
+                            total += 1; print(f'[{W}x{H} · zoom {z}% · {label}] ' + txt)
+                    pg.evaluate("setViewZoom(100)")
+                pg.close()
         finally:
             b.close()
     return total

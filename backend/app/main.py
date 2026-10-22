@@ -4455,6 +4455,12 @@ def loading_cancel(order_id:str,db:Session=Depends(get_db),user:User=Depends(req
     o.status='CANCELLED'; released=_release_bulk(db,o); write_audit(db,user,'loading_order',o.id,'CANCEL',new={'bulk_released':released})
     db.commit(); return _loading_out(db,o)
 
+@app.get('/loading/bulk-shortages')
+def loading_bulk_shortages(label:str,db:Session=Depends(get_db),user=Depends(require_permission('production.view'))):
+    """Υπερβάσεις χύμα αποθέματος που επιβεβαιώθηκαν σε οριστικοποιημένες φορτώσεις, για ένα υλικό (νεότερη πρώτη)."""
+    rows=db.execute(select(models.LoadingBulkItem,LoadingOrder).join(LoadingOrder,LoadingOrder.id==models.LoadingBulkItem.loading_order_id).where(models.LoadingBulkItem.material_label==label,models.LoadingBulkItem.shortage_kg>0,LoadingOrder.status=='COMPLETED').order_by(LoadingOrder.created_at.desc())).all()
+    return [{'order_id':lo.id,'loading_number':lo.loading_number,'da_number':lo.dispatch_document_number,'date':((lo.delivery_date or lo.created_at.date().isoformat())[:10]),'kg':float(bi.shortage_kg),'reason':bi.shortage_reason or ''} for bi,lo in rows]
+
 @app.get('/loading/shipment-history')
 def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Query(default=None), kind:str|None=Query(default=None), q:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
     stmt=select(models.ShipmentHistoryEntry).where(models.ShipmentHistoryEntry.active==True)

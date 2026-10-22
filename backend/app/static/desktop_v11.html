@@ -1459,13 +1459,31 @@ body[data-theme="dark"] #zmMenu button{color:var(--fg,#edf4f8)}
 .prepShort .shBack{background:var(--surface,#fff);color:var(--fg,#1a1b20);border:1px solid #cfd6e4}
 .prepShort .shGo{background:#b3261e;color:#fff;border:1px solid #b3261e}
 .prepShort .shGo:disabled{background:#eef0f5;color:#a3abbb;border-color:#eef0f5;cursor:default}
-#app #ready table.prodTable.prodTable :is(thead th,tbody td,tfoot td).ovrCol{background:#fdecea!important}
-#app #ready table.prodTable.prodTable thead th.ovrCol,#app #ready table.prodTable.prodTable tr.prodBalanceRow td.ovrCol,#app #ready table.prodTable.prodTable tr.prodBalanceRow td.ovrCol *{color:#b3261e!important;font-weight:700!important}
-#app #ready table.prodTable.prodTable tfoot tr.ovrNoteRow>td{text-align:center!important}
-.ovrTag{display:inline-block;background:#b3261e;color:#fff;border-radius:999px;padding:2px 9px;font-size:11px;line-height:1.3;font-weight:500}
 #app #shipHistCard tr.shipOver>td{background:#fff3d6}
 #shipHistCard td.shipNote{white-space:normal;color:var(--fg-2,#44474f)}
 #shipHistCard tr.shipOver>td.shipNote{color:#8a5a00}
+/* ΑΛΛΑΓΗ ΚΗ-2: αρνητικό απόθεμα / διορθώσεις με κλικ */
+.negLink,.negLink *{color:#b3261e!important;font-weight:700!important}
+.negLink{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.corrBtn.corrHas,.corrBtn.corrHas *{color:#8a5a00!important;font-weight:700!important}
+.corrBtn.corrHas{text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.negPop{position:fixed;z-index:9500;width:360px;box-sizing:border-box;background:#fff;color:#1a1b20;border:1px solid #cfd6e4;border-radius:10px;box-shadow:0 8px 28px rgba(15,30,54,.22);padding:14px 16px;font-size:13px}
+body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg,#edf4f8);border-color:var(--line,#2b3b48)}
+.negPop .npTitle{color:#b3261e;font-weight:700;font-size:14px;margin-bottom:10px;line-height:1.3}
+.negPop .npTitle.corr{color:inherit}
+.negPop .npCalc>div{display:flex;justify-content:space-between;gap:12px;padding:4px 0}
+.negPop .npCalc b{font-variant-numeric:tabular-nums;text-align:right}
+.negPop .npSum{border-top:1px solid #cfd6e4;margin-top:4px;padding-top:8px!important;font-weight:700}
+.negPop .neg{color:#b3261e}
+.negPop .npBox{background:#fff3d6;color:#8a5a00;border-radius:8px;padding:10px 12px;margin:12px 0 6px;line-height:1.4}
+.negPop .npPlain{margin-top:12px;color:var(--fg-2,#44474f);line-height:1.4}
+.negPop .npLink{display:inline-block;margin-top:6px;color:#2f5bd6;font-weight:600;text-decoration:none}
+.negPop .npList{max-height:170px;overflow:auto;margin-bottom:8px}
+.negPop .npRow{display:flex;gap:10px;align-items:baseline;padding:4px 0;border-bottom:1px solid var(--line,#e3e5ec)}
+.negPop .npD{color:var(--fg-3,#74777f);min-width:38px}
+.negPop .npN{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.negPop .npRow b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.negPop .npAfter{margin:8px 0 4px;font-weight:600}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -3260,7 +3278,7 @@ function readySortOrder(lb){return (matGroupOverrides[lb]&&matGroupOverrides[lb]
 // balance per material label (see loadReadyBalance), not the physical-lot registry -- lot tracking
 // isn't in real use yet so it stayed permanently empty; the shipments-based balance reflects real
 // recorded output net of real recorded shipments instead.
-let readyBalanceByName={};let readyStockOnly=false;
+let readyBalanceByName={},readyProducedByName={},readyShippedByName={};let readyStockOnly=false;
 // Full (all-time, unfiltered by period) universe of material_label -> its raw category_group, so
 // renderReadyMaterials() can show a column for every material ever recorded -- including one with
 // zero entries in the currently selected period -- instead of only materials with period activity.
@@ -3288,6 +3306,7 @@ async function loadReadyBalance(){
   readyAllLabels=Object.entries(labelSeen).map(([label,category_group])=>({label,category_group}));
   // Kept un-floored (can be negative) on purpose -- prodVal() highlights a negative cell red and
   // raises an alert (see flagNegativeKg) instead of silently hiding a real shortfall behind a 0.
+  readyProducedByName=produced;readyShippedByName=shipped;
   readyBalanceByName={};
   new Set([...Object.keys(produced),...Object.keys(shipped)]).forEach(lb=>{readyBalanceByName[lb]=(produced[lb]||0)-(shipped[lb]||0)});
  }catch(e){console.error('ready balance load failed',e)}
@@ -3383,7 +3402,7 @@ function stickyStackFooter(tfootId){
  // ΣΗΜΑΝΤΙΚΟ: οι γραμμές που «πέφτουν» χάνουν ΜΟΝΟ την κάθετη κόλληση (bottom:auto)· ΔΕΝ γίνονται position:static, γιατί τα κελιά τους που είναι
  // κολλημένα αριστερά (πρώτη στήλη, «Σύνολο») θα έμεναν κολλημένα κάθετα μόνα τους και θα έβγαιναν από τη γραμμή τους.
  let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height/vzOf(r),0);
- let tooTall=!!wrap&&wrap.clientHeight>0&&total>wrap.clientHeight*0.5;
+ let tooTall=false;      // ΑΛΛΑΓΗ ΚΗ-2: το κάτω μπλοκ είναι ΠΑΝΤΑ ολόκληρο ορατό (κανόνας ΚΔ)· δεν «πέφτει» ποτέ
  let cum=0;
  for(let i=rows.length-1;i>=0;i--){
   let r=rows[i],h=r.getBoundingClientRect().height/vzOf(r),keep=tooTall&&r.id==='readyBalanceRow',drop=tooTall&&!keep;
@@ -3398,7 +3417,8 @@ function stickyStackFooter(tfootId){
  if(!tfoot._stickyRO&&window.ResizeObserver){let t;tfoot._stickyRO=new ResizeObserver(()=>{clearTimeout(t);t=setTimeout(()=>stickyStackFooter(tfootId),60)});tfoot._stickyRO.observe(tfoot);if(wrap)tfoot._stickyRO.observe(wrap)}
 }
 // Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
-function fitProdWraps(){let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');let h=Math.floor(Math.max(hist?320:220,(window.innerHeight-top-bh)/z));w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
+function fitProdWraps(){let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;document.querySelectorAll('.prodTableWrap,.shipHistWrap').forEach(w=>{if(!w.offsetParent)return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');let tb=w.querySelector('table'),need=(tb&&tb.tFoot&&tb.tFoot.rows.length)?Math.ceil((tb.tHead?tb.tHead.offsetHeight:0)+tb.tFoot.offsetHeight+38):0;      /* ΑΛΛΑΓΗ ΚΗ-2: το πλαίσιο δεν γίνεται μικρότερο από κεφαλίδα + ΟΛΟ το κάτω μπλοκ (σε πολύ μικρό παράθυρο/μεγάλο ποσοστό κάνει scroll η σελίδα, το μπλοκ δεν κόβεται) */
+  let h=Math.floor(Math.max(hist?320:220,need,(window.innerHeight-top-bh)/z));w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
 (function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 function renderReadyMaterials(){
  let entries=readyState.entries||[];
@@ -3487,17 +3507,17 @@ function renderReadyMaterials(){
   +`<tr><td>Σύνολο ${readyPW()}</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(groupEntries,c))}</td>`).join('')}</tr>`
   +piecesPeriodRow
   +`<tr class="prodShipRow"><td>Αποστολές ${readyPW()}</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>`<td>${prodVal(colValue(shipGroupEntries,c))}</td>`).join('')}</tr>`
-  +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
+  +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(c=>`<td><b>${colBalance(c)<0?`<span class="negLink" data-neglabel="${esc(c.label)}" title="Γιατί είναι αρνητικό">${prodVal(colBalance(c))}</span>`:prodVal(colBalance(c))}</b></td>`).join('')}</tr>`
   +piecesBalanceRow
-  +invRow
-  +(bodyCols.some(c=>colBalance(c)<0)?`<tr class="ovrNoteRow"><td>Σημείωση</td><td></td>${bodyCols.map(c=>`<td>${colBalance(c)<0?'<span class="ovrTag">Υπέρβαση</span>':''}</td>`).join('')}</tr>`:'');
- // ΑΛΛΑΓΗ ΚΗ: υλικό με αρνητικό απόθεμα → όλη η στήλη του με φόντο #fdecea, όνομα/απόθεμα κόκκινα (φεύγει αυτόματα όταν το απόθεμα γίνει 0 ή θετικό)
- try{let tb=$('readyMatHead').closest('table');
-  tb.querySelectorAll('.ovrCol').forEach(x=>x.classList.remove('ovrCol'));
-  bodyCols.forEach((c,i)=>{if(colBalance(c)<0)tb.querySelectorAll('tr').forEach(tr=>{let cell=tr.cells[2+i];if(cell&&tr.cells.length===bodyCols.length+2)cell.classList.add('ovrCol')})});
- }catch(e){}
+  +invRow;
  readyState.corrMonth=isMonthView;syncReadyCorrBtns(isMonthView);
- document.querySelectorAll('.corrBtn').forEach(btn=>{btn.onclick=e=>{e.stopPropagation();openCorrPopover(btn)}});
+ // ΑΛΛΑΓΗ ΚΗ-2: αρνητικό «Τρέχον απόθεμα» → παράθυρο «Γιατί είναι αρνητικό»· κελί «Διορθώσεις» με τιμή → παράθυρο διορθώσεων (η επεξεργασία μένει στο υπάρχον παράθυρο)
+ document.querySelectorAll('#readyBalanceRow .negLink').forEach(el=>el.onclick=e=>{e.stopPropagation();openNegPop(el,el.dataset.neglabel,'neg')});
+ document.querySelectorAll('.corrBtn').forEach(btn=>{
+   let hasKg=btn.dataset.kind!=='pc'&&(readyState.corrections||[]).some(x=>readyNorm(x.material_label)===readyNorm(btn.dataset.label)&&Number(x.weight_kg_delta));
+   btn.classList.toggle('corrHas',hasKg);
+   btn.onclick=e=>{e.stopPropagation();hasKg?openNegPop(btn,btn.dataset.label,'corr'):openCorrPopover(btn)};
+ });
  if($('readyCorrHistLink'))$('readyCorrHistLink').onclick=()=>{if(corrections.length)readyCorrHistory(corrections)};
  stickyStackFooter('readyMatFoot');
  // Drag-and-drop: dragging a material header onto the group tabs (wired separately) reclassifies
@@ -3730,6 +3750,47 @@ function openCorrPopover(btn){
   const onKey=e=>{if(e.key==='Escape'){corrPopClose()}};document.addEventListener('keydown',onKey);
   const mo=new MutationObserver(()=>{if(!pop.isConnected){mo.disconnect();document.removeEventListener('keydown',onKey);btn.setAttribute('aria-expanded','false')}});mo.observe(document.body,{childList:true});
   setTimeout(()=>$('cpNum')?.focus(),0);
+}
+// ΑΛΛΑΓΗ ΚΗ-2: παράθυρα πληροφορίας (ανοίγουν προς τα πάνω): «Γιατί είναι αρνητικό» και «Διορθώσεις»
+function closeNegPop(){document.querySelectorAll('.negPop').forEach(p=>{p._off&&p._off();p.remove()})}
+async function openNegPop(anchor,label,kind){
+  if(anchor.dataset.npOpen==='1'&&document.querySelector('.negPop')){closeNegPop();anchor.dataset.npOpen='';return}
+  closeNegPop();document.querySelectorAll('[data-np-open]').forEach(x=>x.dataset.npOpen='');
+  const n1=v=>Number(v||0).toLocaleString('el-GR',{maximumFractionDigits:1});
+  const sg=v=>v<0?'−'+n1(Math.abs(v)):(v>0?'+'+n1(v):'0');
+  const norm=readyNorm(label);
+  let prod=Number(readyProducedByName[label]||0),ship=Number(readyShippedByName[label]||0),corr=(readyState.corrTotals||[]).filter(x=>readyNorm(x.material_label)===norm).reduce((a,x)=>a+Number(x.weight_kg||0),0),bal=prod-ship+corr;
+  let sh=[];if(bal<0){try{sh=await api('/loading/bulk-shortages?label='+encodeURIComponent(label))}catch(e){sh=[]}}
+  const dmy=iso=>{let m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:''};
+  let why='';
+  if(bal<0){
+    why=`<div class="npCalc"><div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b class="neg">${sg(bal)}</b></div></div>`
+      +(sh.length?`<div class="npBox">Υπέρβαση ${n1(sh[0].kg)} kg από φόρτωση ${esc(dmy(sh[0].date))}. Λόγος: ${esc(sh[0].reason||'—')}</div><a href="#" class="npLink" data-npda="${esc(sh[0].da_number||'')}">Άνοιγμα φόρτωσης ▸</a>`
+        :`<div class="npPlain">Δεν προέρχεται από φόρτωση: οι αποστολές ξεπερνούν την παραγωγή και τις διορθώσεις.</div>`);
+  }else if(kind==='neg'){
+    why=`<div class="npCalc"><div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b>${sg(bal)}</b></div></div>`;
+  }
+  let html='';
+  if(kind==='corr'){
+    let items=(readyState.corrections||[]).filter(x=>readyNorm(x.material_label)===norm&&Number(x.weight_kg_delta)).sort((a,b)=>String(a.created_at||a.work_date).localeCompare(String(b.created_at||b.work_date)));
+    html=`<div class="npTitle corr">Διορθώσεις: ${esc(label)}</div><div class="npList">${items.map(x=>`<div class="npRow"><span class="npD">${esc(dmy(String(x.work_date).slice(0,10)).slice(0,5))}</span><span class="npN">${esc(x.reason||'—')}</span><b class="${Number(x.weight_kg_delta)<0?'neg':''}">${sg(Number(x.weight_kg_delta))} kg</b></div>`).join('')}</div><div class="npAfter">Τρέχον απόθεμα μετά τη διόρθωση: <b class="${bal<0?'neg':''}">${sg(bal)} kg</b></div>${why}<a href="#" class="npLink" data-npedit="1">Επεξεργασία ▸</a>`;
+  }else{
+    html=`<div class="npTitle">Γιατί είναι αρνητικό: ${esc(label)}</div>${why}`;
+  }
+  let pop=document.createElement('div');pop.className='negPop';pop.innerHTML=html;document.body.appendChild(pop);
+  anchor.dataset.npOpen='1';
+  let r=anchor.getBoundingClientRect(),ph=pop.offsetHeight,left=Math.max(8,Math.min(r.left+r.width/2-180,innerWidth-360-8)),top=r.top-ph-8;
+  if(top<8)top=Math.min(r.bottom+8,Math.max(8,innerHeight-ph-8));
+  pop.style.left=left+'px';pop.style.top=top+'px';
+  const off=()=>{document.removeEventListener('mousedown',md,true);document.removeEventListener('keydown',kd,true);window.removeEventListener('resize',cl);anchor.dataset.npOpen=''};
+  const cl=()=>closeNegPop();
+  const md=e=>{if(!pop.contains(e.target)&&!anchor.contains(e.target))closeNegPop()};
+  const kd=e=>{if(e.key==='Escape')closeNegPop()};
+  pop._off=off;document.addEventListener('mousedown',md,true);document.addEventListener('keydown',kd,true);window.addEventListener('resize',cl);
+  let ed=pop.querySelector('[data-npedit]');if(ed)ed.onclick=e=>{e.preventDefault();closeNegPop();openCorrPopover(anchor)};
+  let lk=pop.querySelector('[data-npda]');
+  if(lk)lk.onclick=async e=>{e.preventDefault();let da=lk.dataset.npda;closeNegPop();
+    try{show('loading');await new Promise(r=>setTimeout(r,200));let b=document.querySelector('#loadingSubSeg [data-lsub="hist"]');if(b)b.click();await loadShipmentHistory();if(da)openDaDetail(da,{clientX:Math.round(innerWidth/2-200),clientY:140})}catch(err){console.error(err)}};
 }
 function readyCorrHistory(list){
   let isMgmt=(me?.roles||[]).includes('MANAGEMENT');
@@ -6768,6 +6829,11 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     }
     hot=t;return true;
   }
+  // ΑΛΛΑΓΗ ΚΗ-2: το εικονίδιο/φόντο hover καθαρίζεται και όταν ΔΕΝ υπάρχει mousemove (scroll με τροχό, πλήκτρα, αλλαγή καρτέλας, έξοδος δείκτη από το παράθυρο) — αλλιώς έμενε κολλημένο στη γραμμή
+  const pinReset=()=>{if(layer&&(layer.firstChild||document.querySelector('.pinHotH,.pinHotR')))clearPins()};
+  on(document,'scroll',pinReset,true);on(document,'wheel',pinReset,true);on(document,'keydown',pinReset,true);
+  on(document,'mousedown',e=>{if(!(e.target&&e.target.closest&&e.target.closest('.pinLayer')))pinReset()},true);
+  on(document.documentElement,'mouseleave',pinReset);on(window,'blur',pinReset);on(document,'visibilitychange',pinReset);
   // ---- hover ----
   let raf=0,last=null;
   on(document,'mousemove',e=>{last=e;if(!raf)raf=requestAnimationFrame(()=>{raf=0;try{onMove(last)}catch(e){warn(e)}})},true);
@@ -7693,7 +7759,7 @@ const SF=(function(){
     if(!stick.length)return;
     let total=rows.reduce((a,r)=>a+r.getBoundingClientRect().height/vzOf(r),0);
     let avail=sc?sc.clientHeight:window.innerHeight/vzOf(t);
-    let tooTall=avail>0&&total>avail*0.5;
+    let tooTall=false;      // ΑΛΛΑΓΗ ΚΗ-2: το κάτω μπλοκ είναι ΠΑΝΤΑ ολόκληρο ορατό (κανόνας ΚΔ)
     let cum=0;
     for(let i=rows.length-1;i>=0;i--){
       let r=rows[i],drop=tooTall&&i<rows.length-1;
