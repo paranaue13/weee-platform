@@ -7309,13 +7309,16 @@ const SF=(function(){
   function typeName(m){let t=C.medTypes.find(x=>x.id===m.type_id);return t?t.name_el:''}
   const cdTxt=m=>String(m&&m.code||'').startsWith('~')?'(νέο, χωρίς κωδικό)':(m?m.code:'');
   function mLabel(m){return m?(typeName(m)?typeName(m)+' · ':'')+cdTxt(m):''}
-  function catSum(cid){return S.entries.filter(e=>e.weee_category_id===cid).reduce((s,e)=>s+entW(e),0)}
+  // Καταχωρήσεις σε ΕΣΩΤΕΡΙΚΗ υποκατηγορία (π.χ. από το Android: INT-6A-TELCO) εμφανίζονται στη γραμμή της ΕΠΙΣΗΜΗΣ κατηγορίας τους (ίδιος official_code)
+  const rid=e=>(S&&S.rowOf&&S.rowOf[e.weee_category_id])||e.weee_category_id;
+  function catSum(cid){return S.entries.filter(e=>rid(e)===cid).reduce((s,e)=>s+entW(e),0)}
   function descOf(c){return weeeDescModeFor('sorting')==='her'&&c.her_description?c.her_description:(c.display_name||c.official_description||'')}
   function msg(t,ok){let m=$('sortEntryMsg');if(!m)return;m.className=ok?'oktext':'error';m.textContent=t||''}
 
   function chipHtml(e){
     let m=C.media.find(x=>x.id===e.collection_medium_id);
-    return `<span class="sfEn${S.editing[e.weee_category_id]===e.id?' ed':''}" data-e="${e.id}" title="Πάτα για διόρθωση"><b>${esc2(m?m.code:((e.entry_type==='BULK'||e.entry_type==='MEDIUM')?'Χύμα':'—'))}</b> ${f1(entW(e))} kg${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}<span class="x" data-del="${e.id}" title="Διαγραφή">✕</span></span>`;
+    let ic=S.rowOf&&S.rowOf[e.weee_category_id]?C.cats.find(x=>x.id===e.weee_category_id):null;
+    return `<span class="sfEn${S.editing[rid(e)]===e.id?' ed':''}" data-e="${e.id}" title="Πάτα για διόρθωση${ic?' · '+esc2(ic.display_name||''):''}"><b>${esc2(m?m.code:((e.entry_type==='BULK'||e.entry_type==='MEDIUM')?'Χύμα':'—'))}</b> ${f1(entW(e))} kg${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}<span class="x" data-del="${e.id}" title="Διαγραφή">✕</span></span>`;
   }
   const isF=c=>/^\d+$/.test(String(c.official_code||'').trim());      // ξένα υλικά (ΜΗ ΑΗΗΕ): κωδικοί μόνο με αριθμούς
   // Είδος / Αριθμός της γραμμής: κείμενα πεδίων από την τρέχουσα επιλογή (χύμα / μέσο / μόνο είδος)
@@ -7325,13 +7328,13 @@ const SF=(function(){
   function medCatNames(m){return Object.entries(m.cats||{}).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>{let c=(C.cats||[]).find(y=>y.id===x[0]);return c?catShort(c):''}).filter(Boolean)}
   function numTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return '';let m=S.rm[cid];return m?numLbl(m)+(S.fresh.has(m.id)?' (νέο)':''):''}
   function rowHtml(c){
-    let en=S.entries.filter(e=>e.weee_category_id===c.id),has=en.length>0,rm=S.rm[c.id],avg=c.average_weight;
+    let en=S.entries.filter(e=>rid(e)===c.id),has=en.length>0,rm=S.rm[c.id],avg=c.average_weight;
     return `<div class="sfRow${isF(c)?' f':''}${has?' has':''}" data-c="${c.id}" data-avg="${avg??''}"><div class="sfCd">${esc2(c.official_code)}</div><div class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</div><div class="sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</div><div class="sfEns">${en.map(chipHtml).join('')}</div><div class="sfQe"><input class="sfK" placeholder="kg" inputmode="decimal" autocomplete="off"><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"><input class="sfT" readonly value="${esc2(typeTxt(c.id))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(c.id))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><button type="button" class="sfAdd" title="Προσθήκη">＋</button><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div><div class="sfSm">${has?f1(catSum(c.id))+' kg':''}</div></div>`;
   }
   function visible(c){
     let q=norm(S.q).trim();
     if(q&&norm(c.official_code+' '+descOf(c)).indexOf(q)<0)return false;
-    if(S.only&&!S.entries.some(e=>e.weee_category_id===c.id))return false;
+    if(S.only&&!S.entries.some(e=>rid(e)===c.id))return false;
     return true;
   }
   function listHtml(){
@@ -7373,7 +7376,7 @@ const SF=(function(){
     if((k==null||k<=0)&&pcs&&avg>0)k=Math.ceil(pcs*avg);
     if(k==null||k<=0){msg('Συμπλήρωσε βάρος ή τεμάχια (με υπαρκτό μέσο βάρος)',false);return false}
     let editId=S.editing[cid],old=editId?S.entries.find(e=>e.id===editId):null;
-    let body={weee_category_id:cid,collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:(old&&old.entry_type==='BULK')?'BULK':'MEDIUM',raw_weight:k,piece_count:pcs,notes:null,close_medium:!editId&&!S.bulk[cid]&&!S.bulkMed[cid]&&!!(S.rm[cid]&&row.querySelector('.sfCl:checked'))};
+    let body={weee_category_id:old?old.weee_category_id:cid,collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:(old&&old.entry_type==='BULK')?'BULK':'MEDIUM',raw_weight:k,piece_count:pcs,notes:null,close_medium:!editId&&!S.bulk[cid]&&!S.bulkMed[cid]&&!!(S.rm[cid]&&row.querySelector('.sfCl:checked'))};
     S.busy=true;
     try{
       // Χύμα: ΜΙΑ εγγραφή, χωρίς αριθμό και αποβαρό. ΑΗΗΕ ενεργοποιημένο για χύμα: τύπος BULK (τεμάχια × μέσο βάρος)·
@@ -7401,12 +7404,12 @@ const SF=(function(){
       await api('/sorting/entries/'+entryId,{method:'DELETE'});
       let e=S.entries.find(x=>x.id===entryId);S.entries=S.entries.filter(x=>x.id!==entryId);
       if(!S.entries.length){await C.reload();return}
-      if(e)redoRow(e.weee_category_id,false);
+      if(e)redoRow(rid(e),false);
     }catch(err){alert(err.message)}
   }
   function startEdit(entryId){
     let e=S.entries.find(x=>x.id===entryId);if(!e)return;
-    let cid=e.weee_category_id;
+    let cid=rid(e);
     S.editing[cid]=entryId;S.rm[cid]=C.media.find(m=>m.id===e.collection_medium_id)||null;S.rt[cid]=S.rm[cid]?S.rm[cid].type_id:null;
     redoRow(cid,false);
     let row=document.querySelector(`#sfList .sfRow[data-c="${cid}"]`);if(!row)return;
@@ -7446,7 +7449,7 @@ const SF=(function(){
   function haveKg(m,cid){
     let v=((C.have&&C.have[cid])||[]).filter(x=>x.medium_id===m.id).reduce((s,x)=>s+x.kg,0);
     if(!v&&m.cats&&m.cats[cid])v=m.cats[cid];       // fallback: περιεχόμενο από το /sorting/medium-options
-    S.entries.forEach(e=>{if(e.weee_category_id===cid&&e.collection_medium_id===m.id)v+=entW(e)});
+    S.entries.forEach(e=>{if(rid(e)===cid&&e.collection_medium_id===m.id)v+=entW(e)});
     return v;
   }
   function usedN(m){return S.entries.filter(e=>e.collection_medium_id===m.id).length}
@@ -7667,6 +7670,7 @@ const SF=(function(){
     // κατάσταση: διατηρείται μόνο η αναζήτηση/διακόπτης ανάμεσα σε ξαναζωγραφίσματα της ίδιας ταξινόμησης
     let keep=(S&&S.loadId===ctx.loadId)?{q:S.q,only:S.only}:{q:'',only:false};
     S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},rt:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH};
+    S.rowOf={};ctx.cats.filter(c=>c.is_internal_subcategory).forEach(c=>{let p=C.rows.find(r=>r.official_code===c.official_code);if(p)S.rowOf[c.id]=p.id});
     C.have={};api('/inventory/weee/media-content').then(h=>{C.have=h||{}}).catch(()=>{});
     $('sfQ').value=S.q;$('sfSw').classList.toggle('on',S.only);
     renderList();
