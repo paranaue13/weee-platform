@@ -2214,6 +2214,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <section id="visitorLog" class="view hidden"><div class="toolbar" style="margin-bottom:10px"><button type="button" class="btn alt" id="visitBack"><span class="icoL"></span>Αρχική</button></div><div class="card"><h3>Βιβλίο Επισκεπτών</h3><div class="formgrid"><label>Ημερομηνία<input id="visitDate" type="date"></label><label>Ονοματεπώνυμο<input id="visitName" placeholder="Ονοματεπώνυμο"></label><label>Προσέλευση<input id="visitArrival" type="time"></label><label>Αποχώρηση<input id="visitDeparture" type="time"></label><label class="span2">Λόγος επίσκεψης<input id="visitReason" placeholder="π.χ. Συνάντηση / Συνεργάτης"></label></div><div class="toolbar"><button class="btn" id="addVisitor">+ ΕΓΓΡΑΦΗ</button></div><div id="visitorMsg"></div></div><div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Ονοματεπώνυμο</th><th>Προσέλευση</th><th>Αποχώρηση</th><th>Λόγος επίσκεψης</th></tr></thead><tbody id="visitorRows"></tbody></table></div></section>
 <section id="galaxy" class="view hidden"><div class="grid" id="galaxyMetrics"></div><div class="card"><h3>Galaxy Sync Queue</h3><div id="galaxyNote" class="notice"></div><div id="galaxyRows"></div></div></section>
 </div><div id="zoomBar"><span>Μέγεθος</span><button type="button" class="zmStep" id="zmMinus" title="Μείωση 10%">−</button><div id="zmTrack"><i id="zmFill"></i><b id="zmKnob"></b></div><button type="button" class="zmStep" id="zmPlus" title="Αύξηση 10%">+</button><button type="button" id="zmPct">100% ▴</button><div id="zmMenu" class="hidden"></div></div></main></div>
+<script src="/common/search-norm.js"></script>
 <script id="vzCore">window.vzOf=function(el){return el&&el.closest&&el.closest('.content>.view')?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1):1};</script>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
@@ -7277,9 +7278,8 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
 // γρήγορη καταχώρηση με πληκτρολόγιο. Αποθήκευση/διόρθωση/διαγραφή ΜΟΝΟ με τα υπάρχοντα endpoints (/sorting/{id}/entries, /sorting/entries/{id}),
 // ώστε το _sync_entry_stock να συγχρονίζει τα lots.
 const SF=(function(){
-  const GL={'α':'a','β':'b','ε':'e','ζ':'z','η':'h','ι':'i','κ':'k','μ':'m','ν':'n','ο':'o','ρ':'p','τ':'t','υ':'y','χ':'x','ς':'σ'};
-  // Κανονικοποίηση: πεζά, χωρίς τόνους, ελληνικά ≡ λατινικά γράμματα που μοιάζουν (Α/A, Β/B, Ε/E, Ζ/Z, Η/H, Ι/I, Κ/K, Μ/M, Ν/N, Ο/O, Ρ/P, Τ/T, Υ/Y, Χ/X)
-  function norm(x){return String(x==null?'':x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[αβεζηικμνορτυχς]/g,c=>GL[c])}
+  // Κανονικοποίηση αναζήτησης: ΚΟΙΝΗ συνάρτηση /common/search-norm.js (ίδια με το Android): πεζά, χωρίς τόνους, ελληνικά ≡ λατινικά ομοιόμορφα γράμματα
+  function norm(x){return window.searchNorm?window.searchNorm(x):String(x==null?'':x).toLowerCase()}
   const $=id=>document.getElementById(id);
   const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   function f1(n){let s=(Math.round(Number(n)*10)/10).toFixed(1).replace(/\.0$/,'');let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');return p.join(',')}

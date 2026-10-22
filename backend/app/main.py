@@ -4842,6 +4842,11 @@ def delete_report_template(category:str, name:str=Query(...), db:Session=Depends
 from . import report_generators
 for _r in report_generators.router.routes: app.add_api_route(_r.path,_r.endpoint,methods=list(_r.methods))
 
+@app.get("/common/search-norm.js")
+def common_search_norm_js():
+    """Κοινή κανονικοποίηση αναζήτησης (ελληνικά ≡ λατινικά ομοιόμορφα γράμματα) για Windows και Android."""
+    return FileResponse(static_dir / "search_norm.js", media_type="application/javascript", headers={"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"})
+
 @app.get("/mobile")
 def mobile_workspace():
     return FileResponse(static_dir / "mobile_v12.html", headers={"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0","Pragma":"no-cache","Expires":"0","X-WEEE-Build":"1.9"})
