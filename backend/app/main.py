@@ -2570,8 +2570,12 @@ def sorting_medium_options(db:Session=Depends(get_db), user=Depends(require_perm
     """Τα είδη και τα μέσα που προσφέρονται στην Ταξινόμηση (κοινό φίλτρο για Windows και Android)."""
     types=_sorting_medium_types(db)
     media=_sorting_media(db,[t.id for t in types])
+    # τρέχοντα κιλά ανά μέσο (και ανά κατηγορία ΑΗΗΕ) από τα διαθέσιμα lots· μέσο χωρίς εγγραφή = άδειο
+    mkg={}; mcat={}
+    for med,cat,k in db.execute(select(WEEEStockLot.collection_medium_id,WEEEStockLot.weee_category_id,func.sum(WEEEStockLot.available_weight)).where(WEEEStockLot.available_weight>0,WEEEStockLot.collection_medium_id.is_not(None)).group_by(WEEEStockLot.collection_medium_id,WEEEStockLot.weee_category_id)).all():
+        mkg[med]=mkg.get(med,0.0)+float(k or 0); mcat.setdefault(med,{})[cat]=float(k or 0)
     return {'types':[{'id':t.id,'code':t.code,'name_el':t.name_el,'usage':t.usage or 'BOTH','active':bool(t.active),'default_tare_weight':float(t.default_tare_weight) if t.default_tare_weight is not None else None,'tare_fixed':bool(t.tare_fixed),'creatable':t.code in SORTING_CREATABLE_TYPES} for t in types],
-            'media':[{'id':m.id,'type_id':m.type_id,'code':m.code,'tare_weight':float(m.tare_weight) if m.tare_weight is not None else None,'status':m.status,'active':bool(m.active)} for m in media]}
+            'media':[{'id':m.id,'type_id':m.type_id,'code':m.code,'tare_weight':float(m.tare_weight) if m.tare_weight is not None else None,'status':m.status,'active':bool(m.active),'kg':round(mkg.get(m.id,0.0),3),'cats':mcat.get(m.id,{})} for m in media]}
 
 @app.get('/sorting/overview')
 def sorting_overview(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):

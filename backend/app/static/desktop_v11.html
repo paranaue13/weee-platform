@@ -1484,6 +1484,7 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 .negPop .npN{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .negPop .npRow b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .negPop .npAfter{margin:8px 0 4px;font-weight:600}
+.sfDD .sfG.sfGs{position:sticky;top:0;background:var(--surface,#fff);z-index:1;border-top:1px solid var(--line,#e3e5ec);margin-top:4px}
 </style>
 <style id="sgLook">
 /* Ομάδες αποθήκης: tokens + πεδίο επιλογής/λίστα (light/dark από τα κεντρικά tokens) */
@@ -7418,10 +7419,13 @@ const SF=(function(){
   }
   function haveKg(m,cid){
     let v=((C.have&&C.have[cid])||[]).filter(x=>x.medium_id===m.id).reduce((s,x)=>s+x.kg,0);
+    if(!v&&m.cats&&m.cats[cid])v=m.cats[cid];       // fallback: περιεχόμενο από το /sorting/medium-options
     S.entries.forEach(e=>{if(e.weee_category_id===cid&&e.collection_medium_id===m.id)v+=entW(e)});
     return v;
   }
   function usedN(m){return S.entries.filter(e=>e.collection_medium_id===m.id).length}
+  // τρέχοντα κιλά του μέσου (όλες οι κατηγορίες) + όσα προστέθηκαν σε αυτή την ταξινόμηση· 0 = άδειο
+  function totKg(m){let v=Number(m.kg||0);S.entries.forEach(e=>{if(e.collection_medium_id===m.id)v+=entW(e)});return v}
   function tareTxt(m){return m.tare_weight!=null?Math.round(Number(m.tare_weight))+' kg':''}
   function mLabel2(m){return mLabel(m)+(S.fresh.has(m.id)?' (νέο)':'')}
   function scoreM(m,toks,cid){
@@ -7436,7 +7440,7 @@ const SF=(function(){
   }
   function itemHtml(m,i,cid){
     let u=usedN(m),hk=cid?haveKg(m,cid):0;
-    return `<div class="sfIt" data-i="${i}"><span>${esc2(typeName(m))} · <b>${esc2(cdTxt(m))}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}${hk>0?` <small class="hv">· έχει ήδη ${f1(hk)} kg</small>`:''}</span><small>${tareTxt(m)}</small></div>`;
+    return `<div class="sfIt" data-i="${i}"><span>${esc2(typeName(m))} · <b>${esc2(cdTxt(m))}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}${hk>0?` <small class="hv">· έχει ήδη ${f1(hk)} kg</small>`:''}</span><small title="${tareTxt(m)?'Αποβαρό '+tareTxt(m):''}">${totKg(m)>0?f1(totKg(m))+' kg':'άδειο'}</small></div>`;
   }
   function numKey(code){let m=String(code).match(/(\d+)\s*$/);return m?parseInt(m[1],10):1e9}
   function nextCode(typeId){
@@ -7505,9 +7509,19 @@ const SF=(function(){
       h+='</div><div class="sfHint">Πάτα έναν αριθμό, ή γράψε τον στο πεδίο.</div>';
       }
     }else if(!q){
-      let hv=cid?C.pickable.filter(m=>haveKg(m,cid)>0).sort((a,b)=>haveKg(b,cid)-haveKg(a,cid)).slice(0,6):[];
+      // ΑΛΛΑΓΗ: ΟΛΑ τα υπάρχοντα μέσα που ταιριάζουν (Εισερχόμενα/Και τα δύο, AVAILABLE/WEEE_STORAGE), με ή χωρίς κιλά:
+      // πρώτα «★ Έχουν ήδη <κατηγορία>», μετά τα υπόλοιπα ανά είδος και αριθμό, στο τέλος η «Δημιουργία νέου μέσου» (αμετάβλητη)
+      let hv=cid?C.pickable.filter(m=>haveKg(m,cid)>0).sort((a,b)=>haveKg(b,cid)-haveKg(a,cid)):[],hvS=new Set(hv.map(m=>m.id));
       if(hv.length){h+=`<div class="sfG star">★ Έχουν ήδη «${esc2(String(cat?descOf(cat):'').split(' / ')[0])}»</div>`;hv.forEach(m=>{items.push(m);h+=itemHtml(m,items.length-1,cid)})}
-      h+=newFormHtml(true);     // η φόρμα «Δημιουργία νέου μέσου» ανοιχτή κατευθείαν, χωρίς πρόσφατα/είδη/σελίδες
+      let rest=C.pickable.filter(m=>!hvS.has(m.id)),byT=new Map();
+      rest.forEach(m=>{if(!byT.has(m.type_id))byT.set(m.type_id,[]);byT.get(m.type_id).push(m)});
+      [...byT.entries()].sort((a,b)=>String(typeName(a[1][0])).localeCompare(String(typeName(b[1][0])),'el')).forEach(([tid,arr])=>{
+        arr.sort((a,b)=>numKey(a.code)-numKey(b.code)||String(a.code).localeCompare(String(b.code),'el'));
+        h+=`<div class="sfG sfGs">${esc2(typeName(arr[0]))} · ${arr.length}</div>`;
+        arr.forEach(m=>{items.push(m);h+=itemHtml(m,items.length-1,cid)});
+      });
+      if(rest.length||hv.length)h+='<div class="sfHint">Δεν βρίσκεις το μέσο; Γράψε τον αριθμό στο πεδίο, ή δημιούργησε νέο παρακάτω.</div>';
+      h+=newFormHtml(true);     // η φόρμα «Δημιουργία νέου μέσου» στο τέλος της λίστας
     }else{
       let toks=q.split(/\s+/),res=[];
       C.pickable.forEach(m=>{let sc=scoreM(m,toks,cid);if(sc!==null)res.push([sc,m])});
