@@ -76,7 +76,7 @@ with sync_playwright() as p:
     pg.tap('#ctrlToggle'); pg.wait_for_timeout(200)
     # --- διαγραφή: η πρόοδος ενημερώνεται
     before = pg.evaluate("document.querySelector('#meta .progTxt span').innerText")
-    pg.evaluate("document.querySelector('[data-del]').click()"); pg.wait_for_timeout(200); pg.evaluate("document.querySelector('[data-del]').click()"); pg.wait_for_timeout(1800)
+    pg.evaluate("document.querySelector('[data-open]').click()"); pg.wait_for_timeout(300); pg.evaluate("document.querySelector('.shDel').click()"); pg.wait_for_timeout(300); pg.evaluate("document.querySelector('.shDel').click()"); pg.wait_for_timeout(1800)
     after = pg.evaluate("document.querySelector('#meta .progTxt span').innerText")
     ck('πρόοδος ενημερώνεται μετά από διαγραφή', before != after, f'{before} → {after}')
     # υπέρβαση 100%
