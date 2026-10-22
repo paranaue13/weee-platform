@@ -44,3 +44,6 @@ with sync_playwright() as p:
 import os; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_tables_geometry
 _g = check_tables_geometry.run(B); print('ΠΡΟΒΛΗΜΑΤΑ ΓΕΩΜΕΤΡΙΑΣ:', _g)
+import check_sticky   # ΑΛΛΑΓΗ ΚΘ: σταθερά τμήματα (κεφαλίδες / σύνολα / τίτλοι ομάδων) σε σελίδες, παράθυρα και dropdown
+_st = check_sticky.run_sticky(B, True, (1600, 900)) + check_sticky.run_sticky(B, False, (1280, 720))
+print('ΠΡΟΒΛΗΜΑΤΑ ΣΤΑΘΕΡΩΝ ΤΜΗΜΑΤΩΝ (σύνολο):', _st)
