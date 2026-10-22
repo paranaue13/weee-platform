@@ -6,4 +6,6 @@
   window.searchNorm=function(x){
     return String(x==null?'':x).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ς/g,'σ').replace(/[αβεζηικμνορτυχ]/g,function(c){return GL[c]});
   };
+  // "κείμενο".sn() ≡ searchNorm("κείμενο") — για να αντικαθιστά απλά το .toLowerCase()/.toLocaleLowerCase('el') στα σημεία αναζήτησης
+  Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true});
 })();
