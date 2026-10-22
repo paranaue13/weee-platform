@@ -140,8 +140,11 @@ def run_sticky(base, print_table=True, size=(1600, 900)):
                 pg.evaluate("(()=>{let h=document.querySelector('#sortingDetail .sortingPopupHeader');if(h&&!document.getElementById('tmpHdGrow'))h.insertAdjacentHTML('beforeend','<div id=\"tmpHdGrow\" style=\"height:44px\"></div>')})()"); pg.wait_for_timeout(600)
                 scan('Παράθυρο Ταξινόμησης › με ψηλότερη κεφαλίδα παραθύρου (+44px)','#sortingDetail')
                 pg.evaluate("(()=>{let e=document.getElementById('tmpHdGrow');if(e)e.remove()})()"); pg.wait_for_timeout(300)
-                pg.evaluate("(()=>{const i=document.querySelector('#sfList .sfM');if(i){i.scrollIntoView({block:'center'});i.focus()}})()"); pg.wait_for_timeout(900)
-                scan('Dropdown › Μέσο συλλογής (Ταξινόμηση)','.sfDD')
+                pg.evaluate("(()=>{const i=document.querySelector('#sfList .sfT');if(i){i.scrollIntoView({block:'center'});i.focus()}})()"); pg.wait_for_timeout(900)
+                scan('Dropdown › Είδος μέσου (Ταξινόμηση)','.sfDD')
+                # είδος με τα περισσότερα μέσα → λίστα αριθμών
+                pg.evaluate("(()=>{const its=[...document.querySelectorAll('.sfDD .sfIt')];let best=null,bn=-1;its.forEach(i=>{const n=parseInt((i.querySelector('small')||{}).textContent,10);if(n>bn){bn=n;best=i}});if(best)best.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}))})()"); pg.wait_for_timeout(900)
+                scan('Dropdown › Αριθμός μέσου (Ταξινόμηση)','.sfDD')
                 pg.evaluate("document.activeElement&&document.activeElement.blur();document.querySelectorAll('.sfDD').forEach(e=>e.remove())")
                 pg.evaluate("(()=>{let s=document.getElementById('sortingDetail');if(s)s.classList.add('hidden')})()")
 

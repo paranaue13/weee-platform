@@ -2574,7 +2574,13 @@ def sorting_medium_options(db:Session=Depends(get_db), user=Depends(require_perm
     mkg={}; mcat={}
     for med,cat,k in db.execute(select(WEEEStockLot.collection_medium_id,WEEEStockLot.weee_category_id,func.sum(WEEEStockLot.available_weight)).where(WEEEStockLot.available_weight>0,WEEEStockLot.collection_medium_id.is_not(None)).group_by(WEEEStockLot.collection_medium_id,WEEEStockLot.weee_category_id)).all():
         mkg[med]=mkg.get(med,0.0)+float(k or 0); mcat.setdefault(med,{})[cat]=float(k or 0)
-    return {'types':[{'id':t.id,'code':t.code,'name_el':t.name_el,'usage':t.usage or 'BOTH','active':bool(t.active),'default_tare_weight':float(t.default_tare_weight) if t.default_tare_weight is not None else None,'tare_fixed':bool(t.tare_fixed),'creatable':t.code in SORTING_CREATABLE_TYPES} for t in types],
+    # μέσα των ίδιων ειδών που ΔΕΝ προσφέρονται (σε χρήση / σε παραγωγή / αποθηκευμένο έτοιμο υλικό…): μόνο για την ένδειξη «σε χρήση (φόρτωση <ημερομηνία>)» όταν γραφτεί ο αριθμός τους
+    tids=[t.id for t in types]; since={}
+    if tids:
+        for med,d in db.execute(select(WEEEStockLot.collection_medium_id,func.max(WEEEStockLot.created_at)).where(WEEEStockLot.collection_medium_id.is_not(None)).group_by(WEEEStockLot.collection_medium_id)).all(): since[med]=d
+    busy_rows=db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(tids),CollectionMedium.status.not_in(SORTING_MEDIUM_STATUSES))).all() if tids else []
+    busy=[{'type_id':m.type_id,'code':m.code,'status':m.status,'since':((since.get(m.id) or m.updated_at).date().isoformat() if (since.get(m.id) or m.updated_at) else None)} for m in busy_rows]
+    return {'busy':busy,'types':[{'id':t.id,'code':t.code,'name_el':t.name_el,'usage':t.usage or 'BOTH','active':bool(t.active),'default_tare_weight':float(t.default_tare_weight) if t.default_tare_weight is not None else None,'tare_fixed':bool(t.tare_fixed),'creatable':t.code in SORTING_CREATABLE_TYPES} for t in types],
             'media':[{'id':m.id,'type_id':m.type_id,'code':m.code,'tare_weight':float(m.tare_weight) if m.tare_weight is not None else None,'status':m.status,'active':bool(m.active),'kg':round(mkg.get(m.id,0.0),3),'cats':mcat.get(m.id,{})} for m in media]}
 
 @app.get('/sorting/overview')
