@@ -3724,7 +3724,7 @@ def weee_media_with_stock(db:Session=Depends(get_db), user=Depends(require_permi
         mt=db.get(CollectionMediumType,med.type_id) if med else None
         cat=db.get(WEEECategory,lot.weee_category_id)
         key=lot.collection_medium_id or 'BULK'
-        g=groups.setdefault(key,{'medium_id':lot.collection_medium_id,'medium_type':mt.name_el if mt else 'Χύμα / χωρίς αριθμημένο μέσο','medium_type_code':mt.code if mt else 'BULK','medium_code':med.code if med else 'Χύμα','total_weight':0.0,'categories':{}})
+        g=groups.setdefault(key,{'medium_id':lot.collection_medium_id,'medium_type':mt.name_el if mt else 'Χύμα / χωρίς αριθμημένο μέσο','medium_type_code':mt.code if mt else 'BULK','medium_code':med.code if med else 'Χύμα','is_closed':bool(med.is_closed) if med else False,'total_weight':0.0,'categories':{}})
         g['total_weight']+=float(lot.available_weight or 0)
         c=g['categories'].setdefault(cat.id,{'category_id':cat.id,'code':cat.code,'description':cat.description_el,'weight':0.0})
         c['weight']+=float(lot.available_weight or 0)

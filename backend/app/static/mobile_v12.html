@@ -63,6 +63,12 @@ label{font-size:13px;font-weight:700;color:var(--fg-2);letter-spacing:.02em}
 .bulkcell{border:1px solid var(--line);border-radius:var(--r-box)}
 .flTop{outline:2px solid var(--primary);background:var(--primary-soft);color:var(--primary-soft-fg)}
 .flTag{background:var(--primary)}
+.flCards{display:grid;grid-template-columns:1fr 1fr;gap:8px}.flCard{min-height:64px;text-align:left;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:2px;padding:8px 10px}.flCard b{font-size:15px}.flCard span{font-size:12px;font-weight:500;line-height:1.2}.flCard small{font-size:12px;font-weight:600;opacity:.85}
+.flRes{max-height:46vh;overflow:auto}.flMore{width:100%;margin-top:8px;min-height:44px;background:transparent;border:2px dashed var(--primary);color:var(--primary);border-radius:var(--r-btn);font-weight:700;font-size:14px}
+.flQ{width:100%;margin:0 0 8px;min-height:48px;font-size:17px;cursor:pointer}.flQ.on{outline:2px solid var(--primary)}
+.flKind.on{outline:2px solid var(--primary);background:var(--primary-soft);color:var(--primary-soft-fg)}.flScope{display:flex;gap:8px;margin-bottom:6px}.flScope .flKind{flex:1;min-height:44px}
+#flKb{display:none;position:fixed;left:0;right:0;bottom:0;z-index:60;background:#eef0f5;padding:8px 10px calc(8px + env(safe-area-inset-bottom));grid-template-columns:repeat(3,1fr);gap:6px;box-shadow:0 -2px 10px rgba(0,0,0,.18)}
+body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{height:42px;font-size:20px;font-weight:700;border:0;border-radius:8px;background:#fff;color:#1b2638}#flKb button:active{background:#d8e4ff}#flKb .kc{background:#fde0e0;color:#a31515}
 .flPicked{background:var(--primary-soft);color:var(--primary-soft-fg)}
 .flPicked button{background:#fff;color:var(--primary-soft-fg)}
 .flToast{background:var(--card)}
@@ -341,10 +347,10 @@ $('prodTodayList').onclick=async e=>{
 // ===== ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ: 3 ροές (ΤΜΗΜΑ / ΜΕΣΟ ΣΥΛΛΟΓΗΣ / ΑΗΗΕ) -- Σημείο 1 ΑΛΛΑΓΕΣ.md =====
 // Χρησιμοποιεί ΜΟΝΟ τα υπάρχοντα endpoints/υπολογισμούς αποθέματος: στο τέλος γεμίζει τα prodForm/prodStockGroups/
 // prodSelectedGroups και καλεί το ίδιο $('prodSubmit').onclick (/production/transfers + /production/work-entries).
-let fl={f:'d',unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null},flMedia=[],flTH=[],flHist={dc:{},cd:{},cc:{}},flLoadedAt=0,flTimer=null;
+let fl={f:'d',unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null,q:'',all:false,more:false,kb:false},flMedia=[],flTH=[],flHist={dc:{},cd:{},cc:{}},flLoadedAt=0,flTimer=null;
 const FL_ORDER={d:['unit','medium','cat'],m:['medium','cat','unit'],a:['cat','medium','unit']};
 const FL_LBL={unit:'Τμήμα',medium:'Μέσο συλλογής',cat:'ΑΗΗΕ'};
-function flReset(){fl={f:fl.f,unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null};prodForm.unit=null;prodForm.emp=null;prodForm.cat=null;$('prodEmpBtn').textContent='Συγκεντρωτικά τμήματος'}
+function flReset(){fl={f:fl.f,unit:null,medium:null,cat:null,type:null,other:false,worker:null,search:'',busy:false,kg:null,q:'',all:false,more:false,kb:false};prodForm.unit=null;prodForm.emp=null;prodForm.cat=null;$('prodEmpBtn').textContent='Συγκεντρωτικά τμήματος'}
 function flMax(){let c=fl.medium.categories.find(x=>x.category_id===fl.cat.id);return Math.round(Number(c.weight)*1000)/1000}
 const FL_TYPE_GROUPS=[[{k:'BASKET_LARGE',l:'Καλάθι μεγάλο'},{k:'BASKET_SMALL',l:'Καλάθι μικρό'}],[{k:'INFOCYCLE_1',l:'Infocycle 1'},{k:'INFOCYCLE_2',l:'Infocycle 2'}],[{k:'PALLET',l:'Παλέτα'},{k:'SACK',l:'Σάκος'},{k:'BULK',l:'Χύμα'}]];
 function flTypeKey(g){let c=g.medium_type_code||(g.medium_id?g.medium_type:'BULK');return (c==='SACK_1KG'||c==='SACK_2KG_UN')?'SACK':c}
@@ -381,38 +387,87 @@ function flSuggest(list){
   if(!fl.unit||fl.unit.profile!=='PRODUCTION')return null;
   let rows=flTH.filter(r=>r.unit_id===fl.unit.id),now=Date.now(),out=[];
   list.forEach(g=>{
-    let a=!!g.medium_id&&g.categories.some(c=>flNameMatch(fl.unit,flCat(c.category_id))),b=0;
+    let rc=g.categories.filter(c=>flNameMatch(fl.unit,flCat(c.category_id))||rows.some(r=>r.category_id===c.category_id));
+    let a=g.categories.some(c=>flNameMatch(fl.unit,flCat(c.category_id))),b=0;
+    if(!g.medium_id&&!rc.length)return;   /* Χύμα χωρίς σχέση με το τμήμα δεν προτείνεται */
     rows.forEach(r=>{let age=Math.max(0,(now-new Date(r.last_at||now).getTime())/864e5),w=r.n*(1+Math.max(0,60-age)/60);
       if(g.categories.some(c=>c.category_id===r.category_id))b+=w;
       if(r.medium_type_code===(g.medium_id?(g.medium_type_code||''):'BULK')||(flTypeKey(g)==='SACK'&&/^SACK/.test(r.medium_type_code)))b+=w*0.5});
-    let s=(a?3:0)+b;if(s>0)out.push({g,s,a,b:b>0,kg:Math.max(...g.categories.map(c=>Number(c.weight)||0))});
+    let s=(a?3:0)+b;if(s>0)out.push({g,s,a,b:b>0,kg:Math.max(...g.categories.map(c=>Number(c.weight)||0)),rel:g.medium_id?'':'Σχετικά: '+rc.slice(0,3).map(c=>dname(flCat(c.category_id))).join(', ')+(rc.length>3?' +'+(rc.length-3):''),rkg:g.medium_id?null:rc.reduce((t,c)=>t+Number(c.weight||0),0)});
   });
   if(!out.length)return null;
-  out.sort((x,y)=>(y.s-x.s)||(y.kg-x.kg));out=out.slice(0,6);
+  out.sort((x,y)=>(y.s-x.s)||(y.kg-x.kg));out=out.slice(0,12);
   let hasA=out.some(x=>x.a),hasB=out.some(x=>x.b);
-  return {items:out.map(x=>x.g),why:hasA&&hasB?'Βάσει ονόματος και ιστορικού':hasA?'Βάσει ονόματος τμήματος':'Βάσει ιστορικού'};
+  let rel={};out.forEach(x=>{if(x.rel)rel[x.g.medium_id||'BULK']={t:x.rel,kg:x.rkg}});return {items:out.map(x=>x.g),rel,why:hasA&&hasB?'Βάσει ονόματος και ιστορικού':hasA?'Βάσει ονόματος τμήματος':'Βάσει ιστορικού'};
+}
+/* ---- Μέσο συλλογής: πιθανότερα (κάρτες) + όλα τα μέσα με υλικό (είδη + αναζήτηση αριθμού με δικό μας πληκτρολόγιο) ---- */
+function flNum(g){let r=/^\D*(\d+)$/.exec(String(g.medium_code||''));return r?r[1]:String(g.medium_code||'')}   /* «Α12» → «12»: το εσωτερικό γράμμα δεν φαίνεται */
+function flTLbl(g){let k=flTypeKey(g),t=FL_TYPE_GROUPS.flat().find(x=>x.k===k);return t&&k!=='SACK'?typeLbl(k,t.l):g.medium_type}
+function flKgOf(g){if(fl.f==='a'&&fl.cat){let c=g.categories.find(x=>x.category_id===fl.cat.id);if(c)return Number(c.weight)}return g.categories.reduce((t,c)=>t+Number(c.weight||0),0)}
+function flCard(g,r){let rel=(r&&r.t)||(fl.f==='a'&&fl.cat?dname(fl.cat):''),kg=r&&r.kg!=null?r.kg:flKgOf(g);return `<button type="button" class="btn alt flCard" data-k="medium" data-v="${g.medium_id||'BULK'}"><b>${esc(g.medium_id?flTLbl(g)+' · '+flNum(g):'Χύμα')}${g.is_closed?' 🔒':''}</b><span>${esc(rel||flMat(g))}</span><small>${(Math.round(kg*1000)/1000).toLocaleString('el-GR')} kg</small></button>`}
+function flList(){return fl.f==='a'?flMedia.filter(g=>g.categories.some(c=>c.category_id===fl.cat.id)):flMedia}
+function flProbable(list){
+  if(fl.f==='d'&&fl.unit){
+    let s=flSuggest(list);if(s&&s.items.length)return {items:s.items,rel:s.rel,t:'πιθανότερα για '+fl.unit.name_el};
+    let r=list.map(g=>({g,s:Math.max(0,...g.categories.map(c=>(flHist.dc[fl.unit.id]||{})[c.category_id]||0))})).filter(x=>x.s>0).sort((x,y)=>y.s-x.s).slice(0,12);
+    return r.length?{items:r.map(x=>x.g),rel:{},t:'πιθανότερα για '+fl.unit.name_el}:null;
+  }
+  if(fl.f==='a'&&list.length){return {items:list.slice().sort((x,y)=>flKgOf(y)-flKgOf(x)).slice(0,6),rel:{},t:'περισσότερα κιλά'}}
+  return null;
+}
+function flKinds(list){
+  let cnt={};list.forEach(g=>{let k=flTypeKey(g);cnt[k]=(cnt[k]||0)+1});
+  let known=new Set(FL_TYPE_GROUPS.flat().map(t=>t.k)),extra=Object.keys(cnt).filter(k=>!known.has(k)).map(k=>({k,l:(list.find(g=>flTypeKey(g)===k)||{}).medium_type||k}));
+  return {cnt,groups:FL_TYPE_GROUPS.concat(extra.length?[extra]:[])};
+}
+function flKindName(k){let t=FL_TYPE_GROUPS.flat().find(x=>x.k===k);return t?typeLbl(k,t.l):k}
+function flTypeOrd(g){let i=FL_TYPE_GROUPS.flat().findIndex(t=>t.k===flTypeKey(g));return i<0?99:i}
+function flSortG(a,b){return (flTypeOrd(a)-flTypeOrd(b))||String(flNum(a)).localeCompare(String(flNum(b)),'el',{numeric:true})}
+function flSearchRes(list){
+  let q=fl.q,num=list.filter(g=>g.medium_id);
+  const find=gs=>[...gs.filter(g=>flNum(g)===q).sort(flSortG),...gs.filter(g=>flNum(g)!==q&&flNum(g).startsWith(q)).sort(flSortG)];
+  let all=find(num),scoped=fl.type?find(num.filter(g=>flTypeKey(g)===fl.type)):all,useAll=!fl.type||fl.all,res=useAll?all:scoped;
+  let chips='<div class="flScope">'+(fl.type?`<button type="button" class="btn alt flKind${useAll?'':' on'}" data-scope="type">${esc(flKindName(fl.type))} (${scoped.length})</button>`:'')+`<button type="button" class="btn alt flKind${useAll?' on':''}" data-scope="all">Όλα (${all.length})</button></div>`;
+  return chips+`<div class="flLbl">Αποτελέσματα για «${esc(q)}» · ${res.length}</div>`+(res.length?'<div class="flCards flRes">'+res.map(g=>flCard(g)).join('')+'</div>':'<div class="muted">Κανένα αποτέλεσμα.</div>');
+}
+function flResBody(){
+  let list=flList();
+  if(fl.q)return flSearchRes(list);
+  if(!fl.type)return '';
+  let gs=list.filter(g=>flTypeKey(g)===fl.type).sort(flSortG);
+  return `<div class="flLbl">${esc(flKindName(fl.type))} · ${gs.length} ${gs.length===1?'μέσο':'μέσα'}</div><div class="flCards flRes">`+gs.map(g=>flCard(g)).join('')+'</div>';
 }
 function flMediumPicker(){
-  let list=fl.f==='a'?flMedia.filter(g=>g.categories.some(c=>c.category_id===fl.cat.id)):flMedia;
-  let sug=(fl.f==='d'&&!fl.type)?flSuggest(list):null,pre='';
-  if(sug)pre=`<div class="flSug"><div class="flSugT">Προτεινόμενα για ${esc(fl.unit.name_el)}</div><div class="flSugS">${esc(sug.why)}</div><div class="flOpts">`+sug.items.map(g=>flOpt(`data-k="medium" data-v="${g.medium_id||'BULK'}"`,g.medium_code,flMat(g),false)).join('')+'</div></div><div class="flSugT" style="margin-top:14px">Όλα τα υπόλοιπα</div>';
-  if(fl.f!=='m'&&!fl.other&&!fl.type&&!sug){
-    let ranked=fl.f==='d'
-      ?list.map(g=>({g,s:Math.max(0,...g.categories.map(c=>(flHist.dc[fl.unit.id]||{})[c.category_id]||0))})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s)
-      :list.map(g=>({g,s:g.categories.find(c=>c.category_id===fl.cat.id).weight})).sort((a,b)=>b.s-a.s);
-    ranked=ranked.slice(0,4);
-    if(ranked.length)return '<div class="flOpts">'+ranked.map((x,j)=>flOpt(`data-k="medium" data-v="${x.g.medium_id||'BULK'}"`,x.g.medium_code,fl.f==='a'?(Number(x.s).toLocaleString('el-GR')+' kg'):flMat(x.g),j===0)).join('')+(list.length>ranked.length?'<button type="button" class="btn alt flOpt" data-other="1">ΑΛΛΟ ΜΕΣΟ<small>επιλογή τύπου</small></button>':'')+'</div>';
-  }
-  if(!fl.type){
-    // Τύποι μέσων σε 3 ομάδες με κενό ανάμεσα. Οι αριθμοί (Καλάθια, Infocycle 1/2, Παλέτες, Σάκοι) έρχονται από το Μητρώο·
-    // μόνο το «Χύμα» επιλέγεται κατευθείαν. Τύποι εκτός των ομάδων εμφανίζονται σε 4η ομάδα μόνο αν έχουν γεμάτα μέσα.
-    let cnt={};list.forEach(g=>{let k=flTypeKey(g);cnt[k]=(cnt[k]||0)+1});
-    let known=new Set(FL_TYPE_GROUPS.flat().map(t=>t.k)),extra=Object.keys(cnt).filter(k=>!known.has(k)).map(k=>({k,l:(list.find(g=>flTypeKey(g)===k)||{}).medium_type||k}));
-    let groups=FL_TYPE_GROUPS.concat(extra.length?[extra]:[]);
-    return pre+groups.map(gr=>'<div class="flOpts flGroup">'+gr.map(t=>{let n=cnt[t.k]||0;return `<button type="button" class="btn alt flOpt" data-type="${esc(t.k)}"${t.k==='BULK'?' data-bulk="1"':''}${n?'':' disabled'}>${esc(typeLbl(t.k,t.l))}<small>${t.k==='BULK'?(n?'χωρίς μέσο':'δεν υπάρχει'):n+' γεμάτα'}</small></button>`}).join('')+'</div>').join('');
-  }
-  return '<button type="button" class="btn alt" data-type="" style="min-height:44px;font-size:13px;margin-bottom:8px">‹ ΑΛΛΟΣ ΤΥΠΟΣ</button><div class="flGrid4">'+list.filter(g=>g.medium_id&&flTypeKey(g)===fl.type).sort((a,b)=>String(a.medium_code).localeCompare(String(b.medium_code),'el',{numeric:true})).map(g=>`<button type="button" class="btn alt flNum" data-k="medium" data-v="${g.medium_id}">${esc(g.medium_code)}<small>${esc(fl.f==='a'?(Number(g.categories.find(c=>c.category_id===fl.cat.id).weight).toLocaleString('el-GR')+' kg'):flMat(g))}</small></button>`).join('')+'</div>';
+  let list=flList(),pr=flProbable(list),h='';
+  if(pr){
+    let n=pr.items.length,sh=fl.more?n:Math.min(4,n);
+    h+=`<div class="flLbl">Μέσο συλλογής · ${esc(pr.t)} (${n})</div><div class="flCards">`+pr.items.slice(0,sh).map(g=>flCard(g,pr.rel[g.medium_id||'BULK'])).join('')+'</div>';
+    if(n>4)h+=`<button type="button" class="flMore" data-more="1">${fl.more?'Απόκρυψη ▴':'Εμφάνιση άλλων '+(n-4)+' πιθανών ▾'}</button>`;
+  }else h+='<div class="flLbl">Μέσο συλλογής</div>';
+  let K=flKinds(list);
+  h+='<div class="flLbl" style="margin-top:14px">Όλα τα μέσα με υλικό</div>'
+   +`<input id="flQ" class="flQ" readonly inputmode="none" autocomplete="off" placeholder="Αναζήτηση: αριθμός μέσου" value="${esc(fl.q)}">`
+   +K.groups.map(gr=>'<div class="flOpts flGroup">'+gr.map(t=>{let n=K.cnt[t.k]||0;return `<button type="button" class="btn alt flOpt flKind${fl.type===t.k?' on':''}" data-type="${esc(t.k)}"${n?'':' disabled'}>${esc(typeLbl(t.k,t.l))}<small>${n}</small></button>`}).join('')+'</div>').join('')
+   +'<div id="flRes">'+flResBody()+'</div>';
+  return h;
 }
+/* δικό μας αριθμητικό πληκτρολόγιο (3×4), ανοίγει στο πεδίο αριθμού· κλείνει με «Πίσω» ή πάτημα έξω */
+function flKbSync(){document.body.classList.toggle('flKbOn',!!(fl.kb&&$('flQ')));if($('flQ'))$('flQ').classList.toggle('on',!!fl.kb)}
+function flKbOpen(){
+  fl.kb=true;flKbSync();
+  setTimeout(()=>{let q=$('flQ');if(!q)return;let r=q.getBoundingClientRect(),hb=document.querySelector('.secBtn').getBoundingClientRect().bottom,top=r.top-hb-8;if(Math.abs(top)>4)window.scrollBy(0,top)},60);
+}
+function flKbClose(){fl.kb=false;flKbSync()}
+function flQUpdate(){if($('flQ'))$('flQ').value=fl.q;if($('flRes'))$('flRes').innerHTML=flResBody()}
+(function(){
+  let kb=document.createElement('div');kb.id='flKb';
+  kb.innerHTML=['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button"${k==='C'?' class="kc"':''} data-key="${k}">${k}</button>`).join('');
+  document.body.appendChild(kb);
+  kb.onclick=e=>{let b=e.target.closest('button');if(!b)return;let k=b.dataset.key;
+    if(k==='C')fl.q='';else if(k==='⌫')fl.q=fl.q.slice(0,-1);else if(fl.q.length<5)fl.q+=k;
+    flQUpdate()};
+  document.addEventListener('click',e=>{if(fl.kb&&!e.target.closest('#flKb,#flQ'))flKbClose()},true);
+})();
 function flCatOptsHtml(){
   let seen={},all=[];flMedia.forEach(g=>g.categories.forEach(c=>{if(!seen[c.category_id]){seen[c.category_id]=1;let o=flCat(c.category_id);if(o)all.push(o)}}));
   all.sort((a,b)=>((flHist.cc[b.id]||0)-(flHist.cc[a.id]||0))||dname(a).localeCompare(dname(b),'el'));
@@ -429,7 +484,7 @@ function flRender(){
       continue;
     }
     done=false;
-    h+=`<div><div class="flLbl">${FL_LBL[k]}${k==='unit'&&fl.f!=='d'?' – πιθανότερα πρώτα':''}</div>`;
+    h+=`<div>${k==='medium'?'':`<div class="flLbl">${FL_LBL[k]}${k==='unit'&&fl.f!=='d'?' – πιθανότερα πρώτα':''}</div>`}`;
     if(k==='unit'){
       let us=prodUnits.map(u=>({u,s:fl.f==='d'?0:((flHist.cd[fl.cat?.id]||{})[u.id]||0)}));
       if(fl.f!=='d')us.sort((a,b)=>b.s-a.s);
@@ -452,7 +507,7 @@ function flRender(){
     }
   }
   if(done&&!needW){let mx=flMax();h+=`<div><div class="flLbl">Κιλά που στέλνονται (διαθέσιμα ${mx.toLocaleString('el-GR')} kg)</div><input id="flKg" type="number" step="0.001" inputmode="decimal" value="${fl.kg!=null?fl.kg:mx}"></div>`}
-  $('flowArea').innerHTML=h;
+  $('flowArea').innerHTML=h;flKbSync();
   if($('flKg'))$('flKg').oninput=e=>{fl.kg=e.target.value};
   if($('flSearch'))$('flSearch').oninput=e=>{fl.search=e.target.value;$('flCatOpts').innerHTML=flCatOptsHtml()};
   let b=$('flSend'),ready=done&&!needW&&!fl.busy;b.disabled=!ready;
@@ -462,26 +517,25 @@ function flRender(){
 function flPick(k,v){fl.kg=null;
   if(k==='unit'){fl.unit=prodUnits.find(u=>u.id===v);prodForm.unit=fl.unit;prodForm.emp=null;fl.worker=null;$('prodEmpBtn').textContent='Συγκεντρωτικά τμήματος'}
   else if(k==='cat'){fl.cat=flCat(v);fl.search=''}
-  else{fl.medium=flMedia.find(g=>(g.medium_id||'BULK')===v);fl.type=null;fl.other=false;if(fl.f!=='a'&&fl.medium.categories.length===1)fl.cat=flCat(fl.medium.categories[0].category_id)}
+  else{fl.medium=flMedia.find(g=>(g.medium_id||'BULK')===v);fl.type=null;fl.other=false;fl.kb=false;fl.q='';fl.all=false;fl.more=false;if(fl.f!=='a'&&fl.medium.categories.length===1)fl.cat=flCat(fl.medium.categories[0].category_id)}
   flRender();
 }
 function flChange(k){fl.kg=null;
   let ord=FL_ORDER[fl.f];ord.slice(ord.indexOf(k)).forEach(x=>fl[x]=null);
-  fl.type=null;fl.other=false;fl.worker=null;fl.search='';
+  fl.type=null;fl.other=false;fl.worker=null;fl.search='';fl.q='';fl.all=false;fl.more=false;fl.kb=false;
   if(!fl.unit){prodForm.unit=null;prodForm.emp=null;$('prodEmpBtn').textContent='Συγκεντρωτικά τμήματος'}
   flRender();
 }
 $('flowArea').onclick=e=>{
+  if(!fl.busy&&e.target.closest('#flQ')){flKbOpen();return}
   let b=e.target.closest('button');if(!b||fl.busy)return;
   if(b.dataset.k)flPick(b.dataset.k,b.dataset.v);
+  else if(b.dataset.more){fl.more=!fl.more;flRender()}
+  else if(b.dataset.scope){fl.all=b.dataset.scope==='all';flQUpdate()}
   else if(b.dataset.chg)flChange(b.dataset.chg);
   else if(b.dataset.w){fl.worker=prodEmps.find(x=>x.id===b.dataset.w);flRender()}
   else if(b.dataset.chgw){fl.worker=null;flRender()}
-  else if(b.dataset.other){fl.other=true;flRender()}
-  else if(b.dataset.type!==undefined){
-    if(b.dataset.bulk){flPick('medium','BULK')}
-    else{fl.type=b.dataset.type||null;flRender()}
-  }
+  else if(b.dataset.type!==undefined){fl.type=(b.dataset.type&&fl.type!==b.dataset.type)?b.dataset.type:null;fl.all=false;flRender()}
 };
 document.querySelectorAll('.flStart').forEach(b=>b.onclick=()=>{
   if(fl.busy)return;
@@ -816,7 +870,7 @@ async function saveCtrl(){await api('/sorting/'+cur.id+'/metadata',{method:'PUT'
 document.querySelectorAll('[data-flag]').forEach(b=>b.onclick=async()=>{let k=b.dataset.flag,prev=!!ctrl[k];ctrl[k]=!prev;paintFlags();try{await saveCtrl();$('ctrlMsg').className='ok';$('ctrlMsg').textContent='Αποθηκεύτηκε'}catch(e){ctrl[k]=prev;paintFlags();$('ctrlMsg').className='error';$('ctrlMsg').textContent=e.message}});
 $('ctrlToggle').onclick=()=>{let h=$('ctrlBody').classList.toggle('hidden');$('ctrlToggle').textContent=h?'▾':'▴'};
 $('confirm').onclick=async()=>{let btn=$('confirm');if(!btn.dataset.armed){btn.dataset.armed='1';btn.dataset.label=btn.textContent;btn.textContent='ΠΑΤΑ ΞΑΝΑ ΓΙΑ ΕΠΙΒΕΒΑΙΩΣΗ';setTimeout(()=>{if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=btn.dataset.label}},4000);return}delete btn.dataset.armed;try{await api('/sorting/'+cur.id+'/confirm',{method:'POST'});closePanels();$('work').classList.add('hidden');$('loads').classList.remove('hidden');cur=null;await loadLoads();window.scrollTo({top:0,behavior:'smooth'})}catch(e){$('workMsg').textContent=e.message;btn.textContent=btn.dataset.label}}
-window.appBack=()=>{if(!$('lightbox').classList.contains('hidden')){$('lbClose').onclick();return true}if(!$('entry').classList.contains('hidden')){$('cancel').onclick();return true}for(let id of ['bulkWash','bulkFridge','loadingPick','all'])if(!$(id).classList.contains('hidden')){closePanels();return true}if(!$('work').classList.contains('hidden')){$('back').onclick();return true}return false};
+window.appBack=()=>{if(fl.kb){flKbClose();return true}if(!$('lightbox').classList.contains('hidden')){$('lbClose').onclick();return true}if(!$('entry').classList.contains('hidden')){$('cancel').onclick();return true}for(let id of ['bulkWash','bulkFridge','loadingPick','all'])if(!$(id).classList.contains('hidden')){closePanels();return true}if(!$('work').classList.contains('hidden')){$('back').onclick();return true}return false};
 // ===== Δελτίο ημέρας 3α: ΕΡΓΑΖΟΜΕΝΟΙ (παρουσίες) / ΤΜΗΜΑΤΑ (τοποθετήσεις) / Ιστορικό με ΑΚΥΡΩΣΗ -- σχέδιο: design-reference/android-tmimata.html =====
 // Η κατάσταση είναι ΜΙΑ και κοινή (server: /production/attendance) -- ό,τι αλλάζει από τα Windows φαίνεται εδώ (ανανέωση κάθε 8″).
 function utcDate(iso){return new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+'Z')}
