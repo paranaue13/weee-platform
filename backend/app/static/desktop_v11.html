@@ -9327,6 +9327,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
 
   // ---- Αρχική: «Ταξινόμηση σε εξέλιξη» → η παλαιότερη εντολή που ταξινομείται, στην καρτέλα Ταξινόμηση ----
   window.uniOpenOldestSorting=async function(){
+    clearApiCache('/sorting/review-queue');   // πάντα φρέσκα δεδομένα (η εντολή μπορεί να ολοκληρώθηκε από άλλη συσκευή μέσα στα τελευταία 30 δευτερόλεπτα
     let rq=[];try{rq=await api('/sorting/review-queue')}catch(e){}
     let open=rq.filter(r=>r.status==='SORTING_IN_PROGRESS').sort((a,b)=>String(a.receipt_date).localeCompare(String(b.receipt_date))||String(a.order_number||'').localeCompare(String(b.order_number||'')))[0];
     if(!open){show('receipts');return}
@@ -9335,8 +9336,9 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     receiptMode='days';U.chips.clear();
     show('receipts');
     try{await loadReceiptsV2()}catch(e){}
-    let r=(receiptRowsAll||[]).find(x=>x.id===open.receipt_id),multi=r&&(r.loads||[]).length>1;
-    await openReceiptPopup(open.receipt_id,multi?open.load_id:null,!!multi);
+    let multi=rq.filter(x=>x.receipt_id===open.receipt_id).length>1;   // από τα ίδια δεδομένα (όχι από τη λίστα παραλαβών που μπορεί να μην έχει φορτώσει ακόμα)
+    await openReceiptPopup(open.receipt_id,multi?open.load_id:null,multi);
+    if(U.ctx&&!U.ctx.loadId)U.ctx.loadId=open.load_id;
     if(U.ctx&&U.ctx.loadId)await toSort();
   };
 
