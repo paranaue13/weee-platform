@@ -43,15 +43,13 @@ def scenario(name, setup, expect_count, expect_order):
         print(name, '→ κάρτες:', cards)
         ck(name + ': ο αριθμός της κάρτας', cnt and cnt[0].endswith(' ' + str(expect_count)), str(cnt))
         pg.evaluate("[...document.querySelectorAll('#metrics .metric')].find(c=>/εξέλιξη/.test(c.innerText)).click()"); pg.wait_for_timeout(7000)
-        txt = pg.evaluate("[...document.querySelectorAll('#sortingDetail,#receiptPopup,.receiptPopup,.sortingPopup,#receiptBody')].map(e=>e.innerText).join(' ')")
-        import re
-        opened = list(dict.fromkeys(re.findall(r'Εντολή\s+(\d+)', txt)))
-        print('   κείμενο:', txt[:160].replace(chr(10),' '))
-        print('   άνοιξε:', opened, '| popup chars:', len(txt))
-        if expect_order is None:
-            ck(name + ': δεν ανοίγει καμία εντολή', not opened)
-        else:
-            ck(name + f': ανοίγει η εντολή {expect_order}', opened[:1] == [expect_order], str(opened))
+        day = pg.evaluate("receiptNav.day"); view = pg.evaluate("!document.getElementById('receipts').classList.contains('hidden')")
+        popup = pg.evaluate("!!document.querySelector('#receiptForm.receiptPopup:not(.hidden),#sortingDetail:not(.hidden)')&&(()=>{const f=document.getElementById('receiptForm'),s=document.getElementById('sortingDetail');return (f&&f.classList.contains('receiptPopup')&&f.offsetParent!==null)||(s&&s.offsetParent!==null)})()")
+        print('   ημέρα:', day, '| οθόνη Παραλαβές & Ταξινόμηση:', view, '| ανοιχτή φόρμα:', popup)
+        ck(name + ': πηγαίνει στην οθόνη «Παραλαβές & Ταξινόμηση»', view)
+        ck(name + ': δεν ανοίγει καμία φόρμα', not popup)
+        if expect_order is not None:
+            ck(name + f': στην παλαιότερη ημέρα με ανοιχτή ταξινόμηση ({expect_order})', day == expect_order, str(day))
         ck(name + ': σφάλματα σελίδας', not errs, str(errs))
         b.close()
 
@@ -60,11 +58,11 @@ def s1():
     for o in OTHERS: status(o[0], 'CLOSED')
     set_date(A[2], '2026-02-10'); set_date(Bn[2], '2026-03-15'); status(A[0], 'IN_PROGRESS'); status(Bn[0], 'IN_PROGRESS'); entries(A[0], 1); entries(Bn[0], 2)
     status(done[0], 'CLOSED')
-scenario('Σενάριο 1 (δύο ανοιχτές)', s1, 2, A[1])
+scenario('Σενάριο 1 (δύο ανοιχτές)', s1, 2, '2026-02-10')
 # (2) ολοκληρωμένη πιο παλιά (done, 05/01) + μία μόνο ανοιχτή (B): ανοίγει η B
 def s2():
     status(A[0], 'CLOSED')
-scenario('Σενάριο 2 (ολοκληρωμένη παλιά + ανοιχτή νεότερη)', s2, 1, Bn[1])
+scenario('Σενάριο 2 (ολοκληρωμένη παλιά + ανοιχτή νεότερη)', s2, 1, '2026-03-15')
 # (3) καμία ανοιχτή
 def s3():
     status(Bn[0], 'CLOSED')

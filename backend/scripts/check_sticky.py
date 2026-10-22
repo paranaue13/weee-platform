@@ -18,7 +18,7 @@ from _browser import launch
 JS_SCAN = r"""([label,rootSel])=>{
  const ROOT=rootSel?document.querySelector(rootSel):document;if(!ROOT)return [];
  const out=[];
- const HEAD_SEL='.prepCat,.sfG,.sfTh,.cgHead,.sfHd,.whCat,.comboSec,.cpTitle,.ovTblHead,.thGroup';
+ const HEAD_SEL='.prepCat,.sfG,.sfTh,#sfTable thead th,.cgHead,.sfHd,.whCat,.comboSec,.cpTitle,.ovTblHead,.thGroup';
  const vis=e=>{const r=e.getBoundingClientRect();if(r.width<30||r.height<30)return false;for(let p=e;p&&p!==document.body;p=p.parentElement){const cs=getComputedStyle(p);if(cs.display==='none'||cs.visibility==='hidden')return false}return true};
  const scrolls=e=>{const cs=getComputedStyle(e);return /(auto|scroll)/.test(cs.overflowY)};
  const nearest=e=>{for(let p=e.parentElement;p&&p!==document.body&&p!==document.documentElement;p=p.parentElement)if(scrolls(p))return p;return null};
@@ -140,6 +140,7 @@ def run_sticky(base, print_table=True, size=(1600, 900)):
                 pg.evaluate("(()=>{let h=document.querySelector('#sortingDetail .sortingPopupHeader');if(h&&!document.getElementById('tmpHdGrow'))h.insertAdjacentHTML('beforeend','<div id=\"tmpHdGrow\" style=\"height:44px\"></div>')})()"); pg.wait_for_timeout(600)
                 scan('Παράθυρο Ταξινόμησης › με ψηλότερη κεφαλίδα παραθύρου (+44px)','#sortingDetail')
                 pg.evaluate("(()=>{let e=document.getElementById('tmpHdGrow');if(e)e.remove()})()"); pg.wait_for_timeout(300)
+                pg.evaluate("(()=>{const c=document.querySelector('#sfList tr.sfCat');if(c)c.click()})()"); pg.wait_for_timeout(500)
                 pg.evaluate("(()=>{const i=document.querySelector('#sfList .sfT');if(i){i.scrollIntoView({block:'center'});i.focus()}})()"); pg.wait_for_timeout(900)
                 scan('Dropdown › Είδος μέσου (Ταξινόμηση)','.sfDD')
                 # είδος με τα περισσότερα μέσα → λίστα αριθμών

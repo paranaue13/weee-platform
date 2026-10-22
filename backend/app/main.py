@@ -89,6 +89,10 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE inbound_loads ADD COLUMN outgoing_container_tare NUMERIC(14,3)"))
             for col,sqltype in [("weighbridge_number","VARCHAR(100)"),("dispatch_note_number","VARCHAR(100)"),("seal_number","VARCHAR(100)")]:
                 if col not in load_cols: conn.execute(text(f"ALTER TABLE inbound_loads ADD COLUMN {col} {sqltype}"))
+        if "sorting_entries" in tables:
+            se_cols={c["name"] for c in inspect(engine).get_columns("sorting_entries")}
+            if "source" not in se_cols:
+                conn.execute(text("ALTER TABLE sorting_entries ADD COLUMN source VARCHAR(10)"))
         if "sorting_sessions" in tables:
             sort_cols={c["name"] for c in inspect(engine).get_columns("sorting_sessions")}
             for col,sqltype in [("foreign_materials","VARCHAR(200)"),("foreign_weight","NUMERIC(14,3)"),("special_waste","VARCHAR(200)"),("special_waste_weight","NUMERIC(14,3)"),("load_pure","BOOLEAN DEFAULT 0"),("check_special","BOOLEAN DEFAULT 0"),("check_kday","BOOLEAN DEFAULT 0"),("check_non_integer","BOOLEAN DEFAULT 0")]:
@@ -2620,7 +2624,7 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
           'official_description':(parent.description_el if parent else cat.description_el) if cat else '', 'her_description':(parent.her_description if parent else cat.her_description) if cat else '', 'is_internal_subcategory':bool(cat.is_internal_subcategory) if cat else False,
           'medium_type':mt.name_el if mt else None,'medium_code':(str(med.code).replace('I2-','') if med else None),'tare_weight':float(med.tare_weight) if med and med.tare_weight is not None else None,
           'entry_type':e.entry_type,'raw_weight':float(e.raw_weight or 0),'approved_weight':float(e.approved_weight) if e.approved_weight is not None else None,
-          'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat()})
+          'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat(),'source':e.source})
     photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load.id).order_by(FileAttachment.created_at)).all()
     audits=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type.in_(['sorting_session','sorting_entry'])).order_by(models.AuditEvent.created_at.desc()).limit(100)).all()
     return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'correction':bool(ses.correction) if ses else False,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
@@ -2733,7 +2737,8 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         raw=Decimal(data.piece_count)*cat.average_weight
     obj=SortingEntry(session_id=ses.id,weee_category_id=data.weee_category_id,collection_medium_id=data.collection_medium_id,
-      entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes)
+      entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes,
+      source=(data.source.upper() if data.source and data.source.upper() in ('PC','ANDROID') else None))
     db.add(obj); db.flush()
     warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
     _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count,'close_medium':bool(data.close_medium)})

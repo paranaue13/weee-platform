@@ -547,6 +547,8 @@ class SortingEntry(Base, TimestampMixin):
     piece_count: Mapped[int|None] = mapped_column(nullable=True)
     created_by: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    # Προέλευση της καταχώρησης: 'PC' (Windows) ή 'ANDROID'· NULL = παλαιότερη καταχώρηση χωρίς γνωστή προέλευση (δεν δείχνει εικονίδιο)
+    source: Mapped[str|None] = mapped_column(String(10), nullable=True)
 
 class SortingAdjustment(Base):
     __tablename__ = "sorting_adjustments"

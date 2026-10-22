@@ -401,6 +401,7 @@ class SortingEntryCreate(BaseModel):
     piece_count: int|None = None
     notes: str|None = None
     close_medium: bool = False      # «Κλείσιμο καλαθιού»: μετά την αποθήκευση το μέσο δεν δέχεται άλλα κιλά
+    source: str|None = None         # 'PC' (Windows) ή 'ANDROID'
 
 class SortingEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -414,6 +415,7 @@ class SortingEntryOut(BaseModel):
     piece_count: int|None
     notes: str|None
     warning: str|None = None      # π.χ. «το μέσο περιέχει ήδη άλλη κατηγορία· ο κωδικός μένει»
+    source: str|None = None
 
 class SortingSessionOut(BaseModel):
     id: str
