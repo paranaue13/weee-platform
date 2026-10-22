@@ -1486,12 +1486,14 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 .negPop .npAfter{margin:8px 0 4px;font-weight:600}
 .sfDD .sfG.sfGs{position:sticky;top:0;background:var(--surface,#fff);z-index:2;box-shadow:inset 0 1px 0 var(--line,#e3e5ec),0 1px 0 var(--line,#e3e5ec)}
 /* ΑΛΛΑΓΗ Λ: επιλογέας μέσου = δύο πεδία Είδος ▾ / Αριθμός + μικρή λίστα αριθμών */
-#sortingDetail .sfTh,#sortingDetail .sfRow{grid-template-columns:70px minmax(90px,1fr) 54px minmax(100px,1fr) 490px 62px!important}
+#sortingDetail .sfTh,#sortingDetail .sfRow{grid-template-columns:70px minmax(64px,1fr) 54px minmax(76px,1fr) 548px 62px!important}
+#sortingDetail .sfQe .sfK{width:70px!important}#sortingDetail .sfQe .sfP{width:52px!important}
+#sortingDetail .sfClose{display:inline-flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;color:var(--fg-2,#44474f);cursor:pointer}#sortingDetail .sfClose input{width:16px;height:16px;min-height:16px;margin:0}#sortingDetail .sfClose input:disabled+span{opacity:.45}
 #sortingDetail .sfQe .sfT,#sortingDetail .sfQe .sfM{height:40px;min-height:40px}
 #sortingDetail .sfQe .sfT{width:170px;text-align:left;font-weight:500;cursor:pointer;border-color:var(--accent,#2f5fc4)!important;padding-right:24px;background:var(--surface,#fff) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'><path fill='%23666' d='M7 10l5 5 5-5z'/></svg>") no-repeat right 8px center!important}
 #sortingDetail .sfQe .sfM{width:110px!important}
 #sortingDetail .sfQe .sfT{width:170px!important}
-.sfDD.sfNums{width:170px;max-height:216px;padding:0}
+.sfDD.sfNums{width:230px;max-height:216px;padding:0}
 .sfDD.sfTypes{width:240px}
 .sfDD.sfNums .sfIt{height:32px;padding:0 8px;align-items:center;border-radius:0}
 .sfDD.sfNums .sfIt.hl,.sfDD.sfNums .sfIt:hover{background:#e6edfc;color:#2f5bd6}
@@ -7318,10 +7320,13 @@ const SF=(function(){
   const isF=c=>/^\d+$/.test(String(c.official_code||'').trim());      // ξένα υλικά (ΜΗ ΑΗΗΕ): κωδικοί μόνο με αριθμούς
   // Είδος / Αριθμός της γραμμής: κείμενα πεδίων από την τρέχουσα επιλογή (χύμα / μέσο / μόνο είδος)
   function typeTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return 'Χύμα';let m=S.rm[cid];if(m)return typeName(m);let t=S.rt&&S.rt[cid]?C.medTypes.find(x=>x.id===S.rt[cid]):null;return t?t.name_el:(defType(cid)?(C.medTypes.find(x=>x.id===defType(cid))||{}).name_el||'':'')}
-  function numTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return '';let m=S.rm[cid];return m?cdTxt(m)+(S.fresh.has(m.id)?' (νέο)':''):''}
+  const numLbl=m=>{let r=/^\D*(\d+)$/.exec(String(m&&m.code||''));return r?r[1]:cdTxt(m)};          // «Α12» → «12»· ο εσωτερικός κωδικός (Α12) δεν εμφανίζεται ποτέ
+  const catShort=c=>String(descOf(c)||'').split(' / ')[0];
+  function medCatNames(m){return Object.entries(m.cats||{}).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>{let c=(C.cats||[]).find(y=>y.id===x[0]);return c?catShort(c):''}).filter(Boolean)}
+  function numTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return '';let m=S.rm[cid];return m?numLbl(m)+(S.fresh.has(m.id)?' (νέο)':''):''}
   function rowHtml(c){
     let en=S.entries.filter(e=>e.weee_category_id===c.id),has=en.length>0,rm=S.rm[c.id],avg=c.average_weight;
-    return `<div class="sfRow${isF(c)?' f':''}${has?' has':''}" data-c="${c.id}" data-avg="${avg??''}"><div class="sfCd">${esc2(c.official_code)}</div><div class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</div><div class="sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</div><div class="sfEns">${en.map(chipHtml).join('')}</div><div class="sfQe"><input class="sfK" placeholder="kg" inputmode="decimal" autocomplete="off"><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"><input class="sfT" readonly value="${esc2(typeTxt(c.id))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(c.id))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><button type="button" class="sfAdd" title="Προσθήκη">＋</button></div><div class="sfSm">${has?f1(catSum(c.id))+' kg':''}</div></div>`;
+    return `<div class="sfRow${isF(c)?' f':''}${has?' has':''}" data-c="${c.id}" data-avg="${avg??''}"><div class="sfCd">${esc2(c.official_code)}</div><div class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</div><div class="sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</div><div class="sfEns">${en.map(chipHtml).join('')}</div><div class="sfQe"><input class="sfK" placeholder="kg" inputmode="decimal" autocomplete="off"><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"><input class="sfT" readonly value="${esc2(typeTxt(c.id))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(c.id))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><button type="button" class="sfAdd" title="Προσθήκη">＋</button><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div><div class="sfSm">${has?f1(catSum(c.id))+' kg':''}</div></div>`;
   }
   function visible(c){
     let q=norm(S.q).trim();
@@ -7368,7 +7373,7 @@ const SF=(function(){
     if((k==null||k<=0)&&pcs&&avg>0)k=Math.ceil(pcs*avg);
     if(k==null||k<=0){msg('Συμπλήρωσε βάρος ή τεμάχια (με υπαρκτό μέσο βάρος)',false);return false}
     let editId=S.editing[cid],old=editId?S.entries.find(e=>e.id===editId):null;
-    let body={weee_category_id:cid,collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:(old&&old.entry_type==='BULK')?'BULK':'MEDIUM',raw_weight:k,piece_count:pcs,notes:null};
+    let body={weee_category_id:cid,collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:(old&&old.entry_type==='BULK')?'BULK':'MEDIUM',raw_weight:k,piece_count:pcs,notes:null,close_medium:!editId&&!S.bulk[cid]&&!S.bulkMed[cid]&&!!(S.rm[cid]&&row.querySelector('.sfCl:checked'))};
     S.busy=true;
     try{
       // Χύμα: ΜΙΑ εγγραφή, χωρίς αριθμό και αποβαρό. ΑΗΗΕ ενεργοποιημένο για χύμα: τύπος BULK (τεμάχια × μέσο βάρος)·
@@ -7524,11 +7529,12 @@ const SF=(function(){
     let hv=new Set(C.pickable.filter(m=>haveKg(m,cid)>0).map(m=>m.type_id));
     return hv.size===1?[...hv][0]:null;
   }
-  function numMatch(m,q){let c=norm(m.code),dig=c.replace(/^\D+/,'');return c.startsWith(q)||(/^\d+$/.test(q)&&dig.startsWith(q))}
+  function numMatch(m,q){let c=norm(m.code),dig=c.replace(/^\D+/,'');if(c.startsWith(q)||(/^\d+$/.test(q)&&dig.startsWith(q)))return true;return !/^\d+$/.test(q)&&medCatNames(m).some(n=>norm(n).includes(q))}   // αριθμός (ή γράμμα+αριθμός) ή όνομα υλικού που περιέχει το μέσο
   function fmtD(iso){let d=String(iso||'').slice(0,10).split('-');return d.length===3?d[2]+'/'+d[1]+'/'+d[0]:''}
   function itemNum(m,i,cid){
     let u=usedN(m),hk=cid?haveKg(m,cid):0,tk=totKg(m);
-    return `<div class="sfIt" data-i="${i}" title="${esc2(typeName(m)+' · '+cdTxt(m)+(tareTxt(m)?' · αποβαρό '+tareTxt(m):''))}"><span><b>${esc2(cdTxt(m))}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}</span><small${hk>0?' class="hv"':''}>${tk>0||hk>0?f1(hk>0?hk:tk)+' kg':'άδειο'}</small></div>`;
+    let nm=hk>0?'':(tk>0?(medCatNames(m)[0]||''):'');
+    return `<div class="sfIt" data-i="${i}" title="${esc2(typeName(m)+' · '+numLbl(m)+(tareTxt(m)?' · αποβαρό '+tareTxt(m):'')+(medCatNames(m).length?' · '+medCatNames(m).join(', '):''))}"><span><b>${esc2(numLbl(m))}</b>${S.fresh.has(m.id)?' <small>(νέο)</small>':''}${u?' <small>· σε χρήση</small>':''}</span><small${hk>0?' class="hv"':''}>${hk>0?f1(hk)+' kg':(tk>0?f1(tk)+' kg'+(nm?' · '+esc2(nm):''):'')}</small></div>`;
   }
   function openDD(inp){
     let keepType=DD.type,keepPage=DD.page,keepMode=DD.mode,keepNt=DD.nt;
@@ -7573,14 +7579,16 @@ const SF=(function(){
       let hv=cid?all.filter(m=>haveKg(m,cid)>0).sort((a,b)=>haveKg(b,cid)-haveKg(a,cid)):[];hv.forEach(m=>hvS.add(m.id));
       let rest=all.filter(m=>!hvS.has(m.id)).sort((a,b)=>numKey(a.code)-numKey(b.code)||String(a.code).localeCompare(String(b.code),'el'));
       if(q){hv=hv.filter(m=>numMatch(m,q));rest=rest.filter(m=>numMatch(m,q))}
-      let tot=hv.length+rest.length,LIM=40,shown=0;
+      // Διαθέσιμα: πρώτα τα ανοιχτά με κιλά (ακόμα και με άλλο υλικό), μετά τα κενά (τα πρώτα 8)
+      let opn=rest.filter(m=>totKg(m)>0),emp=rest.filter(m=>!(totKg(m)>0));
+      let tot=hv.length+opn.length+emp.length,LIM=40,EMPL=8,shown=0;
       let busy=q?(C.busy||[]).find(b=>b.type_id===tid&&norm(b.code)===q):null;
-      if(hv.length){h+=`<div class="sfG sfGs star">★ Έχουν ήδη «${esc2(String(cat?descOf(cat):'').split(' / ')[0])}»</div>`;hv.slice(0,LIM).forEach(m=>{items.push(m);shown++;h+=itemNum(m,items.length-1,cid)})}
-      if(rest.length&&shown<LIM){if(hv.length)h+='<div class="sfG sfGs">Λοιπά</div>';rest.slice(0,LIM-shown).forEach(m=>{items.push(m);shown++;h+=itemNum(m,items.length-1,cid)})}
+      if(hv.length){h+=`<div class="sfG sfGs star">★ Έχουν ήδη «${esc2(String(cat?catShort(cat):''))}»</div>`;hv.slice(0,LIM).forEach(m=>{items.push(m);shown++;h+=itemNum(m,items.length-1,cid)})}
+      if(opn.length||emp.length){h+='<div class="sfG sfGs">Διαθέσιμα</div>';opn.slice(0,LIM-shown).forEach(m=>{items.push(m);shown++;h+=itemNum(m,items.length-1,cid)});emp.slice(0,EMPL).forEach(m=>{items.push(m);shown++;h+=itemNum(m,items.length-1,cid)})}
       if(busy)h=`<div class="sfBusy">σε χρήση${busy.since?' (φόρτωση '+fmtD(busy.since)+')':''}</div>`+h;
       if(!tot&&!busy)h+='<div class="sfHint">Δεν υπάρχει διαθέσιμο</div>';
-      if(tot>shown)h+=`<div class="sfMore">+ ${tot-shown} ακόμα · γράψτε για να στενέψει</div>`;
-      w=170;cls+=' sfNums';
+      if(tot>shown)h+=`<div class="sfMore">+ ${tot-shown} ακόμα · γράψτε αριθμό</div>`;
+      w=230;cls+=' sfNums';
     }
     DD.items=items;DD.hl=0;
     document.querySelectorAll('.sfDD,.medPickMenu').forEach(e=>e.remove());
@@ -7617,16 +7625,17 @@ const SF=(function(){
     let t=C.medTypes.find(x=>x.id===tid);
     row.querySelector('.sfT').value=t?t.name_el:'';
     let mi=row.querySelector('.sfM');if(!S.rm[cid])mi.value='';
-    closeDD();mi.focus();
+    syncClose(row);closeDD();mi.focus();
   }
   function markHL(){if(!DD.el)return;DD.el.querySelectorAll('.sfIt').forEach(x=>x.classList.toggle('hl',+x.dataset.i===DD.hl));let h=DD.el.querySelector('.sfIt.hl');if(h)h.scrollIntoView({block:'nearest'})}
   const BULK_CATS=new Set(['4Α2110','4Α2120','4Α2200','4Α1000','1Α1100','1Α1200','1Α2100','1Α2200','1Α3000'].map(x=>norm(x)));
+  function syncClose(row){let c=row&&row.querySelector('.sfCl');if(!c)return;let cid=row.dataset.c,ok=!!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid];c.disabled=!ok;if(!ok)c.checked=false}
   function pickBulk(commitToo){
     let inp=DD.input,row=inp&&inp.closest('.sfRow');if(!row)return;
     let cid=row.dataset.c,c=C.rows.find(x=>x.id===cid);
     S.rm[cid]=null;S.rt[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;
     if(c&&BULK_CATS.has(norm(c.official_code))&&c.average_weight!=null)S.bulk[cid]=true;else S.bulkMed[cid]=true;
-    row.querySelector('.sfT').value='Χύμα';row.querySelector('.sfM').value='';closeDD();
+    row.querySelector('.sfT').value='Χύμα';row.querySelector('.sfM').value='';closeDD();syncClose(row);
     if(commitToo&&parseKg(row.querySelector('.sfK').value)!=null){commit(row,true);return}
     row.querySelector('.sfAdd').focus();
   }
@@ -7637,7 +7646,7 @@ const SF=(function(){
     S.bulk[row.dataset.c]=false;S.bulkMed[row.dataset.c]=false;
     S.rm[row.dataset.c]=m;S.rt[row.dataset.c]=m.type_id;S.lastType=m.type_id;
     RECENT=[m.id].concat(RECENT.filter(x=>x!==m.id)).slice(0,3);
-    row.querySelector('.sfT').value=typeName(m);row.querySelector('.sfM').value=numTxt(row.dataset.c);closeDD();
+    row.querySelector('.sfT').value=typeName(m);row.querySelector('.sfM').value=numTxt(row.dataset.c);closeDD();syncClose(row);
     if(commitToo&&parseKg(row.querySelector('.sfK').value)!=null){commit(row,true);return}
     row.querySelector('.sfAdd').focus();
   }
@@ -7670,7 +7679,7 @@ const SF=(function(){
     });
     // «κλικ στο Είδος ξαναρχίζει»: καθαρίζει είδος + αριθμό της γραμμής
     L.addEventListener('mousedown',e=>{let t=e.target;if(!t.classList||!t.classList.contains('sfT'))return;let row=t.closest('.sfRow'),cid=row.dataset.c;
-      if(S.rm[cid]||S.bulk[cid]||S.bulkMed[cid]){S.rm[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;S.rt[cid]=null;row.querySelector('.sfM').value='';t.value='';}
+      if(S.rm[cid]||S.bulk[cid]||S.bulkMed[cid]){S.rm[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;S.rt[cid]=null;row.querySelector('.sfM').value='';t.value='';syncClose(row)}
       if(document.activeElement===t&&!DD.el)openDD(t)});
     L.addEventListener('input',e=>{let t=e.target;
       if(t.classList.contains('sfM')){let row=t.closest('.sfRow');if(!t.value.trim()){S.rm[row.dataset.c]=null;S.bulk[row.dataset.c]=false;S.bulkMed[row.dataset.c]=false}openDD(t)}
@@ -7691,7 +7700,7 @@ const SF=(function(){
         else if(e.key==='ArrowUp'){e.preventDefault();DD.hl=Math.max(0,DD.hl-1);markHL()}
         else if(e.key==='Enter'||(isT&&e.key===' ')){e.preventDefault();
           if(!isT&&(!DD.el||!DD.items.length)){   // ακριβής αριθμός χωρίς λίστα
-            let tid=S.rt[row.dataset.c],q=norm(t.value).trim(),ex=tid&&q?C.pickable.filter(m=>m.type_id===tid&&norm(m.code)===q):[];
+            let tid=S.rt[row.dataset.c],q=norm(t.value).trim(),ex=tid&&q?C.pickable.filter(m=>m.type_id===tid&&(norm(m.code)===q||numLbl(m)===q)):[];
             if(ex.length===1){DD.input=t;pick(ex[0],false);return}
           }
           if(!DD.el)openDD(t);

@@ -436,6 +436,9 @@ class CollectionMedium(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(40), default="AVAILABLE")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     linked_loading_order_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("loading_orders.id"), nullable=True)
+    # Κλειστό μέσο: έχει κιλά και ΔΕΝ δέχεται άλλα (δεν προσφέρεται στην Ταξινόμηση, ο server απορρίπτει νέα κιλά). Πηγαίνει κανονικά στην παραγωγή.
+    # Γίνεται πάλι ανοιχτό όταν αδειάσει (_medium_release). Ανοιχτό = False (προεπιλογή, και για όλα τα υπάρχοντα μέσα).
+    is_closed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
     # Ο κωδικός είναι μοναδικός ΜΕΣΑ στον τύπο· ο ίδιος κωδικός επιτρέπεται σε άλλον τύπο (το εσωτερικό id είναι το κλειδί).
     __table_args__ = (UniqueConstraint("type_id","code",name="uq_collection_media_type_code"),)
 

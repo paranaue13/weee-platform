@@ -76,6 +76,9 @@ async def lifespan(app: FastAPI):
     if "linked_loading_order_id" not in cols:
         with engine.begin() as conn:
             conn.execute(text("ALTER TABLE collection_media ADD COLUMN linked_loading_order_id VARCHAR(36)"))
+    if "collection_media" in inspector.get_table_names() and "is_closed" not in cols:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE collection_media ADD COLUMN is_closed BOOLEAN NOT NULL DEFAULT 0"))
     tables=set(inspector.get_table_names())
     with engine.begin() as conn:
         if "inbound_loads" in tables:
@@ -2563,7 +2566,7 @@ def _sorting_medium_types(db:Session)->list:
 def _sorting_media(db:Session,type_ids)->list:
     ids=list(type_ids)
     if not ids: return []
-    return db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(ids),CollectionMedium.status.in_(SORTING_MEDIUM_STATUSES)).order_by(CollectionMedium.code)).all()
+    return db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(ids),CollectionMedium.is_closed==False,CollectionMedium.status.in_(SORTING_MEDIUM_STATUSES)).order_by(CollectionMedium.code)).all()
 
 @app.get('/sorting/medium-options')
 def sorting_medium_options(db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
@@ -2578,7 +2581,7 @@ def sorting_medium_options(db:Session=Depends(get_db), user=Depends(require_perm
     tids=[t.id for t in types]; since={}
     if tids:
         for med,d in db.execute(select(WEEEStockLot.collection_medium_id,func.max(WEEEStockLot.created_at)).where(WEEEStockLot.collection_medium_id.is_not(None)).group_by(WEEEStockLot.collection_medium_id)).all(): since[med]=d
-    busy_rows=db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(tids),CollectionMedium.status.not_in(SORTING_MEDIUM_STATUSES))).all() if tids else []
+    busy_rows=db.scalars(select(CollectionMedium).where(CollectionMedium.active==True,CollectionMedium.type_id.in_(tids),CollectionMedium.is_closed==False,CollectionMedium.status.not_in(SORTING_MEDIUM_STATUSES))).all() if tids else []
     busy=[{'type_id':m.type_id,'code':m.code,'status':m.status,'since':((since.get(m.id) or m.updated_at).date().isoformat() if (since.get(m.id) or m.updated_at) else None)} for m in busy_rows]
     return {'busy':busy,'types':[{'id':t.id,'code':t.code,'name_el':t.name_el,'usage':t.usage or 'BOTH','active':bool(t.active),'default_tare_weight':float(t.default_tare_weight) if t.default_tare_weight is not None else None,'tare_fixed':bool(t.tare_fixed),'creatable':t.code in SORTING_CREATABLE_TYPES} for t in types],
             'media':[{'id':m.id,'type_id':m.type_id,'code':m.code,'tare_weight':float(m.tare_weight) if m.tare_weight is not None else None,'status':m.status,'active':bool(m.active),'kg':round(mkg.get(m.id,0.0),3),'cats':mcat.get(m.id,{})} for m in media]}
@@ -2713,6 +2716,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
     cat=db.get(WEEECategory,data.weee_category_id)
     if not cat: raise HTTPException(422,'Άγνωστη κατηγορία ΑΗΗΕ')
     if data.collection_medium_id and not db.get(CollectionMedium,data.collection_medium_id): raise HTTPException(422,'Άγνωστο μέσο συλλογής')
+    if data.collection_medium_id and db.get(CollectionMedium,data.collection_medium_id).is_closed: raise HTTPException(409,'Το μέσο είναι κλειστό και δεν δέχεται άλλα κιλά')
     if data.raw_weight is None and data.piece_count is None: raise HTTPException(422,'Απαιτείται βάρος ή τεμάχια')
     raw=data.raw_weight
     if data.entry_type=='SCALE_GROSS':
@@ -2732,7 +2736,10 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
       entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes)
     db.add(obj); db.flush()
     warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
-    _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count})
+    _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count,'close_medium':bool(data.close_medium)})
+    if data.close_medium and data.collection_medium_id and data.entry_type!='BULK':
+        mm=db.get(CollectionMedium,data.collection_medium_id)
+        if mm: mm.is_closed=True; write_audit(db,user,'collection_medium',mm.id,'CLOSE',new={'code':mm.code})
     db.commit(); db.refresh(obj); obj.warning=warn; return obj
 
 @app.put('/sorting/entries/{entry_id}', response_model=schemas.SortingEntryOut)
@@ -2744,6 +2751,9 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     if not ses or ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση έχει ήδη ολοκληρωθεί')
     cat=db.get(WEEECategory,data.weee_category_id)
     if not cat: raise HTTPException(422,'Άγνωστη κατηγορία ΑΗΗΕ')
+    if data.collection_medium_id and data.collection_medium_id!=e.collection_medium_id:
+        tm=db.get(CollectionMedium,data.collection_medium_id)
+        if tm and tm.is_closed: raise HTTPException(409,'Το μέσο είναι κλειστό και δεν δέχεται άλλα κιλά')
     old={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count}
     e.weee_category_id=data.weee_category_id; e.collection_medium_id=data.collection_medium_id; e.entry_type=data.entry_type
     e.raw_weight=data.raw_weight; e.piece_count=data.piece_count; e.notes=data.notes
@@ -2796,7 +2806,7 @@ def sorting_medium_suggestions(load_id:str, weee_category_id:str, db:Session=Dep
     for e in entries:
         if e.collection_medium_id in seen: continue
         med=db.get(CollectionMedium,e.collection_medium_id)
-        if not med or not med.active or med.status not in SORTING_MEDIUM_STATUSES or med.type_id not in allowed_types: continue
+        if not med or not med.active or med.is_closed or med.status not in SORTING_MEDIUM_STATUSES or med.type_id not in allowed_types: continue
         seen.add(med.id)
         out.append({'id':med.id,'type_id':med.type_id,'code':med.code,'tare_weight':float(med.tare_weight) if med.tare_weight is not None else None,'used_by_me':e.created_by==user.id,'last_used_at':e.created_at.isoformat()})
     out.sort(key=lambda x:(not x['used_by_me'], x['last_used_at']), reverse=False)
@@ -3179,7 +3189,7 @@ def _medium_release(db:Session, medium_id):
     if not medium_id: return
     m=db.get(CollectionMedium,medium_id)
     if m and m.status=='WEEE_STORAGE' and not db.scalar(select(func.count()).select_from(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id,WEEEStockLot.available_weight>0)):
-        m.status='AVAILABLE'
+        m.status='AVAILABLE'; m.is_closed=False       # άδειο μέσο = πάλι ανοιχτό
 
 def _retire_lot(db:Session, lot, strict:bool=False):
     """Αφαιρεί ένα μερίδιο αποθέματος. Αν έχει ήδη καταναλωθεί (παραγωγή): strict -> σφάλμα 409, αλλιώς μένει μόνο το καταναλωμένο μέρος."""

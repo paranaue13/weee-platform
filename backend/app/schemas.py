@@ -296,6 +296,7 @@ class MediumOut(BaseModel):
     status: str
     active: bool
     linked_loading_order_id: str|None = None
+    is_closed: bool = False     # κλειστό μέσο: έχει κιλά και δεν δέχεται άλλα
     in_use: bool = False        # «Σε χρήση»: κρατά απόθεμα / έχει κατάσταση άλλη από AVAILABLE (υπολογίζεται στη λίστα)
 
 class WEEEDisplayUpdate(BaseModel):
@@ -399,6 +400,7 @@ class SortingEntryCreate(BaseModel):
     raw_weight: Decimal|None = None
     piece_count: int|None = None
     notes: str|None = None
+    close_medium: bool = False      # «Κλείσιμο καλαθιού»: μετά την αποθήκευση το μέσο δεν δέχεται άλλα κιλά
 
 class SortingEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
