@@ -884,7 +884,8 @@ function openPhoto(id){photoCur=id;$('lbImg').src=photoUrl(id);$('lbDel').textCo
 $('lbClose').onclick=()=>{$('lightbox').classList.add('hidden');$('lbImg').removeAttribute('src');photoCur=null};
 $('lbDel').onclick=async()=>{if(!photoCur)return;if(!$('lbDel').dataset.armed){$('lbDel').dataset.armed='1';$('lbDel').textContent='ΠΑΤΑ ΞΑΝΑ ΓΙΑ ΔΙΑΓΡΑΦΗ';return}try{await api('/sorting/photos/'+photoCur,{method:'DELETE'});$('lbClose').onclick();$('photoMsg').className='ok';$('photoMsg').textContent='Η φωτογραφία διαγράφηκε.';paintPhotos(await api('/sorting/'+cur.id+'/photos'))}catch(e){$('lbDel').textContent='Σφάλμα: '+e.message;$('lbDel').dataset.armed=''}};
 $('photoBtn').onclick=()=>$('photo').click();$('photo').onchange=async e=>{let files=[...e.target.files];e.target.value='';if(!files.length)return;let ok=0;$('photoMsg').className='ok';try{for(let x of files){$('photoMsg').textContent='Αποστολή φωτογραφίας '+(ok+1)+' απο '+files.length+'…';let f=new FormData();f.append('category','GENERAL');let b=await shrink(x);f.append('file',b,b.name||x.name||'photo.jpg');await api('/sorting/'+cur.id+'/photos',{method:'POST',body:f});ok++}$('photoMsg').textContent=ok+(ok===1?' φωτογραφία αποθηκεύτηκε':' φωτογραφίες αποθηκεύτηκαν')+' στο φορτίο.'}catch(err){$('photoMsg').className='error';$('photoMsg').textContent=(ok?ok+' αποθηκεύτηκαν. ':'')+'Σφάλμα: '+err.message}try{paintPhotos(await api('/sorting/'+cur.id+'/photos'))}catch{}};
-let flEntryCats=[];
+let flEntryCats=[],entryInit='';
+function enSnap(){return [$('weight').value,$('pieces').value,$('medium').value,$('closeMedium').checked,chosenMediumType||''].join('|')}
 /* ---- κιλά: δεκαδικά με κόμμα ή τελεία· αποθήκευση με στρογγυλοποίηση ΠΡΟΣ ΤΑ ΠΑΝΩ στο μισό κιλό· εμφάνιση χωρίς περιττά μηδενικά ---- */
 function parseKgA(v){let t=String(v==null?'':v).trim().replace(/\s/g,'');if(t==='')return null;if(t.indexOf(',')>=0&&t.indexOf('.')>=0)t=t.replace(/\./g,'');t=t.replace(',','.');if(!/^\d*\.?\d*$/.test(t)||t==='.')return NaN;return Number(t)}
 function ceilHalf(x){return Math.ceil(Number((x*2).toFixed(6)))/2}
@@ -1187,6 +1188,59 @@ async function mtCountSend(r){
   mt.countNew=false;mt.w=mt.wExportSaved||mtWiz('export');mt.count=null;mtRender();
 }
 
+// ---- Πάτημα της ΗΔΗ ενεργής καρτέλας → αρχική οθόνη της καρτέλας (με επιβεβαίωση αν υπάρχει μισοσυμπληρωμένη φόρμα) ----
+{
+  const _choose=choose,_editEntry=editEntry;
+  choose=async function(id){await _choose(id);entryInit=enSnap()};
+  editEntry=function(id,entries){_editEntry(id,entries);entryInit=enSnap()};
+}
+function askLeave(go){
+  let B=$('enSheetBody');
+  B.innerHTML='<b class="shT">Να φύγεις χωρίς αποθήκευση;</b><div class="shM">Υπάρχουν στοιχεία που δεν έχουν αποθηκευτεί.</div><div class="shBtns"><button type="button" class="shEdit" data-sh="stay">Παραμονή</button><button type="button" class="shDel" data-sh="exit">Έξοδος</button></div>';
+  $('enSheet').classList.remove('hidden');
+  B.onclick=ev=>{let b=ev.target.closest('button');if(!b)return;closeEnSheet();if(b.dataset.sh==='exit')go()};
+}
+const closeOverlays=()=>['prodDeptPick','prodEmpPick','prodMediumPick','prodCatPick','roster','rosterPick','loadingNew'].forEach(id=>$(id)&&$(id).classList.add('hidden'));
+const vis=id=>$(id)&&!$(id).classList.contains('hidden');
+function tabDirty(name){
+  if(name==='receiving')return (vis('entry')&&enSnap()!==entryInit)||((vis('bulkWash')||vis('bulkFridge'))&&Object.values(bulk||{}).some(x=>x>0));
+  if(name==='production')return fl.kg!=null&&fl.kg!=='';
+  if(name==='materials')return mtDirty();
+  if(name==='loading')return vis('loadingNew')&&!!($('loadingPlate').value||$('loadingMaxWeight').value||(loadingForm&&(loadingForm.customer||loadingForm.carrier)));
+  return false;
+}
+function mtDirty(){return (mt.tab==='export'||mt.countNew)&&!!mt.w&&(mt.w.step>1||['gross','tare','net','total'].some(k=>mt.w[k]!==''&&mt.w[k]!=null))}
+function tabHome(name){
+  closeEnSheet();if(typeof flKbClose==='function')flKbClose();closeOverlays();
+  if(name==='receiving'){
+    $('entry').classList.add('hidden');editing=null;closePanels();showSection('receiving');
+    if(!$('work').classList.contains('hidden'))$('back').onclick();else loadLoads();
+  }else if(name==='production'){
+    fl.f='d';flReset();setTopDeltio(false);$('prodModeTransferBtn').onclick();showSection('production');flRender();
+  }else if(name==='materials'){
+    mt.tab='export';mt.countNew=false;mt.wExportSaved=null;mt.w=mtWiz('export');showSection('materials');mtRender();
+  }else if(name==='loading'){
+    showSection('loading');
+  }
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.secBtn').forEach(b=>b.onclick=()=>{
+  let n=b.dataset.section;
+  if(n!==currentSection){showSection(n);return}
+  if(tabDirty(n))askLeave(()=>tabHome(n));else tabHome(n);
+});
+// υποκαρτέλες Παραγωγής: ξανά-πάτημα της ίδιας → αρχή της ροής (ρωτά μόνο αν έχουν δοθεί κιλά)
+document.querySelectorAll('.flStart').forEach(b=>b.onclick=()=>{
+  if(fl.busy)return;
+  let go=()=>{closeOverlays();fl.f=b.dataset.f;flReset();$('prodModeTransferBtn').onclick();flRender();window.scrollTo(0,0)};
+  if(b.dataset.f===fl.f&&tabDirty('production'))askLeave(go);else go();
+});
+// υποκαρτέλες Υλικών: ξανά-πάτημα της ίδιας → αρχική οθόνη της υποκαρτέλας
+document.querySelectorAll('.matStart').forEach(b=>{let o=b.onclick;b.onclick=ev=>{
+  if(b.dataset.m!==mt.tab)return o.call(b,ev);
+  let go=()=>{if(mt.tab==='export')mt.w=mtWiz('export');else if(mt.tab==='count'){if(mt.countNew){mt.countNew=false;mt.w=mt.wExportSaved||mtWiz('export')}mt.count=null}else mt.stock=null;mtRender();window.scrollTo(0,0)};
+  if(mtDirty())askLeave(go);else go();
+}});
 // ---- Νέα επάνω μπάρα: έκδοση, ONLINE (πρώην SERVER), ανανέωση ----
 (function(){
   let ver=(window.WeeeNative&&WeeeNative.version&&WeeeNative.version())||'2.5.41';
