@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from decimal import Decimal
 from datetime import datetime
 
@@ -67,6 +67,12 @@ class ProductionWorkEntryUpdate(BaseModel):
     notes: str|None = None
     reason: str|None = None
 
+class ShortLeave(BaseModel):
+    # τοπική ώρα «ΩΩ:ΛΛ»· to=None = ανοιχτή (δεν έχει επιστρέψει ακόμα)
+    model_config = ConfigDict(populate_by_name=True)
+    from_: str = Field(alias="from")
+    to: str|None = None
+
 class ProductionAttendanceUpsert(BaseModel):
     work_date: datetime
     employee_id: str
@@ -76,6 +82,16 @@ class ProductionAttendanceUpsert(BaseModel):
     since_at: datetime|None = None
     late: bool|None = None  # True = ΑΡΓΟΠΟΡΙΑ, False = εγκαίρως, None = όπως είναι/αυτόματα
     arrived_at: datetime|None = None  # χειροκίνητη ώρα άφιξης (Παρουσιολόγιο Windows)
+    short_leaves: list[ShortLeave]|None = None  # Ολιγόωρες απουσίες (Παρουσιολόγιο Windows)· αν λείπει από το αίτημα μένουν όπως είναι
+
+    @field_validator("short_leaves", mode="before")
+    @classmethod
+    def _parse_short_leaves(cls, v):
+        if isinstance(v, str):
+            import json as _j
+            try: v=_j.loads(v)
+            except Exception: return None
+        return v
 
 class AttendanceUnitsIn(BaseModel):
     work_date: datetime

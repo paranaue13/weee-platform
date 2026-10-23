@@ -170,6 +170,7 @@ async def lifespan(app: FastAPI):
             pa_cols={c["name"] for c in inspect(engine).get_columns("production_attendance")}
             if "arrived_at" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN arrived_at DATETIME"))
             if "late" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN late BOOLEAN DEFAULT 0"))
+            if "short_leaves" not in pa_cols: conn.execute(text("ALTER TABLE production_attendance ADD COLUMN short_leaves TEXT"))
         if "production_attendance_events" in tables:
             pe_cols={c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
             if "late" not in pe_cols: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN late BOOLEAN DEFAULT 0"))
@@ -1399,6 +1400,32 @@ def production_work_entry_history(entry_id:str, db:Session=Depends(get_db), user
     users={u.id:u.username for u in db.scalars(select(User).where(User.id.in_(uids))).all()} if uids else {}
     return [{"action":e.action,"old_values":json.loads(e.old_values) if e.old_values else None,"new_values":json.loads(e.new_values) if e.new_values else None,"reason":e.reason,"user":users.get(e.user_id),"created_at":e.created_at.isoformat()} for e in events]
 
+def _short_leaves_list(raw)->list:
+    """Ολιγόωρες απουσίες από το JSON της βάσης -> λίστα {"from","to"} (πάντα λίστα)."""
+    if not raw: return []
+    try: v=_json.loads(raw)
+    except Exception: return []
+    return [{"from":x.get("from"),"to":x.get("to")} for x in v if isinstance(x,dict) and x.get("from")]
+
+def _validate_short_leaves(items):
+    """Έλεγχος: μορφή ΩΩ:ΛΛ, «Επέστρεψε» μετά το «Έφυγε», καμία επικάλυψη (ανοιχτή = μέχρι το τέλος της ημέρας). Επιστρέφει JSON ή None αν δεν υπάρχουν."""
+    import re as _re
+    def tm(v):
+        m=_re.fullmatch(r"(\d\d):(\d\d)",v or "")
+        if not m or int(m.group(1))>23 or int(m.group(2))>59: return None
+        return int(m.group(1))*60+int(m.group(2))
+    spans=[]
+    for it in items or []:
+        a=tm(it.from_); b=tm(it.to) if it.to else None
+        if a is None or (it.to and b is None): raise HTTPException(422,"Η ώρα της ολιγόωρης πρέπει να είναι της μορφής ΩΩ:ΛΛ")
+        if b is not None and b<=a: raise HTTPException(422,"Η ώρα «Επέστρεψε» πρέπει να είναι μετά την ώρα «Έφυγε»")
+        spans.append((a,b if b is not None else 1440))
+    spans.sort()
+    for i in range(1,len(spans)):
+        if spans[i][0]<spans[i-1][1]: raise HTTPException(422,"Οι ολιγόωρες απουσίες δεν επιτρέπεται να επικαλύπτονται")
+    if not items: return None
+    return _json.dumps([{"from":it.from_,"to":it.to or None} for it in sorted(items,key=lambda x:x.from_)],ensure_ascii=False)
+
 @app.get("/production/attendance", response_model=list[schemas.ProductionAttendanceOut])
 def production_attendance_for_date(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     day=datetime.fromisoformat(date)
@@ -1462,9 +1489,9 @@ def production_attendance_effective(date:str=Query(...), db:Session=Depends(get_
     for e in db.scalars(select(Employee).where(Employee.active==True)).all():
         r=rows.get(e.id)
         if r:
-            out.append({"id":r.id,"work_date":r.work_date,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
+            out.append({"id":r.id,"work_date":r.work_date,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
         else:
-            out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"since_at":None,"late":False,"arrived_at":None,"explicit":False})
+            out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"short_leaves":[],"since_at":None,"late":False,"arrived_at":None,"explicit":False})
     return out
 
 @app.get("/production/attendance/range")
@@ -1472,7 +1499,7 @@ def production_attendance_range(start:str=Query(...), end:str=Query(...), db:Ses
     """Μόνο ανάγνωση: οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ παρουσίες (ρητές εγγραφές) ενός διαστήματος -- για την καρτέλα «Παραγωγή ανά Τμήμα / Άτομο» σε περίοδο μεγαλύτερη της ημέρας."""
     d0=datetime.fromisoformat(start); d1=datetime.fromisoformat(end)+timedelta(days=1)
     rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=d0,ProductionAttendance.work_date<d1).order_by(ProductionAttendance.work_date)).all()
-    return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows]
+    return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows]
 
 @app.get("/production/attendance/effective-range")
 def production_attendance_effective_range(start:str=Query(...), end:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
@@ -1500,9 +1527,9 @@ def production_attendance_effective_range(start:str=Query(...), end:str=Query(..
                 r=explicit.get((day,e.id))
                 if r:
                     if r.org_unit_id: last[e.id]=r.org_unit_id
-                    out.append({"id":r.id,"work_date":day,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
+                    out.append({"id":r.id,"work_date":day,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
                 else:
-                    out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"since_at":None,"late":False,"arrived_at":None,"explicit":False})
+                    out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"short_leaves":[],"since_at":None,"late":False,"arrived_at":None,"explicit":False})
         day+=timedelta(days=1)
     return out
 
@@ -1538,12 +1565,14 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
         if "arrived_at" in data.model_fields_set:
             arrived=data.arrived_at.replace(tzinfo=None) if data.arrived_at and data.arrived_at.tzinfo is None else (data.arrived_at.astimezone(timezone.utc).replace(tzinfo=None) if data.arrived_at else None)
             late=bool(arrived) if data.late is None else data.late
+    sl_json=_validate_short_leaves(data.short_leaves) if "short_leaves" in data.model_fields_set else None
     old=None
     if obj:
         old={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
         obj.status=status; obj.org_unit_id=new_org; obj.position_text=data.position_text; obj.since_at=data.since_at; obj.late=late; obj.arrived_at=arrived
+        if "short_leaves" in data.model_fields_set: obj.short_leaves=sl_json     # χωρίς το πεδίο στο αίτημα (π.χ. Android) οι ολιγόωρες μένουν όπως είναι
     else:
-        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=status,org_unit_id=new_org,position_text=data.position_text,since_at=data.since_at,late=late,arrived_at=arrived,created_by_user_id=user.id)
+        obj=ProductionAttendance(work_date=day,employee_id=data.employee_id,status=status,org_unit_id=new_org,position_text=data.position_text,since_at=data.since_at,late=late,arrived_at=arrived,created_by_user_id=user.id,short_leaves=sl_json)
         db.add(obj)
     closed_id=opened_id=None
     emp_row=db.get(Employee,data.employee_id); prev_ids=_emp_unit_ids(db,emp_row); new_ids=prev_ids
@@ -1561,7 +1590,7 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
     db.commit(); db.refresh(obj)
-    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"late":bool(obj.late),"arrived_at":obj.arrived_at,"event_id":event_id}
+    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"late":bool(obj.late),"arrived_at":obj.arrived_at,"short_leaves":_short_leaves_list(obj.short_leaves),"event_id":event_id}
 
 def _short_name(person)->str:
     if not person: return ""

@@ -102,6 +102,8 @@ class ProductionAttendance(Base, TimestampMixin):
     since_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     arrived_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)  # πότε ήρθε (μόνο αν άργησε/ξαναήρθε)
     late: Mapped[bool] = mapped_column(Boolean, default=False)  # ΑΡΓΟΠΟΡΙΑ = παρών με άφιξη μετά την έναρξη βάρδιας
+    # Ολιγόωρες απουσίες της ημέρας: JSON λίστα [{"from":"ΩΩ:ΛΛ","to":"ΩΩ:ΛΛ"|null}] (τοπική ώρα)· ανεξάρτητες από την κατάσταση (Παρών/Αργοπορία/Έφυγε)
+    short_leaves: Mapped[str|None] = mapped_column(Text, nullable=True)
     created_by_user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     __table_args__ = (UniqueConstraint("work_date", "employee_id", name="uq_production_attendance_day_emp"),)
 
