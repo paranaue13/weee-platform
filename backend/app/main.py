@@ -4076,6 +4076,30 @@ def production_transfers(db:Session=Depends(get_db), user=Depends(require_permis
         result.append(schemas.ProductionTransferOut(id=t.id,transfer_number=t.transfer_number,destination_org_unit_id=t.destination_org_unit_id,status=t.status,items=items))
     return result
 
+@app.get('/production/device-list')
+def production_device_list(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """Συσκευές (μέσα με ΑΗΗΕ) που μπήκαν σε τμήματα την ημέρα, μία-μία: τμήμα, ώρα, ΑΗΗΕ, μέσο, καθαρά kg, εργαζόμενος (αν αντιστοιχίστηκε).
+    Κοινά δεδομένα για Windows και Android."""
+    day=datetime.fromisoformat(date).date(); out=[]
+    emp_by_tr={}
+    for w in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.transfer_id.is_not(None),ProductionWorkEntry.active==True)).all():
+        if w.employee_id: emp_by_tr[w.transfer_id]=w.employee_id
+    emps={e.id:f"{p.first_name or ''} {p.last_name or ''}".strip() for e,p in db.execute(select(Employee,Person).join(Person,Person.id==Employee.person_id)).all()}
+    for t in db.scalars(select(ProductionTransfer).where(ProductionTransfer.status!="CANCELLED").order_by(ProductionTransfer.created_at.desc())).all():
+        ts=t.created_at
+        if ts is None: continue
+        loc=ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()
+        if loc.date()!=day: continue
+        for i in db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==t.id)).all():
+            lot=db.get(WEEEStockLot,i.stock_lot_id); cat=db.get(WEEECategory,lot.weee_category_id); med=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+            eid=emp_by_tr.get(t.id)
+            par=db.scalar(select(WEEECategory).where(WEEECategory.code==cat.parent_code)) if cat.parent_code else None
+            off=par if cat.is_internal_subcategory and par else cat
+            out.append({"transfer_id":t.id,"transfer_number":t.transfer_number,"created_at":ts,"time":loc.strftime("%H:%M"),"org_unit_id":t.destination_org_unit_id,"weee_category_id":cat.id,"weee_code":cat.code,
+                        "official_description":off.description_el,"her_description":off.her_description,
+                        "medium_id":med.id if med else None,"medium_code":med.code if med else None,"weight_kg":float(i.weight),"employee_id":eid,"employee_name":emps.get(eid)})
+    return out
+
 @app.get('/warehouse')
 def warehouse_workspace():
     return _FileResponse(static_dir/'warehouse.html')
