@@ -103,6 +103,7 @@ class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str
     event_id: str|None = None
     arrived_at: datetime|None = None
+    net_minutes: int|None = None  # ζωντανές καθαρές ώρες (λεπτά), υπολογίζονται στον server
 
 class ShiftStartIn(BaseModel):
     shift_start: str|None = None

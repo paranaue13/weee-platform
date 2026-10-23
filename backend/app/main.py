@@ -1426,11 +1426,96 @@ def _validate_short_leaves(items):
     if not items: return None
     return _json.dumps([{"from":it.from_,"to":it.to or None} for it in sorted(items,key=lambda x:x.from_)],ensure_ascii=False)
 
+def _hm(v):
+    try:
+        h,m=[int(x) for x in str(v or "").split(":")]
+        return h*60+m if 0<=h<24 and 0<=m<60 else None
+    except Exception: return None
+
+def _net_ctx(db:Session)->dict:
+    """Ωράριο (ενεργό: θερινό/χειμερινό/έκτακτο), αντιστοίχιση Τμήμα -> ομάδα διαλειμμάτων Α/Β και τμήματα εργαζομένων.
+    Ωράριο και διαλείμματα ορίζονται ΜΟΝΟ στα Windows (Ρυθμίσεις)· Windows και Android τα διαβάζουν."""
+    row=db.scalar(select(AppSetting).where(AppSetting.key==SCHEDULE_KEY))
+    try: sc=_sched_norm(json.loads(row.value)) if row else _sched_norm(DEFAULT_SCHEDULE)
+    except Exception: sc=_sched_norm(DEFAULT_SCHEDULE)
+    d=sc.get(sc.get("active") or "winter") or sc.get("summer") or {}
+    def brk(x):
+        out=[]
+        for k in ("b1","b2"):
+            b=(x or {}).get(k) or {}
+            a,e=_hm(b.get("start")),_hm(b.get("end"))
+            if a is not None and e is not None: out.append((a,e))
+        return out
+    g=db.scalar(select(AppSetting).where(AppSetting.key==BREAK_GROUPS_KEY))
+    try: groups=json.loads(g.value) if g else {}
+    except Exception: groups={}
+    emp_units={}
+    for eid,uid_ in db.execute(select(employee_org_units.c.employee_id,employee_org_units.c.org_unit_id)).all(): emp_units.setdefault(eid,[]).append(uid_)
+    return {"s":_hm(d.get("start")),"e":_hm(d.get("end")),"A":brk(d),"B":brk(d.get("B")),"groups":groups,"emp_units":emp_units}
+
+def _local_min(dt):
+    if dt is None: return None
+    l=dt.replace(tzinfo=timezone.utc).astimezone() if dt.tzinfo is None else dt.astimezone()
+    return l.hour*60+l.minute
+
+def _net_minutes_core(sch,breaks,status,late,arrived,since,shorts,live_to=None):
+    """ΜΙΑ συνάρτηση καθαρών ωρών (λεπτά) για Windows και Android.
+    καθαρές = (τώρα | λήξη βάρδιας | ώρα ΕΦΥΓΕ) − (έναρξη βάρδιας | ώρα άφιξης, ό,τι είναι μεταγενέστερο) − διαλείμματα του τμήματος μέσα στο διάστημα − ολιγόωρες (μόνο ο εργάσιμος χρόνος τους).
+    live_to: λεπτά της ώρας «τώρα» (μόνο για τη σημερινή ημέρα)· None = όλη η ημέρα (παλαιότερες ημέρες).
+    Αποτέλεσμα None = ακόμα χωρίς ώρα (αργοπορία/έφυγε χωρίς ώρα) ή ανοιχτή ολιγόωρη."""
+    if sch["s"] is None or sch["e"] is None: return None
+    if status=="ABSENT": return 0
+    a,b=sch["s"],sch["e"]
+    if late:
+        if arrived is None: return None
+        a=max(a,arrived)
+    if status=="LEFT":
+        if since is None: return None
+        b=min(since,b)
+    elif live_to is not None:
+        b=min(b,live_to)
+    if b<=a: return 0
+    t=b-a
+    for x,y in breaks:
+        o=min(b,y)-max(a,x)
+        if o>0: t-=o
+    sh=[x for x in (shorts or []) if x[0] is not None]
+    if any(x[1] is None for x in sh): return None
+    for x,y in sh:
+        s0,e0=max(x,a),min(y,b)
+        if e0<=s0: continue
+        w=e0-s0
+        for bx,by in breaks:
+            o=min(e0,by)-max(s0,bx)
+            if o>0: w-=o
+        t-=w
+    return max(0,t)
+
+def _row_net(ctx,emp,status,late,arrived_at,since_at,short_leaves,org_unit_id,day,now=None):
+    """Καθαρές ώρες μιας γραμμής παρουσίας: ζωντανά για τη σημερινή ημέρα, ολόκληρη η ημέρα για τις παλαιότερες, μελλοντική = 0."""
+    now=now or datetime.now()
+    today=datetime(now.year,now.month,now.day); d=datetime(day.year,day.month,day.day)
+    if d>today: return 0
+    unit=org_unit_id or (emp.default_org_unit_id if emp else None)
+    if not unit and emp is not None: unit=(ctx["emp_units"].get(emp.id) or [None])[0]
+    grp="B" if ctx["groups"].get(unit)=="B" else "A"
+    shorts=[(_hm(x.get("from")),_hm(x.get("to")) if x.get("to") else None) for x in (short_leaves or [])]
+    return _net_minutes_core(ctx,ctx[grp],status or "PRESENT",bool(late),_local_min(arrived_at),_local_min(since_at),shorts,live_to=(now.hour*60+now.minute) if d==today else None)
+
+def _with_net(db:Session,out:list)->list:
+    """Προσθέτει «net_minutes» (ζωντανές καθαρές ώρες, ΙΔΙΑ συνάρτηση για Windows και Android) σε κάθε γραμμή παρουσίας."""
+    ctx=_net_ctx(db); emps={e.id:e for e in db.scalars(select(Employee)).all()}; now=datetime.now()
+    for x in out:
+        x["net_minutes"]=_row_net(ctx,emps.get(x["employee_id"]),x.get("status"),x.get("late"),x.get("arrived_at"),x.get("since_at"),x.get("short_leaves"),x.get("org_unit_id"),x["work_date"],now)
+    return out
+
 @app.get("/production/attendance", response_model=list[schemas.ProductionAttendanceOut])
 def production_attendance_for_date(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     day=datetime.fromisoformat(date)
     rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=day,ProductionAttendance.work_date<day+timedelta(days=1))).all()
-    return rows
+    ctx=_net_ctx(db); emps={e.id:e for e in db.scalars(select(Employee)).all()}
+    return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status,"org_unit_id":r.org_unit_id,"position_text":r.position_text,"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,
+             "short_leaves":_short_leaves_list(r.short_leaves),"net_minutes":_row_net(ctx,emps.get(r.employee_id),r.status,r.late,r.arrived_at,r.since_at,_short_leaves_list(r.short_leaves),r.org_unit_id,r.work_date)} for r in rows]
 
 def _shift_start(db:Session)->str:
     v=db.scalar(select(AppSetting.value).where(AppSetting.key=="production.shift_start"))
@@ -1492,14 +1577,14 @@ def production_attendance_effective(date:str=Query(...), db:Session=Depends(get_
             out.append({"id":r.id,"work_date":r.work_date,"employee_id":e.id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True})
         else:
             out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"short_leaves":[],"since_at":None,"late":False,"arrived_at":None,"explicit":False})
-    return out
+    return _with_net(db,out)
 
 @app.get("/production/attendance/range")
 def production_attendance_range(start:str=Query(...), end:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
     """Μόνο ανάγνωση: οι ΚΑΤΑΓΕΓΡΑΜΜΕΝΕΣ παρουσίες (ρητές εγγραφές) ενός διαστήματος -- για την καρτέλα «Παραγωγή ανά Τμήμα / Άτομο» σε περίοδο μεγαλύτερη της ημέρας."""
     d0=datetime.fromisoformat(start); d1=datetime.fromisoformat(end)+timedelta(days=1)
     rows=db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=d0,ProductionAttendance.work_date<d1).order_by(ProductionAttendance.work_date)).all()
-    return [{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows]
+    return _with_net(db,[{"id":r.id,"work_date":r.work_date,"employee_id":r.employee_id,"status":r.status or "PRESENT","org_unit_id":r.org_unit_id,"position_text":r.position_text,"short_leaves":_short_leaves_list(r.short_leaves),"since_at":r.since_at,"late":bool(r.late),"arrived_at":r.arrived_at,"explicit":True} for r in rows])
 
 @app.get("/production/attendance/effective-range")
 def production_attendance_effective_range(start:str=Query(...), end:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
@@ -1531,7 +1616,7 @@ def production_attendance_effective_range(start:str=Query(...), end:str=Query(..
                 else:
                     out.append({"id":None,"work_date":day,"employee_id":e.id,"status":"PRESENT","org_unit_id":last.get(e.id) or e.default_org_unit_id,"position_text":None,"short_leaves":[],"since_at":None,"late":False,"arrived_at":None,"explicit":False})
         day+=timedelta(days=1)
-    return out
+    return _with_net(db,out)
 
 @app.put("/production/attendance", response_model=schemas.ProductionAttendanceOut)
 def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
@@ -1590,7 +1675,7 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     new={"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at.isoformat() if obj.since_at else None,"late":bool(obj.late)}
     write_audit(db,user,"production_attendance",obj.id,"UPSERT",old=old,new=new)
     db.commit(); db.refresh(obj)
-    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"late":bool(obj.late),"arrived_at":obj.arrived_at,"short_leaves":_short_leaves_list(obj.short_leaves),"event_id":event_id}
+    return {"id":obj.id,"work_date":obj.work_date,"employee_id":obj.employee_id,"status":obj.status,"org_unit_id":obj.org_unit_id,"position_text":obj.position_text,"since_at":obj.since_at,"late":bool(obj.late),"arrived_at":obj.arrived_at,"short_leaves":_short_leaves_list(obj.short_leaves),"net_minutes":_row_net(_net_ctx(db),emp_row,obj.status,obj.late,obj.arrived_at,obj.since_at,_short_leaves_list(obj.short_leaves),obj.org_unit_id,obj.work_date),"event_id":event_id}
 
 def _short_name(person)->str:
     if not person: return ""
@@ -1612,6 +1697,7 @@ def change_attendance_units(data:schemas.AttendanceUnitsIn, db:Session=Depends(g
         new_ids=prev_ids+[data.unit_id]
     else:
         if data.unit_id not in prev_ids: raise HTTPException(409,"Ο εργαζόμενος δεν ανήκει σε αυτό το τμήμα")
+        if len(prev_ids)<2: raise HTTPException(409,"Η αφαίρεση επιτρέπεται μόνο αν ο εργαζόμενος ανήκει σε 2 ή περισσότερα τμήματα (χρησιμοποίησε «Μετακίνηση»)")
         new_ids=[i for i in prev_ids if i!=data.unit_id]
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==emp.id))
     if obj: p_exists,p_status,p_org,p_late,p_arr,p_since=True,(obj.status or "PRESENT"),obj.org_unit_id,bool(obj.late),obj.arrived_at,obj.since_at
