@@ -626,6 +626,14 @@ class ProductionTransferItem(Base):
     transfer_id: Mapped[str] = mapped_column(String(36), ForeignKey("production_transfers.id", ondelete="CASCADE"), index=True)
     stock_lot_id: Mapped[str] = mapped_column(String(36), ForeignKey("weee_stock_lots.id"), index=True)
     weight: Mapped[Decimal] = mapped_column(Numeric(14,3))
+    # Υπόλοιπο μέσου: το απόβαρο ΜΕΝΕΙ αυτό της στιγμής της αποστολής· weight = καθαρή παραγωγή (στάλθηκαν − υπόλοιπο)
+    tare_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    sent_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    remainder_net: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    remainder_gross: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    remainder_mode: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    remainder_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    emptied: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
 
 
 # ---- Build 0.7: Production daily balances and outputs ----

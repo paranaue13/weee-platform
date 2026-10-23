@@ -522,6 +522,11 @@ class ProductionBalanceOut(BaseModel):
     processed_weight: Decimal
     status: str
 
+class ItemRemainderIn(BaseModel):
+    mode: str            # GROSS (μικτά) | NET (καθαρά)
+    kg: Decimal
+    reason: str|None = None
+
 class ProductionRemainderCreate(BaseModel):
     balance_id: str
     remaining_weight: Decimal
