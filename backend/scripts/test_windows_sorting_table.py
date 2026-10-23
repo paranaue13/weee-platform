@@ -136,6 +136,25 @@ with sync_playwright() as p:
     hd = pg.evaluate("(()=>{const th=document.querySelector('#sfTable thead th').getBoundingClientRect(),ph=document.querySelector('#sortingDetail .sortingPopupHeader').getBoundingClientRect();return {thTop:th.top,thBottom:th.bottom,phBottom:ph.bottom,sh:getComputedStyle(document.querySelector('#sfTable thead th')).boxShadow}})()")
     ck('Β5: η επικεφαλίδα μένει κολλημένη κάτω από την κεφαλίδα του παραθύρου, με σκιά', abs(hd['thTop'] - hd['phBottom']) <= 3 and hd['sh'] != 'none', str(hd))
     pg.screenshot(path=S + 'scrolled.png')
+    # ---- Βήμα 1: όψη/πλάτη όπως πριν (χωρίς αλλαγή χρωμάτων, χωρίς ξέφευγμα δεξιά, σύρσιμο χωρίς «πήδημα») ----
+    pg.evaluate("openSortingDetail('%s')" % lid); pg.wait_for_selector('#sfTable tbody.sfBd', timeout=20000); pg.wait_for_timeout(800)
+    g = pg.evaluate("""(()=>{const sd=document.getElementById('sortingDetail'),t=document.getElementById('sfTable'),th=t.querySelector('thead th'),td=t.querySelector('tbody tr.sfCat td'),hasTd=t.querySelector('tr.sfCat.has td'),cs=getComputedStyle;
+      return {popup:sd.getBoundingClientRect().width,vw:innerWidth,hs:sd.scrollWidth>sd.clientWidth+1,desc:t.querySelector('th[data-wcol=desc]').getBoundingClientRect().width,
+        thBg:cs(th).backgroundColor,thBb:cs(th).borderBottomWidth,tdBb:cs(td).borderBottomWidth,tdBt:cs(td).borderTopColor,hasBg:cs(hasTd).backgroundColor}})()""")
+    print('όψη:', g)
+    ck('Βήμα 1: το παράθυρο έχει το αρχικό πλάτος (≤1040) και δεν βγαίνει εκτός οθόνης', g['popup'] <= 1041 and g['popup'] <= g['vw'], str(g['popup']))
+    ck('Βήμα 1: καμία οριζόντια μπάρα με τα προεπιλεγμένα πλάτη', not g['hs'])
+    ck('Βήμα 1: η Περιγραφή έχει χώρο (≥140px)', g['desc'] >= 140, str(g['desc']))
+    ck('Βήμα 1: ίδια χρώματα με πριν (κεφαλίδα #f0f3fa, επιλεγμένη γραμμή, περίγραμμα #e3e5ec)', g['thBg'] == 'rgb(240, 243, 250)' and g['tdBt'] == 'rgb(227, 229, 236)' and g['hasBg'].startswith('color(srgb 0.93'), str((g['thBg'], g['tdBt'], g['hasBg'])))
+    ck('Βήμα 1: χωρίς διπλά περιγράμματα', g['tdBb'] == '0px' and g['thBb'] == '0px')
+    for col, dx in (('avg', 40), ('avg', -30), ('pcs', -12), ('gross', -25), ('desc', 50), ('desc', -50)):
+        rr = pg.evaluate("c=>{const r=document.querySelector('#sfTable thead th[data-wcol=\"'+c+'\"]').getBoundingClientRect();return {x:r.right-1,y:r.bottom-4}}", col)
+        w0 = pg.evaluate("c=>document.querySelector('#sfTable thead th[data-wcol=\"'+c+'\"]').getBoundingClientRect().width", col)
+        pg.mouse.move(rr['x'], rr['y']); pg.mouse.down(); pg.mouse.move(rr['x'] + dx, rr['y'], steps=6)
+        wm = pg.evaluate("c=>document.querySelector('#sfTable thead th[data-wcol=\"'+c+'\"]').getBoundingClientRect().width", col)
+        pg.mouse.up(); pg.wait_for_timeout(900)
+        w9 = pg.evaluate("c=>document.querySelector('#sfTable thead th[data-wcol=\"'+c+'\"]').getBoundingClientRect().width", col)
+        ck(f'Βήμα 1: σύρσιμο {col} {dx:+d}px — μένει εκεί που την άφησα', abs(w9 - wm) <= 2 and abs((wm - w0) - dx) <= 6, f'{w0:.0f}→{wm:.0f}→{w9:.0f}')
     # ---- Α2: κατηγορία που λείπει από τη λίστα (π.χ. ανενεργή) φαίνεται ΠΑΝΤΑ ----
     ck('σφάλματα σελίδας', not errs, str(errs[:3]))
     b.close()

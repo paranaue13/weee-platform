@@ -1503,16 +1503,15 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 .sfDD.sfTypes .sfIt.cur{background:#e6edfc;color:#2f5bd6}
 .sfDD.sfTypes .sfIt{height:34px;align-items:center}
 /* ===== Πίνακας ταξινόμησης: πραγματικός πίνακας (PinTable: απόκρυψη στηλών · σύρσιμο ορίου = πλάτος, διπλό κλικ = αυτόματο · σταθερή επικεφαλίδα) ===== */
-#sortingDetail.sortingPopup{width:min(1280px,calc(100vw - 44px))}
 #sortingDetail .sfWrap{border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);overflow:visible!important;max-height:none!important}
 #sortingDetail .sfTable{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:13px;min-width:0!important}
-#sortingDetail .sfTable th,#sortingDetail .sfTable td{padding:6px 8px;border-top:1px solid var(--line,#e3e5ec);vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+#sortingDetail .sfTable th,#sortingDetail .sfTable td{padding:6px 6px;border-top:1px solid var(--line,#e3e5ec);border-bottom:0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
 #sortingDetail .sfTable .n{text-align:right;font-variant-numeric:tabular-nums}
-#sortingDetail .sfTable thead th{position:sticky!important;top:var(--sfTop,0px)!important;z-index:5!important;border-top:0;background:var(--surface-2,#f0f3fa);font-size:12px;font-weight:500;color:var(--fg-3,#74777f);box-shadow:0 2px 4px -2px rgba(20,30,70,.28)}
-#sortingDetail .sfTable th[data-wcol=code]{width:78px}#sortingDetail .sfTable th[data-wcol=avg]{width:84px}#sortingDetail .sfTable th[data-wcol=ens]{width:350px}#sortingDetail .sfTable th[data-wcol=tare]{width:78px}#sortingDetail .sfTable th[data-wcol=pcs]{width:64px}#sortingDetail .sfTable th[data-wcol=gross]{width:104px}#sortingDetail .sfTable th[data-wcol=net]{width:104px}#sortingDetail .sfTable th[data-wcol=act]{width:150px}
+#sortingDetail .sfTable thead th{position:sticky!important;top:var(--sfTop,0px)!important;z-index:5!important;border-top:0;border-bottom:0!important;background:var(--surface-2,#f0f3fa);font-size:12px;font-weight:500;color:var(--fg-3,#74777f);box-shadow:0 2px 4px -2px rgba(20,30,70,.28);white-space:normal;line-height:1.15}
+#sortingDetail .sfTable th[data-wcol=code]{width:64px}#sortingDetail .sfTable th[data-wcol=avg]{width:76px}#sortingDetail .sfTable th[data-wcol=ens]{width:292px}#sortingDetail .sfTable th[data-wcol=tare]{width:64px}#sortingDetail .sfTable th[data-wcol=pcs]{width:48px}#sortingDetail .sfTable th[data-wcol=gross]{width:86px}#sortingDetail .sfTable th[data-wcol=net]{width:86px}#sortingDetail .sfTable th[data-wcol=act]{width:96px}
 #sortingDetail .sfTable .sfCat{cursor:pointer}
 #sortingDetail .sfTable .sfCat.has td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
-#sortingDetail .sfTable .sfCat.open td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 75%,var(--surface,#fff))}
+#sortingDetail .sfTable .sfCat.open td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
 #sortingDetail .sfTable .sfCat.open td:first-child{box-shadow:inset 4px 0 0 var(--accent,#2f5fc4)}
 #sortingDetail .sfTable .sfCat:hover td{filter:brightness(.98)}
 #sortingDetail .sfTable .sfCat.f td{background:var(--surface-2,#f0f3fa)}
@@ -1534,16 +1533,16 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 #sortingDetail .sfTable .sfSub .sfAc .sfEd:hover{border-color:var(--accent,#2f5fc4);color:var(--accent,#2f5fc4)}
 #sortingDetail .sfTable .sfSub.sfFresh td{background:#dff5e3;transition:background .8s}
 #sortingDetail .sfTable .sfNewTag{margin-left:10px;color:#12532E;font-weight:600;font-size:11px;background:#c9efd2;border-radius:10px;padding:1px 8px}
-#sortingDetail .sfTable .sfNr td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 30%,var(--surface,#fff));scroll-margin-top:calc(var(--sfTop,0px) + 56px)}
-#sortingDetail .sfTable .sfNr.ed td{background:#fff4d6}
+#sortingDetail .sfTable .sfNr td{background:var(--surface,#fff);scroll-margin-top:calc(var(--sfTop,0px) + 56px)}
+#sortingDetail .sfTable .sfNr.ed td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
 #sortingDetail .sfTable .sfNr input:not([type=checkbox]){height:32px;min-height:32px;width:100%;border:1px solid var(--line-strong,#b9bdc9)!important;border-radius:var(--r-chip)!important;padding:0 8px;background:var(--surface,#fff)!important;color:var(--fg,#1a1b20);font-size:13px;text-align:right;box-sizing:border-box}
 #sortingDetail .sfTable .sfNr input.auto{border-style:dashed!important;background:var(--surface-2,#f0f3fa)!important;color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfNr td:nth-child(7),#sortingDetail .sfTable .sfNr td:nth-child(8){position:relative}
 #sortingDetail .sfTable .sfAuto{position:absolute;right:12px;top:1px;font-size:9px;font-style:normal;color:var(--fg-3,#74777f);background:var(--surface,#fff);padding:0 3px;border-radius:3px;line-height:11px}
 #sortingDetail .sfTable .sfQe{display:flex;gap:10px;align-items:center}
-#sortingDetail .sfTable .sfQe .sfT{width:150px!important;flex:none}
-#sortingDetail .sfTable .sfQe .sfM{width:84px!important;flex:none;text-align:left}
-#sortingDetail .sfTable .sfAdd{width:100%;height:32px;border:0;background:var(--accent,#2f5fc4);color:#fff;border-radius:var(--r-btn);cursor:pointer;font-size:13px;font-weight:500;padding:0 8px}
+#sortingDetail .sfTable .sfQe .sfT{width:124px!important;flex:none}
+#sortingDetail .sfTable .sfQe .sfM{width:68px!important;flex:none;text-align:left}
+#sortingDetail .sfTable .sfAdd{width:100%;height:32px;border:0;background:var(--accent,#2f5fc4);color:#fff;border-radius:var(--r-btn);cursor:pointer;font-size:13px;font-weight:500;padding:0 4px;white-space:nowrap}
 #sortingDetail .sfTable .sfAdd:hover{filter:brightness(1.08)}
 #sortingDetail .sfTable .sfFsep td{background:var(--surface-2,#f0f3fa);border-top:1px solid var(--line-strong,#b9bdc9);font-weight:500;font-size:13px;overflow:visible}
 #sortingDetail .sfTable .sfFsep td:first-child{white-space:nowrap;position:relative;z-index:1}
@@ -5482,6 +5481,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   }
   // ---- Πλέγμα στηλών (σωστό και για πίνακες με colspan/rowspan στις επικεφαλίδες) ----
   const MIN_W=COL_RESIZE_MIN_PX;
+  const minW=t=>t&&t.id==='sfTable'?36:MIN_W;      // πίνακας Ταξινόμησης: στενές στήλες (Τεμ., Απόβαρο) δεν «πηδούν» στα 70px
   function tableRows(table){
     let rows=[];
     if(table.tHead)rows.push(...table.tHead.rows);
@@ -5600,7 +5600,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let stored=leaf.map(c=>c?localStorage.getItem(gridKey(c,g.map.get(c).ri)):null);
     if(!stored.some(Boolean))return;
     let w=measureGrid(table,g),skip=skipCols(table,g,w),man=[];
-    stored.forEach((v,k)=>{let n=Number(v);if(v&&n>0&&!skip[k]){w[k]=Math.max(MIN_W,n);man[k]=true}});
+    stored.forEach((v,k)=>{let n=Number(v);if(v&&n>0&&!skip[k]){w[k]=Math.max(minW(table),n);man[k]=true}});
     applyWidths(table,g,w,skip,man);
   }
   // Γέμισμα πλάτους: οι στήλες που ικανοποιούν το isFlex(th) (και δεν έχουν μόνιμο πλάτος από τον χρήστη) μοιράζονται ισομερώς το
@@ -5667,11 +5667,11 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     if(state){
       let dx=(e.clientX-state.startX)/vzOf(state.table);
       if(state.stock){
-        let newW=Math.max(MIN_W,state.startW+dx);
+        let newW=Math.max(minW(state.table),state.startW+dx);
         state.th.style.width=newW+'px';state.table.style.tableLayout='fixed';
         mirrorStockTableWidth(state.th,newW);
       }else{
-        state.w[state.b]=Math.max(MIN_W,state.startW+dx);
+        state.w[state.b]=Math.max(minW(state.table),state.startW+dx);
         applyWidths(state.table,state.g,state.w,state.skip,state.man);
       }
       dragLine();
