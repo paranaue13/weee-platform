@@ -1502,49 +1502,44 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 .sfDD.sfNums .sfG.sfGs{margin-top:0}
 .sfDD.sfTypes .sfIt.cur{background:#e6edfc;color:#2f5bd6}
 .sfDD.sfTypes .sfIt{height:34px;align-items:center}
-/* ===== Πίνακας ταξινόμησης: πραγματικός πίνακας (PinTable: απόκρυψη στηλών · σύρσιμο ορίου = πλάτος, διπλό κλικ = αυτόματο · σταθερή επικεφαλίδα) ===== */
+/* ===== Πίνακας ταξινόμησης (Βήμα 1Β): όψη όπως ορίστηκε· σώμα λευκό, μπλε μόνο στην ανοιχτή κεντρική γραμμή και στο κουμπί Καταχώρηση ===== */
 #sortingDetail .sfWrap{border:1px solid var(--line,#e3e5ec);border-radius:var(--r-box);overflow:visible!important;max-height:none!important}
 #sortingDetail .sfTable{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:13px;min-width:0!important}
-#sortingDetail .sfTable th,#sortingDetail .sfTable td{padding:6px 6px;border-top:1px solid var(--line,#e3e5ec);border-bottom:0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}
+#sortingDetail .sfTable th,#sortingDetail .sfTable td{padding:6px 6px;border-top:1px solid #e5e7eb;border-bottom:0;vertical-align:middle;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;background:#fff;box-shadow:none}
 #sortingDetail .sfTable .n{text-align:right;font-variant-numeric:tabular-nums}
-#sortingDetail .sfTable thead th{position:sticky!important;top:var(--sfTop,0px)!important;z-index:5!important;border-top:0;border-bottom:0!important;background:var(--surface-2,#f0f3fa);font-size:12px;font-weight:500;color:var(--fg-3,#74777f);box-shadow:0 2px 4px -2px rgba(20,30,70,.28);white-space:normal;line-height:1.15}
-#sortingDetail .sfTable th[data-wcol=code]{width:64px}#sortingDetail .sfTable th[data-wcol=avg]{width:76px}#sortingDetail .sfTable th[data-wcol=ens]{width:292px}#sortingDetail .sfTable th[data-wcol=tare]{width:64px}#sortingDetail .sfTable th[data-wcol=pcs]{width:48px}#sortingDetail .sfTable th[data-wcol=gross]{width:86px}#sortingDetail .sfTable th[data-wcol=net]{width:86px}#sortingDetail .sfTable th[data-wcol=act]{width:96px}
+#sortingDetail .sfTable thead th{position:sticky!important;top:var(--sfTop,0px)!important;z-index:5!important;border-top:0;border-bottom:0!important;background:#f0f3fa;color:#44506a;font-size:12px;font-weight:700;box-shadow:none!important;white-space:normal;line-height:1.15}
+#sortingDetail .sfTable th[data-wcol=code]{width:64px}#sortingDetail .sfTable th[data-wcol=desc]{width:150px}#sortingDetail .sfTable th[data-wcol=avg]{width:76px}#sortingDetail .sfTable th[data-wcol=ens]{width:286px}#sortingDetail .sfTable th[data-wcol=tare]{width:64px}#sortingDetail .sfTable th[data-wcol=pcs]{width:80px}#sortingDetail .sfTable th[data-wcol=gross]{width:86px}#sortingDetail .sfTable th[data-wcol=net]{width:86px}#sortingDetail .sfTable th[data-wcol=act]{width:96px}
+#sortingDetail .sfTable th[data-wcol=avg],#sortingDetail .sfTable td:nth-child(3){border-right:1px solid #e3e6ec}
 #sortingDetail .sfTable .sfCat{cursor:pointer}
-#sortingDetail .sfTable .sfCat.has td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
-#sortingDetail .sfTable .sfCat.open td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
-#sortingDetail .sfTable .sfCat.open td:first-child{box-shadow:inset 4px 0 0 var(--accent,#2f5fc4)}
-#sortingDetail .sfTable .sfCat:hover td{filter:brightness(.98)}
-#sortingDetail .sfTable .sfCat.f td{background:var(--surface-2,#f0f3fa)}
+#sortingDetail .sfTable .sfCat.open td{background:#eef2fc}
 #sortingDetail .sfTable .sfCat.f .sfCd,#sortingDetail .sfTable .sfCat.f .sfDs{color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfCd{font-weight:700}
 #sortingDetail .sfTable .sfDs{font-size:13px}
 #sortingDetail .sfTable .sfMw{font-size:12px;color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfEns{white-space:normal}
 #sortingDetail .sfTable .sfCaps{display:flex;flex-wrap:wrap;gap:6px}
+#sortingDetail .sfTable .sfEn{white-space:nowrap;flex:none}
 #sortingDetail .sfTable .sfNone{color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfTg{color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfAc{text-align:right}
-#sortingDetail .sfTable .sfSub td{background:var(--surface,#fff)}
 #sortingDetail .sfTable .sfSe{white-space:nowrap}
 #sortingDetail .sfTable .sfIc{margin-right:6px}
-#sortingDetail .sfTable .sfSub .sfAc button{width:32px;height:30px;border:1px solid var(--line-strong,#b9bdc9);background:var(--surface,#fff);border-radius:var(--r-chip);cursor:pointer;font-size:14px;padding:0;margin-left:12px}
+#sortingDetail .sfTable .sfSub .sfAc button{width:28px;height:28px;border:1px solid #d5d9e0;background:#fff;border-radius:var(--r-chip);cursor:pointer;padding:0;margin-left:12px;display:inline-flex;align-items:center;justify-content:center;color:#44506a;vertical-align:middle}
 #sortingDetail .sfTable .sfSub .sfAc button:first-child{margin-left:0}
-#sortingDetail .sfTable .sfSub .sfAc .sfDl:hover{border-color:var(--neg,#a32d2d);color:var(--neg,#a32d2d)}
-#sortingDetail .sfTable .sfSub .sfAc .sfEd:hover{border-color:var(--accent,#2f5fc4);color:var(--accent,#2f5fc4)}
+#sortingDetail .sfTable .sfSub .sfAc button svg{width:15px;height:15px;display:block}
+#sortingDetail .sfTable .sfSub .sfAc .sfDl{color:#9b1c1c}
 #sortingDetail .sfTable .sfSub.sfFresh td{background:#dff5e3;transition:background .8s}
 #sortingDetail .sfTable .sfNewTag{margin-left:10px;color:#12532E;font-weight:600;font-size:11px;background:#c9efd2;border-radius:10px;padding:1px 8px}
-#sortingDetail .sfTable .sfNr td{background:var(--surface,#fff);scroll-margin-top:calc(var(--sfTop,0px) + 56px)}
-#sortingDetail .sfTable .sfNr.ed td{background:color-mix(in srgb,var(--accent-bg,#d8e2ff) 45%,var(--surface,#fff))}
+#sortingDetail .sfTable .sfNr td{scroll-margin-top:calc(var(--sfTop,0px) + 56px)}
 #sortingDetail .sfTable .sfNr input:not([type=checkbox]){height:32px;min-height:32px;width:100%;border:1px solid var(--line-strong,#b9bdc9)!important;border-radius:var(--r-chip)!important;padding:0 8px;background:var(--surface,#fff)!important;color:var(--fg,#1a1b20);font-size:13px;text-align:right;box-sizing:border-box}
 #sortingDetail .sfTable .sfNr input.auto{border-style:dashed!important;background:var(--surface-2,#f0f3fa)!important;color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfNr td:nth-child(7),#sortingDetail .sfTable .sfNr td:nth-child(8){position:relative}
 #sortingDetail .sfTable .sfAuto{position:absolute;right:12px;top:1px;font-size:9px;font-style:normal;color:var(--fg-3,#74777f);background:var(--surface,#fff);padding:0 3px;border-radius:3px;line-height:11px}
 #sortingDetail .sfTable .sfQe{display:flex;gap:10px;align-items:center}
-#sortingDetail .sfTable .sfQe .sfT{width:124px!important;flex:none}
-#sortingDetail .sfTable .sfQe .sfM{width:68px!important;flex:none;text-align:left}
+#sortingDetail .sfTable .sfQe .sfT{width:112px!important;flex:none}
+#sortingDetail .sfTable .sfQe .sfM{width:64px!important;flex:none;text-align:left}
 #sortingDetail .sfTable .sfAdd{width:100%;height:32px;border:0;background:var(--accent,#2f5fc4);color:#fff;border-radius:var(--r-btn);cursor:pointer;font-size:13px;font-weight:500;padding:0 4px;white-space:nowrap}
-#sortingDetail .sfTable .sfAdd:hover{filter:brightness(1.08)}
-#sortingDetail .sfTable .sfFsep td{background:var(--surface-2,#f0f3fa);border-top:1px solid var(--line-strong,#b9bdc9);font-weight:500;font-size:13px;overflow:visible}
+#sortingDetail .sfTable .sfFsep td{font-weight:700;font-size:13px;overflow:visible}
 #sortingDetail .sfTable .sfFsep td:first-child{white-space:nowrap;position:relative;z-index:1}
 .sfToast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);z-index:9450;max-width:min(720px,calc(100vw - 40px));background:#1f3a2a;color:#fff;border-radius:var(--r-box);padding:10px 16px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
 .sfToast.on{opacity:1;transform:translate(-50%,0)}
@@ -5621,6 +5616,30 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     flex.forEach((k,i)=>{w[k]=per+(i<extra?1:0)});
     applyWidths(table,g,w,skip,man);
   };
+  // Πλάτος πίνακα = πλάτος πλαισίου: ό,τι περισσεύει μοιράζεται (με βάρη και ελάχιστα) ΜΟΝΟ στις στήλες που ΔΕΝ έχει ρυθμίσει ο χρήστης (spec: {wcol:{w,min}})·
+  // οι ρυθμισμένες στήλες και οι υπόλοιπες κρατούν το πλάτος τους. Αν δεν χωράνε στα ελάχιστα, ο πίνακας ξεπερνά το πλαίσιο (οριζόντιο scroll).
+  window.fitTableWeighted=function(table,spec){
+    if(!table||!table.offsetParent)return;
+    let box=table.closest('.prodTableWrap,.tablewrap,.sfWrap'),avail=box?box.clientWidth:0;if(!(avail>0))return;
+    clearWidths(table);
+    // φυσικά πλάτη: πίνακας στενός (1px) ώστε οι στήλες να έχουν ακριβώς τα πλάτη του CSS (χωρίς αναλογικό μοίρασμα του περισσεύματος)
+    table.style.setProperty('width','1px','important');table.style.setProperty('min-width','0','important');
+    let g=gridMap(tableRows(table)),leaf=leafOf(table,g),w=measureGrid(table,g),skip=skipCols(table,g,w),man=[];
+    leaf.forEach((c,k)=>{if(!c||skip[k])return;let v=localStorage.getItem(gridKey(c,g.map.get(c).ri)),n=Number(v);if(v&&n>0){w[k]=Math.max(minW(table),n);man[k]=true}});
+    let flex=[];leaf.forEach((c,k)=>{if(c&&!skip[k]&&!man[k]&&spec[c.dataset.wcol])flex.push(k)});
+    if(flex.length){
+      let fixed=0;w.forEach((x,k)=>{if(!skip[k]&&flex.indexOf(k)<0)fixed+=x});
+      let items=flex.map(k=>{let sp=spec[leaf[k].dataset.wcol];return {k,wt:sp.w,min:sp.min,v:0}}),free=items.slice(),rest=avail-fixed;
+      for(let it=0;it<6&&free.length;it++){
+        let used=items.filter(i=>free.indexOf(i)<0).reduce((s,i)=>s+i.v,0),sw=free.reduce((s,i)=>s+i.wt,0);
+        free.forEach(i=>{i.v=(rest-used)*i.wt/sw});
+        let low=free.filter(i=>i.v<i.min);if(!low.length)break;
+        low.forEach(i=>{i.v=i.min});free=free.filter(i=>low.indexOf(i)<0);
+      }
+      items.forEach(i=>{w[i.k]=Math.floor(i.v)});
+    }
+    applyWidths(table,g,w,skip,man);
+  };
   window.applyStoredColWidths=applyStoredColWidths;
   // Live-mirror a resize on Αποθήκη ΑΗΗΕ's two stock tables onto each other (same column index),
   // so they stay visually aligned while dragging, not just after the next reload.
@@ -5720,11 +5739,11 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   });
   // διπλό κλικ στο όριο στήλης = αυτόματο πλάτος (σβήνει το αποθηκευμένο πλάτος της στήλης)
   document.addEventListener('dblclick',e=>{
-    let th=edgeTarget(e);if(!th)return;let table=th.closest('table');if(!table||isStock(table))return;
+    let th=edgeTarget(e);if(!th)return;let table=th.closest('table');if(!table||table.id!=='sfTable')return;     // ΜΟΝΟ ο πίνακας Ταξινόμησης
     let g=gridMap(tableRows(table)),p=g.map.get(th);if(!p)return;
     let leaf=leafOf(table,g),lk=leaf[p.e]||th;
     try{localStorage.removeItem(gridKey(lk,g.map.get(lk).ri))}catch(_){}
-    applyStoredColWidths(table);window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
+    window.dispatchEvent(new CustomEvent('tableLayoutChanged',{detail:{table}}));
   });
   // πίνακας που δεν ήταν ορατός όταν φορτώθηκε: εφαρμογή των αποθηκευμένων πλατών μόλις εμφανιστεί
   document.addEventListener('mouseover',e=>{
@@ -5740,7 +5759,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   });
   colWidthObserver.observe(document.body,{childList:true,subtree:true});
   // αλλαγή μεγέθους παραθύρου / διάταξης: ξαναϋπολογισμός ώστε ο πίνακας να γεμίζει πάντα το πλαίσιό του
-  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
+  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]:not(#sfTable)').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
   window.addEventListener('resize',rzFill);window.addEventListener('tableLayoutChanged',rzFill);
   ['weeeProcessTable','weeeShipTable'].forEach(id=>{let t=document.getElementById(id);if(t)applyStoredColWidths(t)});
 })();
@@ -7377,11 +7396,11 @@ const SF=(function(){
   function baseKg(cid){let m=S.rm[cid],ex=0;if(m)ex=S.entries.filter(e=>e.collection_medium_id===m.id&&e.id!==S.editing[cid]).reduce((s,e)=>s+entW(e),0);return rowTare(cid)+ex}
   function subHtml(e){
     let t=tareOf(e),g=t>0?entW(e)+t:null,fresh=!!(S.fresh2&&S.fresh2[e.id]);
-    return `<tr class="sfSub${fresh?' sfFresh':''}" data-sid="${e.id}"><td></td><td></td><td></td><td class="sfSe">${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span>':''}<span>${esc2(entLabel(e))}</span>${fresh?'<small class="sfNewTag">ΝΕΟ · μόλις τώρα</small>':''}</td><td class="n">${t>0?nf(t):''}</td><td class="n">${e.piece_count||''}</td><td class="n">${g!=null?nf(g):''}</td><td class="n"><b>${nf(entW(e))}</b></td><td class="sfAc"><button type="button" class="sfEd" data-edit="${e.id}" title="Διόρθωση">✎</button><button type="button" class="sfDl" data-del="${e.id}" title="Διαγραφή">🗑</button></td></tr>`;
+    return `<tr class="sfSub${fresh?' sfFresh':''}" data-sid="${e.id}"><td></td><td></td><td></td><td class="sfSe">${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span>':''}<span>${esc2(entLabel(e))}</span>${fresh?'<small class="sfNewTag">ΝΕΟ · μόλις τώρα</small>':''}</td><td class="n">${t>0?nf(t):''}</td><td class="n">${e.piece_count||''}</td><td class="n">${g!=null?nf(g):''}</td><td class="n"><b>${nf(entW(e))}</b></td><td class="sfAc"><button type="button" class="sfEd" data-edit="${e.id}" title="Διόρθωση"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="sfDl" data-del="${e.id}" title="Διαγραφή"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td></tr>`;
   }
   function newRowHtml(c){
     let cid=c.id,ed=S.editing[cid],avg=c.average_weight,t=rowTare(cid);
-    return `<tr class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><td></td><td></td><td></td><td><div class="sfQe"><input class="sfT" readonly value="${esc2(typeTxt(cid))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(cid))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div></td><td class="n sfTr">${t>0?nf(t):''}</td><td><input class="sfP" placeholder="τεμ." inputmode="numeric" autocomplete="off"></td><td><input class="sfGr" placeholder="μεικτό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></td><td><input class="sfK" placeholder="καθαρό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></td><td class="sfAc"><button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button></td></tr>`;
+    return `<tr class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><td></td><td></td><td></td><td><div class="sfQe"><input class="sfT" readonly value="${esc2(typeTxt(cid))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(cid))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div></td><td class="n sfTr">${t>0?nf(t):''}</td><td><input class="sfP" placeholder="τεμάχια" inputmode="numeric" autocomplete="off"></td><td><input class="sfGr" placeholder="μεικτό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></td><td><input class="sfK" placeholder="καθαρό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></td><td class="sfAc"><button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button></td></tr>`;
   }
   function groupHtml(c){
     let en=S.entries.filter(e=>rid(e)===c.id).sort(byTime),n=en.length,open=isOpen(c.id);
@@ -7406,6 +7425,13 @@ const SF=(function(){
     if(fr.length)h+='<tbody class="sfBd sfSepB"><tr class="sfFsep"><td>Ξένα υλικά <span class="sfTag">ΜΗ ΑΗΗΕ</span></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>'+fr.map(groupHtml).join('');
     return h+'</table>';
   }
+  // ΠΛΑΤΟΣ = πλάτος παραθύρου: το περίσσευμα πάει στις στήλες που ΔΕΝ έχει αλλάξει ο χρήστης (Περιγραφή, Καταχωρήσεις)· αν δεν χωράνε στο ελάχιστο → οριζόντιο scroll
+  function fitSf(){let t=$('sfTable');try{if(t&&window.fitTableWeighted)window.fitTableWeighted(t,{desc:{w:1,min:110},ens:{w:1.6,min:286}})}catch(e){}}
+  (function(){
+    let tm=0;const sched=()=>{clearTimeout(tm);tm=setTimeout(fitSf,40)};
+    window.addEventListener('resize',sched);window.addEventListener('tableLayoutChanged',e=>{let t=e&&e.detail&&e.detail.table;if(!t||t.id==='sfTable')sched()});
+    if(window.ResizeObserver){let ro=new ResizeObserver(sched),w=null;setInterval(()=>{let n=document.getElementById('sfList');if(n&&n!==w){if(w)ro.unobserve(w);w=n;ro.observe(n)}},700)}
+  })();
   function afterRender(root){
     root.querySelectorAll('.sfNr').forEach(syncClose);
   }
@@ -7415,7 +7441,7 @@ const SF=(function(){
     L.innerHTML=listHtml();
     if(sd)sd.scrollTop=st;
     afterRender(L);
-    let t=$('sfTable');try{if(t&&window.applyStoredColWidths)window.applyStoredColWidths(t)}catch(e){}
+    fitSf();
     if(!L.querySelector('.sfCat'))L.insertAdjacentHTML('beforeend','<div class="sfEmpty">Δεν βρέθηκαν κατηγορίες.</div>');
   }
   function updateBubble(){
@@ -7457,7 +7483,22 @@ const SF=(function(){
     else if(last.entry_type==='BULK'||last.entry_type==='MEDIUM'){let c=C.rows.find(x=>x.id===cid);if(c&&BULK_CATS.has(norm(c.official_code))&&c.average_weight!=null)S.bulk[cid]=true;else S.bulkMed[cid]=true}
   }
   function openCat(cid,focus){S.open[cid]=true;prefillLast(cid);redoGroup(cid,focus!==false)}
-  function toggleCat(cid){if(S.open[cid]&&!S.editing[cid]){S.open[cid]=false;redoGroup(cid,false)}else openCat(cid,true)}
+  // κενή φόρμα;  (σε διόρθωση: ίδια τιμή με την αποθηκευμένη)
+  function formDirty(cid){
+    let r=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!r)return false;
+    let g=r.querySelector('.sfGr').value.trim(),k=r.querySelector('.sfK').value.trim(),p=r.querySelector('.sfP').value.trim();
+    let ed=S.editing[cid]?S.entries.find(e=>e.id===S.editing[cid]):null;
+    if(ed)return k!==String(entW(ed)).replace('.',',')||p!==String(ed.piece_count||'');
+    return !!(g||k||p);
+  }
+  // πάτημα σε κλειστή γραμμή την ανοίγει (▾)· πάτημα σε ΑΝΟΙΧΤΗ την κλείνει (▸): οι καταχωρήσεις και η φόρμα της κρύβονται, τα δεδομένα μένουν
+  function toggleCat(cid){
+    if(isOpen(cid)){
+      if(formDirty(cid)&&!confirm('Να κλείσει χωρίς αποθήκευση;'))return;
+      S.open[cid]=false;S.editing[cid]=null;S.rm[cid]=null;S.rt[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;msg('');
+      redoGroup(cid,false);
+    }else openCat(cid,true);
+  }
   // ενημέρωση απόβαρου + υπολογισμός μεικτό ↔ καθαρό (γράφει ο χρήστης το ένα, το άλλο υπολογίζεται και φαίνεται «auto»)
   function calc(row,src){
     let cid=row.dataset.c,b=baseKg(cid),G=row.querySelector('.sfGr'),K=row.querySelector('.sfK'),aG=row.querySelector('[data-for=G]'),aK=row.querySelector('[data-for=K]');
