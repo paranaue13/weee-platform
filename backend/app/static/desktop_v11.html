@@ -1532,6 +1532,7 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 #sortingDetail .sfTable .sfNewTag{margin-left:10px;color:#12532E;font-weight:600;font-size:11px;background:#c9efd2;border-radius:10px;padding:1px 8px}
 #sortingDetail .sfTable .sfNr td{scroll-margin-top:calc(var(--sfTop,0px) + 56px)}
 #sortingDetail .sfTable .sfNr input:not([type=checkbox]){height:32px;min-height:32px;width:100%;border:1px solid var(--line-strong,#b9bdc9)!important;border-radius:var(--r-chip)!important;padding:0 8px;background:var(--surface,#fff)!important;color:var(--fg,#1a1b20);font-size:13px;text-align:right;box-sizing:border-box}
+#sortingDetail .sfTable .sfNr input:disabled:not([type=checkbox]){background:#f3f4f6!important;color:#9aa0ad;cursor:default}
 #sortingDetail .sfTable .sfNr input.auto{border-style:dashed!important;background:var(--surface-2,#f0f3fa)!important;color:var(--fg-3,#74777f)}
 #sortingDetail .sfTable .sfNr td:nth-child(7),#sortingDetail .sfTable .sfNr td:nth-child(8){position:relative}
 #sortingDetail .sfTable .sfAuto{position:absolute;right:12px;top:1px;font-size:9px;font-style:normal;color:var(--fg-3,#74777f);background:var(--surface,#fff);padding:0 3px;border-radius:3px;line-height:11px}
@@ -7360,7 +7361,8 @@ const SF=(function(){
   function norm(x){return window.searchNorm?window.searchNorm(x):String(x==null?'':x).toLowerCase()}
   const $=id=>document.getElementById(id);
   const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  function f1(n){let s=(Math.round(Number(n)*10)/10).toFixed(1).replace(/\.0$/,'');let p=s.split('.');p[0]=p[0].replace(/\B(?=(\d{3})+(?!\d))/g,'.');return p.join(',')}
+  const rnd=x=>Math.round(Number((+x).toFixed(6)));      // κανόνας ταξινόμησης: ΑΚΕΡΑΙΑ kg (από ,50 ανεβαίνει, μέχρι ,49 κατεβαίνει)
+  function f1(n){return String(rnd(n)).replace(/\B(?=(\d{3})+(?!\d))/g,'.')}   // εμφάνιση: μόνο ακέραια
   const entW=e=>Number(e.approved_weight!=null?e.approved_weight:(e.raw_weight||0));
   let S=null,C=null,DD={el:null,input:null,items:[],hl:0,type:null,page:0,mode:null,nt:null};const FRESH=new Set();
 
@@ -7391,7 +7393,7 @@ const SF=(function(){
   function numTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return '';let m=S.rm[cid];return m?numLbl(m)+(S.fresh.has(m.id)?' (νέο)':''):''}
   const isOpen=cid=>!!(S.open[cid]||S.editing[cid]);
   const rowTare=cid=>{let m=S.rm[cid];return m&&m.tare_weight!=null&&Number(m.tare_weight)>0?Number(m.tare_weight):0};
-  const fmtIn=n=>String(Math.round(n*1000)/1000).replace('.',',');
+  const fmtIn=n=>String(rnd(n));
   // μεικτό = καθαρό + απόβαρο μέσου + ό,τι έχει ήδη το μέσο σε αυτή την ταξινόμηση (ίδιος κανόνας με τον server για τη ζύγιση «μεικτού»)
   function baseKg(cid){let m=S.rm[cid],ex=0;if(m)ex=S.entries.filter(e=>e.collection_medium_id===m.id&&e.id!==S.editing[cid]).reduce((s,e)=>s+entW(e),0);return rowTare(cid)+ex}
   function subHtml(e){
@@ -7399,8 +7401,8 @@ const SF=(function(){
     return `<tr class="sfSub${fresh?' sfFresh':''}" data-sid="${e.id}"><td></td><td></td><td></td><td class="sfSe">${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span>':''}<span>${esc2(entLabel(e))}</span>${fresh?'<small class="sfNewTag">ΝΕΟ · μόλις τώρα</small>':''}</td><td class="n">${t>0?nf(t):''}</td><td class="n">${e.piece_count||''}</td><td class="n">${g!=null?nf(g):''}</td><td class="n"><b>${nf(entW(e))}</b></td><td class="sfAc"><button type="button" class="sfEd" data-edit="${e.id}" title="Διόρθωση"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="sfDl" data-del="${e.id}" title="Διαγραφή"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></td></tr>`;
   }
   function newRowHtml(c){
-    let cid=c.id,ed=S.editing[cid],avg=c.average_weight,t=rowTare(cid);
-    return `<tr class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><td></td><td></td><td></td><td><div class="sfQe"><input class="sfT" readonly value="${esc2(typeTxt(cid))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(cid))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div></td><td class="n sfTr">${t>0?nf(t):''}</td><td><input class="sfP" placeholder="τεμάχια" inputmode="numeric" autocomplete="off"></td><td><input class="sfGr" placeholder="μεικτό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></td><td><input class="sfK" placeholder="καθαρό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></td><td class="sfAc"><button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button></td></tr>`;
+    let cid=c.id,ed=S.editing[cid],avg=c.average_weight,t=rowTare(cid),pcsOk=BULK_CATS.has(norm(c.official_code))&&avg!=null;   // «Τεμ.» ΜΟΝΟ στις 9 κατηγορίες που δέχεται ο server με τεμάχια
+    return `<tr class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><td></td><td></td><td></td><td><div class="sfQe"><input class="sfT" readonly value="${esc2(typeTxt(cid))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"><input class="sfM" value="${esc2(numTxt(cid))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label></div></td><td class="n sfTr">${t>0?nf(t):''}</td><td><input class="sfP" placeholder="${pcsOk?'τεμάχια':''}" inputmode="numeric" autocomplete="off"${pcsOk?'':' disabled'}></td><td><input class="sfGr" placeholder="μεικτό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></td><td><input class="sfK" placeholder="καθαρό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></td><td class="sfAc"><button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button></td></tr>`;
   }
   function groupHtml(c){
     let en=S.entries.filter(e=>rid(e)===c.id).sort(byTime),n=en.length,open=isOpen(c.id);
@@ -7488,7 +7490,7 @@ const SF=(function(){
     let r=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!r)return false;
     let g=r.querySelector('.sfGr').value.trim(),k=r.querySelector('.sfK').value.trim(),p=r.querySelector('.sfP').value.trim();
     let ed=S.editing[cid]?S.entries.find(e=>e.id===S.editing[cid]):null;
-    if(ed)return k!==String(entW(ed)).replace('.',',')||p!==String(ed.piece_count||'');
+    if(ed)return k!==fmtIn(entW(ed))||p!==String(ed.piece_count||'');
     return !!(g||k||p);
   }
   // πάτημα σε κλειστή γραμμή την ανοίγει (▾)· πάτημα σε ΑΝΟΙΧΤΗ την κλείνει (▸): οι καταχωρήσεις και η φόρμα της κρύβονται, τα δεδομένα μένουν
@@ -7565,7 +7567,8 @@ const SF=(function(){
     if(pcs!=null&&(!Number.isFinite(pcs)||pcs<0)){msg('Τα τεμάχια δεν μπορούν να είναι αρνητικά (κατηγορία '+code+').',false);return false}
     if(k!=null&&k<0){msg('Το βάρος δεν μπορεί να είναι αρνητικό (κατηγορία '+code+').',false);return false}
     if(src==='G'&&g!=null&&g>0&&(k==null||k<=0)&&!pcs){msg('Το μεικτό βάρος δεν ξεπερνά το απόβαρο και το ήδη καταχωρημένο περιεχόμενο του μέσου.',false);return false}
-    if((k==null||k<=0)&&pcs&&avg>0)k=Math.ceil(pcs*avg);
+    if((k==null||k<=0)&&pcs&&avg>0)k=rnd(pcs*avg);
+    if(k!=null)k=rnd(k);      // ΑΚΕΡΑΙΑ kg ανά καταχώρηση
     if(k==null||k<=0){msg('Συμπλήρωσε βάρος ή τεμάχια (με υπαρκτό μέσο βάρος)',false);return false}
     let editId=S.editing[cid],old=editId?S.entries.find(e=>e.id===editId):null;
     // μεικτό (ζύγιση) → ο server αφαιρεί αποβαρό + ήδη καταχωρημένο· καθαρό → απευθείας
@@ -7613,7 +7616,7 @@ const SF=(function(){
     S.editing[cid]=entryId;S.open[cid]=true;S.rm[cid]=C.media.find(m=>m.id===e.collection_medium_id)||null;S.rt[cid]=S.rm[cid]?S.rm[cid].type_id:null;
     redoGroup(cid,false);
     let row=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!row)return;
-    row.querySelector('.sfK').value=String(entW(e)).replace('.',',');row.querySelector('.sfP').value=e.piece_count||'';calc(row,'K');focusNew(cid,'.sfK');
+    row.querySelector('.sfK').value=fmtIn(entW(e));row.querySelector('.sfP').value=e.piece_count||'';calc(row,'K');focusNew(cid,'.sfK');
     msg('Διόρθωσε και πάτα Enter (Esc για ακύρωση).',true);
   }
 
@@ -7895,9 +7898,9 @@ const SF=(function(){
       if(document.activeElement===t&&!DD.el)openDD(t)});
     L.addEventListener('input',e=>{let t=e.target;
       if(t.classList.contains('sfM')){let row=t.closest('.sfNr');if(!t.value.trim()){S.rm[row.dataset.c]=null;S.bulk[row.dataset.c]=false;S.bulkMed[row.dataset.c]=false;refreshRow(row)}openDD(t)}
-      else if(t.classList.contains('sfP')){let row=t.closest('.sfNr'),avg=Number(row.dataset.avg||0);if(avg>0&&t.value!==''&&Number.isFinite(Number(t.value))){row.querySelector('.sfK').value=String(Math.ceil(Number(t.value)*avg));calc(row,'K')}}
-      else if(t.classList.contains('sfGr')){calc(t.closest('.sfNr'),'G')}
-      else if(t.classList.contains('sfK')){calc(t.closest('.sfNr'),'K')}
+      else if(t.classList.contains('sfP')){let row=t.closest('.sfNr'),avg=Number(row.dataset.avg||0);if(avg>0&&!t.disabled&&t.value!==''&&Number.isFinite(Number(t.value))){row.querySelector('.sfK').value=String(rnd(Number(t.value)*avg));calc(row,'K')}}
+      else if(t.classList.contains('sfGr')){let r=t.closest('.sfNr');r.querySelector('.sfP').value='';calc(r,'G')}        // κιλά → το «Τεμ.» μένει κενό
+      else if(t.classList.contains('sfK')){let r=t.closest('.sfNr');r.querySelector('.sfP').value='';calc(r,'K')}
     });
     L.addEventListener('focusout',e=>{let t=e.target;if(t.classList.contains('sfM')||t.classList.contains('sfT'))setTimeout(()=>{if(DD.input===t&&document.activeElement!==t&&!(DD.el&&DD.el.contains(document.activeElement))){let row=t.closest('.sfNr');if(row){let c=row.dataset.c;if(t.classList.contains('sfM'))t.value=numTxt(c);else t.value=typeTxt(c)}closeDD()}},150)});
     L.addEventListener('click',e=>{

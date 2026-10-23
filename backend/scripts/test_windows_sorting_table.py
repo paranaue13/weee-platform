@@ -167,7 +167,7 @@ with sync_playwright() as p:
     ck('1Β: υπο-γραμμές και φόρμα λευκές', cs('#sfTable tbody.sfBd.open tr.sfSub td', 'backgroundColor') == 'rgb(255, 255, 255)' and cs('#sfTable tbody.sfBd.open tr.sfNr td', 'backgroundColor') == 'rgb(255, 255, 255)')
     ck('1Β: ✎ και 🗑 είναι SVG (κάδος #9b1c1c) με λεπτό γκρι περίγραμμα', pg.evaluate("document.querySelectorAll('#sfTable tbody.sfBd.open tr.sfSub .sfAc button svg').length") >= 2 and cs('#sfTable tbody.sfBd.open tr.sfSub .sfDl', 'color') == 'rgb(155, 28, 28)' and cs('#sfTable tbody.sfBd.open tr.sfSub .sfEd', 'borderTopWidth') == '1px')
     pw = pg.evaluate("document.querySelector('#sfTable thead th[data-wcol=pcs]').getBoundingClientRect().width")
-    ck('1Β: στήλη «Τεμ.» ~80px, κεφαλίδα «Τεμ.», πεδίο «τεμάχια» χωράει', 70 <= pw <= 100 and pg.inner_text('#sfTable thead th[data-wcol=pcs]') == 'Τεμ.' and pg.evaluate("(()=>{const i=document.querySelector('#sfTable tbody.sfBd.open .sfNr .sfP');return i.placeholder==='τεμάχια'&&i.scrollWidth<=i.clientWidth+1})()"), str(pw))
+    ck('1Β: στήλη «Τεμ.» ~80px, κεφαλίδα «Τεμ.», το πεδίο χωράει', 70 <= pw <= 100 and pg.inner_text('#sfTable thead th[data-wcol=pcs]') == 'Τεμ.' and pg.evaluate("(()=>{const i=document.querySelector('#sfTable tbody.sfBd.open .sfNr .sfP');return i.clientWidth>=62&&i.scrollWidth<=i.clientWidth+1})()"), str(pw))
     ck('1Β: η φόρμα (Είδος, Αριθμός, Κλείσιμο) χωράει στη στήλη Καταχωρήσεις στα 1040px', pg.evaluate("(()=>{const q=document.querySelector('#sfTable tbody.sfBd.open .sfQe');return q.scrollWidth<=q.clientWidth+1&&q.getBoundingClientRect().right<=q.closest('td').getBoundingClientRect().right"+"})()"))
     ck('1Β: τα πλαίσια μέσου (κάψουλες) δεν σπάνε σε δύο γραμμές', pg.evaluate("[...document.querySelectorAll('#sfTable .sfEn')].every(e=>e.getBoundingClientRect().height<=34)"))
     pg.evaluate("c=>document.querySelector('#sfTable tr.sfCat[data-c=\"'+c+'\"]').click()", parent['id']); pg.wait_for_timeout(500)
@@ -195,6 +195,39 @@ with sync_playwright() as p:
     pg.evaluate("document.querySelector('#sortingDetail [data-win=max],#sortingDetail .popupMaxBtn,#sortingDetail button[title*=Μεγιστοποίηση]').click()"); pg.wait_for_timeout(900)
     g2 = fit('μεγιστοποίηση')
     ck('1Β: μεγαλώνοντας το παράθυρο ο πίνακας γεμίζει όλο το πλάτος (Περιγραφή και Καταχωρήσεις μεγαλώνουν)', abs(g2['t'] - g2['w']) <= 1 and g2['w'] > g['w'] + 200 and g2['desc'] > g['desc'] + 50 and g2['ens'] > g['ens'] + 50 and not g2['hs'], str(g2))
+    # ---- Βήμα 2: τεμάχια ΜΟΝΟ στις 9 «χύμα» κατηγορίες · ακέραια kg ανά καταχώρηση ----
+    NINE = ['1Α1100', '1Α1200', '1Α2100', '1Α2200', '1Α3000', '4Α1000', '4Α2110', '4Α2120', '4Α2200']
+    byc = {c['official_code']: c for c in cats if not c['is_internal_subcategory']}
+    import math
+    rnd = lambda x: math.floor(round(x, 6) + 0.5)
+    pg.evaluate("openSortingDetail('%s')" % lid); pg.wait_for_selector('#sfTable tbody.sfBd', timeout=20000); pg.wait_for_timeout(800)
+    for code in NINE:
+        c = byc[code]; avg = float(c['average_weight'])
+        pg.evaluate("c=>{const r=document.querySelector('#sfTable tr.sfCat[data-c=\"'+c+'\"]');if(!document.querySelector('#sfTable tr.sfNr[data-c=\"'+c+'\"]'))r.click()}", c['id']); pg.wait_for_timeout(300)
+        s = '#sfTable tr.sfNr[data-c="%s"]' % c['id']
+        en = not pg.evaluate("s=>document.querySelector(s+' .sfP').disabled", s)
+        pg.fill(s + ' .sfP', '3'); pg.wait_for_timeout(120)
+        kv = pg.input_value(s + ' .sfK')
+        ck(f'Βήμα 2: {code} — «Τεμ.» ενεργό και 3 τεμ. → καθαρό {rnd(3*avg)} (ακέραιο)', en and kv == str(rnd(3 * avg)), f'{kv} (μέσο {avg})')
+        pg.fill(s + ' .sfK', '50'); pg.wait_for_timeout(100)
+        ck(f'Βήμα 2: {code} — αν γράψω κιλά, το «Τεμ.» μένει κενό', pg.input_value(s + ' .sfP') == '')
+    for code in ('2Α1110', '4Ε0000', '5Α0000'):
+        c = byc[code]
+        pg.evaluate("c=>{const r=document.querySelector('#sfTable tr.sfCat[data-c=\"'+c+'\"]');if(!document.querySelector('#sfTable tr.sfNr[data-c=\"'+c+'\"]'))r.click()}", c['id']); pg.wait_for_timeout(300)
+        s = '#sfTable tr.sfNr[data-c="%s"]' % c['id']
+        st = pg.evaluate("s=>{const i=document.querySelector(s+' .sfP');return [i.disabled,getComputedStyle(i).backgroundColor,i.placeholder]}", s)
+        ck(f'Βήμα 2: {code} — «Τεμ.» γκρι ανενεργό, χωρίς εικονίδιο/κείμενο', st[0] and st[1] == 'rgb(243, 244, 246)' and st[2] == '', str(st))
+    # server: ακέραιο ανά καταχώρηση (τεμάχια × μέσο βάρος και δεκαδικά κιλά)
+    post2 = lambda body: pg.evaluate("([lid,b])=>api('/sorting/'+lid+'/entries',{method:'POST',body:JSON.stringify(b)}).then(e=>Number(e.raw_weight)).catch(e=>'ΣΦΑΛΜΑ')", [lid, body])
+    ok = True; info = []
+    for code in NINE:
+        c = byc[code]; exp = rnd(3 * float(c['average_weight']))
+        got = post2({'weee_category_id': c['id'], 'entry_type': 'BULK', 'piece_count': 3, 'source': 'ANDROID'})
+        info.append((code, got, exp)); ok = ok and got == exp
+    ck('Βήμα 2: server — τεμάχια × μέσο βάρος → ακέραιο για τις 9 κατηγορίες (180,45→180, 186,6→187)', ok, str(info))
+    oth = byc['2Α1110']
+    r = [post2({'weee_category_id': oth['id'], 'entry_type': 'MEDIUM', 'raw_weight': v, 'source': 'ANDROID'}) for v in (180.45, 180.51, 237.5, 100.49)]
+    ck('Βήμα 2: server — δεκαδικά κιλά → ακέραιο (180,45→180, 180,51→181, 237,5→238, 100,49→100)', r == [180, 181, 238, 100], str(r))
     # ---- Α2: κατηγορία που λείπει από τη λίστα (π.χ. ανενεργή) φαίνεται ΠΑΝΤΑ ----
     ck('σφάλματα σελίδας', not errs, str(errs[:3]))
     b.close()

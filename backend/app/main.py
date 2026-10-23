@@ -2736,6 +2736,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
         if cat.code not in {'4Α2110','4Α2120','4Α2200','4Α1000','1Α1100','1Α1200','1Α2100','1Α2200','1Α3000'}: raise HTTPException(422,'Το υλικό δεν είναι ενεργοποιημένο για χύμα')
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         raw=Decimal(data.piece_count)*cat.average_weight
+    raw=_round_kg(raw)      # ΑΚΕΡΑΙΑ kg ανά καταχώρηση (και τεμάχια × μέσο βάρος, και μεικτό − απόβαρο)
     obj=SortingEntry(session_id=ses.id,weee_category_id=data.weee_category_id,collection_medium_id=data.collection_medium_id,
       entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes,
       source=(data.source.upper() if data.source and data.source.upper() in ('PC','ANDROID') else None))
@@ -2765,6 +2766,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     if data.entry_type=='BULK' and data.piece_count is not None:
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         e.raw_weight=Decimal(data.piece_count)*cat.average_weight
+    e.raw_weight=_round_kg(e.raw_weight)
     db.flush()
     warn=_assign_single_use_code(db,user,e.collection_medium_id,cat) if e.collection_medium_id and e.collection_medium_id!=old['medium_id'] else None
     _sync_entry_stock(db,e,user)
@@ -3759,6 +3761,14 @@ def weee_inventory_medium(medium_id:str, db:Session=Depends(get_db), user=Depend
         g['weight']+=float(lot.available_weight or 0)
     out=sorted(({**c,'weight':round(c['weight'],3)} for c in groups.values()),key=lambda x:x['code'])
     return {'medium_id':medium_id if medium_id!='BULK' else None,'medium_code':med.code if med else 'Χύμα','total_weight':round(sum(x['weight'] for x in out),3),'categories':out}
+
+from decimal import ROUND_HALF_UP
+def _round_kg(x):
+    """Κανόνας ταξινόμησης: κάθε καταχώρηση αποθηκεύεται σε ΑΚΕΡΑΙΑ kg (από ,50 και πάνω ανεβαίνει, μέχρι ,49 κατεβαίνει). Δεν στρογγυλεύονται σύνολα."""
+    if x is None: return None
+    r=Decimal(x).quantize(Decimal('1'),rounding=ROUND_HALF_UP)
+    if r<=0 and Decimal(x)>0: raise HTTPException(422,'Το βάρος είναι μικρότερο από 0,5 kg και στρογγυλεύεται σε 0 -- δεν μπορεί να καταχωρηθεί')
+    return r
 
 def _transfer_number(db:Session)->str:
     year=datetime.now().year
