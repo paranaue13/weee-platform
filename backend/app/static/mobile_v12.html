@@ -138,6 +138,9 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 .ptMedium{font-size:15px;font-weight:500;color:var(--m3-on-surface);margin-top:6px}
 .ptBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
 .ptBtns .btn{height:44px;min-height:44px;border-radius:var(--r-btn);font-size:13px;font-weight:500;letter-spacing:.02em}
+.ptDay{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--m3-on-surface-variant);margin:14px 0 2px}.ptDay:first-child{margin-top:0}.ptTap{cursor:pointer}
+.ptPill{display:inline-block;border-radius:var(--r-chip);padding:2px 10px;font-size:13px;font-weight:500}.ptPill.a{background:#ffe9c7;color:#7a4300}.ptPill.g{background:#d7efe0;color:#12532e}.ptRem{font-size:12px;font-weight:700;color:#7a4300;margin-left:8px}.ptTm{font-size:12px;color:var(--m3-on-surface-variant);margin-left:8px}
+.ptBtns3{grid-template-columns:repeat(3,1fr)}.ptBtns3 .btn{font-size:12px;padding:0 2px}.ptRemBox{margin-top:8px}.ptRemPrev{font-size:14px;margin-top:8px;line-height:1.5}
 .ptBtns .ptEdit{background:var(--m3-tonal);color:var(--m3-on-tonal)}
 .ptBtns .ptDel{background:transparent;color:var(--m3-error);border:1.5px solid var(--m3-error)}
 .ptBtns .ptDel.armed{background:var(--m3-error);color:#fff}
@@ -222,7 +225,7 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 <div id="loadingPick" class="card hidden clampOnly"><h3>Σε ποιο δελτίο φορτώνεται;</h3><div id="loadingList"></div><button id="cancelLoading" class="btn alt" style="width:100%">ΑΚΥΡΟ</button></div>
 <div class="card"><div class="row space"><h3>Καταχωρήσεις</h3><b id="sum">0 kg</b></div><div id="entries"></div></div>
 <div class="card" id="ctrlCard"><button type="button" id="ctrlToggle" class="ctrlHead"><span class="chT"><b>Στοιχεία ελέγχου &amp; Φωτογραφίες</b><span id="ctrlSum"> · καμία επιλογή, 0 φωτο</span></span><i id="ctrlArrow">▼</i></button><div id="ctrlBody" class="hidden"><div class="two" style="margin-top:10px"><button class="btn choice" data-flag="check_special">ΕΙΔΙΚΗΣ ΔΙΑΧΕΙΡΙΣΗΣ</button><button class="btn choice" data-flag="check_kday">ΚΔΑΥ</button><button class="btn choice" data-flag="check_non_integer">ΜΗ ΑΚΕΡΑΙΟ</button><button class="btn choice" data-flag="load_pure">ΑΜΙΓΕΣ</button></div><div id="ctrlMsg"></div><label>Φωτογραφίες</label><button id="photoBtn" class="btn alt" style="width:100%">📷 ΦΩΤΟ</button><input id="photo" class="hidden" type="file" accept="image/*" multiple><div id="photoMsg" class="ok"></div><div id="photoList" class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px"></div></div></div>
-<button id="confirm" class="btn danger" style="width:100%;margin:4px 0 0">ΟΛΟΚΛΗΡΩΣΑ ΤΗΝ ΤΑΞΙΝΟΜΗΣΗ</button><div id="workMsg" class="ok"></div></div></div><div id="secProduction" class="hidden"><div class="sectionBar" id="flowBar" style="margin-bottom:10px"><button type="button" class="btn choice flStart on" data-f="d">ΤΜΗΜΑ</button><button type="button" class="btn choice flStart" data-f="m">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button type="button" class="btn choice flStart" data-f="a">ΑΗΗΕ</button></div><div class="sectionBar" style="display:none"><button type="button" class="btn choice on" id="prodModeTransferBtn">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button type="button" class="btn choice" id="prodModeDeltioBtn">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button></div><div id="prodTransferPanel"><div class="card"><div id="flowArea"></div><div id="prodOldForm" class="hidden"><label>Μέσο συλλογής</label><button type="button" id="prodMediumBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή μέσου συλλογής</button><label>Κατηγορία ΑΗΗΕ</label><button type="button" id="prodCatBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή κατηγορίας</button><div id="prodStockWrap" class="hidden"><label>Διαθέσιμα μέσα συλλογής</label><div id="prodStockList"></div><div class="muted" id="prodStockTotal"></div></div><label>Τμήμα</label><button type="button" id="prodDeptBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή τμήματος</button><button id="prodSubmit" class="btn good" style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button></div><label>Εργαζόμενος (προαιρετικό)</label><button type="button" id="prodEmpBtn" class="btn alt" style="width:100%;text-align:left">Συγκεντρωτικά τμήματος</button><button id="flSend" class="btn good" disabled style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button><div id="prodMsg" class="error"></div></div><div class="card"><h3>Σημερινές καταχωρήσεις</h3><div id="prodTodayList" class="muted">Καμία καταχώρηση.</div></div></div>
+<button id="confirm" class="btn danger" style="width:100%;margin:4px 0 0">ΟΛΟΚΛΗΡΩΣΑ ΤΗΝ ΤΑΞΙΝΟΜΗΣΗ</button><div id="workMsg" class="ok"></div></div></div><div id="secProduction" class="hidden"><div class="sectionBar" id="flowBar" style="margin-bottom:10px"><button type="button" class="btn choice flStart on" data-f="d">ΤΜΗΜΑ</button><button type="button" class="btn choice flStart" data-f="m">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button type="button" class="btn choice flStart" data-f="a">ΑΗΗΕ</button></div><div class="sectionBar" style="display:none"><button type="button" class="btn choice on" id="prodModeTransferBtn">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button type="button" class="btn choice" id="prodModeDeltioBtn">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button></div><div id="prodTransferPanel"><div class="card"><div id="flowArea"></div><div id="prodOldForm" class="hidden"><label>Μέσο συλλογής</label><button type="button" id="prodMediumBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή μέσου συλλογής</button><label>Κατηγορία ΑΗΗΕ</label><button type="button" id="prodCatBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή κατηγορίας</button><div id="prodStockWrap" class="hidden"><label>Διαθέσιμα μέσα συλλογής</label><div id="prodStockList"></div><div class="muted" id="prodStockTotal"></div></div><label>Τμήμα</label><button type="button" id="prodDeptBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή τμήματος</button><button id="prodSubmit" class="btn good" style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button></div><label>Εργαζόμενος (προαιρετικό)</label><button type="button" id="prodEmpBtn" class="btn alt" style="width:100%;text-align:left">Συγκεντρωτικά τμήματος</button><button id="flSend" class="btn good" disabled style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button><div id="prodMsg" class="error"></div></div><div class="card"><h3>Ιστορικό καταχωρήσεων</h3><select id="ptUnitFilter" style="margin-bottom:8px"><option value="">Όλα τα τμήματα</option></select><div id="prodTodayList" class="muted">Καμία καταχώρηση.</div></div></div>
 <div id="deltioPanel" class="hidden">
 <div class="card"><div class="row space"><h2>Εργαζόμενοι</h2><input type="date" id="deltioDateInput" style="width:auto;min-height:40px"></div>
 <div class="two" style="margin-top:8px"><button type="button" id="deltioEmpBtn" class="btn choice on">ΠΑΡΟΥΣΙΕΣ</button><button type="button" id="deltioDeptBtn" class="btn choice">ΤΜΗΜΑΤΑ</button></div><div id="dlSched" class="dlSched"></div><div id="dlCnt" class="dlCnt"></div></div><div class="card" id="dlMain"></div><div class="card"><h3>Ιστορικό</h3><div id="dlHist"></div></div>
@@ -326,48 +329,92 @@ function renderProdCatList(q){q=(q||'').trim().sn();let list=cats.filter(c=>isPr
 function renderProdStockList(){if(!prodStockGroups.length){$('prodStockList').innerHTML='<div class="muted">Δεν υπάρχει διαθέσιμο απόθεμα ΑΗΗΕ για αυτή την κατηγορία.</div>';$('prodStockTotal').textContent='';return}$('prodStockList').innerHTML=prodStockGroups.map((g,i)=>`<button type="button" class="btn alt tile choice prodStockRow${prodSelectedGroups.has(i)?' on':''}" data-gi="${i}" style="width:100%;text-align:left;margin-bottom:8px">${esc(g.medium_code)} <span class="muted">${esc(g.medium_type||'')} · ${g.lots.length} μερίδι${g.lots.length===1?'ο':'α'}</span><br><b>${Number(g.net_weight).toLocaleString('el-GR')} kg</b></button>`).join('');document.querySelectorAll('.prodStockRow').forEach(b=>b.onclick=()=>{let i=Number(b.dataset.gi);if(prodSelectedGroups.has(i))prodSelectedGroups.delete(i);else prodSelectedGroups.add(i);renderProdStockList()});paintProdStockTotal()}
 function paintProdStockTotal(){let total=[...prodSelectedGroups].reduce((s,i)=>s+Number(prodStockGroups[i].net_weight),0);$('prodStockTotal').textContent=prodSelectedGroups.size?('Επιλεγμένο βάρος: '+total.toLocaleString('el-GR')+' kg ('+prodSelectedGroups.size+' μέσα)'):''}
 $('prodSubmit').onclick=async()=>{$('prodMsg').className='error';$('prodMsg').textContent='';if(!prodForm.unit){$('prodMsg').textContent='Επίλεξε τμήμα';return}if(!prodForm.cat){$('prodMsg').textContent='Επίλεξε κατηγορία ΑΗΗΕ';return}if(!prodSelectedGroups.size){$('prodMsg').textContent='Επίλεξε τουλάχιστον ένα διαθέσιμο μέσο συλλογής';return}let items=[],totalW=0;for(const i of prodSelectedGroups){let g=prodStockGroups[i];totalW+=Number(g.net_weight);g.lots.forEach(l=>items.push({stock_lot_id:l.lot_id,weight:null}))}try{await api('/production/transfers',{method:'POST',body:JSON.stringify({destination_org_unit_id:prodForm.unit.id,items,notes:prodForm.emp?('Χειριστής: '+prodForm.emp.full_name):null})});await api('/production/work-entries',{method:'POST',body:JSON.stringify({work_date:new Date().toISOString(),org_unit_id:prodForm.unit.id,employee_id:prodForm.emp?prodForm.emp.id:null,weee_category_id:prodForm.cat.id,weight_kg:totalW,source:'ANDROID'})});$('prodMsg').className='ok';$('prodMsg').textContent='✓ Καταχωρήθηκε ('+totalW.toLocaleString('el-GR')+' kg)';loadProdToday();await loadProdStock()}catch(err){$('prodMsg').className='error';$('prodMsg').textContent=err?.message||String(err)}};let prodTodayRows=[],prodTodayMedia={},prodEditId=null,prodDelArmed=null,prodDelTimer=null;
-async function loadProdToday(){try{let iso=new Date().toISOString().slice(0,10);prodTodayRows=await api(`/production/work-entries?start=${iso}&end=${iso}`);try{prodTodayMedia=await api('/production/transfer-media?days=3')}catch(e){prodTodayMedia={}}renderProdToday()}catch(err){$('prodTodayList').innerHTML='<div class="error">Σφάλμα φόρτωσης</div>'}}
+let ptHist=[],ptEntries={},ptSel=null,ptMode=null,ptRem={mode:'GROSS',kg:''},ptUnit=null;
+function ptDayLbl(iso){let d=new Date(iso+'T12:00:00'),t=new Date(),y=new Date();y.setDate(t.getDate()-1);let k=x=>x.toISOString().slice(0,10),w=d.toLocaleDateString('el-GR',{weekday:'long'});return (iso===k(t)?'Σήμερα':iso===k(y)?'Χθες':w.charAt(0).toUpperCase()+w.slice(1))+' · '+d.toLocaleDateString('el-GR')}
+async function loadProdToday(){
+  try{
+    let f=$('ptUnitFilter');if(f&&f.options.length<=1&&prodUnits.length){f.innerHTML='<option value="">Όλα τα τμήματα</option>'+prodUnits.map(u=>`<option value="${u.id}">${esc(u.name_el)}</option>`).join('');if(ptUnit===null&&typeof prodForm!=='undefined'&&prodForm.unit)ptUnit=prodForm.unit.id;f.value=ptUnit||''}
+    let uq=ptUnit?'&unit_id='+encodeURIComponent(ptUnit):'';
+    let from=new Date();from.setDate(from.getDate()-60);let iso0=from.toISOString().slice(0,10),iso1=new Date().toISOString().slice(0,10);
+    let [h,en]=await Promise.all([api('/production/device-history?days=60'+uq),api(`/production/work-entries?start=${iso0}&end=${iso1}`)]);
+    ptHist=h;ptEntries=Object.fromEntries(en.filter(e=>e.transfer_id).map(e=>[e.transfer_id,e]));
+    try{prodTodayMedia=await api('/production/transfer-media?days=60')}catch(e){prodTodayMedia={}}
+    renderProdToday();
+  }catch(err){$('prodTodayList').innerHTML='<div class="error">Σφάλμα φόρτωσης</div>'}
+}
+$('ptUnitFilter').onchange=()=>{ptUnit=$('ptUnitFilter').value||'';ptSel=null;ptMode=null;loadProdToday()};
 // Αν ο χρήστης μετονόμασε τύπο μέσου (Μητρώα), οι ετικέτες που είναι γραμμένες εδώ παίρνουν το νέο όνομα.
 const TYPE_DEFAULT_NAMES={BASKET_LARGE:'Καλάθια μεγάλα',BASKET_SMALL:'Καλάθια μικρά',INFOCYCLE_1:'Καλάθια Infocycle 1',INFOCYCLE_2:'Καλάθια Infocycle 2',PALLET:'Παλέτα',SACK_1KG:'Σάκος 1kg',SACK_2KG_UN:'Σάκος 2kg / UN',BULK:'Χύμα'};
 function typeLbl(code,fallback){let t=(types||[]).find(x=>x.code===code);return t&&t.name_el&&TYPE_DEFAULT_NAMES[code]&&t.name_el!==TYPE_DEFAULT_NAMES[code]?t.name_el:fallback}
 const PT_MEDIUM_LBL={BASKET_LARGE:'Καλάθι μεγάλο',BASKET_SMALL:'Καλάθι μικρό',INFOCYCLE_1:'Infocycle 1',INFOCYCLE_2:'Infocycle 2',PALLET:'Παλέτα',SACK_1KG:'Σάκος',SACK_2KG_UN:'Σάκος',BULK:'Χύμα'},PT_NO_CODE=new Set(['PALLET','SACK_1KG','SACK_2KG_UN','BULK']);
-function renderProdToday(){
-  let umap=Object.fromEntries(prodUnits.map(u=>[u.id,u])),emap=Object.fromEntries(prodEmps.map(e=>[e.id,e])),cmap=Object.fromEntries(cats.map(c=>[c.id,c]));
-  $('prodTodayList').innerHTML=prodTodayRows.length?prodTodayRows.slice().reverse().map(r=>{
-    let med=(prodTodayMedia[r.transfer_id]||[]).map(m=>{let l=PT_MEDIUM_LBL[m.type_code]||'';if(!l)return '';l=typeLbl(m.type_code,l);return l+(m.code&&!PT_NO_CODE.has(m.type_code)?' · '+String(m.code).replace(/^I2-/,''):'')}).filter(Boolean).join(', ');
-    let head=`<div class="ptL1"><b class="ptKg">${Number(r.weight_kg).toLocaleString('el-GR')} kg</b><span class="ptRest"> · ${esc(umap[r.org_unit_id]?.name_el||'')}${r.employee_id?' · '+esc(emap[r.employee_id]?.full_name||''):' · Συγκεντρωτικά'}</span></div><div class="ptL2">${esc(dname(cmap[r.weee_category_id]))}</div>${med?`<div class="ptMedium">${esc(med)}</div>`:''}`;
-    if(prodEditId===r.id)return `<div class="entry ptItem">${head}<label>Κιλά</label><input id="ptKg" type="number" step="0.001" inputmode="decimal" value="${Number(r.weight_kg)}"><label>Εργαζόμενος</label><select id="ptEmp"><option value="">Συγκεντρωτικά τμήματος</option>${prodEmps.map(e=>`<option value="${e.id}"${e.id===r.employee_id?' selected':''}>${esc(e.full_name)}</option>`).join('')}</select><div class="two" style="margin-top:8px"><button type="button" class="btn good ptSave" data-id="${r.id}" style="min-height:44px;font-size:14px">ΑΠΟΘΗΚΕΥΣΗ</button><button type="button" class="btn alt ptCancel" style="min-height:44px;font-size:14px">ΑΚΥΡΟ</button></div><div id="ptMsg" class="error"></div></div>`;
-    return `<div class="entry ptItem">${head}<div class="ptBtns"><button type="button" class="btn alt ptEdit" data-id="${r.id}">ΔΙΟΡΘΩΣΗ</button><button type="button" class="btn danger ptDel${prodDelArmed===r.id?' armed':''}" data-id="${r.id}">${prodDelArmed===r.id?'ΣΙΓΟΥΡΑ; ΠΑΤΑ ΞΑΝΑ':'ΔΙΑΓΡΑΦΗ'}</button></div></div>`;
-  }).join(''):'<div class="muted">Καμία καταχώρηση σήμερα.</div>';
+function ptMediumName(d){
+  let m=(prodTodayMedia[d.transfer_id]||[]).find(x=>String(x.code)===String(d.medium_code))||(prodTodayMedia[d.transfer_id]||[])[0];
+  if(!m)return d.medium_code||'Χύμα';let l=PT_MEDIUM_LBL[m.type_code]||'';if(!l)return String(d.medium_code||'');l=typeLbl(m.type_code,l);return l+(m.code&&!PT_NO_CODE.has(m.type_code)?' · '+String(m.code).replace(/^I2-/,''):'')
 }
+function ptPreview(d){
+  let kg=Number(String(ptRem.kg).replace(',','.'));if(ptRem.kg===''||!isFinite(kg))return '';
+  let net=ptRem.mode==='GROSS'?kg-(d.tare_kg==null?NaN:Number(d.tare_kg)):kg;
+  if(!isFinite(net))return 'Το μέσο δεν έχει απόβαρο — επίλεξε ΚΑΘΑΡΑ.';if(net<0)return 'Τα μικτά είναι λιγότερα από το απόβαρο.';
+  return `Καθαρό υπόλοιπο <b>${net.toLocaleString('el-GR',{maximumFractionDigits:3})} kg</b><br>Καθαρή παραγωγή <b>${(Number(d.sent_kg)-net).toLocaleString('el-GR',{maximumFractionDigits:3})} kg</b>`;
+}
+function renderProdToday(){
+  let umap=Object.fromEntries(prodUnits.map(u=>[u.id,u])),cmap=Object.fromEntries(cats.map(c=>[c.id,c])),kg=n=>Number(n).toLocaleString('el-GR',{maximumFractionDigits:3});
+  $('prodTodayList').innerHTML=ptHist.length?ptHist.map(day=>`<div class="ptDay">${esc(ptDayLbl(day.date))}</div>`+day.items.map(d=>{
+    let st=d.state,pc=st==='EMPTIED'?'g':'a',open=ptSel===d.item_id;
+    let head=`<div class="ptL1"><b class="ptKg">${kg(d.weight_kg)} kg</b><span class="ptRest"> · ${esc(umap[d.org_unit_id]?.name_el||'')}${d.employee_name?' · '+esc(d.employee_name):' · Συγκεντρωτικά'}</span></div><div class="ptL2">${esc(dname(cmap[d.weee_category_id])||d.weee_code)}</div><div class="ptMedium"><span class="ptPill ${pc}">${esc(ptMediumName(d))}</span>${st==='PARTIAL'&&d.remainder_kg?`<span class="ptRem">περίσσεψαν ${kg(d.remainder_kg)} kg</span>`:''}<span class="ptTm">${esc(d.time)}</span></div>`;
+    if(!open)return `<div class="entry ptItem ptTap" data-item="${d.item_id}">${head}</div>`;
+    let ent=ptEntries[d.transfer_id],body='';
+    if(ptMode==='edit'){
+      body=`<label>Κιλά${ent&&ent.weight_kg!=d.weight_kg?' (σύνολο μεταφοράς)':''}</label><input id="ptKg" type="number" step="0.001" inputmode="decimal" value="${ent?Number(ent.weight_kg):Number(d.weight_kg)}"><label>Εργαζόμενος</label><select id="ptEmp"><option value="">Συγκεντρωτικά τμήματος</option>${prodEmps.map(e=>`<option value="${e.id}"${ent&&e.id===ent.employee_id?' selected':''}>${esc(e.full_name)}</option>`).join('')}</select><div class="two" style="margin-top:8px"><button type="button" class="btn good ptSave" data-item="${d.item_id}" style="min-height:44px;font-size:14px">ΑΠΟΘΗΚΕΥΣΗ</button><button type="button" class="btn alt ptCancel" style="min-height:44px;font-size:14px">ΑΚΥΡΟ</button></div><div id="ptMsg" class="error"></div>`;
+    }else if(ptMode==='rem'){
+      body=`<div class="ptRemBox"><div class="two"><button type="button" class="btn choice ptRM${ptRem.mode==='GROSS'?' on':''}" data-m="GROSS" style="min-height:44px">ΜΙΚΤΑ</button><button type="button" class="btn choice ptRM${ptRem.mode==='NET'?' on':''}" data-m="NET" style="min-height:44px">ΚΑΘΑΡΑ</button></div><label>Κιλά που περίσσεψαν (${ptRem.mode==='GROSS'?'μικτά':'καθαρά'})</label><input id="ptRemKg" type="number" step="0.001" inputmode="decimal" value="${esc(String(ptRem.kg))}"><div id="ptRemPrev" class="ptRemPrev">${ptPreview(d)}</div><div id="ptMsg" class="error"></div><button type="button" class="btn good ptRemSave" data-item="${d.item_id}" style="width:100%;min-height:44px;margin-top:8px">ΚΑΤΑΧΩΡΗΣΗ ΥΠΟΛΟΙΠΟΥ</button>${d.remainder_kg!=null?`<button type="button" class="btn danger ptRemUndo" data-item="${d.item_id}" style="width:100%;min-height:44px;margin-top:8px">ΑΝΑΙΡΕΣΗ ΥΠΟΛΟΙΠΟΥ</button>`:''}<button type="button" class="btn alt ptCancel" style="width:100%;min-height:44px;margin-top:8px">ΑΚΥΡΟ</button></div>`;
+    }else{
+      body=`<div class="ptBtns ptBtns3"><button type="button" class="btn alt ptEdit" data-item="${d.item_id}">ΔΙΟΡΘΩΣΗ</button><button type="button" class="btn alt ptRemBtn" data-item="${d.item_id}">ΥΠΟΛΟΙΠΟ</button><button type="button" class="btn danger ptDel${prodDelArmed===d.item_id?' armed':''}" data-item="${d.item_id}">${prodDelArmed===d.item_id?'ΣΙΓΟΥΡΑ;':'ΔΙΑΓΡΑΦΗ'}</button></div><button type="button" class="btn alt ptCancel" style="width:100%;min-height:40px;margin-top:8px">ΚΛΕΙΣΙΜΟ</button>`;
+    }
+    return `<div class="entry ptItem">${head}${body}</div>`;
+  }).join('')).join(''):'<div class="muted">Καμία καταχώρηση.</div>';
+}
+function ptFind(id){for(const d of ptHist)for(const i of d.items)if(i.item_id===id)return i;return null}
+$('prodTodayList').oninput=e=>{if(e.target.id==='ptRemKg'){ptRem.kg=e.target.value;let d=ptFind(ptSel);if(d&&$('ptRemPrev'))$('ptRemPrev').innerHTML=ptPreview(d)}};
 $('prodTodayList').onclick=async e=>{
+  let tap=e.target.closest('.ptTap');if(tap&&!e.target.closest('button')){ptSel=tap.dataset.item;ptMode=null;prodDelArmed=null;renderProdToday();return}
   let b=e.target.closest('button');if(!b)return;
-  if(b.classList.contains('ptEdit')){prodEditId=b.dataset.id;prodDelArmed=null;renderProdToday();return}
-  if(b.classList.contains('ptCancel')){prodEditId=null;renderProdToday();return}
+  let id=b.dataset.item||ptSel,d=ptFind(id);
+  if(b.classList.contains('ptCancel')){ptMode=null;if(!b.textContent.includes('ΚΛΕΙΣΙΜΟ')){renderProdToday();return}ptSel=null;renderProdToday();return}
+  if(b.classList.contains('ptEdit')){
+    if(d.remainder_kg!=null&&d.remainder_kg>0){flToast('Πρώτα ΑΝΑΙΡΕΣΗ ΥΠΟΛΟΙΠΟΥ, μετά διόρθωση kg.');return}
+    ptMode='edit';renderProdToday();return}
+  if(b.classList.contains('ptRemBtn')){ptMode='rem';ptRem=d.remainder_mode?{mode:d.remainder_mode,kg:String(d.remainder_mode==='GROSS'?d.remainder_gross:d.remainder_kg)}:{mode:'GROSS',kg:''};renderProdToday();return}
+  if(b.classList.contains('ptRM')){ptRem.mode=b.dataset.m;renderProdToday();return}
+  if(b.classList.contains('ptRemSave')){
+    let kg=Number(String(ptRem.kg).replace(',','.'));if(ptRem.kg===''||!isFinite(kg)){$('ptMsg').textContent='Γράψε τα κιλά.';return}
+    try{await api('/production/transfer-items/'+id+'/remainder',{method:'POST',body:JSON.stringify({mode:ptRem.mode,kg})});ptMode=null;ptSel=null;flLoadedAt=0;flLoad(true);loadProdToday()}
+    catch(err){$('ptMsg').textContent=err?.message||String(err)}
+    return;
+  }
+  if(b.classList.contains('ptRemUndo')){
+    try{await api('/production/transfer-items/'+id+'/remainder/undo',{method:'POST'});ptMode=null;ptSel=null;flLoadedAt=0;flLoad(true);loadProdToday()}
+    catch(err){$('ptMsg').textContent=err?.message||String(err)}
+    return;
+  }
   if(b.classList.contains('ptDel')){
-    let id=b.dataset.id;
     if(prodDelArmed!==id){prodDelArmed=id;clearTimeout(prodDelTimer);prodDelTimer=setTimeout(()=>{prodDelArmed=null;renderProdToday()},4000);renderProdToday();return}
-    prodDelArmed=null;clearTimeout(prodDelTimer);let r=prodTodayRows.find(x=>x.id===id);
-    try{
-      if(r.transfer_id)await api('/production/transfers/'+r.transfer_id+'/cancel',{method:'POST'});
-      else await api('/production/work-entries/'+id+'?reason='+encodeURIComponent('Διαγραφή από Android'),{method:'DELETE'});
-      flLoadedAt=0;flLoad(true);
-    }catch(err){$('prodMsg').className='error';$('prodMsg').textContent='Σφάλμα διαγραφής: '+(err?.message||err)}
+    prodDelArmed=null;clearTimeout(prodDelTimer);
+    try{await api('/production/transfers/'+d.transfer_id+'/cancel',{method:'POST'});ptSel=null;flLoadedAt=0;flLoad(true)}
+    catch(err){$('prodMsg').className='error';$('prodMsg').textContent='Σφάλμα διαγραφής: '+(err?.message||err)}
     loadProdToday();return;
   }
   if(b.classList.contains('ptSave')){
-    let id=b.dataset.id,r=prodTodayRows.find(x=>x.id===id),kg=Number($('ptKg').value),emp=$('ptEmp').value||null;
+    let ent=ptEntries[d.transfer_id],kg=Number($('ptKg').value),emp=$('ptEmp').value||null;
     if(!(kg>0)){$('ptMsg').textContent='Βάλε κιλά μεγαλύτερα από 0';return}
     try{
-      if(Math.abs(kg-Number(r.weight_kg))>0.0005){
-        if(r.transfer_id)await api('/production/transfers/'+r.transfer_id+'/weight',{method:'PUT',body:JSON.stringify({weight:kg,reason:'Διόρθωση από Android'})});
-        else await api('/production/work-entries/'+id,{method:'PUT',body:JSON.stringify({weight_kg:kg,reason:'Διόρθωση από Android'})});
-      }
-      if(emp!==(r.employee_id||null))await api('/production/work-entries/'+id,{method:'PUT',body:JSON.stringify({employee_id:emp,reason:'Διόρθωση από Android'})});
-      prodEditId=null;flLoadedAt=0;flLoad(true);loadProdToday();
+      if(ent&&Math.abs(kg-Number(ent.weight_kg))>0.0005)await api('/production/transfers/'+d.transfer_id+'/weight',{method:'PUT',body:JSON.stringify({weight:kg,reason:'Διόρθωση από Android'})});
+      if(ent&&emp!==(ent.employee_id||null))await api('/production/work-entries/'+ent.id,{method:'PUT',body:JSON.stringify({employee_id:emp,reason:'Διόρθωση από Android'})});
+      ptMode=null;ptSel=null;flLoadedAt=0;flLoad(true);loadProdToday();
     }catch(err){$('ptMsg').textContent=err?.message||String(err)}
   }
 };
+setInterval(()=>{if($('secProduction')&&$('secProduction').offsetParent&&!ptMode&&!document.hidden){loadProdToday()}},15000);
 // ===== ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ: 3 ροές (ΤΜΗΜΑ / ΜΕΣΟ ΣΥΛΛΟΓΗΣ / ΑΗΗΕ) -- Σημείο 1 ΑΛΛΑΓΕΣ.md =====
 // Χρησιμοποιεί ΜΟΝΟ τα υπάρχοντα endpoints/υπολογισμούς αποθέματος: στο τέλος γεμίζει τα prodForm/prodStockGroups/
 // prodSelectedGroups και καλεί το ίδιο $('prodSubmit').onclick (/production/transfers + /production/work-entries).
