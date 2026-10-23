@@ -30,8 +30,8 @@ with sync_playwright() as p:
     ck('ΔΕΝ υπάρχει κουμπί ρολόι', pg.query_selector('.deltioIntervalBtn') is None)
     ck('ώρες σε μορφή «8ω 00λ»', all(re.search(r'\d+ω \d\dλ|—', t) for t in pg.locator('.dcT tbody tr:not(.dcPanel) td.r').all_inner_texts()))
     ck('τμήματα Διοίκησης χωρίς κάρτα', not any(pg.query_selector(f'.dcard[data-unit="{u["id"]}"]') for u in units if u['profile'] == 'MANAGEMENT'))
-    # διακόπτης
-    ck('διακόπτης «Μόνο τμήματα με καταχώρηση» κλειστός αρχικά', not pg.is_checked('#deltioOnly'))
+    ck('ΔΕΝ υπάρχει διακόπτης «Μόνο τμήματα με καταχώρηση»', pg.query_selector('#deltioOnly') is None and 'Μόνο τμήματα' not in pg.inner_text('#productionDeltioPanel'))
+    ck('η γραμμή οριζόντιου scroll είναι στο τέρμα κάτω της οθόνης', pg.evaluate("(()=>{const r=document.getElementById('deltioDepts').getBoundingClientRect();return innerHeight-r.bottom<60&&innerHeight-r.bottom>=0})()"))
     n_all = cards.count()
     # μεταφορά δοκιμή
     emps = pg.evaluate("prodState.employees.filter(e=>e.active!==false&&(e.org_unit_ids||[]).length===1).map(e=>[e.id,e.org_unit_ids[0]])")
@@ -42,6 +42,7 @@ with sync_playwright() as p:
     ck('βελάκι → γίνεται ▾ και η γραμμή παίρνει φόντο', pg.locator('.dcT tr.sel').count() == 1 and pg.locator('.dcT tr.sel .dcArrow').inner_text() == '▾')
     ck('πάνελ «<όνομα> · διάλεξε τμήμα»', 'διάλεξε τμήμα' in pg.locator('.dcPanel .dpT').inner_text())
     ck('κάθε γραμμή έχει «Μεταφορά» και «Εργασία»', pg.locator('.dcPanel .dpR').count() > 0 and pg.locator('.dcPanel .dpR button').count() == 2 * pg.locator('.dcPanel .dpR').count())
+    ck('ομάδα «ΘΕΣΕΙΣ ΥΠΟΣΤΗΡΙΞΗΣ» κάτω από τα τμήματα παραγωγής, με εσοχή', (not nsup) or (pg.locator('.dcPanel .dpG').count() == 1 and pg.locator('.dcPanel .dpI').count() > 0 and pg.evaluate("(()=>{const g=document.querySelector('.dcPanel .dpG'),r=[...document.querySelectorAll('.dcPanel .dpR')];return r.filter(x=>!x.classList.contains('dpI')).every(x=>x.compareDocumentPosition(g)&4)})()")))
     ck('ΧΩΡΙΣ «Αφαίρεση» με 1 τμήμα', pg.locator('.dcPanel .rm').count() == 0)
     if len(sys.argv) > 2: pg.screenshot(path=sys.argv[2])
     to = pg.locator('.dcPanel button[data-k="add"]').first.get_attribute('data-to')
@@ -54,14 +55,6 @@ with sync_playwright() as p:
     pg.locator(f'.dcard[data-unit="{to}"] .dcArrow[data-emp="{e[0]}"]').click(); pg.wait_for_timeout(300)
     pg.locator(f'.dcPanel button[data-k="move"][data-to="{key}"]').click(); pg.wait_for_timeout(1800)
     ck('«Μεταφορά»: γυρνά πίσω και φεύγει από το άλλο', pg.locator(f'.dcArrow[data-emp="{e[0]}"]').count() == 1 and pg.locator(f'.dcard[data-unit="{key}"] .dcArrow[data-emp="{e[0]}"]').count() == 1)
-    # διακόπτης ανοιχτός
-    pg.evaluate("clearApiCache()")
-    pg.check('#deltioOnly', force=True); pg.wait_for_timeout(500)
-    devs = pg.evaluate("d=>api('/production/device-list?date='+d)", DAY); withdev = {d['org_unit_id'] for d in devs}
-    shown = set(pg.evaluate("[...document.querySelectorAll('.dcard')].map(c=>c.dataset.unit)"))
-    ck('διακόπτης ON: μόνο τμήματα με καταχώρηση, χωρίς «Θέσεις υποστήριξης»', shown == (withdev & set(prodids)) and 'support' not in shown, f'{len(shown)} κάρτες')
-    pg.uncheck('#deltioOnly', force=True); pg.wait_for_timeout(500)
-    ck('διακόπτης OFF: ξανά όλα', pg.locator('.dcard').count() == n_all)
     ck('σφάλματα σελίδας', not errs, str(errs[:2]))
     b.close()
 print('ΑΠΟΤΥΧΙΕΣ:', bad)
