@@ -529,6 +529,13 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 .dcPanel button{border:1px solid #2f5bd6;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:700;background:#fff;color:#2f5bd6;min-height:0}.dcPanel button.mv{background:#2f5bd6;color:#fff}.dcPanel button.rm{width:100%;margin-top:6px;border-color:#c0392b;color:#c0392b}
 .dcDev{padding:8px 10px;border-top:1px solid #e5e7eb}.dcDev:first-child{border-top:0}.dcDev .dt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dcDev .dt b{font-size:12px;font-weight:700}.dcDev .dk{font-size:13px;font-weight:700;white-space:nowrap}
 .dcDev .dm{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}.dcPill{display:inline-block;background:#e6eaf5;color:#44506a;border-radius:8px;padding:1px 8px;font-size:11px;font-weight:700}.dcDev .tm,.dcDev .em{font-size:10px;color:#6a7488}
+.dcPillA{background:#fdecc8;color:#8a5a00}.dcPillG{background:#d9f2e3;color:#17683a}.dcRem{font-size:10px;font-weight:700;color:#8a5a00}
+.dcRemBtn{border:1px solid #2f5bd6!important;background:#fff!important;color:#2f5bd6!important;border-radius:6px;padding:2px 10px!important;font-size:11px;font-weight:700;cursor:pointer;min-height:0!important;box-shadow:none!important}
+.dcRemForm{margin-top:8px;background:#fff;border:1px solid #cfd6e4;border-radius:10px;box-shadow:0 2px 8px rgba(30,40,70,.10);padding:8px 10px}.dcRemForm .dpT{font-size:11px;font-weight:700;color:#6a7488;margin-bottom:6px}
+.dcSeg{display:flex;gap:6px;margin-bottom:6px}.dcSeg button{flex:1;border:1px solid #2f5bd6;background:#fff;color:#2f5bd6;border-radius:6px;padding:4px 0;font-size:11px;font-weight:700;cursor:pointer;min-height:0}.dcSeg button.on{background:#2f5bd6;color:#fff}
+.dcRemKg{width:100%;box-sizing:border-box;border:1px solid #cfd6e4;border-radius:6px;padding:6px 8px;font-size:13px}.dcRemPrev{font-size:12px;margin-top:6px;min-height:16px}.dcRemErr{font-size:12px;color:#c0392b;min-height:0}
+.dcRemAct{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.dcRemAct button{border:1px solid #2f5bd6;background:#fff;color:#2f5bd6;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;min-height:0}.dcRemAct button.mv{background:#2f5bd6;color:#fff}.dcRemAct button.rm{border-color:#c0392b;color:#c0392b}
+.dcReturns{margin-top:12px;background:#fff;border:1px solid #dfe4ee;border-radius:10px;padding:10px 14px}.dcRetT{font-size:13px;font-weight:700;margin-bottom:4px}.dcRetE{font-size:12px;color:#8a93a5}.dcRet{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:12px}.dcRet .rn{font-weight:700}.dcRet .ru{color:#6a7488}.dcRet .rk{margin-left:auto;font-weight:700}.dcRet .tm{font-size:10px;color:#6a7488}
 .dcDevTot{display:flex;justify-content:space-between;background:#f0f3fa;padding:8px 10px;font-size:12px;font-weight:700;border-top:1px solid #e5e7eb}.dcDevEmpty{padding:8px 10px;color:#8a93a5;font-size:12px}
 .deltioChipGroup{font-size:11px;font-weight:800;color:#8a94a1;text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px}.deltioChipGroup:first-child{margin-top:0}
 .deltioChip{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;text-align:left;border:1px solid #dbe3ec;background:#f7f9fc;color:#33404d;border-radius:var(--r-chip);padding:8px 10px;margin-bottom:6px;cursor:grab;font-weight:700;font-size:13px}
@@ -2173,6 +2180,7 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <div class="toolbar dlBar"><span class="dlBarR"><label style="margin:0">Ημερομηνία</label><input type="date" id="deltioDate"><span id="deltioExistingNote" class="muted hidden">Υπάρχει ήδη δελτίο για αυτή την ημέρα.</span></span></div>
 <div class="deltioLayout">
 <div class="deltioDepts" id="deltioDepts"></div>
+<div class="dcReturns" id="deltioReturns"></div>
 </div>
 </div>
 </section>
@@ -3753,6 +3761,7 @@ async function loadDeltio(){
   let date=$('deltioDate').value;deltioState.date=date;
   let [att,entries,intervals,devs]=await Promise.all([api('/production/attendance/effective?date='+date),api(`/production/work-entries?start=${date}&end=${date}`),api('/production/placement-intervals?date='+date).catch(()=>[]),api('/production/device-list?date='+date).catch(()=>[])]);
   deltioState.attendance=att;deltioState.entries=entries.filter(e=>e.active!==false);deltioState.intervals=intervals;deltioState.devices=devs;
+  try{deltioState.returns=await api('/production/returns?date='+date)}catch(err){deltioState.returns=[]}
   try{let [md,ty]=await Promise.all([api('/master/media?include_inactive=true'),api('/master/medium-types')]);let tn=Object.fromEntries(ty.map(t=>[t.id,t.name_el]));deltioState.mediaMap=Object.fromEntries(md.map(m=>[m.id,{code:m.code,type:tn[m.type_id]||''}]))}catch(err){}
   $('deltioExistingNote').classList.toggle('hidden',!(att.length||deltioState.entries.length));
   renderDeltio();
@@ -3771,7 +3780,7 @@ async function deltioSetAttendance(empId,patch){
 async function deltioUnits(empId,action,unitId){
   clearApiCache();return api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:deltioState.date,employee_id:empId,action,unit_id:unitId})});
 }
-function fitDeltio(){let w=$('deltioDepts');if(!w||!w.offsetParent)return;let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,top=w.getBoundingClientRect().top;w.style.height=Math.max(260,Math.floor((window.innerHeight-top-bh)/rz)-6)+'px'}
+function fitDeltio(){let w=$('deltioDepts');if(!w||!w.offsetParent)return;let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,top=w.getBoundingClientRect().top;let rb=$('deltioReturns'),rh=rb?rb.offsetHeight+12:0;w.style.height=Math.max(260,Math.floor((window.innerHeight-top-bh)/rz)-6-rh)+'px'}
 window.addEventListener('resize',()=>setTimeout(fitDeltio,50));
 function deltioHM(min){return min==null?'—':Math.floor(min/60)+'ω '+String(min%60).padStart(2,'0')+'λ'}
 function deltioWeeeName(d){return weeeDescModeFor('deltio')==='her'&&d.her_description?d.her_description:(d.official_description||d.weee_code||'')}
@@ -3785,6 +3794,40 @@ async function deltioUnitAction(empId,fromUnits,kind,toUnit){
   }catch(err){alert(err.message);}
   deltioState.open=null;clearApiCache();try{prodState.employees=await api('/master/employees?include_inactive=true')}catch(err){}
   await loadDeltio();
+}
+function deltioDevHtml(d){
+  let st=d.state||'IN_PROGRESS',cls=st==='EMPTIED'?'dcPillG':'dcPillA',r=deltioState.rem,open=r&&r.item===d.item_id;
+  let rt=st==='PARTIAL'&&d.remainder_kg?`<span class="dcRem">περίσσεψαν ${deltioKg(d.remainder_kg)} kg</span>`:'';
+  let h=`<div class="dcDev"><div class="dt"><b>${esc(deltioWeeeName(d))}</b><span class="dk">${deltioKg(d.weight_kg)} kg</span></div><div class="dm"><span class="dcPill ${cls}">${esc(deltioMediumLabel(d))}</span>${rt}<span class="tm">${esc(d.time)}</span>${d.employee_name?`<span class="em">${esc(d.employee_name)}</span>`:''}</div><div class="dm"><button type="button" class="dcRemBtn" data-item="${d.item_id}">Υπόλοιπο</button></div>`;
+  if(open){
+    let mode=r.mode,kg=r.kg;
+    h+=`<div class="dcRemForm"><div class="dpT">Υπόλοιπο μέσου</div><div class="dcSeg"><button type="button" data-rmode="GROSS" class="${mode==='GROSS'?'on':''}">ΜΙΚΤΑ</button><button type="button" data-rmode="NET" class="${mode==='NET'?'on':''}">ΚΑΘΑΡΑ</button></div><input type="number" step="0.001" min="0" class="dcRemKg" placeholder="kg" value="${esc(String(kg))}"><div class="dcRemPrev" id="dcRemPrev"></div><div class="dcRemErr" id="dcRemErr"></div><div class="dcRemAct"><button type="button" class="mv" data-ract="save">ΚΑΤΑΧΩΡΗΣΗ ΥΠΟΛΟΙΠΟΥ</button><button type="button" data-ract="cancel">ΑΚΥΡΟ</button>${d.remainder_kg!=null?'<button type="button" class="rm" data-ract="undo">ΑΝΑΙΡΕΣΗ ΥΠΟΛΟΙΠΟΥ</button>':''}</div></div>`;
+  }
+  return h+'</div>';
+}
+function deltioRemPreview(){
+  let r=deltioState.rem;if(!r)return;let d=(deltioState.devices||[]).find(x=>x.item_id===r.item),p=$('dcRemPrev');if(!d||!p)return;
+  let kg=Number(String(r.kg).replace(',','.')),sent=Number(d.sent_kg);
+  if(r.kg===''||!isFinite(kg)){p.textContent='';return}
+  let net=r.mode==='GROSS'?kg-(d.tare_kg==null?NaN:Number(d.tare_kg)):kg;
+  if(!isFinite(net)){p.textContent='Το μέσο δεν έχει απόβαρο — επίλεξε ΚΑΘΑΡΑ.';return}
+  if(net<0){p.textContent='Τα μικτά είναι λιγότερα από το απόβαρο.';return}
+  p.innerHTML=`Καθαρό υπόλοιπο <b>${deltioKg(net)} kg</b> · Καθαρή παραγωγή <b>${deltioKg(sent-net)} kg</b>`;
+}
+async function deltioRemSave(){
+  let r=deltioState.rem;if(!r)return;let err=$('dcRemErr');err.textContent='';
+  if(r.kg===''||!isFinite(Number(String(r.kg).replace(',','.')))){err.textContent='Γράψε τα κιλά.';return}
+  try{await api('/production/transfer-items/'+r.item+'/remainder',{method:'POST',body:JSON.stringify({mode:r.mode,kg:Number(String(r.kg).replace(',','.'))})});deltioState.rem=null;clearApiCache();await loadDeltio()}
+  catch(e){err.textContent=e.message||String(e)}
+}
+async function deltioRemUndo(){
+  let r=deltioState.rem;if(!r)return;
+  try{await api('/production/transfer-items/'+r.item+'/remainder/undo',{method:'POST'});deltioState.rem=null;clearApiCache();await loadDeltio()}
+  catch(e){$('dcRemErr').textContent=e.message||String(e)}
+}
+function renderDeltioReturns(){
+  let box=$('deltioReturns');if(!box)return;let rs=deltioState.returns||[];
+  box.innerHTML=`<div class="dcRetT">Επιστροφές στην Αποθήκη ΑΗΗΕ σήμερα</div>`+(rs.length?rs.map(x=>`<div class="dcRet"><span class="dcPill dcPillA">${esc(deltioMediumLabel(x))}</span><span class="rn">${esc(deltioWeeeName(x))}</span><span class="ru">${esc(((prodState.units||[]).find(u=>u.id===x.org_unit_id)||{}).name_el||'')}</span><span class="rk">${deltioKg(x.returned_net_kg)} kg καθαρά${x.returned_gross_kg!=null?' · '+deltioKg(x.returned_gross_kg)+' kg μικτά':''}</span><span class="tm">${esc(x.returned_time)}</span></div>`).join(''):'<div class="dcRetE">Κανένα μέσο δεν επέστρεψε με υπόλοιπο.</div>');
 }
 function renderDeltio(){
   let emps=(prodState.employees||[]).filter(e=>e.active!==false).slice().sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'));
@@ -3818,14 +3861,14 @@ function renderDeltio(){
     let devHtml='';
     if(!isSupport){
       let total=devs.reduce((t,d)=>t+Number(d.weight_kg||0),0);
-      devHtml=`<div class="dcLbl dv">ΣΥΣΚΕΥΕΣ ΠΟΥ ΜΠΗΚΑΝ ΣΤΟ ΤΜΗΜΑ</div><div class="dcBox">${devs.length?devs.map(d=>`<div class="dcDev"><div class="dt"><b>${esc(deltioWeeeName(d))}</b><span class="dk">${deltioKg(d.weight_kg)} kg</span></div><div class="dm"><span class="dcPill">${esc(deltioMediumLabel(d))}</span><span class="tm">${esc(d.time)}</span>${d.employee_name?`<span class="em">${esc(d.employee_name)}</span>`:''}</div></div>`).join('')+`<div class="dcDevTot"><span>Σύνολο</span><span>${deltioKg(total)} kg</span></div>`:'<div class="dcDevEmpty">Δεν έχει μπει υλικό ακόμα.</div><div class="dcDevTot"><span>Σύνολο</span><span></span></div>'}</div>`;
+      devHtml=`<div class="dcLbl dv">ΣΥΣΚΕΥΕΣ ΠΟΥ ΜΠΗΚΑΝ ΣΤΟ ΤΜΗΜΑ</div><div class="dcBox">${devs.length?devs.map(d=>deltioDevHtml(d)).join('')+`<div class="dcDevTot"><span>Σύνολο</span><span>${deltioKg(total)} kg</span></div>`:'<div class="dcDevEmpty">Δεν έχει μπει υλικό ακόμα.</div><div class="dcDevTot"><span>Σύνολο</span><span></span></div>'}</div>`;
     }
     cards.push(`<div class="dcard deltioDeptCard" data-unit="${key}"><h3>${esc(title)}</h3><div class="dcLbl">ΕΡΓΑΖΟΜΕΝΟΙ</div><div class="dcBox"><table class="dcT"><thead><tr><th>Όνομα · θέση</th><th class="r">Καθαρές ώρες</th><th class="dcAr"></th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="dcDevEmpty">Κανένας εργαζόμενος στο τμήμα.</td></tr>'}</tbody></table></div>${devHtml}</div>`);
   };
   prodU.forEach(u=>card(u.id,u.name_el,[u.id],false));
   if(suppU.length)card('support','Θέσεις υποστήριξης',[...suppIds],true);
   $('deltioDepts').innerHTML=cards.join('');
-  wireDeltio();fitDeltio();
+  renderDeltioReturns();wireDeltio();fitDeltio();
 }
 async function openDeltioIntervals(empId){
   let emp=prodState.employees.find(x=>x.id===empId);
@@ -3841,6 +3884,11 @@ function wireDeltio(){
   document.querySelectorAll('.dcArrow').forEach(btn=>{
     btn.onclick=()=>{let o=deltioState.open;deltioState.open=(o&&o.emp===btn.dataset.emp&&o.card===btn.dataset.card)?null:{emp:btn.dataset.emp,card:btn.dataset.card};renderDeltio()};
   });
+  document.querySelectorAll('.dcRemBtn').forEach(b=>b.onclick=()=>{let r=deltioState.rem,id=b.dataset.item;if(r&&r.item===id){deltioState.rem=null}else{let d=(deltioState.devices||[]).find(x=>x.item_id===id);deltioState.rem={item:id,mode:d&&d.remainder_mode||'GROSS',kg:d&&d.remainder_mode?String(d.remainder_mode==='GROSS'?d.remainder_gross:d.remainder_kg):''}}renderDeltio();deltioRemPreview()});
+  document.querySelectorAll('[data-rmode]').forEach(b=>b.onclick=()=>{deltioState.rem.mode=b.dataset.rmode;document.querySelectorAll('[data-rmode]').forEach(x=>x.classList.toggle('on',x===b));deltioRemPreview()});
+  let ki=document.querySelector('.dcRemKg');if(ki){ki.oninput=()=>{deltioState.rem.kg=ki.value;deltioRemPreview()};ki.onkeydown=e=>{if(e.key==='Enter')deltioRemSave()}}
+  document.querySelectorAll('[data-ract]').forEach(b=>b.onclick=()=>{let k=b.dataset.ract;if(k==='save')deltioRemSave();else if(k==='undo')deltioRemUndo();else{deltioState.rem=null;renderDeltio()}});
+  deltioRemPreview();
   document.querySelectorAll('.dcPanel button').forEach(x=>x.onclick=()=>deltioUnitAction(x.dataset.emp,(x.dataset.from||'').split(',').filter(Boolean),x.dataset.k,x.dataset.to));
 }
 if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
