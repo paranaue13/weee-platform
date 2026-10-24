@@ -621,6 +621,17 @@ class ProductionTransfer(Base, TimestampMixin):
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
     present_json: Mapped[str|None] = mapped_column(Text, nullable=True)   # στιγμιότυπο παρόντων στο τμήμα (για μελλοντικές αναφορές παραγωγικότητας)
 
+class IdempotencyKey(Base):
+    """Μοναδικός κωδικός αιτήματος εγγραφής (header X-Request-Id): αν το ίδιο αίτημα ξαναέρθει (επανάληψη από την ουρά της οθόνης),
+    ο server απαντά με την ΑΡΧΙΚΗ απάντηση χωρίς να γράψει ξανά."""
+    __tablename__ = "idempotency_keys"
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    method: Mapped[str] = mapped_column(String(10))
+    path: Mapped[str] = mapped_column(String(300))
+    status: Mapped[int] = mapped_column()
+    body: Mapped[str|None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+
 class ProductionTransferItem(Base):
     __tablename__ = "production_transfer_items"
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)

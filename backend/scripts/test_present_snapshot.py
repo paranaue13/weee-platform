@@ -27,6 +27,7 @@ with sync_playwright() as p:
     # όλοι οι άλλοι του τμήματος: απόντες, ώστε η δοκιμή να είναι ακριβής
     for (e,) in c.execute("select e.employee_id from employee_org_units e where e.org_unit_id=?", (unit,)).fetchall():
         if e not in emps: att(e, status='ABSENT')
+    null0 = c.execute("select count(*) from production_transfers where present_json is null").fetchone()[0]
     w0 = float(c.execute("select available_weight from weee_stock_lots where id=?", (lot[0],)).fetchone()[0])
     st, j = call('POST', '/production/transfers', {'destination_org_unit_id': unit, 'items': [{'stock_lot_id': lot[0], 'weight': 100}]})
     call('POST', '/production/work-entries', {'work_date': today + 'T00:00:00', 'org_unit_id': unit, 'weee_category_id': lot[1], 'weight_kg': 100, 'source': 'WINDOWS', 'transfer_id': j['id']})
@@ -45,8 +46,8 @@ with sync_playwright() as p:
     ck('kg: καθαρή παραγωγή 70 όπως πριν (δεν επηρεάστηκε από το στιγμιότυπο)', r['net_production'] == 70)
     call('POST', f"/production/transfer-items/{item['item_id']}/remainder/undo")
     ck('αναίρεση υπολοίπου καθαρίζει το δεύτερο στιγμιότυπο', sqlite3.connect(DB).execute("select remainder_present from production_transfer_items where id=?", (item['item_id'],)).fetchone()[0] is None)
-    old = sqlite3.connect(DB).execute("select count(*) from production_transfers where present_json is null and id!=?", (tid,)).fetchone()[0]
-    ck('παλιές μεταφορές: ΚΑΜΙΑ αναπαράσταση (μένουν χωρίς στιγμιότυπο)', old == sqlite3.connect(DB).execute("select count(*) from production_transfers where id!=?", (tid,)).fetchone()[0], str(old))
+    null1 = sqlite3.connect(DB).execute("select count(*) from production_transfers where present_json is null").fetchone()[0]
+    ck('παλιές μεταφορές: ΚΑΜΙΑ αναπαράσταση (μένουν χωρίς στιγμιότυπο)', null1 == null0, f'{null0} → {null1}')
     call('POST', f'/production/transfers/{tid}/cancel')
     b.close()
 print('ΑΠΟΤΥΧΙΕΣ:', bad)

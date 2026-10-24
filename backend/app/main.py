@@ -279,6 +279,58 @@ class _ChangeNotifier:
         await self.inner(scope,receive,snd)
 
 app.add_middleware(_ChangeNotifier)
+
+# ---- Μοναδικός κωδικός αιτήματος (X-Request-Id): το ίδιο αίτημα που ξαναέρχεται ΔΕΝ γράφεται ξανά ----------
+_idem_locks:dict={}
+
+def _idem_get(rid:str):
+    db=SessionLocal()
+    try:
+        r=db.get(models.IdempotencyKey,rid)
+        return (r.status,r.body or "") if r else None
+    finally: db.close()
+
+def _idem_put(rid:str,method:str,path:str,status:int,body:str):
+    db=SessionLocal()
+    try:
+        if not db.get(models.IdempotencyKey,rid):
+            db.add(models.IdempotencyKey(id=rid,method=method,path=path[:300],status=status,body=body)); db.commit()
+    except Exception: db.rollback()
+    finally: db.close()
+
+class _Idempotency:
+    """Pure ASGI: αίτημα εγγραφής με header X-Request-Id. Πρώτη φορά εκτελείται και αποθηκεύεται η (επιτυχής) απάντηση·
+    αν ξαναέρθει ο ίδιος κωδικός, επιστρέφεται η αρχική απάντηση (header X-Idempotent-Replay) χωρίς νέα εγγραφή."""
+    def __init__(self, inner): self.inner=inner
+    async def __call__(self, scope, receive, send):
+        if scope["type"]!="http" or scope.get("method") not in ("POST","PUT","PATCH","DELETE") or scope["path"].startswith("/events") or scope["path"].startswith("/auth/"):
+            return await self.inner(scope,receive,send)
+        rid=None
+        for k,v in scope.get("headers") or []:
+            if k==b"x-request-id": rid=v.decode("latin-1").strip()[:64]
+        if not rid: return await self.inner(scope,receive,send)
+        from starlette.concurrency import run_in_threadpool
+        lock=_idem_locks.setdefault(rid,asyncio.Lock())
+        try:
+            async with lock:
+                rec=await run_in_threadpool(_idem_get,rid)
+                if rec:
+                    st,body=rec; raw=body.encode("utf-8")
+                    await send({"type":"http.response.start","status":st,"headers":[(b"content-type",b"application/json"),(b"content-length",str(len(raw)).encode()),(b"x-idempotent-replay",b"true")]})
+                    await send({"type":"http.response.body","body":raw})
+                    return
+                cap={"status":None,"body":b""}
+                async def snd(m):
+                    if m["type"]=="http.response.start": cap["status"]=m["status"]
+                    elif m["type"]=="http.response.body": cap["body"]+=m.get("body",b"")
+                    await send(m)
+                await self.inner(scope,receive,snd)
+                if cap["status"] and 200<=cap["status"]<300:
+                    await run_in_threadpool(_idem_put,rid,scope["method"],scope["path"],cap["status"],cap["body"].decode("utf-8","replace"))
+        finally:
+            if not lock.locked(): _idem_locks.pop(rid,None)
+
+app.add_middleware(_Idempotency)
 from .mat_warehouse import router as _mat_router
 app.include_router(_mat_router)
 
@@ -291,6 +343,11 @@ def login(req: schemas.LoginRequest, db: Session=Depends(get_db)):
     if not user or not user.active or not verify_password(req.password,user.password_hash):
         raise HTTPException(401,"Λάθος στοιχεία σύνδεσης")
     user.last_login=datetime.now(timezone.utc); db.commit()
+    return schemas.Token(access_token=make_token(user))
+
+@app.post("/auth/refresh", response_model=schemas.Token)
+def refresh_token(user: User=Depends(current_user)):
+    """Νέο token με νέα διάρκεια (για το κανάλι /events και για μακρές βάρδιες)."""
     return schemas.Token(access_token=make_token(user))
 
 @app.get("/me")
@@ -1734,11 +1791,17 @@ def change_attendance_units(data:schemas.AttendanceUnitsIn, db:Session=Depends(g
     Η παρουσία (ΠΑΡΩΝ/ΑΠΩΝ/ΕΦΥΓΕ) μένει μία ανά εργαζόμενο -- δεν αλλάζει. Καταγράφεται στο Ιστορικό με ΑΚΥΡΩΣΗ."""
     emp=db.get(Employee,data.employee_id)
     if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
-    if data.action not in ("add","remove"): raise HTTPException(422,"Άγνωστη ενέργεια")
+    if data.action not in ("add","remove","move"): raise HTTPException(422,"Άγνωστη ενέργεια")
     if not db.get(OrganizationalUnit,data.unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
     day=datetime(data.work_date.year,data.work_date.month,data.work_date.day)
     prev_ids=_emp_unit_ids(db,emp)
-    if data.action=="add":
+    if data.action=="move":
+        # «Μεταφορά»: ΕΝΑ αίτημα -- φεύγει από τα from_unit_ids και πηγαίνει στο unit_id (γίνεται το κύριο τμήμα)
+        frm=[x for x in (data.from_unit_ids or []) if x]
+        if data.unit_id in prev_ids: raise HTTPException(409,"Ο εργαζόμενος ανήκει ήδη σε αυτό το τμήμα")
+        if not frm or any(x not in prev_ids for x in frm): raise HTTPException(409,"Ο εργαζόμενος δεν ανήκει στο τμήμα από το οποίο φεύγει")
+        new_ids=[data.unit_id]+[i for i in prev_ids if i not in frm]
+    elif data.action=="add":
         if data.unit_id in prev_ids: raise HTTPException(409,"Ο εργαζόμενος ανήκει ήδη σε αυτό το τμήμα")
         new_ids=prev_ids+[data.unit_id]
     else:
@@ -2605,13 +2668,16 @@ from fastapi.responses import StreamingResponse as _StreamingResponse
 async def change_events(request:Request, token:str=Query(...)):
     """Ροή αλλαγών (EventSource δεν στέλνει headers -> το token στο query). Μήνυμα: JSON λίστα θεμάτων που άλλαξαν."""
     import jwt as _jwt
-    try: _jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    try: _claims=_jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     except Exception: raise HTTPException(401,"Μη έγκυρη σύνδεση")
+    _exp=float(_claims.get("exp") or 0)
     async def gen():
         q=asyncio.Queue(); _event_subs.add(q)
         try:
             yield "retry: 2000\n\n: ok\n\n"
             while True:
+                if _exp and datetime.now(timezone.utc).timestamp()>=_exp-30:
+                    yield "event: expired\ndata: {}\n\n"; break     # η οθόνη παίρνει νέο token (/auth/refresh) και ξανασυνδέεται
                 try: first=await asyncio.wait_for(q.get(),timeout=15)
                 except asyncio.TimeoutError:
                     if await request.is_disconnected(): break
@@ -4023,8 +4089,22 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
         item_out,mid=_consume_lot(db,transfer.id,lot,qty,unit,user,data.notes)
         out.append(item_out); medium_ids.add(mid)
     _update_medium_lifecycle(db, medium_ids)
+    # Ένα βήμα (όλο ή τίποτα): μετακίνηση εργαζομένου + καταχώρηση παραγωγής μαζί με τη μεταφορά
+    if data.place_employee_id:
+        pe=db.get(Employee,data.place_employee_id)
+        if not pe: raise HTTPException(404,'Ο εργαζόμενος δεν βρέθηκε')
+        _replace_employee_units(db,pe,[unit.id]+[x for x in _emp_unit_ids(db,pe) if x!=unit.id])
+        write_audit(db,user,'employee',pe.id,'PLACE_WITH_TRANSFER',new={'unit':unit.code})
+    we_id=None
+    if data.work_entry:
+        w=data.work_entry
+        if w.employee_id and not db.get(Employee,w.employee_id): raise HTTPException(404,'Ο εργαζόμενος δεν βρέθηκε')
+        if not db.get(WEEECategory,w.weee_category_id): raise HTTPException(404,'Η κατηγορία ΑΗΗΕ δεν βρέθηκε')
+        total=sum((Decimal(str(o.weight)) for o in out),Decimal(0))
+        we=ProductionWorkEntry(work_date=w.work_date or datetime.now(timezone.utc),org_unit_id=unit.id,employee_id=w.employee_id,weee_category_id=w.weee_category_id,weight_kg=w.weight_kg if w.weight_kg is not None else total,source=w.source or "WINDOWS",notes=w.notes,transfer_id=transfer.id,created_by_user_id=user.id)
+        db.add(we); db.flush(); we_id=we.id
     write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'items':len(out)})
-    db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out)
+    db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out,work_entry_id=we_id)
 
 def _reverse_transfer_item(db:Session, ti, qty, unit_id:str|None, user:User, reason:str|None):
     """Επιστρέφει `qty` kg ενός στοιχείου μεταφοράς στο απόθεμα ΑΗΗΕ (αντίστροφο του _consume_lot)."""

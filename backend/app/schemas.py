@@ -96,8 +96,9 @@ class ProductionAttendanceUpsert(BaseModel):
 class AttendanceUnitsIn(BaseModel):
     work_date: datetime
     employee_id: str
-    action: str  # add | remove
+    action: str  # add | remove | move
     unit_id: str
+    from_unit_ids: list[str]|None = None   # μόνο για move: τα τμήματα από τα οποία φεύγει
 
 class ProductionAttendanceOut(ProductionAttendanceUpsert):
     id: str
@@ -491,10 +492,21 @@ class ProductionTransferItemCreate(BaseModel):
     stock_lot_id: str
     weight: Decimal|None = None
 
+class TransferWorkEntryIn(BaseModel):
+    """Η καταχώρηση παραγωγής που γράφεται ΜΑΖΙ με τη μεταφορά (ένα βήμα, όλο ή τίποτα)."""
+    employee_id: str|None = None
+    weee_category_id: str
+    weight_kg: Decimal|None = None      # κενό = όσα κιλά μεταφέρθηκαν
+    source: str = "WINDOWS"
+    work_date: datetime|None = None
+    notes: str|None = None
+
 class ProductionTransferCreate(BaseModel):
     destination_org_unit_id: str
     items: list[ProductionTransferItemCreate]
     notes: str|None = None
+    work_entry: TransferWorkEntryIn|None = None
+    place_employee_id: str|None = None   # ο εργαζόμενος μετακινείται στο τμήμα μαζί με την αποστολή (όπως το «ΕΡΓΑΤΕΣ»)
 
 class ProductionTransferItemOut(BaseModel):
     stock_lot_id: str
@@ -508,6 +520,7 @@ class ProductionTransferOut(BaseModel):
     destination_org_unit_id: str
     status: str
     items: list[ProductionTransferItemOut]
+    work_entry_id: str|None = None
 
 
 # ---- Build 0.7 ----
