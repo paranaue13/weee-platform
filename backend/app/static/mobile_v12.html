@@ -304,7 +304,7 @@ const OB=(function(){
   function settle(e,ok,val){
     free(e);let w=waiters[e.id];delete waiters[e.id];
     if(ok){if(w)w.res(val);try{if(typeof clearApiCache==='function')clearApiCache()}catch(x){}}
-    else{let er=new Error(val);er.obShown=true;if(w)w.rej(er);reject(e,val)}
+    else{let er=new Error(val);er.obShown=true;delayed=true;if(w)w.rej(er);reject(e,val)}
   }
   function schedule(ms){clearTimeout(tm);tm=setTimeout(pump,ms)}
   async function pump(){
@@ -791,9 +791,22 @@ function deltioAttByEmp(id){return deltioAttendance.find(a=>a.employee_id===id)}
 async function deltioSaveAttendance(empId,patch){
   let a=deltioAttByEmp(empId)||{employee_id:empId,status:null,org_unit_id:null,position_text:null,since_at:null};
   let body={work_date:deltioDate,employee_id:empId,status:a.status,org_unit_id:a.org_unit_id,position_text:a.position_text,since_at:a.since_at,...patch};
-  let saved=await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});
-  let idx=deltioAttendance.findIndex(x=>x.employee_id===empId);
-  if(idx>=0)deltioAttendance[idx]=saved;else deltioAttendance.push(saved);
+  let idx=deltioAttendance.findIndex(x=>x.employee_id===empId),prev=idx>=0?deltioAttendance[idx]:null;
+  // αισιόδοξη ενημέρωση: φαίνεται ΑΜΕΣΑ· αν ο server απορρίψει, επιστρέφει η προηγούμενη κατάσταση
+  let opt={...a,...body,late:body.status==='ABSENT'?false:(patch.late!==undefined?!!patch.late:!!a.late)},emp=prodEmps.find(x=>x.id===empId),prevIds=emp?(emp.org_unit_ids||[]).slice():null;
+  if(emp&&body.org_unit_id&&body.org_unit_id!==a.org_unit_id)emp.org_unit_ids=[body.org_unit_id,...(emp.org_unit_ids||[]).filter(x=>x!==a.org_unit_id&&x!==body.org_unit_id)];
+  if(idx>=0)deltioAttendance[idx]=opt;else deltioAttendance.push(opt);
+  try{dlRender()}catch(e){}
+  let saved;
+  try{saved=await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)})}
+  catch(err){
+    let j=deltioAttendance.indexOf(opt);if(j>=0){if(prev)deltioAttendance[j]=prev;else deltioAttendance.splice(j,1)}
+    if(emp&&prevIds)emp.org_unit_ids=prevIds;
+    try{dlRender()}catch(e){}
+    throw err;
+  }
+  idx=deltioAttendance.findIndex(x=>x.employee_id===empId);
+  if(idx>=0)deltioAttendance[idx]=saved.__queued?{...opt,...saved}:saved;else deltioAttendance.push(saved);
   renderDeltioSummary();
   return saved;
 }
@@ -1221,9 +1234,12 @@ $('dlMain').onchange=e=>{
 $('dlHist').onclick=e=>{let b=e.target.closest('button[data-u]');if(b)dlUndo(b.dataset.u)};
 let dlSheetMode='mv';
 async function dlUnitsChange(empId,action,unitId,txt){
-  let e=prodEmps.find(x=>x.id===empId);
+  let e=prodEmps.find(x=>x.id===empId),prevIds=e?(e.org_unit_ids||[]).slice():null;
+  if(e){e.org_unit_ids=action==='add'?[...prevIds.filter(x=>x!==unitId),unitId]:prevIds.filter(x=>x!==unitId);try{dlRender()}catch(x){}}   // αισιόδοξη ενημέρωση
   try{
-    let r=await api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:deltioDate,employee_id:empId,action,unit_id:unitId})});
+    let r;
+    try{r=await api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:deltioDate,employee_id:empId,action,unit_id:unitId})})}
+    catch(err){if(e&&prevIds){e.org_unit_ids=prevIds;try{dlRender()}catch(x){}}throw err}
     await loadDeltioAndroid();
     flToast(e.full_name+': '+txt+' ✓','ΑΚΥΡΩΣΗ',()=>dlUndo(r.event_id));let m=$('flToastMsg').textContent;setTimeout(()=>{if($('flToastMsg').textContent===m)$('flToast').classList.add('hidden')},8000);
   }catch(err){flToast('Σφάλμα: '+(err?.message||err))}

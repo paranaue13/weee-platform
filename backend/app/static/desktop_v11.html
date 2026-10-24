@@ -527,7 +527,7 @@ body[data-theme="dark"] .sortingPopup>.tablewrap thead th{background:#1d2b36!imp
 .dcT tr.dcPanel td{padding:0;border-top:0;background:#fff}.dcPanel .dpBox{background:#fff;border:1px solid #cfd6e4;border-radius:10px;box-shadow:0 2px 8px rgba(30,40,70,.10);margin:6px 8px;padding:6px 10px}.dcPanel .dpT{font-size:11px;font-weight:700;color:#6a7488;margin-bottom:4px}
 .dcPanel .dpR{display:flex;align-items:center;gap:6px;padding:5px 0;font-size:12px;border-top:1px solid #eef0f5}.dcPanel .dpT+.dpR{border-top:0}.dcPanel .dpG{font-size:10px;font-weight:700;color:#6a7488;border-top:1px solid #eef0f5;margin-top:6px;padding-top:6px}.dcPanel .dpI{padding-left:14px;border-top:0}.dcPanel .dpR span{flex:1;font-size:12px;font-weight:400;color:#1a1b20}
 .dcPanel button{border:1px solid #2f5bd6;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:11px;font-weight:700;background:#fff;color:#2f5bd6;min-height:0}.dcPanel button.mv{background:#2f5bd6;color:#fff}.dcPanel button.rm{width:100%;margin-top:6px;border-color:#c0392b;color:#c0392b}
-.dcDev{padding:8px 10px;border-top:1px solid #e5e7eb}.dcDev:first-child{border-top:0}.dcDev .dt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dcDev .dt b{font-size:12px;font-weight:700}.dcDev .dk{font-size:13px;font-weight:700;white-space:nowrap}
+.dcDev{padding:8px 10px;border-top:1px solid #e5e7eb}.dcDev:first-child{border-top:0}.dcDev .dt{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.dcDev .dt b{font-size:12px;font-weight:700;min-width:0;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}.dcDev .dk{font-size:13px;font-weight:700;white-space:nowrap}
 .dcDev .dm{display:flex;align-items:center;gap:6px;margin-top:3px;flex-wrap:wrap}.dcPill{display:inline-block;background:#e6eaf5;color:#44506a;border-radius:8px;padding:1px 8px;font-size:11px;font-weight:700}.dcDev .tm,.dcDev .em{font-size:10px;color:#6a7488}
 .dcPillA{background:#fdecc8;color:#8a5a00}.dcPillG{background:#d9f2e3;color:#17683a}.dcRem{font-size:10px;font-weight:700;color:#8a5a00}
 .dcRemBtn{border:1px solid #2f5bd6!important;background:#fff!important;color:#2f5bd6!important;border-radius:6px;padding:2px 10px!important;font-size:11px;font-weight:700;cursor:pointer;min-height:0!important;box-shadow:none!important}
@@ -2354,7 +2354,7 @@ const OB=(function(){
   function settle(e,ok,val){
     free(e);let w=waiters[e.id];delete waiters[e.id];
     if(ok){if(w)w.res(val);try{if(typeof clearApiCache==='function')clearApiCache()}catch(x){}}
-    else{let er=new Error(val);er.obShown=true;if(w)w.rej(er);reject(e,val)}
+    else{let er=new Error(val);er.obShown=true;delayed=true;if(w)w.rej(er);reject(e,val)}
   }
   function schedule(ms){clearTimeout(tm);tm=setTimeout(pump,ms)}
   async function pump(){
@@ -2736,11 +2736,22 @@ function slError(list){
   for(let i=1;i<sp.length;i++)if(sp[i][0]<sp[i-1][1])return 'Οι ολιγόωρες απουσίες του ίδιου εργαζομένου δεν επιτρέπεται να επικαλύπτονται.';
   return '';
 }
+// Αισιόδοξη ενημέρωση: η οθόνη αλλάζει ΑΜΕΣΑ· η επιβεβαίωση από τον server γίνεται από πίσω (σε σφάλμα ξαναφορτώνεται η πραγματική κατάσταση)
+function presOpt(body){
+  let i=presState.att.findIndex(x=>x.employee_id===body.employee_id),cur=i>=0?presState.att[i]:{employee_id:body.employee_id,status:'PRESENT',late:false},o={...cur};
+  ['status','org_unit_id','position_text','since_at','late','arrived_at','short_leaves'].forEach(k=>{if(k in body&&body[k]!==undefined)o[k]=body[k]});
+  if(body.status==='ABSENT'){o.late=false;o.arrived_at=null}
+  delete o.net_minutes;   // οι ώρες υπολογίζονται τοπικά μέχρι να έρθει η τιμή του server
+  // αντίγραφο του πίνακα (ΟΧΙ αλλαγή του κοινού cache των GET): σε απόρριψη το presRefresh φέρνει πάλι την αληθινή κατάσταση
+  presState.att=i>=0?presState.att.map((x,j)=>j===i?o:x):presState.att.concat([o]);
+  try{presPaint()}catch(e){}
+}
 async function presPutShorts(eid,list,extra){
   let a=presState.att.find(x=>x.employee_id===eid)||{status:'PRESENT'};
   let body={work_date:localISODate(new Date()),employee_id:eid,status:a.status||'PRESENT',org_unit_id:a.org_unit_id||null,position_text:a.position_text||null,since_at:a.since_at||null,short_leaves:list.map(x=>({from:x.from,to:x.to||null}))};
   Object.assign(body,extra||{});
-  await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh();
+  presOpt(body);
+  try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)})}finally{await presRefresh()}
 }
 async function presShortAction(act,eid,i){
   let a=presState.att.find(x=>x.employee_id===eid)||{status:'PRESENT'},cur=(a.short_leaves||[]).map(x=>({from:x.from,to:x.to||null})),msg=$('presMsg');
@@ -2838,7 +2849,8 @@ $('presBody').onchange=async e=>{
     return;
   }
   else return;
-  try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){$('presMsg').textContent=err?.message||String(err);presRefresh()}
+  presOpt(body);
+  try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){await presRefresh();$('presMsg').textContent=err?.message||String(err)}
 };
 // Κουμπιά κατάστασης: «Αργοπορία» και «Έφυγε» μπορούν να είναι ενεργά ταυτόχρονα· «Παρών»/«Απών» τα ακυρώνουν.
 $('presBody').onclick=async e=>{
@@ -2871,7 +2883,8 @@ $('presBody').onclick=async e=>{
       let ar=f.L&&a.arrived_at?tfToM(deltioTimeStr(a.arrived_at)):null,mn=ar!==null?ar+1:(sc&&sc.s);
       if(!(sc&&sc.e!=null&&nm!==null&&nm>=mn&&nm<=sc.e-1))body.since_at=null;}
   }
-  try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){$('presMsg').textContent=err?.message||String(err)}
+  presOpt(body);
+  try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){await presRefresh();$('presMsg').textContent=err?.message||String(err)}
 };
 function paintHomeDate(){let d=new Date(),w=new Intl.DateTimeFormat('el-GR',{weekday:'long'}).format(d);$('homeDate').textContent=w.charAt(0).toUpperCase()+w.slice(1)+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 async function loadDashboard(){paintHomeDate();loadPresenceCounts();let d=await api('/dashboard/operations');let arr=[['Παραλαβές ημέρας',`${d.today_received||0}/${(d.today_received||0)+(d.today_remaining||0)}`],[d.sorting_in_progress===1?'Ταξινόμηση σε εξέλιξη':'Ταξινομήσεις σε εξέλιξη',d.sorting_in_progress],['Προγραμματισμένες φορτώσεις',d.open_loadings]];$('metrics').innerHTML=arr.map(x=>`<div class="card metric" style="cursor:pointer" role="link" tabindex="0"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('');

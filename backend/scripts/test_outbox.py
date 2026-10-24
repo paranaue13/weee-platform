@@ -12,7 +12,7 @@ def ck(n, ok, i=''):
     if not ok: bad.append(n)
 db = lambda q, *a: sqlite3.connect(DB).execute(q, a).fetchall()
 c = sqlite3.connect(DB)
-lot = c.execute("select l.id,l.weee_category_id from weee_stock_lots l join collection_media m on m.id=l.collection_medium_id where l.available_weight>=120 order by l.id limit 1").fetchone()
+lot = c.execute("select id,weee_category_id from weee_stock_lots where available_weight>=120 order by id limit 1").fetchone()
 U1 = c.execute("select id from organizational_units where active=1 and profile='PRODUCTION' order by id limit 1").fetchone()[0]
 emps = [r[0] for r in c.execute("select e.employee_id from employee_org_units e join employees p on p.id=e.employee_id where e.org_unit_id=? and p.active=1 order by e.employee_id limit 2", (U1,)).fetchall()]
 E1, E2 = emps[0], emps[1] if len(emps) > 1 else emps[0]
