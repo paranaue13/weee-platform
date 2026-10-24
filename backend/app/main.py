@@ -1,6 +1,6 @@
 import os
 import re
-import asyncio, logging
+import asyncio, logging, json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
@@ -237,6 +237,42 @@ async def lifespan(app: FastAPI):
     ec_task.cancel()
 
 app = FastAPI(title="WEEE Operations Platform API", version="2.5.35", lifespan=lifespan)
+
+# ---- Άμεση ειδοποίηση αλλαγών (Server-Sent Events) -------------------------------------------------
+# Κάθε επιτυχής εγγραφή (POST/PUT/PATCH/DELETE) ειδοποιεί όλες τις συνδεδεμένες οθόνες (Windows/Android) με τα «θέματα» που άλλαξαν·
+# οι οθόνες ξαναφορτώνουν μόνο αυτά. Η ανανέωση ανά 15″ στις οθόνες μένει ως εφεδρική.
+_event_subs:set=set()
+
+def _topics_for_path(path:str)->set:
+    p=path.lower(); t=set()
+    if p.startswith("/production/attendance") or p.startswith("/production/placement"): t|={"attendance"}
+    if p.startswith("/production/") and not p.startswith("/production/attendance") and not p.startswith("/production/placement"): t|={"production","inventory"}
+    if p.startswith("/master/employees") or p.startswith("/master/org-units"): t|={"masters","attendance"}
+    elif p.startswith("/master/"): t|={"masters"}
+    if p.startswith("/sorting") or p.startswith("/inventory") or p.startswith("/receipts"): t|={"inventory","sorting"}
+    if p.startswith("/settings"): t|={"settings","attendance"}
+    return t or {"misc"}
+
+def _publish_change(path:str):
+    topics=_topics_for_path(path)
+    for q in list(_event_subs):
+        for tp in topics:
+            try: q.put_nowait(tp)
+            except Exception: pass
+
+class _ChangeNotifier:
+    """Καθαρό ASGI middleware: μετά από επιτυχή εγγραφή (η απάντηση ξεκινά ΜΕΤΑ το commit) ειδοποιεί τους συνδρομητές."""
+    def __init__(self, inner): self.inner=inner
+    async def __call__(self, scope, receive, send):
+        if scope["type"]!="http" or scope.get("method") not in ("POST","PUT","PATCH","DELETE") or scope["path"].startswith("/events"):
+            return await self.inner(scope,receive,send)
+        path=scope["path"]
+        async def snd(m):
+            if m["type"]=="http.response.start" and m["status"]<400: _publish_change(path)
+            await send(m)
+        await self.inner(scope,receive,snd)
+
+app.add_middleware(_ChangeNotifier)
 from .mat_warehouse import router as _mat_router
 app.include_router(_mat_router)
 
@@ -2557,6 +2593,29 @@ def desktop_workspace():
 # ---- Builds 0.3-0.5: Android Sorting + Logistics Review + MVP workflow ----
 from fastapi import UploadFile, File, Form
 from fastapi.responses import FileResponse as _FileResponse
+from fastapi.responses import StreamingResponse as _StreamingResponse
+
+@app.get("/events")
+async def change_events(request:Request, token:str=Query(...)):
+    """Ροή αλλαγών (EventSource δεν στέλνει headers -> το token στο query). Μήνυμα: JSON λίστα θεμάτων που άλλαξαν."""
+    import jwt as _jwt
+    try: _jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+    except Exception: raise HTTPException(401,"Μη έγκυρη σύνδεση")
+    async def gen():
+        q=asyncio.Queue(); _event_subs.add(q)
+        try:
+            yield "retry: 2000\n\n: ok\n\n"
+            while True:
+                try: first=await asyncio.wait_for(q.get(),timeout=15)
+                except asyncio.TimeoutError:
+                    if await request.is_disconnected(): break
+                    yield ": ka\n\n"; continue
+                await asyncio.sleep(0.15)                       # συγκέντρωση πολλών αλλαγών μαζί
+                topics={first}
+                while not q.empty(): topics.add(q.get_nowait())
+                yield "data: "+json.dumps(sorted(topics))+"\n\n"
+        finally: _event_subs.discard(q)
+    return _StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control":"no-cache","X-Accel-Buffering":"no"})
 from datetime import date, timedelta
 from uuid import uuid4
 import shutil
