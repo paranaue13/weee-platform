@@ -31,7 +31,7 @@ with sync_playwright() as p:
     ck('ώρες σε μορφή «8ω 00λ»', all(re.search(r'\d+ω \d\dλ|—', t) for t in pg.locator('.dcT tbody tr:not(.dcPanel) td.r').all_inner_texts()))
     ck('τμήματα Διοίκησης χωρίς κάρτα', not any(pg.query_selector(f'.dcard[data-unit="{u["id"]}"]') for u in units if u['profile'] == 'MANAGEMENT'))
     ck('ΔΕΝ υπάρχει διακόπτης «Μόνο τμήματα με καταχώρηση»', pg.query_selector('#deltioOnly') is None and 'Μόνο τμήματα' not in pg.inner_text('#productionDeltioPanel'))
-    ck('η γραμμή οριζόντιου scroll είναι στο τέρμα κάτω της οθόνης', pg.evaluate("(()=>{const r=document.getElementById('deltioDepts').getBoundingClientRect();return innerHeight-r.bottom<60&&innerHeight-r.bottom>=0})()"))
+    ck('η γραμμή οριζόντιου scroll είναι στο τέρμα κάτω της οθόνης', pg.evaluate("(()=>{const r=document.getElementById('deltioDepts').getBoundingClientRect();return innerHeight-document.getElementById('deltioReturns').getBoundingClientRect().bottom<60&&innerHeight-r.bottom>=0})()"))
     n_all = cards.count()
     # μεταφορά δοκιμή
     emps = pg.evaluate("prodState.employees.filter(e=>e.active!==false&&(e.org_unit_ids||[]).length===1).map(e=>[e.id,e.org_unit_ids[0]])")

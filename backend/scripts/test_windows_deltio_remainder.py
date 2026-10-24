@@ -40,6 +40,8 @@ with sync_playwright() as p:
     card.locator('.dcRemKg').fill('500'); pg.wait_for_timeout(100); card.locator('[data-rmode="NET"]').click(); pg.wait_for_timeout(100)
     card.locator('[data-ract="save"]').click(); pg.wait_for_timeout(800)
     ck('υπόλοιπο μεγαλύτερο από τα στάλθηκαν → μήνυμα σφάλματος στη φόρμα', 'δεν μπορεί να είναι μεγαλύτερο' in card.locator('#dcRemErr').inner_text(), card.locator('#dcRemErr').inner_text())
+    ck('απόρριψη από server: εμφανίζεται και παράθυρο ΟΚ', pg.query_selector('.obModal') is not None)
+    pg.click('.obModal button'); pg.wait_for_timeout(300)
     card.locator('.dcRemKg').fill('30'); card.locator('[data-ract="save"]').click(); pg.wait_for_timeout(1500)
     card = pg.locator(f'.dcard[data-unit="{unit}"]')
     ck('μετά: ετικέτα κεχριμπάρι + «περίσσεψαν 30 kg»', card.locator('.dcRem').count() >= 1 and 'περίσσεψαν 30' in card.locator('.dcRem').first.inner_text())

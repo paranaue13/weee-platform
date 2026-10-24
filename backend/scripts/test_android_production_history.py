@@ -59,6 +59,7 @@ with sync_playwright() as p:
     ck('ζωντανή προεπισκόπηση: καθαρό υπόλοιπο 30 / καθαρή παραγωγή 70', 'Καθαρό υπόλοιπο' in prev and '30' in prev and '70' in prev, prev.replace('\n', ' '))
     pg.locator('.ptRM[data-m="NET"]').tap(); pg.wait_for_timeout(200); pg.locator('#ptRemKg').fill('500'); pg.locator('.ptRemSave').tap(); pg.wait_for_timeout(1000)
     ck('υπόλοιπο > στάλθηκαν → μήνυμα', 'δεν μπορεί να είναι μεγαλύτερο' in pg.inner_text('#ptMsg'), pg.inner_text('#ptMsg'))
+    pg.click('.obModal button'); pg.wait_for_timeout(300)   # παράθυρο ΟΚ της απόρριψης
     pg.locator('#ptRemKg').fill('30'); pg.locator('.ptRemSave').tap(); pg.wait_for_timeout(2000)
     ck('κεχριμπάρι μέσο με «περίσσεψαν 30 kg»', 'περίσσεψαν 30' in pg.inner_text('#prodTodayList'))
     ck('kg που φαίνονται = καθαρή παραγωγή 70', '70 kg' in pg.inner_text('#prodTodayList'))

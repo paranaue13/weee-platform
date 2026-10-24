@@ -2294,7 +2294,113 @@ body[data-theme="dark"] :is(#floatingEditor,#receiptForm,#sortingDetail) input[t
 <script id="vzCore">if(!window.searchNorm){window.searchNorm=function(x){return String(x==null?'':x).toLowerCase()};Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true})};window.vzOf=function(el){return el&&el.closest&&el.closest('.content>.view')?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1):1};</script>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
-const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}async function api(path,opt={}){let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r=await fetch(path,{...opt,headers:h,cache:'no-store'});let d=null;try{d=await r.json()}catch{}if(!r.ok){let dt=d?.detail,er=new Error(Array.isArray(dt)?dt.join('\n'):(dt&&typeof dt==='object'?(dt.message||'Σφάλμα '+r.status):(dt||'Σφάλμα '+r.status)));er.status=r.status;if(dt&&typeof dt==='object'&&!Array.isArray(dt))er.detail=dt;throw er}if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
+const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}/* ===== ΟΥΡΑ ΕΓΓΡΑΦΩΝ (outbox): κάθε εγγραφή μπαίνει σε ουρά με μοναδικό κωδικό, στέλνεται με τη σειρά, ξαναστέλνεται αυτόματα με τον ΙΔΙΟ κωδικό
+   (ο server δεν γράφει διπλά), μένει αποθηκευμένη στη συσκευή και γράφει ΤΗΝ ΩΡΑ που έγινε η ενέργεια στην οθόνη (X-Occurred-At). ===== */
+const OB=(function(){
+  const KEY='outbox.v1',TIMEOUT=20000,QUIET=300000,EARLY=8000;
+  let q=[],busy=false,tm=null,waiters={},lastBtn=null,btns={},drain=[],delayed=false;
+  try{q=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){q=[]}
+  const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(q))}catch(e){}};
+  const uid=()=>{try{return crypto.randomUUID()}catch(e){return 'r'+Date.now().toString(36)+Math.random().toString(36).slice(2,10)}};
+  const WANT=/^\/production\/(attendance(\/units|\/events\/[^/]+\/undo)?|transfers(\/[^/]+\/(cancel|weight))?|transfer-items\/[^/]+\/remainder(\/undo)?|work-entries(\/[^/?]+)?|day-material|remainders)(\?.*)?$/;
+  const wants=(path,method)=>/^(POST|PUT|PATCH|DELETE)$/.test(method)&&WANT.test(String(path));
+  const emps=()=>{try{return (typeof prodEmps!=='undefined'?prodEmps:(typeof prodState!=='undefined'?prodState.employees:[]))||[]}catch(e){return []}};
+  const unitsL=()=>{try{return (typeof dlUnits!=='undefined'&&dlUnits.length?dlUnits:(typeof prodUnits!=='undefined'&&prodUnits.length?prodUnits:(typeof prodState!=='undefined'?prodState.units:[])))||[]}catch(e){return []}};
+  const en=id=>(emps().find(x=>x.id===id)||{}).full_name||'εργαζόμενος';
+  const un=id=>(unitsL().find(x=>x.id===id)||{}).name_el||'τμήμα';
+  const hm=iso=>{try{let d=new Date(iso);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}catch(e){return ''}};
+  function label(method,path,body){
+    let b={};try{b=JSON.parse(body||'{}')}catch(e){}
+    let p=String(path).split('?')[0];
+    if(p==='/production/attendance'){
+      let st=b.short_leaves&&b.short_leaves.length&&b.status!=='LEFT'?'Ολιγόωρη':b.status==='ABSENT'?'Απών':b.status==='LEFT'?'Έφυγε':b.late?'Αργοπορία':'Παρών';
+      return 'Παρουσία: '+en(b.employee_id)+' → '+st;
+    }
+    if(p==='/production/attendance/units')return 'Τμήμα: '+en(b.employee_id)+' · '+(b.action==='move'?'Μεταφορά → ':b.action==='add'?'Εργασία → ':'Αφαίρεση από ')+un(b.unit_id);
+    if(/\/events\/.*\/undo$/.test(p))return 'Ακύρωση αλλαγής παρουσίας/τμήματος';
+    if(p==='/production/transfers')return 'Αποστολή υλικού → '+un(b.destination_org_unit_id);
+    if(/\/transfers\/[^/]+\/cancel$/.test(p))return 'Αναίρεση αποστολής υλικού';
+    if(/\/transfers\/[^/]+\/weight$/.test(p))return 'Διόρθωση kg αποστολής';
+    if(/\/remainder\/undo$/.test(p))return 'Αναίρεση υπολοίπου μέσου';
+    if(/\/remainder$/.test(p))return 'Υπόλοιπο μέσου ('+(b.mode==='GROSS'?'μικτά ':'καθαρά ')+b.kg+' kg)';
+    if(p==='/production/day-material'||p==='/production/remainders')return 'Καταχώρηση παραγωγής';
+    if(/work-entries/.test(p))return method==='DELETE'?'Διαγραφή καταχώρησης παραγωγής':method==='PUT'?'Διόρθωση καταχώρησης παραγωγής':'Καταχώρηση παραγωγής';
+    return 'Ενέργεια';
+  }
+  document.addEventListener('click',ev=>{let b=ev.target&&ev.target.closest?ev.target.closest('button'):null;lastBtn=b?{b,t:Date.now()}:null},true);
+  function guard(e){let l=lastBtn;if(l&&Date.now()-l.t<1500&&l.b.isConnected&&!l.b.disabled){l.b.disabled=true;btns[e.id]=l.b}}
+  function free(e){let b=btns[e.id];if(b){try{b.disabled=false}catch(x){}delete btns[e.id]}}
+  function write(path,opt){
+    let method=String(opt.method||'POST').toUpperCase(),body=typeof opt.body==='string'?opt.body:(opt.body?JSON.stringify(opt.body):null);
+    let e={id:uid(),path,method,body,at:new Date().toISOString(),label:label(method,path,body),tries:0,fails:0,created:Date.now()};
+    q.push(e);save();guard(e);render();
+    return new Promise((res,rej)=>{
+      waiters[e.id]={res,rej};
+      // Το UI δεν μένει κολλημένο: αν δεν υπάρξει απάντηση σε λίγα δευτερόλεπτα, συνεχίζει «αισιόδοξα» και η ουρά δουλεύει στο παρασκήνιο
+      setTimeout(()=>{let w=waiters[e.id];if(w){delayed=true;delete waiters[e.id];free(e);let o={};try{o=JSON.parse(e.body||'{}')}catch(x){}w.res(Object.assign({},o,{__queued:true}))}},EARLY);
+      pump();
+    });
+  }
+  async function send(e){
+    let ac=new AbortController(),t=setTimeout(()=>ac.abort(),TIMEOUT);
+    try{
+      let h={'Content-Type':'application/json','X-Request-Id':e.id,'X-Occurred-At':e.at};if(typeof token!=='undefined'&&token)h.Authorization='Bearer '+token;
+      let r=await window.fetch(e.path,{method:e.method,headers:h,body:e.body,cache:'no-store',signal:ac.signal});
+      let d=null;try{d=await r.json()}catch(x){}
+      return {ok:r.ok,status:r.status,data:d};
+    }finally{clearTimeout(t)}
+  }
+  const errMsg=r=>{let dt=r.data&&r.data.detail;return Array.isArray(dt)?dt.map(x=>x.msg||x).join('\n'):(dt&&typeof dt==='object'?(dt.message||'Σφάλμα '+r.status):(dt||'Σφάλμα '+r.status))};
+  function settle(e,ok,val){
+    free(e);let w=waiters[e.id];delete waiters[e.id];
+    if(ok){if(w)w.res(val);try{if(typeof clearApiCache==='function')clearApiCache()}catch(x){}}
+    else{let er=new Error(val);er.obShown=true;if(w)w.rej(er);reject(e,val)}
+  }
+  function schedule(ms){clearTimeout(tm);tm=setTimeout(pump,ms)}
+  async function pump(){
+    if(busy)return;busy=true;
+    try{
+      while(q.length){
+        let e=q[0],r;
+        try{r=await send(e)}catch(err){delayed=true;e.tries++;save();render();schedule(Math.min(30000,2000*e.tries));return}
+        if(r.ok){q.shift();save();settle(e,true,r.data);render();continue}
+        if(r.status===401){schedule(5000);render();return}
+        if((r.status>=500||r.status===408||r.status===429)&&++e.fails<4){save();schedule(3000);return}
+        q.shift();save();settle(e,false,errMsg(r));render();
+      }
+    }finally{busy=false}
+    if(!q.length&&delayed){delayed=false;drain.forEach(f=>{try{f()}catch(x){}})}   // ανανέωση οθόνης μόνο όταν η ουρά άργησε (π.χ. μετά από χαμένη σύνδεση)
+  }
+  function reject(e,msg){
+    let m=document.createElement('div');m.className='obModal';
+    m.style.cssText='position:fixed;inset:0;z-index:200000;background:rgba(15,20,35,.45);display:flex;align-items:center;justify-content:center;padding:16px';
+    m.innerHTML='<div style="background:#fff;color:#1a1b20;border-radius:12px;max-width:420px;width:100%;padding:18px;box-shadow:0 8px 28px rgba(0,0,0,.3)"><div style="font-weight:700;margin-bottom:6px">Η ενέργεια δεν έγινε</div><div style="font-size:14px;margin-bottom:4px">'+esc2(e.label)+' ('+esc2(hm(e.at))+')</div><div style="font-size:14px;color:#a32d2d;margin-bottom:14px">'+esc2(msg)+'</div><button type="button" style="width:100%;min-height:44px;border:0;border-radius:8px;background:#2f5fc4;color:#fff;font-weight:700;font-size:15px">ΟΚ</button></div>';
+    m.querySelector('button').onclick=()=>m.remove();document.body.appendChild(m);
+  }
+  const esc2=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  function render(){
+    let old=q.filter(e=>Date.now()-e.created>=QUIET),b=document.getElementById('obBanner');
+    if(!old.length){if(b)b.remove();return}
+    if(!b){
+      b=document.createElement('div');b.id='obBanner';
+      b.style.cssText='background:#ffe9c7;color:#7a4300;padding:8px 12px;font-size:13px;font-weight:600;line-height:1.4;position:relative;z-index:50';
+      let host=document.querySelector('.top')||document.querySelector('.topbar');
+      if(host&&host.parentNode)host.parentNode.insertBefore(b,host.nextSibling);else document.body.insertBefore(b,document.body.firstChild);
+    }
+    b.innerHTML=old.length===1?'⚠ Δεν έχει επιβεβαιωθεί ακόμα: '+esc2(old[0].label)+' ('+esc2(hm(old[0].at))+'). Η εφαρμογή συνεχίζει να προσπαθεί.'
+      :'⚠ Δεν έχουν επιβεβαιωθεί ακόμα '+old.length+' ενέργειες. Η εφαρμογή συνεχίζει να προσπαθεί.'+old.map(e=>'<div style="font-weight:500">• '+esc2(e.label)+' · '+esc2(hm(e.at))+'</div>').join('');
+  }
+  setInterval(render,10000);setInterval(()=>{if(q.length&&!busy)pump()},15000);window.addEventListener('online',()=>schedule(500));
+  if(q.length)setTimeout(pump,3000);
+  return {wants,write,pending:()=>q.length>0,onDrain:f=>drain.push(f),list:()=>q.slice(),busy:()=>busy,_send:send};
+})();
+
+// Ένδειξη OFFLINE (όπως στο Android): εμφανίζεται όταν αποτύχει επικοινωνία με τον server
+(function(){let p=document.createElement('span');p.id='netState';p.textContent='OFFLINE';p.title='Δεν υπάρχει επικοινωνία με τον server';p.style.cssText='display:none;margin-right:10px;padding:3px 10px;border-radius:999px;background:#fcebeb;color:#9b2226;font-size:12px;font-weight:700';
+ let w=document.getElementById('who');if(w&&w.parentNode)w.parentNode.insertBefore(p,w);
+ let f=window.fetch.bind(window);window.fetch=function(){return f.apply(null,arguments).then(r=>{p.style.display='none';return r},e=>{p.style.display='';throw e})};
+ window.addEventListener('online',()=>{p.style.display='none'});window.addEventListener('offline',()=>{p.style.display=''})})();
+async function api(path,opt={}){{let _m=String(opt.method||'GET').toUpperCase();if(OB.wants(path,_m))return OB.write(path,opt)}let method=String(opt.method||'GET').toUpperCase(),cacheable=method==='GET'&&!opt.body;if(cacheable){let hit=apiCache.get(path);if(hit&&Date.now()-hit.ts<API_CACHE_MS)return hit.data}let h={...(opt.headers||{}),...(token?{Authorization:'Bearer '+token}:{})};if(opt.body&&!(opt.body instanceof FormData))h['Content-Type']='application/json';let r,_ac=new AbortController(),_tm=(opt.body instanceof FormData)?null:setTimeout(()=>_ac.abort(),20000);try{r=await fetch(path,{...opt,headers:h,cache:'no-store',signal:_ac.signal})}catch(_e){throw new Error(_e&&_e.name==='AbortError'?'Ο server αργεί να απαντήσει. Δες αν πέρασε η ενέργεια πριν την ξαναδώσεις.':'Δεν έγινε επικοινωνία με τον server. Η ενέργεια δεν ελέγχθηκε.')}finally{if(_tm)clearTimeout(_tm)}let d=null;try{d=await r.json()}catch{}if(!r.ok){let dt=d?.detail,er=new Error(Array.isArray(dt)?dt.join('\n'):(dt&&typeof dt==='object'?(dt.message||'Σφάλμα '+r.status):(dt||'Σφάλμα '+r.status)));er.status=r.status;if(dt&&typeof dt==='object'&&!Array.isArray(dt))er.detail=dt;throw er}if(cacheable)apiCache.set(path,{ts:Date.now(),data:d});else clearApiCache();return d}
 async function downloadAuthorized(path){
  try{let exp=await api('/settings/export');if(!exp?.path){if(!confirm('Δεν έχει οριστεί φάκελος εξαγωγών στις Ρυθμίσεις εφαρμογής -- το αρχείο θα αποθηκευτεί μόνο με τη λήψη του browser. Να συνεχίσει η εξαγωγή;'))return}}catch{}
  let r=await fetch(path,{headers:token?{Authorization:'Bearer '+token}:{}});if(!r.ok){let d={};try{d=await r.json()}catch{}throw new Error(d.detail||'Σφάλμα '+r.status)}let blob=await r.blob(),name='export';let cd=r.headers.get('content-disposition')||'';let m=cd.match(/filename\*=UTF-8''([^;]+)|filename=\"?([^;\"]+)/i);if(m)name=decodeURIComponent(m[1]||m[2]);let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500)}
@@ -3777,8 +3883,8 @@ async function deltioSetAttendance(empId,patch){
   renderDeltio();
 }
 // Αλλαγή συνόλου τμημάτων (κοινός κανόνας server): add / remove· «Μεταφορά» = add στο νέο + remove από το τρέχον
-async function deltioUnits(empId,action,unitId){
-  clearApiCache();return api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:deltioState.date,employee_id:empId,action,unit_id:unitId})});
+async function deltioUnits(empId,action,unitId,fromUnits){
+  clearApiCache();return api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:deltioState.date,employee_id:empId,action,unit_id:unitId,...(fromUnits?{from_unit_ids:fromUnits}:{})})});
 }
 function fitDeltio(){let w=$('deltioDepts');if(!w||!w.offsetParent)return;let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,top=w.getBoundingClientRect().top;let rb=$('deltioReturns'),rh=rb?rb.offsetHeight+12:0;w.style.height=Math.max(260,Math.floor((window.innerHeight-top-bh)/rz)-6-rh)+'px'}
 window.addEventListener('resize',()=>setTimeout(fitDeltio,50));
@@ -3790,7 +3896,8 @@ function deltioKg(n){return Number(n).toLocaleString('el-GR',{maximumFractionDig
 async function deltioUnitAction(empId,fromUnits,kind,toUnit){
   try{
     if(kind==='remove'){for(const u of fromUnits)await deltioUnits(empId,'remove',u)}
-    else{await deltioUnits(empId,'add',toUnit);if(kind==='move'){for(const u of fromUnits)await deltioUnits(empId,'remove',u)}}
+    else if(kind==='move')await deltioUnits(empId,'move',toUnit,fromUnits)
+    else await deltioUnits(empId,'add',toUnit)
   }catch(err){alert(err.message);}
   deltioState.open=null;clearApiCache();try{prodState.employees=await api('/master/employees?include_inactive=true')}catch(err){}
   await loadDeltio();
@@ -3896,7 +4003,7 @@ if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
 // Αυτόματη ανανέωση κάθε 15″: αναστέλλεται όσο είναι ανοιχτό πάνελ «διάλεξε τμήμα» ή φόρμα «Υπόλοιπο» ή ο χρήστης πληκτρολογεί
 let deltioRefreshing=false;
 setInterval(async()=>{
-  let pn=$('productionDeltioPanel');if(!pn||!pn.offsetParent||document.hidden||deltioRefreshing)return;
+  let pn=$('productionDeltioPanel');if(!pn||!pn.offsetParent||document.hidden||deltioRefreshing||OB.pending())return;
   let ae=document.activeElement;if(deltioState.open||deltioState.rem||(ae&&pn.contains(ae)&&/INPUT|SELECT|TEXTAREA/.test(ae.tagName)))return;
   deltioRefreshing=true;try{clearApiCache();await loadDeltio()}catch(e){}finally{deltioRefreshing=false}
 },15000);

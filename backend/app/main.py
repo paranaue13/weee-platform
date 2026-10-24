@@ -70,6 +70,8 @@ async def _electrocycle_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    try: _purge_idem()
+    except Exception: pass
     # Small forward-compatible migration for existing 1.x SQLite/PostgreSQL databases.
     inspector=inspect(engine)
     cols={c["name"] for c in inspector.get_columns("collection_media")} if "collection_media" in inspector.get_table_names() else set()
@@ -290,7 +292,22 @@ def _idem_get(rid:str):
         return (r.status,r.body or "") if r else None
     finally: db.close()
 
+IDEM_KEEP_DAYS=30
+_idem_last_purge=[0.0]
+
+def _purge_idem(days:int=IDEM_KEEP_DAYS)->int:
+    """Σβήνει τους κωδικούς αιτημάτων παλιότερους από `days` ημέρες· επιστρέφει πόσους έσβησε."""
+    db=SessionLocal()
+    try:
+        r=db.execute(models.IdempotencyKey.__table__.delete().where(models.IdempotencyKey.created_at<datetime.utcnow()-timedelta(days=days)))
+        db.commit(); return r.rowcount or 0
+    except Exception:
+        db.rollback(); return 0
+    finally: db.close()
+
 def _idem_put(rid:str,method:str,path:str,status:int,body:str):
+    import time as _t
+    if _t.time()-_idem_last_purge[0]>86400: _idem_last_purge[0]=_t.time(); _purge_idem()
     db=SessionLocal()
     try:
         if not db.get(models.IdempotencyKey,rid):
@@ -331,6 +348,55 @@ class _Idempotency:
             if not lock.locked(): _idem_locks.pop(rid,None)
 
 app.add_middleware(_Idempotency)
+
+# ---- Ώρα που έγινε η ενέργεια στην οθόνη του χρήστη (X-Occurred-At, ISO UTC) ----------------------------------
+# Η ουρά των οθονών στέλνει την ώρα του κλικ· ο server γράφει ΑΥΤΗ την ώρα (παρουσίες, αποστολές, Υπόλοιπο, μεταφορές εργαζομένων),
+# όχι την ώρα που έφτασε το αίτημα. Έλεγχος: όχι στο μέλλον (ανοχή ρολογιού 5′) και όχι πάνω από 3 ημέρες πίσω.
+import contextvars as _cv
+_occurred=_cv.ContextVar("occurred_at",default=None)
+OCCURRED_MAX_AGE=timedelta(days=3); OCCURRED_FUTURE_SLACK=timedelta(minutes=5)
+
+def _event_now()->datetime:
+    """Ώρα της ενέργειας (naive UTC): της οθόνης αν στάλθηκε, αλλιώς η τωρινή."""
+    return _occurred.get() or datetime.utcnow()
+
+def _event_now_aware()->datetime:
+    return _event_now().replace(tzinfo=timezone.utc)
+
+def _event_now_local()->datetime:
+    v=_occurred.get()
+    return v.replace(tzinfo=timezone.utc).astimezone().replace(tzinfo=None) if v else datetime.now()
+
+def _parse_occurred(v:str):
+    d=datetime.fromisoformat(v.strip().replace("Z","+00:00"))
+    return d.astimezone(timezone.utc).replace(tzinfo=None) if d.tzinfo else d
+
+class _ClientTime:
+    """Pure ASGI: διαβάζει το X-Occurred-At και το κάνει διαθέσιμο στον κώδικα που γράφει ώρες."""
+    def __init__(self, inner): self.inner=inner
+    async def __call__(self, scope, receive, send):
+        if scope["type"]!="http" or scope.get("method") not in ("POST","PUT","PATCH","DELETE"):
+            return await self.inner(scope,receive,send)
+        hv=None
+        for k,v in scope.get("headers") or []:
+            if k==b"x-occurred-at": hv=v.decode("latin-1")
+        if not hv: return await self.inner(scope,receive,send)
+        msg=None; occ=None
+        try:
+            occ=_parse_occurred(hv); now=datetime.utcnow()
+            if occ>now+OCCURRED_FUTURE_SLACK: msg="Η ώρα της συσκευής δεν είναι σωστή (είναι στο μέλλον). Έλεγξε την ώρα του κινητού/υπολογιστή."
+            elif occ<now-OCCURRED_MAX_AGE: msg="Η ενέργεια έγινε πάνω από 3 ημέρες πριν και δεν γράφτηκε."
+            elif occ>now: occ=now
+        except Exception: msg="Μη έγκυρη ώρα ενέργειας."
+        if msg:
+            raw=json.dumps({"detail":msg},ensure_ascii=False).encode("utf-8")
+            await send({"type":"http.response.start","status":422,"headers":[(b"content-type",b"application/json; charset=utf-8"),(b"content-length",str(len(raw)).encode())]})
+            await send({"type":"http.response.body","body":raw}); return
+        tok=_occurred.set(occ)
+        try: await self.inner(scope,receive,send)
+        finally: _occurred.reset(tok)
+
+app.add_middleware(_ClientTime)
 from .mat_warehouse import router as _mat_router
 app.include_router(_mat_router)
 
@@ -1364,7 +1430,7 @@ def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,
     """Closes any open placement interval for this employee today and opens a new one for
     new_org_unit_id. No-op if the department isn't actually changing. Pure addition -- never read by
     ProductionWorkEntry/ProductionAttendance or the reports built on them."""
-    now=at or datetime.now(timezone.utc)
+    now=at or _event_now_aware()
     day=datetime(now.year,now.month,now.day,tzinfo=timezone.utc)
     open_row=db.scalar(select(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==employee_id,ProductionPlacementInterval.work_date==day,ProductionPlacementInterval.ended_at.is_(None)))
     ids_json=_json.dumps(unit_ids if unit_ids is not None else ([new_org_unit_id] if new_org_unit_id else []))
@@ -1468,7 +1534,7 @@ def create_production_work_entry(data:schemas.ProductionWorkEntryCreate,db:Sessi
     if not db.get(OrganizationalUnit,data.org_unit_id): raise HTTPException(404,"Το τμήμα δεν βρέθηκε")
     if data.employee_id and not db.get(Employee,data.employee_id): raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
     if not db.get(WEEECategory,data.weee_category_id): raise HTTPException(404,"Η κατηγορία ΑΗΗΕ δεν βρέθηκε")
-    obj=ProductionWorkEntry(**data.model_dump(),created_by_user_id=user.id); db.add(obj); db.commit(); db.refresh(obj); return obj
+    obj=ProductionWorkEntry(**data.model_dump(),created_by_user_id=user.id,created_at=_event_now()); db.add(obj); db.commit(); db.refresh(obj); return obj
 
 def _production_entry_snapshot(obj:ProductionWorkEntry)->dict:
     return {"work_date":obj.work_date.isoformat(),"org_unit_id":obj.org_unit_id,"employee_id":obj.employee_id,"weee_category_id":obj.weee_category_id,"weight_kg":str(obj.weight_kg),"supplier_group":obj.supplier_group,"notes":obj.notes}
@@ -1734,7 +1800,7 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     # Η θέση ΔΕΝ αλλάζει με ΑΠΩΝ/ΕΦΥΓΕ -- όταν γυρίσει παρών ξεκινά από την τελευταία γνωστή.
     new_org=data.org_unit_id
     if new_org is None and (status in ("ABSENT","LEFT") or p_status in ("ABSENT","LEFT")): new_org=p_org  # επιστροφή = από την τελευταία γνωστή θέση
-    now=datetime.utcnow()
+    now=_event_now()
     if status=="PRESENT":
         if p_status=="ABSENT":   # ήρθε (ή ξαναήρθε) τώρα -- αργοπορία αν είναι μετά την έναρξη βάρδιας
             arrived=now; late=True if data.late else (False if data.late is False else _after_shift_start(db,now))
@@ -1771,7 +1837,7 @@ def upsert_production_attendance(data:schemas.ProductionAttendanceUpsert, db:Ses
     db.flush()
     event_id=None
     if (not p_exists) and (status!="PRESENT" or new_org!=p_org or late) or (p_exists and (p_status!=status or p_org!=new_org or p_late!=late)):
-        ev=ProductionAttendanceEvent(work_date=day,employee_id=data.employee_id,user_id=user.id,status=status,org_unit_id=new_org,since_at=data.since_at,late=late,
+        ev=ProductionAttendanceEvent(created_at=_event_now(),work_date=day,employee_id=data.employee_id,user_id=user.id,status=status,org_unit_id=new_org,since_at=data.since_at,late=late,
             prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id,
             unit_ids=_json.dumps(new_ids),prev_unit_ids=_json.dumps(prev_ids))
         db.add(ev); db.flush(); event_id=ev.id
@@ -1818,7 +1884,7 @@ def change_attendance_units(data:schemas.AttendanceUnitsIn, db:Session=Depends(g
         obj=ProductionAttendance(work_date=day,employee_id=emp.id,status="PRESENT",org_unit_id=new_org,late=False,created_by_user_id=user.id); db.add(obj)
     closed_id,opened_id=_log_placement_interval(db,emp.id,new_org,unit_ids=new_ids)
     db.flush()
-    ev=ProductionAttendanceEvent(work_date=day,employee_id=emp.id,user_id=user.id,status=obj.status,org_unit_id=new_org,since_at=obj.since_at,late=bool(obj.late),
+    ev=ProductionAttendanceEvent(created_at=_event_now(),work_date=day,employee_id=emp.id,user_id=user.id,status=obj.status,org_unit_id=new_org,since_at=obj.since_at,late=bool(obj.late),
         prev_exists=p_exists,prev_status=p_status,prev_org_unit_id=p_org,prev_since_at=p_since,prev_late=p_late,prev_arrived_at=p_arr,closed_interval_id=closed_id,opened_interval_id=opened_id,
         unit_ids=_json.dumps(new_ids),prev_unit_ids=_json.dumps(prev_ids))
     db.add(ev); db.flush()
@@ -3975,11 +4041,13 @@ def weee_media_with_stock(db:Session=Depends(get_db), user=Depends(require_permi
     # ΑΗΗΕ here -- the frontend already owns that decision via isProducedCat(), same as every other
     # production category picker (see [[production_excludes_unprocessed_materials]]).
     lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all()
+    # Φόρτωση μία φορά (όχι ένα ερώτημα ανά μερίδιο): με χιλιάδες μερίδια το παλιό έκανε 5–7″
+    _meds={m.id:m for m in db.scalars(select(CollectionMedium)).all()}; _mts={t.id:t for t in db.scalars(select(CollectionMediumType)).all()}; _cats={c.id:c for c in db.scalars(select(WEEECategory)).all()}
     groups={}
     for lot in lots:
-        med=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
-        mt=db.get(CollectionMediumType,med.type_id) if med else None
-        cat=db.get(WEEECategory,lot.weee_category_id)
+        med=_meds.get(lot.collection_medium_id) if lot.collection_medium_id else None
+        mt=_mts.get(med.type_id) if med else None
+        cat=_cats[lot.weee_category_id]
         key=lot.collection_medium_id or 'BULK'
         g=groups.setdefault(key,{'medium_id':lot.collection_medium_id,'medium_type':mt.name_el if mt else 'Χύμα / χωρίς αριθμημένο μέσο','medium_type_code':mt.code if mt else 'BULK','medium_code':med.code if med else 'Χύμα','is_closed':bool(med.is_closed) if med else False,'total_weight':0.0,'categories':{}})
         g['total_weight']+=float(lot.available_weight or 0)
@@ -4038,7 +4106,7 @@ def _consume_lot(db:Session, transfer_id:str, lot, qty, unit, user:User, notes:s
     db.add(ti); db.flush()
     db.add(ProductionInputBalance(transfer_item_id=ti.id,org_unit_id=unit.id,initial_weight=qty,current_remaining_weight=qty,status='OPEN'))
     db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,
-        weight=qty,org_unit_id=unit.id,user_id=user.id,reason=notes))
+        weight=qty,org_unit_id=unit.id,user_id=user.id,reason=notes,created_at=_event_now()))
     cat=db.get(WEEECategory,lot.weee_category_id); medium=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
     return schemas.ProductionTransferItemOut(stock_lot_id=lot.id,weight=qty,weee_code=cat.code,medium_code=medium.code if medium else None), lot.collection_medium_id
 
@@ -4061,7 +4129,7 @@ def _consume_weee_stock_for_category(db:Session, unit, category_id:str, weight, 
     from decimal import Decimal
     remaining=Decimal(weight)
     if remaining<=0: return Decimal(0)
-    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=notes,present_json=_present_snapshot(db,unit.id))
+    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=notes,created_at=_event_now(),present_json=_present_snapshot(db,unit.id,_event_now_local()))
     db.add(transfer); db.flush()
     lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id==category_id,WEEEStockLot.available_weight>0).order_by(WEEEStockLot.created_at)).all()
     consumed=Decimal(0); medium_ids=set()
@@ -4079,7 +4147,7 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
     unit=db.get(OrganizationalUnit,data.destination_org_unit_id)
     if not unit or not unit.active: raise HTTPException(422,'Άγνωστο ή ανενεργό τμήμα/υποτμήμα')
     if not data.items: raise HTTPException(422,'Δεν επιλέχθηκαν υλικά')
-    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=data.notes,present_json=_present_snapshot(db,unit.id))
+    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=data.notes,created_at=_event_now(),present_json=_present_snapshot(db,unit.id,_event_now_local()))
     db.add(transfer); db.flush(); out=[]; medium_ids=set()
     for req in data.items:
         lot=db.get(WEEEStockLot,req.stock_lot_id)
@@ -4101,7 +4169,7 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
         if w.employee_id and not db.get(Employee,w.employee_id): raise HTTPException(404,'Ο εργαζόμενος δεν βρέθηκε')
         if not db.get(WEEECategory,w.weee_category_id): raise HTTPException(404,'Η κατηγορία ΑΗΗΕ δεν βρέθηκε')
         total=sum((Decimal(str(o.weight)) for o in out),Decimal(0))
-        we=ProductionWorkEntry(work_date=w.work_date or datetime.now(timezone.utc),org_unit_id=unit.id,employee_id=w.employee_id,weee_category_id=w.weee_category_id,weight_kg=w.weight_kg if w.weight_kg is not None else total,source=w.source or "WINDOWS",notes=w.notes,transfer_id=transfer.id,created_by_user_id=user.id)
+        we=ProductionWorkEntry(created_at=_event_now(),work_date=w.work_date or _event_now_aware(),org_unit_id=unit.id,employee_id=w.employee_id,weee_category_id=w.weee_category_id,weight_kg=w.weight_kg if w.weight_kg is not None else total,source=w.source or "WINDOWS",notes=w.notes,transfer_id=transfer.id,created_by_user_id=user.id)
         db.add(we); db.flush(); we_id=we.id
     write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'items':len(out)})
     db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out,work_entry_id=we_id)
@@ -4382,7 +4450,7 @@ def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Dep
         e=_entry_for_transfer(db,t)
         if e: e.weight_kg=e.weight_kg-net
         _restore_medium_lifecycle(db,{mid})
-    i.remainder_net=net; i.remainder_gross=gross; i.remainder_mode=data.mode; i.remainder_at=datetime.utcnow(); i.emptied=(net==0); i.remainder_present=_present_snapshot(db,t.destination_org_unit_id)
+    i.remainder_net=net; i.remainder_gross=gross; i.remainder_mode=data.mode; i.remainder_at=_event_now(); i.emptied=(net==0); i.remainder_present=_present_snapshot(db,t.destination_org_unit_id,_event_now_local())
     write_audit(db,user,'production_transfer',t.id,'REMAINDER',old={'remainder':str(old) if old is not None else None},new={'remainder':str(net),'mode':data.mode,'gross':str(gross) if gross is not None else None},reason=data.reason)
     db.commit()
     return {"ok":True,"item_id":i.id,"remainder_net":float(net),"net_production":float(i.weight),"state":"PARTIAL" if net>0 else "EMPTIED"}
