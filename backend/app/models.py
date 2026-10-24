@@ -619,6 +619,7 @@ class ProductionTransfer(Base, TimestampMixin):
     status: Mapped[str] = mapped_column(String(40), default="CONFIRMED", index=True)
     created_by: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    present_json: Mapped[str|None] = mapped_column(Text, nullable=True)   # στιγμιότυπο παρόντων στο τμήμα (για μελλοντικές αναφορές παραγωγικότητας)
 
 class ProductionTransferItem(Base):
     __tablename__ = "production_transfer_items"
@@ -634,6 +635,7 @@ class ProductionTransferItem(Base):
     remainder_mode: Mapped[str|None] = mapped_column(String(10), nullable=True)
     remainder_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
     emptied: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    remainder_present: Mapped[str|None] = mapped_column(Text, nullable=True)   # στιγμιότυπο παρόντων τη στιγμή του υπολοίπου
 
 
 # ---- Build 0.7: Production daily balances and outputs ----

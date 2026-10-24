@@ -164,6 +164,12 @@ async def lifespan(app: FastAPI):
             pti_cols={c["name"] for c in inspect(engine).get_columns("production_transfer_items")}
             for col,typ in (("tare_weight","NUMERIC(14,3)"),("sent_weight","NUMERIC(14,3)"),("remainder_net","NUMERIC(14,3)"),("remainder_gross","NUMERIC(14,3)"),("remainder_mode","VARCHAR(10)"),("remainder_at","DATETIME"),("emptied","BOOLEAN DEFAULT 0")):
                 if col not in pti_cols: conn.execute(text(f"ALTER TABLE production_transfer_items ADD COLUMN {col} {typ}"))
+        if "production_transfers" in tables:
+            pt_cols={c["name"] for c in inspect(engine).get_columns("production_transfers")}
+            if "present_json" not in pt_cols: conn.execute(text("ALTER TABLE production_transfers ADD COLUMN present_json TEXT"))
+        if "production_transfer_items" in tables:
+            pti2={c["name"] for c in inspect(engine).get_columns("production_transfer_items")}
+            if "remainder_present" not in pti2: conn.execute(text("ALTER TABLE production_transfer_items ADD COLUMN remainder_present TEXT"))
         if "production_work_entries" in tables:
             pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
             if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
@@ -3989,7 +3995,7 @@ def _consume_weee_stock_for_category(db:Session, unit, category_id:str, weight, 
     from decimal import Decimal
     remaining=Decimal(weight)
     if remaining<=0: return Decimal(0)
-    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=notes)
+    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=notes,present_json=_present_snapshot(db,unit.id))
     db.add(transfer); db.flush()
     lots=db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id==category_id,WEEEStockLot.available_weight>0).order_by(WEEEStockLot.created_at)).all()
     consumed=Decimal(0); medium_ids=set()
@@ -4007,7 +4013,7 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
     unit=db.get(OrganizationalUnit,data.destination_org_unit_id)
     if not unit or not unit.active: raise HTTPException(422,'Άγνωστο ή ανενεργό τμήμα/υποτμήμα')
     if not data.items: raise HTTPException(422,'Δεν επιλέχθηκαν υλικά')
-    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=data.notes)
+    transfer=ProductionTransfer(transfer_number=_transfer_number(db),destination_org_unit_id=unit.id,created_by=user.id,notes=data.notes,present_json=_present_snapshot(db,unit.id))
     db.add(transfer); db.flush(); out=[]; medium_ids=set()
     for req in data.items:
         lot=db.get(WEEEStockLot,req.stock_lot_id)
@@ -4145,6 +4151,27 @@ def production_transfers(db:Session=Depends(get_db), user=Depends(require_permis
         result.append(schemas.ProductionTransferOut(id=t.id,transfer_number=t.transfer_number,destination_org_unit_id=t.destination_org_unit_id,status=t.status,items=items))
     return result
 
+def _present_snapshot(db:Session, unit_id:str, now=None)->str:
+    """Στιγμιότυπο «ποιοι ήταν παρόντες στο τμήμα τώρα» (ΜΟΝΟ αποθήκευση, για μελλοντικές αναφορές παραγωγικότητας -- δεν αλλάζει κανένα kg).
+    Παρών = ανήκει στο τμήμα, κατάσταση ΠΑΡΩΝ (όχι ΑΠΩΝ/ΕΦΥΓΕ), αν είναι σε αργοπορία έχει ήδη φτάσει, και δεν είναι σε ολιγόωρη απουσία αυτή τη στιγμή.
+    Χωρίς εγγραφή παρουσίας για σήμερα = ΠΑΡΩΝ (όπως στο Δελτίο)."""
+    now=now or datetime.now(); today=datetime(now.year,now.month,now.day); nowm=now.hour*60+now.minute
+    ids={r[0] for r in db.execute(select(employee_org_units.c.employee_id).where(employee_org_units.c.org_unit_id==unit_id)).all()}
+    ids|={e.id for e in db.scalars(select(Employee).where(Employee.default_org_unit_id==unit_id)).all()}
+    emps=[e for e in db.scalars(select(Employee).where(Employee.id.in_(ids) if ids else False)).all() if e.active]
+    att={a.employee_id:a for a in db.scalars(select(ProductionAttendance).where(ProductionAttendance.work_date>=today,ProductionAttendance.work_date<today+timedelta(days=1))).all()}
+    out=[]
+    for e in sorted(emps,key=lambda x:x.id):
+        a=att.get(e.id)
+        if a is not None:
+            if (a.status or "PRESENT")!="PRESENT": continue
+            if a.late:
+                am=_local_min(a.arrived_at)
+                if am is None or am>nowm: continue
+            if any((_hm(x.get("from")) is not None and _hm(x.get("from"))<=nowm and (not x.get("to") or nowm<(_hm(x.get("to")) or 0))) for x in _short_leaves_list(a.short_leaves)): continue
+        out.append(e.id)
+    return json.dumps({"at":now.isoformat(timespec="seconds"),"unit_id":unit_id,"employee_ids":out})
+
 def _local_dt(ts):
     return ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()
 
@@ -4237,7 +4264,7 @@ def _undo_remainder(db,i,t,user,reason):
         e=_entry_for_transfer(db,t)
         if e: e.weight_kg=e.weight_kg+R
         _update_medium_lifecycle(db,{mid})
-    i.remainder_net=None; i.remainder_gross=None; i.remainder_mode=None; i.remainder_at=None; i.emptied=False
+    i.remainder_net=None; i.remainder_gross=None; i.remainder_mode=None; i.remainder_at=None; i.emptied=False; i.remainder_present=None
 
 @app.post('/production/transfer-items/{item_id}/remainder')
 def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
@@ -4275,7 +4302,7 @@ def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Dep
         e=_entry_for_transfer(db,t)
         if e: e.weight_kg=e.weight_kg-net
         _restore_medium_lifecycle(db,{mid})
-    i.remainder_net=net; i.remainder_gross=gross; i.remainder_mode=data.mode; i.remainder_at=datetime.utcnow(); i.emptied=(net==0)
+    i.remainder_net=net; i.remainder_gross=gross; i.remainder_mode=data.mode; i.remainder_at=datetime.utcnow(); i.emptied=(net==0); i.remainder_present=_present_snapshot(db,t.destination_org_unit_id)
     write_audit(db,user,'production_transfer',t.id,'REMAINDER',old={'remainder':str(old) if old is not None else None},new={'remainder':str(net),'mode':data.mode,'gross':str(gross) if gross is not None else None},reason=data.reason)
     db.commit()
     return {"ok":True,"item_id":i.id,"remainder_net":float(net),"net_production":float(i.weight),"state":"PARTIAL" if net>0 else "EMPTIED"}
