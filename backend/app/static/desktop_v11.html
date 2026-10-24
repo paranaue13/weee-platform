@@ -3867,7 +3867,8 @@ function renderDeltio(){
   };
   prodU.forEach(u=>card(u.id,u.name_el,[u.id],false));
   if(suppU.length)card('support','Θέσεις υποστήριξης',[...suppIds],true);
-  $('deltioDepts').innerHTML=cards.join('');
+  let dw=$('deltioDepts'),sl=dw.scrollLeft,st=dw.scrollTop;
+  dw.innerHTML=cards.join('');dw.scrollLeft=sl;dw.scrollTop=st;
   renderDeltioReturns();wireDeltio();fitDeltio();
 }
 async function openDeltioIntervals(empId){
@@ -3892,6 +3893,13 @@ function wireDeltio(){
   document.querySelectorAll('.dcPanel button').forEach(x=>x.onclick=()=>deltioUnitAction(x.dataset.emp,(x.dataset.from||'').split(',').filter(Boolean),x.dataset.k,x.dataset.to));
 }
 if($('deltioDate'))$('deltioDate').onchange=loadDeltio;
+// Αυτόματη ανανέωση κάθε 15″: αναστέλλεται όσο είναι ανοιχτό πάνελ «διάλεξε τμήμα» ή φόρμα «Υπόλοιπο» ή ο χρήστης πληκτρολογεί
+let deltioRefreshing=false;
+setInterval(async()=>{
+  let pn=$('productionDeltioPanel');if(!pn||!pn.offsetParent||document.hidden||deltioRefreshing)return;
+  let ae=document.activeElement;if(deltioState.open||deltioState.rem||(ae&&pn.contains(ae)&&/INPUT|SELECT|TEXTAREA/.test(ae.tagName)))return;
+  deltioRefreshing=true;try{clearApiCache();await loadDeltio()}catch(e){}finally{deltioRefreshing=false}
+},15000);
 // Διορθώσεις υλικών: ιστορικό αναίρεσης/επανάληψης της συνεδρίας (κάθε διόρθωση = μία εγγραφή στον server)
 function corrPopClose(){document.querySelectorAll('.corrPop').forEach(x=>x.remove());document.querySelectorAll('.corrBtn[aria-expanded="true"]').forEach(b=>b.setAttribute('aria-expanded','false'))}
 function openCorrPopover(btn){

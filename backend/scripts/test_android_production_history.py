@@ -38,11 +38,14 @@ with sync_playwright() as p:
     ck('ομαδοποίηση ανά ημέρα, πιο πρόσφατη πρώτα (Σήμερα, μετά Χθες)', len(days) >= 2 and days[0].upper().startswith('ΣΗΜΕΡΑ') and days[1].upper().startswith('ΧΘΕΣ'), str(days[:3]))
     ck('καταχωρήσεις και των δύο ημερών', pg.locator('.ptItem').count() >= 2)
     # φίλτρο τμήματος
-    pg.select_option('#ptUnitFilter', U1); pg.wait_for_timeout(1500)
+    ck('ΔΕΝ υπάρχουν κουμπιά/λίστα φίλτρου πάνω από το ιστορικό', pg.query_selector('#ptUnitFilter') is None)
+    pg.evaluate("u=>{prodForm.unit=prodUnits.find(x=>x.id===u)}", U1); pg.wait_for_timeout(2200)
     u1name = pg.evaluate("prodUnits.find(u=>u.id==='%s').name_el" % U1)
     items = pg.locator('.ptItem').all_inner_texts()
     ck('φίλτρο τμήματος: μόνο δικές του καταχωρήσεις', len(items) > 0 and all(u1name in t for t in items) and pg.locator('.ptDay').count() == 1, f'{len(items)} καταχωρήσεις')
-    pg.select_option('#ptUnitFilter', ''); pg.wait_for_timeout(1500)
+    ck('σημείωση «Μόνο οι κινήσεις του τμήματος»', 'Μόνο οι κινήσεις του τμήματος' in pg.inner_text('#ptUnitNote'))
+    pg.evaluate("prodForm.unit=null"); pg.wait_for_timeout(2200)
+    ck('χωρίς τμήμα: ξανά όλο το ιστορικό (2 ημέρες)', pg.locator('.ptDay').count() >= 2 and pg.inner_text('#ptUnitNote') == '')
     # πάτημα καταχώρησης
     pg.locator('.ptTap').first.tap(); pg.wait_for_timeout(300)
     btns = pg.locator('.ptBtns3 button').all_inner_texts()
