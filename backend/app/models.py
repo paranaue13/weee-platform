@@ -370,6 +370,9 @@ class Material(Base, TimestampMixin):
     is_precious: Mapped[bool] = mapped_column(Boolean, default=False)
     export_step_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=Decimal("0.500"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    short_description: Mapped[str|None] = mapped_column(String(300), nullable=True)   # Σύντομη περιγραφή (προαιρετική)· κενή = εμφανίζεται η επίσημη
+    can_bale: Mapped[bool] = mapped_column(Boolean, default=False)                    # Μπορεί να γίνει μπάλα (εμφανίζει «Μπάλα» στην εξαγωγή Android)
+    press_label: Mapped[str|None] = mapped_column(String(100), nullable=True)           # Όνομα στήλης στην Πρέσα (αν διαφέρει από το όνομα υλικού)
     storage_group_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("storage_groups.id"), nullable=True, index=True)  # «Ομάδα αποθήκης» (προαιρετικό)
 
 class StorageGroup(Base, TimestampMixin):
@@ -694,6 +697,7 @@ class ReadyMaterialLot(Base, TimestampMixin):
     storage_group_id: Mapped[str|None] = mapped_column(String(36), nullable=True)    # κατηγορία αποθήκης την ώρα της εξαγωγής
     source_inventory_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    is_bale: Mapped[bool] = mapped_column(Boolean, default=False)                       # εξαγωγή παλέτας ως ΜΠΑΛΑ (μετράει μία φορά στο απόθεμα)
 
 class MaterialInventoryEntry(Base, TimestampMixin):
     """Ζύγιση απογραφής (τριμηνιαία): μέσο αποθήκευσης (παλέτα/σάκος/χύμα) με καθαρά κιλά υλικού. ΔΕΝ προσμετράται στα «διαθέσιμα προς αποστολή»."""

@@ -240,6 +240,9 @@ class MaterialCreate(BaseModel):
     is_precious: bool = False
     export_step_kg: Decimal = Decimal("0.500")
     storage_group_id: str|None = None   # Ομάδα αποθήκης (προαιρετικό)
+    short_description: str|None = None  # Σύντομη περιγραφή (προαιρετική)
+    can_bale: bool = False              # Μπορεί να γίνει μπάλα
+    press_label: str|None = None        # Όνομα στήλης στην Πρέσα (προαιρετικό)
 
 class StorageGroupIn(BaseModel):
     name: str

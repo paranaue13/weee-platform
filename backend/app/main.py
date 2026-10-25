@@ -166,6 +166,11 @@ async def lifespan(app: FastAPI):
             pti_cols={c["name"] for c in inspect(engine).get_columns("production_transfer_items")}
             for col,typ in (("tare_weight","NUMERIC(14,3)"),("sent_weight","NUMERIC(14,3)"),("remainder_net","NUMERIC(14,3)"),("remainder_gross","NUMERIC(14,3)"),("remainder_mode","VARCHAR(10)"),("remainder_at","DATETIME"),("emptied","BOOLEAN DEFAULT 0")):
                 if col not in pti_cols: conn.execute(text(f"ALTER TABLE production_transfer_items ADD COLUMN {col} {typ}"))
+        if "materials" in tables:
+            mt_cols={c["name"] for c in inspect(engine).get_columns("materials")}
+            if "short_description" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN short_description VARCHAR(300)"))
+            if "can_bale" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN can_bale BOOLEAN DEFAULT 0"))
+            if "press_label" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN press_label VARCHAR(100)"))
         if "production_transfers" in tables:
             pt_cols={c["name"] for c in inspect(engine).get_columns("production_transfers")}
             if "present_json" not in pt_cols: conn.execute(text("ALTER TABLE production_transfers ADD COLUMN present_json TEXT"))
@@ -204,7 +209,7 @@ async def lifespan(app: FastAPI):
             if "storage_group_id" not in mat2: conn.execute(text("ALTER TABLE materials ADD COLUMN storage_group_id VARCHAR(36)"))
         if "ready_material_lots" in tables:
             rl={c["name"] for c in inspect(engine).get_columns("ready_material_lots")}
-            for col,typ in [("entry_type","VARCHAR(20) DEFAULT 'EXPORT'"),("period_year","INTEGER"),("period_quarter","INTEGER"),("period_month","INTEGER"),("counted_kg","NUMERIC(14,3)"),("storage_group_id","VARCHAR(36)"),("source_inventory_id","VARCHAR(36)"),("is_demo","BOOLEAN DEFAULT 0")]:
+            for col,typ in [("entry_type","VARCHAR(20) DEFAULT 'EXPORT'"),("period_year","INTEGER"),("period_quarter","INTEGER"),("period_month","INTEGER"),("counted_kg","NUMERIC(14,3)"),("storage_group_id","VARCHAR(36)"),("source_inventory_id","VARCHAR(36)"),("is_demo","BOOLEAN DEFAULT 0"),("is_bale","BOOLEAN DEFAULT 0")]:
                 if col not in rl: conn.execute(text(f"ALTER TABLE ready_material_lots ADD COLUMN {col} {typ}"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
@@ -1239,13 +1244,17 @@ def update_material_master(item_id:str,data:schemas.MaterialCreate,db:Session=De
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     old={"internal_name":x.internal_name,"galaxy_code":x.galaxy_code,"galaxy_description":x.galaxy_description,"genre":x.genre,"official_description":x.official_description,"her_description":x.her_description,"eka_code":x.eka_code,"reptool_code":x.reptool_code,"reptool_description":x.reptool_description}
-    old["storage_group_id"]=x.storage_group_id
+    old["storage_group_id"]=x.storage_group_id; old["short_description"]=x.short_description; old["can_bale"]=x.can_bale; old["press_label"]=x.press_label
     if "storage_group_id" in data.model_fields_set and data.storage_group_id and not _storage_group_ok(db,data.storage_group_id,allow_inactive_id=x.storage_group_id): raise HTTPException(422,"Μη έγκυρη κατηγορία αποθήκης")
     for k,v in data.model_dump().items():
         if k=="storage_group_id" and "storage_group_id" not in data.model_fields_set: continue   # παλιοί πελάτες δεν σβήνουν την ομάδα
+        if k=="short_description" and "short_description" not in data.model_fields_set: continue  # αιτήματα χωρίς το πεδίο (π.χ. επαναφορά/μαζική επεξεργασία) δεν σβήνουν τη σύντομη περιγραφή
+        if k in ("can_bale","press_label") and k not in data.model_fields_set: continue   # παλιοί πελάτες/μαζική επεξεργασία δεν αλλάζουν τη ρύθμιση μπάλας
+        if k=="short_description": v=(v or "").strip() or None
+        if k=="press_label": v=(v or "").strip() or None
         setattr(x,k,v)
     _apply_material_rules(x)
-    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump(exclude=None if "storage_group_id" in data.model_fields_set else {"storage_group_id"}))
+    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump(exclude={f for f in ("storage_group_id","short_description","can_bale","press_label") if f not in data.model_fields_set}))
     db.commit(); db.refresh(x); return x
 
 def _storage_group_ok(db:Session,gid:str,allow_inactive_id:str|None=None)->bool:
@@ -3885,6 +3894,39 @@ def export_settings_put(data:dict, db:Session=Depends(get_db), user:User=Depends
     else: db.add(AppSetting(key=EXPORT_DIR_KEY,value=json.dumps(payload,ensure_ascii=False)))
     write_audit(db,user,'app_setting',EXPORT_DIR_KEY,'UPDATE',old={'export':old},new={'export':payload}); db.commit()
     return payload
+
+# ---- Εμφάνιση περιγραφής υλικών (Επίσημη / Σύντομη) ανά οθόνη -- αποθηκεύεται στον server, ισχύει για ΟΛΕΣ τις συσκευές ----
+MATERIAL_DESC_KEY='app.material_desc_modes'
+MATERIAL_DESC_SCREENS=('ready','loading','inventory','reports','android')
+MATERIAL_DESC_DEFAULTS={'ready':'official','loading':'official','inventory':'official','reports':'official','android':'short'}
+
+def _material_desc_modes(db:Session)->dict:
+    row=db.scalar(select(AppSetting).where(AppSetting.key==MATERIAL_DESC_KEY))
+    try: saved=json.loads(row.value) if row else {}
+    except Exception: saved={}
+    return {k:(saved.get(k) if saved.get(k) in ('official','short') else MATERIAL_DESC_DEFAULTS[k]) for k in MATERIAL_DESC_SCREENS}
+
+@app.get('/settings/material-desc')
+def material_desc_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    return {'modes':_material_desc_modes(db)}
+
+@app.put('/settings/material-desc')
+def material_desc_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    new=data.get('modes') if isinstance(data.get('modes'),dict) else {}
+    for k,v in new.items():
+        if k not in MATERIAL_DESC_SCREENS or v not in ('official','short'): raise HTTPException(422,'Μη έγκυρη επιλογή εμφάνισης')
+    old=_material_desc_modes(db); merged={**old,**new}
+    row=db.scalar(select(AppSetting).where(AppSetting.key==MATERIAL_DESC_KEY))
+    if row: row.value=json.dumps(merged,ensure_ascii=False)
+    else: db.add(AppSetting(key=MATERIAL_DESC_KEY,value=json.dumps(merged,ensure_ascii=False)))
+    write_audit(db,user,'app_setting',MATERIAL_DESC_KEY,'UPDATE',old={'modes':old},new={'modes':merged}); db.commit()
+    return {'modes':merged}
+
+@app.get('/materials/short-names')
+def material_short_names(db:Session=Depends(get_db), user:User=Depends(current_user)):
+    """Υλικά που έχουν σύντομη περιγραφή: τα ονόματα με τα οποία εμφανίζονται στις οθόνες (επίσημη/εσωτερική/Galaxy) -> σύντομη."""
+    rows=db.scalars(select(Material).where(Material.short_description.is_not(None))).all()
+    return [{'id':m.id,'short':m.short_description.strip(),'names':[n for n in {m.official_description,m.internal_name,m.galaxy_description} if n]} for m in rows if (m.short_description or '').strip()]
 
 @app.get('/settings/android')
 def android_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):

@@ -7,7 +7,7 @@ DEMO: με επικεφαλίδα X-Demo: 1 οι εγγραφές δημιουρ
 ξεχωριστή αρίθμηση) και ΔΕΝ μπαίνουν σε πραγματικά ισοζύγια/λίστες (εκτός αν ζητηθούν ρητά με X-Demo: 1). Σβήνονται με
 backend/scripts/demo_data.py delete.
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from pydantic import BaseModel
@@ -176,6 +176,7 @@ class ExportIn(BaseModel):
     net: Decimal | None = None            # Χύμα
     inventory_id: str | None = None       # εξαγωγή από μέσο απογραφής
     new_total: Decimal | None = None      # νέο συνολικό βάρος του μέσου απογραφής (φυσικό)
+    is_bale: bool = False                 # παλέτα που εξάγεται ως ΜΠΑΛΑ (μόνο υλικά με can_bale)
 
 
 class InventoryIn(BaseModel):
@@ -206,7 +207,7 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
                       "asks_tare": f == "PALLET", "has_code": f != "BULK"})
     y, q, m = _period()
     return {"categories": [{"id": c.id, "name": c.name, "count": sum(1 for x in mats if x.storage_group_id == c.id)} for c in cats],
-            "materials": [{"id": x.id, "name": x.official_description or x.internal_name, "code": x.galaxy_code, "category_id": x.storage_group_id, "available_kg": avail.get(x.id, 0.0)} for x in mats],
+            "materials": [{"id": x.id, "name": x.official_description or x.internal_name, "code": x.galaxy_code, "category_id": x.storage_group_id, "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale)} for x in mats],
             "forms": forms, "period": {"year": y, "quarter": q, "month": m, "month_name": MONTHS[m - 1], "quarter_month_name": MONTHS[QUARTER_MONTH[q] - 1]}}
 
 
@@ -229,6 +230,8 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
     if data.form not in FORMS:
         raise HTTPException(422, "Άγνωστο μέσο αποθήκευσης")
     mat = _material(db, data.material_id)
+    if data.is_bale and (data.form != "PALLET" or data.inventory_id or not mat.can_bale):
+        raise HTTPException(422, "Μπάλα μπορεί να γίνει μόνο παλέτα υλικού που επιτρέπεται να γίνει μπάλα")
     y, q, mo = _period()
     inv = None
     if data.inventory_id:
@@ -255,16 +258,141 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
                            collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
                            notes=("DEMO" if demo else None), entry_type="EXPORT", period_year=y, period_quarter=q, period_month=mo,
-                           counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo)
+                           counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo, is_bale=bool(data.is_bale))
     db.add(lot); db.flush()
     db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="PRODUCTION_OUT", weight=net, user_id=user.id, reason=("DEMO" if demo else "Εξαγωγή από Android")))
     if medium:
         medium.status = "READY_STORAGE"
     if inv:
         inv.status = "EXPORTED"; inv.exported_lot_id = lot.id
-    write_audit(db, user, "ready_material_lot", lot.id, "CREATE", new={"lot_number": lot.lot_number, "material": mat.internal_code, "net": str(net), "counted": str(counted), "form": form, "demo": demo})
+    write_audit(db, user, "ready_material_lot", lot.id, "CREATE", new={"lot_number": lot.lot_number, "material": mat.internal_code, "net": str(net), "counted": str(counted), "form": form, "demo": demo, "is_bale": bool(data.is_bale)})
     db.commit()
     return {"id": lot.id, "lot_number": lot.lot_number, "form": form, "medium_code": medium.code if medium else None, "net": float(net), "counted_kg": float(counted)}
+
+
+@router.get("/exports")
+def list_exports(days: int = Query(default=60, ge=1, le=400), db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
+    """Ιστορικό εξαγωγών (Android Υλικά → Εξαγωγή) ανά ημέρα, πιο πρόσφατη πρώτη: υλικό, μέσο αποθήκευσης, καθαρά κιλά, ώρα. Μόνο ανάγνωση."""
+    demo = is_demo(x_demo)
+    since = datetime.utcnow() - timedelta(days=days)
+    rows = db.execute(select(ReadyMaterialLot, Material).join(Material, Material.id == ReadyMaterialLot.material_id)
+                      .where(ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.is_demo == demo, ReadyMaterialLot.status != "CANCELLED", ReadyMaterialLot.created_at >= since)
+                      .order_by(ReadyMaterialLot.created_at.desc())).all()
+    types = {t.id: t for t in db.scalars(select(CollectionMediumType)).all()}
+    days_map: dict = {}
+    for lot, mat in rows:
+        ts = lot.created_at
+        loc = ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()
+        med = db.get(CollectionMedium, lot.collection_medium_id) if lot.collection_medium_id else None
+        label = (types[med.type_id].name_el if med and med.type_id in types else "Μέσο") if med else "Χύμα"
+        if lot.is_bale:
+            label = "Μπάλα"
+        days_map.setdefault(loc.strftime("%Y-%m-%d"), []).append({
+            "id": lot.id, "lot_number": lot.lot_number, "material": mat.official_description or mat.internal_name, "material_id": mat.id,
+            "form_label": label, "medium_code": med.code if med else None, "net_kg": float(lot.net_weight), "counted_kg": float(lot.counted_kg) if lot.counted_kg is not None else None,
+            "time": loc.strftime("%H:%M"), "created_at": ts, "from_inventory": bool(lot.source_inventory_id),
+            "form": ("BULK" if not med else next((k for k, v in FORMS.items() if v and types.get(med.type_id) and types[med.type_id].code == v), "PALLET")),
+            "gross_kg": float(lot.gross_weight) if lot.gross_weight is not None else None, "tare_kg": float(lot.tare_weight) if lot.tare_weight is not None else None,
+            "inv_net_kg": (lambda i: float(i.net_weight) if i else None)(db.get(MaterialInventoryEntry, lot.source_inventory_id) if lot.source_inventory_id else None),
+            "locked": _export_lock(db, lot), "is_bale": bool(lot.is_bale)})
+    return [{"date": d, "items": days_map[d]} for d in sorted(days_map, reverse=True)]
+
+
+@router.get("/bales-summary")
+def bales_summary(start: str | None = None, end: str | None = None, db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Μπάλες (εξαγωγές παλέτας με is_bale) ανά στήλη Πρέσας για την περίοδο: καθαρά κιλά και πλήθος. Πρόσθετες γραμμές στον πίνακα Πρέσα· δεν προστίθενται στα «Κιλά/Δέματα» του Excel."""
+    rows = db.execute(select(ReadyMaterialLot, Material).join(Material, Material.id == ReadyMaterialLot.material_id)
+                      .where(ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.is_bale == True, ReadyMaterialLot.is_demo == False, ReadyMaterialLot.status != "CANCELLED")).all()
+    d0 = datetime.fromisoformat(start).date() if start else None
+    d1 = datetime.fromisoformat(end).date() if end else None
+    out: dict = {}
+    for lot, mat in rows:
+        ts = lot.created_at
+        day = (ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()).date()
+        if (d0 and day < d0) or (d1 and day > d1):
+            continue
+        key = (mat.press_label or "").strip() or mat.official_description or mat.internal_name
+        g = out.setdefault(key, {"material_group": key, "kg": 0.0, "count": 0})
+        g["kg"] += float(lot.net_weight); g["count"] += 1
+    return sorted(out.values(), key=lambda g: -g["kg"])
+
+
+def _export_lock(db: Session, lot: ReadyMaterialLot) -> str | None:
+    """Λόγος για τον οποίο μια εξαγωγή ΔΕΝ διορθώνεται/διαγράφεται (δεσμευμένη, σε πρόχειρο ή φορτωμένη), αλλιώς None."""
+    if lot.entry_type != "EXPORT":
+        return "Αυτή η εγγραφή δεν είναι εξαγωγή"
+    if lot.status == "CANCELLED":
+        return "Η εξαγωγή έχει ήδη διαγραφεί"
+    if db.scalar(select(models.LoadingActual.id).where(models.LoadingActual.ready_material_lot_id == lot.id).limit(1)) or lot.status in ("DISPATCHED", "LOADED"):
+        return "Η εξαγωγή έχει ήδη φορτωθεί και δεν αλλάζει"
+    if db.scalar(select(models.LoadingReservation.id).where(models.LoadingReservation.ready_material_lot_id == lot.id, models.LoadingReservation.status == "RESERVED").limit(1)) or lot.status in ("RESERVED", "LOADING"):
+        return "Η εξαγωγή είναι δεσμευμένη για φόρτωση και δεν αλλάζει"
+    if db.scalar(select(models.LoadingPlanItem.id).where(models.LoadingPlanItem.ready_material_lot_id == lot.id).limit(1)):
+        return "Η εξαγωγή είναι σε πρόχειρο φόρτωσης· αφαίρεσέ την πρώτα από εκεί"
+    if lot.status not in ("AVAILABLE", "DEMO"):
+        return "Η εξαγωγή δεν είναι πια διαθέσιμη και δεν αλλάζει"
+    return None
+
+
+class ExportEditIn(BaseModel):
+    gross: Decimal | None = None          # μέσο (παλέτα/σάκος): νέο μικτό
+    net: Decimal | None = None            # Χύμα: νέα καθαρά κιλά
+    new_total: Decimal | None = None      # εξαγωγή από απογραφή: νέο συνολικό βάρος του μέσου
+
+
+@router.put("/exports/{lot_id}")
+def edit_export(lot_id: str, data: ExportEditIn, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
+    lot = db.get(ReadyMaterialLot, lot_id)
+    if not lot:
+        raise HTTPException(404, "Η εξαγωγή δεν βρέθηκε")
+    why = _export_lock(db, lot)
+    if why:
+        raise HTTPException(409, why)
+    old = {"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "counted": str(lot.counted_kg) if lot.counted_kg is not None else None}
+    inv = db.get(MaterialInventoryEntry, lot.source_inventory_id) if lot.source_inventory_id else None
+    if inv:
+        if data.new_total is None or Decimal(str(data.new_total)) <= 0:
+            raise HTTPException(422, "Βάλε το νέο συνολικό βάρος του μέσου")
+        total = Decimal(str(data.new_total)); counted = total - Decimal(str(inv.net_weight))
+        if counted < 0:
+            raise HTTPException(422, "Το νέο συνολικό βάρος δεν μπορεί να είναι μικρότερο από της απογραφής")
+        lot.net_weight = total; lot.counted_kg = counted
+    elif lot.collection_medium_id is None:
+        net = _net("BULK", None, None, data.net)
+        lot.net_weight = net; lot.counted_kg = net
+    else:
+        tare = Decimal(str(lot.tare_weight if lot.tare_weight is not None else 0))
+        net = _net("PALLET", data.gross, tare, None)
+        lot.gross_weight = Decimal(str(data.gross)); lot.net_weight = net; lot.counted_kg = net
+    db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="EXPORT_EDIT", weight=lot.net_weight - Decimal(old["net"]), user_id=user.id, reason="Διόρθωση εξαγωγής από Android"))
+    write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old=old, new={"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "counted": str(lot.counted_kg)}, reason="Διόρθωση εξαγωγής")
+    db.commit()
+    return {"id": lot.id, "net": float(lot.net_weight), "counted_kg": float(lot.counted_kg)}
+
+
+@router.delete("/exports/{lot_id}")
+def delete_export(lot_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
+    """Διαγραφή εξαγωγής: η εγγραφή ακυρώνεται (μένει στο ιστορικό αλλαγών), το μέσο μένει ΕΛΕΥΘΕΡΟ για επαναχρησιμοποίηση,
+    και αν προήλθε από απογραφή, η εγγραφή της απογραφής γίνεται ξανά διαθέσιμη."""
+    lot = db.get(ReadyMaterialLot, lot_id)
+    if not lot:
+        raise HTTPException(404, "Η εξαγωγή δεν βρέθηκε")
+    why = _export_lock(db, lot)
+    if why:
+        raise HTTPException(409, why)
+    med = db.get(CollectionMedium, lot.collection_medium_id) if lot.collection_medium_id else None
+    inv = db.get(MaterialInventoryEntry, lot.source_inventory_id) if lot.source_inventory_id else None
+    if inv:
+        inv.status = "COUNTED"; inv.exported_lot_id = None
+        if med:
+            med.status = "INVENTORY"
+    elif med:
+        med.status = "AVAILABLE"
+    lot.status = "CANCELLED"
+    db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="EXPORT_CANCELLED", weight=-lot.net_weight, user_id=user.id, reason="Διαγραφή εξαγωγής από Android"))
+    write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old={"status": "AVAILABLE"}, new={"status": "CANCELLED"}, reason="Διαγραφή εξαγωγής" + (" (η απογραφή έγινε ξανά διαθέσιμη)" if inv else ""))
+    db.commit()
+    return {"id": lot.id, "cancelled": True, "inventory_restored": bool(inv), "medium_code": med.code if med else None}
 
 
 @router.post("/inventory")
@@ -338,9 +466,66 @@ def warehouse(db: Session = Depends(get_db), user=Depends(require_permission("pr
             g["pieces"] += 1
         t = types.get(md.type_id) if md else None
         label = {"PALLET": "Παλέτα", "SACK_1KG": "Σάκος 1 kg", "SACK_2KG_UN": "Σάκος 2 kg"}.get(t.code if t else "", "Χύμα")
-        g["items"].append({"label": label, "code": md.code if md else None, "kg": float(l.net_weight), "demo": bool(l.is_demo)})
+        g["items"].append({"label": ("Μπάλα" if l.is_bale else label), "code": md.code if md else None, "kg": float(l.net_weight), "demo": bool(l.is_demo)})
     groups = sorted(out.values(), key=lambda g: g["material"])
     return {"materials": groups, "pieces": sum(g["pieces"] for g in groups), "kg": round(sum(g["kg"] for g in groups), 3)}
+
+
+@router.get("/warehouse-grouped")
+def warehouse_grouped(include_inventory: bool = False, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
+    """Android → Υλικά → Αποθήκη στη δομή των Windows (ανά Κατηγορία αποθήκης). ΙΔΙΟΙ αριθμοί/κανόνες με το /mat/warehouse (μόνο εξαγωγές, χωρίς υπόλοιπο ισοζυγίου)·
+    οι ποσότητες απογραφής προστίθενται ΜΟΝΟ με include_inventory=true (όπως στα Windows)."""
+    stat = ["AVAILABLE"] + (["DEMO"] if is_demo(x_demo) else [])
+    lots = db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status.in_(stat), ReadyMaterialLot.entry_type == "EXPORT").order_by(ReadyMaterialLot.created_at)).all()
+    invs = (_inv_rows(db, False, status="COUNTED") + (_inv_rows(db, True, status="COUNTED") if is_demo(x_demo) else [])) if include_inventory else []
+    mats = {m.id: m for m in db.scalars(select(Material)).all()}
+    media_ids = [x.collection_medium_id for x in list(lots) + list(invs) if x.collection_medium_id]
+    media = {m.id: m for m in db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(media_ids))).all()} if media_ids else {}
+    types = {t.id: t for t in _types(db).values()}
+    groups = {g.id: g for g in db.scalars(select(StorageGroup)).all()}
+    labels = {"PALLET": "Παλέτα", "SACK_1KG": "Σάκος 1 kg", "SACK_2KG_UN": "Σάκος 2 kg"}
+    def label_of(md):
+        t = types.get(md.type_id) if md else None
+        return labels.get(t.code if t else "", "Χύμα")
+    out: dict = {}
+    def entry(mid):
+        m = mats[mid]
+        return out.setdefault(mid, {"material_id": mid, "material": m.official_description or m.internal_name, "short": getattr(m, "short_description", None), "erp": m.galaxy_code,
+                                    "category_id": m.storage_group_id, "category": (groups[m.storage_group_id].name if m.storage_group_id in groups else "Χωρίς κατηγορία"),
+                                    "pieces": 0, "kg": 0.0, "inv_pieces": 0, "inv_kg": 0.0, "items": []})
+    for l in lots:
+        if l.material_id not in mats: continue
+        g = entry(l.material_id); md = media.get(l.collection_medium_id) if l.collection_medium_id else None
+        g["kg"] = round(g["kg"] + float(l.net_weight), 3)
+        if md: g["pieces"] += 1
+        g["items"].append({"kind": "export", "label": ("Μπάλα" if l.is_bale else label_of(md)), "code": md.code if md else None, "kg": float(l.net_weight),
+                           "counted_kg": float(l.counted_kg) if l.source_inventory_id and l.counted_kg is not None else None,
+                           "date": l.created_at.isoformat() if l.created_at else None, "demo": bool(l.is_demo)})
+    for i in invs:
+        if i.material_id not in mats: continue
+        g = entry(i.material_id); md = media.get(i.collection_medium_id) if i.collection_medium_id else None
+        g["inv_kg"] = round(g["inv_kg"] + float(i.net_weight), 3)
+        if md: g["inv_pieces"] += 1
+        g["items"].append({"kind": "inventory", "label": label_of(md), "code": md.code if md else None, "kg": float(i.net_weight), "counted_kg": None,
+                           "date": i.created_at.isoformat() if i.created_at else None, "demo": bool(i.is_demo)})
+    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0]
+    for g in rows:
+        g["total_pieces"] = g["pieces"] + g["inv_pieces"]; g["total_kg"] = round(g["kg"] + g["inv_kg"], 3)
+    cats: dict = {}
+    for g in rows:
+        c = cats.setdefault(g["category"], {"category": g["category"], "sort": groups[g["category_id"]].sort_order if g["category_id"] in groups else 9999, "materials": []})
+        c["materials"].append(g)
+    result = []
+    for c in sorted(cats.values(), key=lambda c: (c["sort"], c["category"])):
+        c["materials"].sort(key=lambda g: g["material"])
+        c["pieces"] = sum(g["pieces"] for g in c["materials"]); c["kg"] = round(sum(g["kg"] for g in c["materials"]), 3)
+        c["inv_pieces"] = sum(g["inv_pieces"] for g in c["materials"]); c["inv_kg"] = round(sum(g["inv_kg"] for g in c["materials"]), 3)
+        c["total_pieces"] = c["pieces"] + c["inv_pieces"]; c["total_kg"] = round(c["kg"] + c["inv_kg"], 3)
+        result.append(c)
+    return {"include_inventory": include_inventory, "categories": result, "n_categories": len(result), "n_materials": len(rows),
+            "pieces": sum(c["pieces"] for c in result), "kg": round(sum(c["kg"] for c in result), 3),
+            "inv_pieces": sum(c["inv_pieces"] for c in result), "inv_kg": round(sum(c["inv_kg"] for c in result), 3),
+            "total_pieces": sum(c["total_pieces"] for c in result), "total_kg": round(sum(c["total_kg"] for c in result), 3)}
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -391,7 +576,7 @@ def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get
         if md:
             g["pieces"] += 1
         counted = float(l.counted_kg) if l.source_inventory_id and l.counted_kg is not None else None
-        g["items"].append({"kind": "export", "label": label_of(md), "code": md.code if md else None, "kg": float(l.net_weight), "counted_kg": counted,
+        g["items"].append({"kind": "export", "label": ("Μπάλα" if l.is_bale else label_of(md)), "code": md.code if md else None, "kg": float(l.net_weight), "counted_kg": counted,
                            "date": l.created_at.isoformat() if l.created_at else None, "demo": bool(l.is_demo)})
     for i in invs:
         if i.material_id not in mat_by_id:
