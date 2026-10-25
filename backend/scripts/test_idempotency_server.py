@@ -9,6 +9,7 @@ bad = []
 def ck(n, ok, i=''):
     print(('✓ ' if ok else '✗ ') + n, i)
     if not ok: bad.append(n)
+from _testdata import ensure_medium_lots; ensure_medium_lots(DB)
 c = sqlite3.connect(DB)
 lot = c.execute("select l.id,l.weee_category_id from weee_stock_lots l join collection_media m on m.id=l.collection_medium_id where l.available_weight>=120 order by l.id limit 1").fetchone()
 units = [r[0] for r in c.execute("select id from organizational_units where active=1 and profile='PRODUCTION' order by id limit 2").fetchall()]

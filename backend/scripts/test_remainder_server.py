@@ -10,6 +10,7 @@ bad = []
 def ck(name, ok, info=''):
     print(('✓ ' if ok else '✗ ') + name, info)
     if not ok: bad.append(name)
+from _testdata import ensure_medium_lots; ensure_medium_lots(DB)
 c = sqlite3.connect(DB)
 lots = c.execute("select l.id,l.collection_medium_id,l.available_weight,m.tare_weight from weee_stock_lots l join collection_media m on m.id=l.collection_medium_id where l.available_weight>=120 and m.tare_weight is not null and m.tare_weight>0 order by l.id limit 2").fetchall()
 assert len(lots) == 2, lots

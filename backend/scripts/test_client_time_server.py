@@ -21,6 +21,7 @@ db = lambda q, *a: sqlite3.connect(DB).execute(q, a).fetchall()
 ids = [r[0] for r in db("select id from idempotency_keys")]
 ck('καθαρισμός στην εκκίνηση: κωδικοί >30 ημερών σβήστηκαν', 'old-35d' not in ids and 'old-31d' not in ids, str(ids))
 ck('οι πρόσφατοι κωδικοί (5 ημερών) ΜΕΝΟΥΝ', 'new-5d' in ids)
+from _testdata import ensure_medium_lots; ensure_medium_lots(DB)
 c = sqlite3.connect(DB)
 lot = c.execute("select l.id,l.weee_category_id from weee_stock_lots l join collection_media m on m.id=l.collection_medium_id where l.available_weight>=120 order by l.id limit 1").fetchone()
 U1, U2 = [r[0] for r in c.execute("select id from organizational_units where active=1 and profile='PRODUCTION' order by id limit 2").fetchall()]

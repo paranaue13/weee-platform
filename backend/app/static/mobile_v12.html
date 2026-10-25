@@ -517,7 +517,7 @@ $('prodTodayList').onclick=async e=>{
   }
 };
 setInterval(()=>{if(!OB.pending()&&$('secProduction')&&$('secProduction').offsetParent&&!ptMode&&!document.hidden){loadProdToday()}},15000);
-OB.onDrain(()=>{try{if($('deltioPanel')&&$('deltioPanel').offsetParent)loadDeltioAndroid();if($('secProduction')&&$('secProduction').offsetParent){loadProdToday();flLoadedAt=0;flLoad(true)}}catch(e){}});
+OB.onDrain(()=>{try{if($('deltioPanel')&&$('deltioPanel').offsetParent&&$('dlScrim').classList.contains('hidden'))loadDeltioAndroid();if($('secProduction')&&$('secProduction').offsetParent&&!ptMode){loadProdToday();flLoadedAt=0;flLoad(true)}}catch(e){}});
 // ===== ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ: 3 ροές (ΤΜΗΜΑ / ΜΕΣΟ ΣΥΛΛΟΓΗΣ / ΑΗΗΕ) -- Σημείο 1 ΑΛΛΑΓΕΣ.md =====
 // Χρησιμοποιεί ΜΟΝΟ τα υπάρχοντα endpoints/υπολογισμούς αποθέματος: στο τέλος γεμίζει τα prodForm/prodStockGroups/
 // prodSelectedGroups και καλεί το ίδιο $('prodSubmit').onclick (/production/transfers + /production/work-entries).

@@ -30,7 +30,7 @@ with sync_playwright() as p:
     ck('ΔΕΝ υπάρχει κουμπί ρολόι', pg.query_selector('.deltioIntervalBtn') is None)
     ck('ώρες σε μορφή «8ω 00λ»', all(re.search(r'\d+ω \d\dλ|—', t) for t in pg.locator('.dcT tbody tr:not(.dcPanel) td.r').all_inner_texts()))
     ck('τμήματα Διοίκησης χωρίς κάρτα', not any(pg.query_selector(f'.dcard[data-unit="{u["id"]}"]') for u in units if u['profile'] == 'MANAGEMENT'))
-    ck('ΔΕΝ υπάρχει διακόπτης «Μόνο τμήματα με καταχώρηση»', pg.query_selector('#deltioOnly') is None and 'Μόνο τμήματα' not in pg.inner_text('#productionDeltioPanel'))
+    ck('μόνο ο διακόπτης «Μόνο ενεργά» (καμία άλλη λειτουργία απόκρυψης)', pg.query_selector('#deltioOnly') is not None and 'Μόνο ενεργά' in pg.inner_text('#productionDeltioPanel') and pg.query_selector('.pinEye') is None)
     ck('η γραμμή οριζόντιου scroll είναι στο τέρμα κάτω της οθόνης', pg.evaluate("(()=>{const r=document.getElementById('deltioDepts').getBoundingClientRect();return innerHeight-document.getElementById('deltioReturns').getBoundingClientRect().bottom<60&&innerHeight-r.bottom>=0})()"))
     n_all = cards.count()
     # μεταφορά δοκιμή

@@ -4348,23 +4348,39 @@ def _device_rows(db:Session, start, end, unit_id:str|None=None):
         loc=_local_dt(ts)
         if loc.date()<start or loc.date()>end: continue
         if unit_id and t.destination_org_unit_id!=unit_id: continue
+        # ΜΙΑ γραμμή ανά (ίδια αποστολή, ίδιο μέσο, ίδιο ΑΗΗΕ), ανεξάρτητα από το πόσα μερίδια του αποθέματος χρησιμοποιήθηκαν
+        groups={}
         for i in db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==t.id)).all():
-            lot=db.get(WEEEStockLot,i.stock_lot_id); cat=db.get(WEEECategory,lot.weee_category_id); med=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
+            lot=db.get(WEEEStockLot,i.stock_lot_id)
+            groups.setdefault((lot.collection_medium_id,lot.weee_category_id),[]).append((i,lot))
+        for (mid,cid),lst in groups.items():
+            its=[x[0] for x in lst]; i0=its[0]; lot0=lst[0][1]
+            cat=db.get(WEEECategory,cid); med=db.get(CollectionMedium,mid) if mid else None
             eid=emp_by_tr.get(t.id)
             par=db.scalar(select(WEEECategory).where(WEEECategory.code==cat.parent_code)) if cat.parent_code else None
             off=par if cat.is_internal_subcategory and par else cat
-            tare=i.tare_weight; tare_src="shipment"
+            tare=next((x.tare_weight for x in its if x.tare_weight is not None),None); tare_src="shipment"
             if tare is None and med is not None:
                 tare=med.tare_weight; tare_src="current"
-            sent=i.sent_weight if i.sent_weight is not None else i.weight
-            out.append({"item_id":i.id,"transfer_id":t.id,"transfer_number":t.transfer_number,"created_at":ts,"date":loc.strftime("%Y-%m-%d"),"time":loc.strftime("%H:%M"),"org_unit_id":t.destination_org_unit_id,
+            sents=[(x.sent_weight if x.sent_weight is not None else x.weight) for x in its]
+            sent=sum(sents,Decimal(0)); weight=sum((x.weight for x in its),Decimal(0))
+            rems=[x for x in its if x.remainder_net is not None]
+            rem_net=sum((x.remainder_net for x in rems),Decimal(0)) if rems else None
+            grosses=[x.remainder_gross for x in its if x.remainder_gross is not None]
+            rem_gross=sum(grosses,Decimal(0)) if grosses else None
+            rem_mode=next((x.remainder_mode for x in its if x.remainder_mode),None)
+            rem_at=max((x.remainder_at for x in rems if x.remainder_at is not None),default=None)
+            if rem_net is not None and rem_net>0: state="PARTIAL"
+            elif any(x.emptied or x.remainder_net is not None for x in its): state="EMPTIED"
+            else: state=_item_state(db,t,i0,later_by_unit)
+            out.append({"item_id":i0.id,"item_ids":[x.id for x in its],"transfer_id":t.id,"transfer_number":t.transfer_number,"created_at":ts,"date":loc.strftime("%Y-%m-%d"),"time":loc.strftime("%H:%M"),"org_unit_id":t.destination_org_unit_id,
                 "weee_category_id":cat.id,"weee_code":cat.code,"official_description":off.description_el,"her_description":off.her_description,
                 "medium_id":med.id if med else None,"medium_code":med.code if med else None,
-                "weight_kg":float(i.weight),"sent_kg":float(sent),"remainder_kg":float(i.remainder_net) if i.remainder_net is not None else None,
-                "remainder_gross":float(i.remainder_gross) if i.remainder_gross is not None else None,"remainder_mode":i.remainder_mode,
+                "weight_kg":float(weight),"sent_kg":float(sent),"remainder_kg":float(rem_net) if rem_net is not None else None,
+                "remainder_gross":float(rem_gross) if rem_gross is not None else None,"remainder_mode":rem_mode,"remainder_at":rem_at,
                 "tare_kg":float(tare) if tare is not None else None,"tare_source":tare_src if tare is not None else None,
                 "gross_sent_kg":float(sent+tare) if tare is not None else None,
-                "state":_item_state(db,t,i,later_by_unit),"employee_id":eid,"employee_name":emps.get(eid)})
+                "state":state,"employee_id":eid,"employee_name":emps.get(eid)})
     return out
 
 @app.get('/production/device-list')
@@ -4386,10 +4402,9 @@ def production_returns(date:str=Query(...), db:Session=Depends(get_db), user=Dep
     """Μέσα που γύρισαν «μισά» στην Αποθήκη ΑΗΗΕ την ημέρα (με καθαρό υπόλοιπο και μικτά)."""
     day=datetime.fromisoformat(date).date(); out=[]
     for r in _device_rows(db,day-timedelta(days=60),day,None):
-        i=db.get(ProductionTransferItem,r["item_id"])
-        if i.remainder_net is None or i.remainder_net<=0 or i.remainder_at is None or _local_dt(i.remainder_at).date()!=day: continue
-        tare=Decimal(str(r["tare_kg"])) if r["tare_kg"] is not None else None
-        out.append({**r,"returned_at":i.remainder_at,"returned_time":_local_dt(i.remainder_at).strftime("%H:%M"),"returned_net_kg":float(i.remainder_net),"returned_gross_kg":float(i.remainder_net+(tare or 0)) if tare is not None else None})
+        if r["remainder_kg"] is None or r["remainder_kg"]<=0 or r["remainder_at"] is None or _local_dt(r["remainder_at"]).date()!=day: continue
+        gross=r["remainder_gross"] if r["remainder_gross"] is not None else (r["remainder_kg"]+r["tare_kg"] if r["tare_kg"] is not None else None)
+        out.append({**r,"returned_at":r["remainder_at"],"returned_time":_local_dt(r["remainder_at"]).strftime("%H:%M"),"returned_net_kg":r["remainder_kg"],"returned_gross_kg":gross})
     return out
 
 def _entry_for_transfer(db,t):
@@ -4414,10 +4429,19 @@ def _undo_remainder(db,i,t,user,reason):
         _update_medium_lifecycle(db,{mid})
     i.remainder_net=None; i.remainder_gross=None; i.remainder_mode=None; i.remainder_at=None; i.emptied=False; i.remainder_present=None
 
+def _group_items(db,i):
+    """Οι εγγραφές της ΙΔΙΑΣ αποστολής με το ίδιο μέσο και το ίδιο ΑΗΗΕ (μία γραμμή στις οθόνες)."""
+    lot=db.get(WEEEStockLot,i.stock_lot_id); res=[]
+    for x in db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==i.transfer_id)).all():
+        lx=db.get(WEEEStockLot,x.stock_lot_id)
+        if lx.collection_medium_id==lot.collection_medium_id and lx.weee_category_id==lot.weee_category_id: res.append(x)
+    return res
+
 @app.post('/production/transfer-items/{item_id}/remainder')
 def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
-    """ΥΠΟΛΟΙΠΟ μέσου: kg που περίσσεψαν, ΜΙΚΤΑ (μείον το απόβαρο της στιγμής της αποστολής) ή ΚΑΘΑΡΑ.
-    Καθαρή παραγωγή = καθαρά kg που στάλθηκαν − καθαρό υπόλοιπο. 0 = το μέσο άδειασε. Με υπόλοιπο το μέσο γυρνά στην Αποθήκη ΑΗΗΕ ως «μισό»."""
+    """ΥΠΟΛΟΙΠΟ μέσου ανά ΓΡΑΜΜΗ (αποστολή + μέσο + ΑΗΗΕ): kg που περίσσεψαν, ΜΙΚΤΑ (μείον το απόβαρο της στιγμής της αποστολής) ή ΚΑΘΑΡΑ.
+    Ο server το μοιράζει εσωτερικά στα μερίδια. Καθαρή παραγωγή = καθαρά kg που στάλθηκαν − καθαρό υπόλοιπο. 0 = το μέσο άδειασε.
+    Με υπόλοιπο το μέσο γυρνά στην Αποθήκη ΑΗΗΕ ως «μισό»."""
     i=db.get(ProductionTransferItem,item_id)
     if not i: raise HTTPException(404,'Η καταχώρηση δεν βρέθηκε')
     t=db.get(ProductionTransfer,i.transfer_id)
@@ -4425,9 +4449,10 @@ def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Dep
     if data.mode not in ('GROSS','NET'): raise HTTPException(422,'Επίλεξε ΜΙΚΤΑ ή ΚΑΘΑΡΑ')
     kg=Decimal(str(data.kg))
     if kg<0: raise HTTPException(422,'Τα κιλά δεν μπορεί να είναι αρνητικά')
-    sent=i.sent_weight if i.sent_weight is not None else i.weight
+    items=_group_items(db,i)
+    sent=sum(((x.sent_weight if x.sent_weight is not None else x.weight) for x in items),Decimal(0))
     if data.mode=='GROSS':
-        tare=i.tare_weight
+        tare=next((x.tare_weight for x in items if x.tare_weight is not None),None)
         if tare is None:
             lot0=db.get(WEEEStockLot,i.stock_lot_id); m0=db.get(CollectionMedium,lot0.collection_medium_id) if lot0.collection_medium_id else None
             tare=m0.tare_weight if m0 is not None else None
@@ -4438,34 +4463,43 @@ def set_item_remainder(item_id:str, data:schemas.ItemRemainderIn, db:Session=Dep
     else:
         net=kg; gross=None
     if net>sent: raise HTTPException(422,f'Το υπόλοιπο ({net} kg) δεν μπορεί να είναι μεγαλύτερο από τα kg που στάλθηκαν ({sent} kg)')
-    old=i.remainder_net
-    _undo_remainder(db,i,t,user,'Διόρθωση υπολοίπου')
-    if i.sent_weight is None: i.sent_weight=sent
+    old=sum((x.remainder_net or Decimal(0) for x in items),Decimal(0)) if any(x.remainder_net is not None for x in items) else None
+    for x in items: _undo_remainder(db,x,t,user,'Διόρθωση υπολοίπου')
+    for x in items:
+        if x.sent_weight is None: x.sent_weight=x.weight
+    left=net; takes={}
+    for x in reversed(items):                      # το υπόλοιπο μοιράζεται ξεκινώντας από το τελευταίο μερίδιο
+        take=min(left,x.weight); takes[x.id]=take; left-=take
+    holder=next((x for x in items if takes[x.id]>0),items[0])      # τα μικτά αποθηκεύονται σε μία εγγραφή (το απόβαρο μετρά μία φορά)
+    unit=db.get(OrganizationalUnit,t.destination_org_unit_id); snap=_present_snapshot(db,t.destination_org_unit_id,_event_now_local()); mids=set()
+    for x in items:
+        take=takes[x.id]
+        if take>0:
+            bal=db.scalar(select(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id==x.id))
+            if bal and bal.current_remaining_weight<take: raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή')
+            mids.add(_reverse_transfer_item(db,x,take,unit.id,user,'Υπόλοιπο μέσου '+t.transfer_number))
+            x.weight=x.weight-take
+        x.remainder_net=take; x.remainder_gross=gross if x is holder else None; x.remainder_mode=data.mode; x.remainder_at=_event_now(); x.emptied=(net==0); x.remainder_present=snap
     if net>0:
-        bal=db.scalar(select(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id==i.id))
-        if bal and bal.current_remaining_weight<net: raise HTTPException(409,'Μέρος του υλικού έχει ήδη χρησιμοποιηθεί στην παραγωγή')
-        unit=db.get(OrganizationalUnit,t.destination_org_unit_id)
-        mid=_reverse_transfer_item(db,i,net,unit.id,user,'Υπόλοιπο μέσου '+t.transfer_number)
-        i.weight=i.weight-net
         e=_entry_for_transfer(db,t)
         if e: e.weight_kg=e.weight_kg-net
-        _restore_medium_lifecycle(db,{mid})
-    i.remainder_net=net; i.remainder_gross=gross; i.remainder_mode=data.mode; i.remainder_at=_event_now(); i.emptied=(net==0); i.remainder_present=_present_snapshot(db,t.destination_org_unit_id,_event_now_local())
-    write_audit(db,user,'production_transfer',t.id,'REMAINDER',old={'remainder':str(old) if old is not None else None},new={'remainder':str(net),'mode':data.mode,'gross':str(gross) if gross is not None else None},reason=data.reason)
+        _restore_medium_lifecycle(db,mids)
+    write_audit(db,user,'production_transfer',t.id,'REMAINDER',old={'remainder':str(old) if old is not None else None},new={'remainder':str(net),'mode':data.mode,'gross':str(gross) if gross is not None else None,'items':len(items)},reason=data.reason)
     db.commit()
-    return {"ok":True,"item_id":i.id,"remainder_net":float(net),"net_production":float(i.weight),"state":"PARTIAL" if net>0 else "EMPTIED"}
+    return {"ok":True,"item_id":i.id,"remainder_net":float(net),"net_production":float(sum((x.weight for x in items),Decimal(0))),"state":"PARTIAL" if net>0 else "EMPTIED"}
 
 @app.post('/production/transfer-items/{item_id}/remainder/undo')
 def undo_item_remainder(item_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
     i=db.get(ProductionTransferItem,item_id)
     if not i: raise HTTPException(404,'Η καταχώρηση δεν βρέθηκε')
     t=db.get(ProductionTransfer,i.transfer_id)
-    if i.remainder_net is None and not i.emptied: raise HTTPException(409,'Δεν υπάρχει δηλωμένο υπόλοιπο')
-    old=i.remainder_net
-    _undo_remainder(db,i,t,user,'Αναίρεση υπολοίπου')
-    write_audit(db,user,'production_transfer',t.id,'REMAINDER_UNDO',old={'remainder':str(old) if old is not None else None},new={'remainder':None})
+    items=_group_items(db,i)
+    if not any(x.remainder_net is not None or x.emptied for x in items): raise HTTPException(409,'Δεν υπάρχει δηλωμένο υπόλοιπο')
+    old=sum((x.remainder_net or Decimal(0) for x in items),Decimal(0))
+    for x in items: _undo_remainder(db,x,t,user,'Αναίρεση υπολοίπου')
+    write_audit(db,user,'production_transfer',t.id,'REMAINDER_UNDO',old={'remainder':str(old)},new={'remainder':None})
     db.commit()
-    return {"ok":True,"item_id":i.id,"net_production":float(i.weight)}
+    return {"ok":True,"item_id":i.id,"net_production":float(sum((x.weight for x in items),Decimal(0)))}
 
 @app.get('/warehouse')
 def warehouse_workspace():
