@@ -4658,9 +4658,10 @@ def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_d
     db.commit(); db.refresh(lot); return _ready_out(db,lot)
 
 @app.get('/inventory/ready-materials', response_model=list[schemas.ReadyMaterialOut])
-def ready_materials(available_only:bool=True, start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+def ready_materials(available_only:bool=True, in_stock:bool=False, start:str|None=Query(default=None), end:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
     q=select(ReadyMaterialLot).order_by(ReadyMaterialLot.created_at.desc())
-    if available_only: q=q.where(ReadyMaterialLot.status=='AVAILABLE')
+    if in_stock: q=q.where(ReadyMaterialLot.status.in_(('AVAILABLE','RESERVED','LOADING')))   # στην αποθήκη μέχρι να φορτωθούν (δεσμευμένες/σε φόρτωση ακόμα μετρούν)
+    elif available_only: q=q.where(ReadyMaterialLot.status=='AVAILABLE')
     q=q.where(ReadyMaterialLot.status!='DEMO')   # τα DEMO δεν μπαίνουν ποτέ στα πραγματικά ισοζύγια/λίστες
     if start: q=q.where(ReadyMaterialLot.created_at>=datetime.fromisoformat(start))
     if end: q=q.where(ReadyMaterialLot.created_at<datetime.fromisoformat(end)+timedelta(days=1))
