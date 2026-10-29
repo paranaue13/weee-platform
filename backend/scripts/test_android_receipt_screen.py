@@ -17,13 +17,13 @@ with sync_playwright() as p:
     pg.goto(B + '/mobile', wait_until='networkidle'); pg.click('#loginBtn'); pg.wait_for_selector('#app:not(.hidden)'); pg.wait_for_timeout(2500)
     # --- 1) πάνω μπάρα
     h = pg.evaluate("document.querySelector('.topDark').getBoundingClientRect().height")
-    ck('πάνω μπάρα ~34px', 33 <= h <= 36, str(h))
+    ck('πάνω μπάρα ~46px (νέο ύψος)', 45 <= h <= 47, str(h))
     r = pg.evaluate("""(()=>{const t=document.querySelector('.topDark').getBoundingClientRect();
       const ids=['clock','appTitle','net','topDeltioBtn','who','refreshBtn'];const o={};
       ids.forEach(i=>{const e=document.getElementById(i).getBoundingClientRect();o[i]=[Math.round(e.left),Math.round(e.right),Math.round(e.top-t.top),Math.round(e.bottom-t.top)]});
       return {o,w:innerWidth,txt:[clock.innerText,appTitle.innerText,netTxt.innerText,who.innerText]}})()""")
     print(r)
-    ck('όλα στην ίδια γραμμή και μέσα στην οθόνη', all(v[0] >= 0 and v[1] <= r['w'] and v[2] >= 0 and v[3] <= 36 for v in r['o'].values()))
+    ck('όλα στην ίδια γραμμή και μέσα στην οθόνη', all(v[0] >= 0 and v[1] <= r['w'] and v[2] >= 0 and v[3] <= 48 for v in r['o'].values()))
     ck('ώρα ωω:λλ', re.fullmatch(r'\d\d:\d\d', r['txt'][0]) is not None, r['txt'][0])
     ck('«WEEE 2.5.41»', r['txt'][1].startswith('WEEE 2.'), r['txt'][1])
     pg.screenshot(path=S + 'top.png')

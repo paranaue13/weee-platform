@@ -32,8 +32,55 @@ def is_demo(x_demo: str | None) -> bool:
     return (x_demo or "").strip() in ("1", "true", "yes")
 
 
+_LATIN_TWIN = str.maketrans("ABEZHIKMNOPTYX", "ΑΒΕΖΗΙΚΜΝΟΡΤΥΧ")   # λατινικά γράμματα που μοιάζουν με ελληνικά = το ίδιο γράμμα
+
+
 def _norm(s) -> str:
-    return " ".join(str(s or "").strip().upper().split())
+    """Κλειδί σύγκρισης ονομάτων: κεφαλαία, χωρίς πολλαπλά κενά, και τα λατινικά γράμματα που μοιάζουν με ελληνικά (Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ) θεωρούνται ίδια
+    (π.χ. «ΙΝΟΧ» ελληνικά = «INOX» λατινικά). Τα αποθηκευμένα ονόματα δεν αλλάζουν."""
+    return " ".join(str(s or "").strip().upper().split()).translate(_LATIN_TWIN)
+
+
+def _fold_key(s) -> str:
+    """Όπως το _norm αλλά και χωρίς τόνους/σημεία (ίδιο με τη σύγκριση της σύντομης περιγραφής στις οθόνες· το «+» μένει σημαντικό)."""
+    import unicodedata, re as _re
+    t = unicodedata.normalize("NFD", _norm(s))
+    t = "".join(ch for ch in t if not unicodedata.combining(ch)).replace("+", " PLUS ")
+    return _re.sub(r"[^0-9A-ZΑ-Ω]+", " ", t).strip()
+
+
+def _commercial_group_id(db: Session):
+    """Κατηγορία αποθήκης «Εμπορικά» (αν υπάρχει στα Μητρώα): εκεί εμφανίζονται όλα τα υλικά με το τσεκ «Εμπορικό υλικό» (Android εξαγωγή + Αποθήκη)."""
+    for g in db.scalars(select(StorageGroup)).all():
+        if _fold_key(g.name) == _fold_key("Εμπορικά"):
+            return g.id
+    return None
+
+
+def _eff_group(m, comm_gid):
+    return comm_gid if (comm_gid and getattr(m, "is_commercial", False)) else m.storage_group_id
+
+
+def _commercial_exports_map(db: Session) -> dict:
+    """Εξαγωγές εμπορικών ανά υλικό: {material_id: {"kg","pieces","rows":[...]}} (μόνο ενεργές)."""
+    out: dict = {}
+    for e in db.scalars(select(models.CommercialExport).where(models.CommercialExport.active == True).order_by(models.CommercialExport.export_date, models.CommercialExport.created_at)).all():
+        g = out.setdefault(e.material_id, {"kg": 0.0, "pieces": 0, "rows": []})
+        g["kg"] = round(g["kg"] + float(e.kg or 0), 3); g["pieces"] += int(e.pieces or 0); g["rows"].append(e)
+    return out
+
+
+def _apply_commercial_exports(db: Session, out: dict, entry):
+    """Αφαιρεί τις εξαγωγές των εμπορικών από κιλά/τεμάχια του υλικού και τις προσθέτει ως γραμμές «Εξαγωγή» (αρνητικά κιλά) στην ανάλυση."""
+    for mid, g in _commercial_exports_map(db).items():
+        try:
+            row = entry(mid)
+        except KeyError:
+            continue
+        row["kg"] = round(row["kg"] - g["kg"], 3); row["pieces"] -= g["pieces"]; row["commercial"] = True
+        for e in g["rows"]:
+            row["items"].append({"kind": "commercial_export", "label": "Εξαγωγή", "code": None, "kg": -float(e.kg or 0), "pieces": -int(e.pieces or 0), "counted_kg": None,
+                                 "date": e.export_date.isoformat() if e.export_date else None, "demo": False, "note": e.note})
 
 
 def _period(now: datetime | None = None):
@@ -77,6 +124,47 @@ def next_medium_code(db: Session, form: str, demo: bool, content_code: str = "NC
     return _codes.next_code_for(db, content_code)       # κοινός μετρητής (έτος, κωδικός περιεχομένου)
 
 
+def next_bale_code(db: Session, mat, demo: bool, consume: bool) -> str:
+    """Κωδικός ΜΠΑΛΑΣ: ΜΙΑ σειρά ανά κατηγορία αποθήκης (κωδικός περιεχομένου) και ανά έτος, με «Β» μέσα στον κωδικό (26-MTL-B0001, B0002, B0003 για όλα τα υλικά
+    της κατηγορίας). Η σειρά ξεκινά από το 1 κάθε χρονιά και δεν αφορά τις παλέτες/σάκους (έχουν δικό τους μετρητή). Ο κωδικός είναι πάντα μοναδικός:
+    ο μετρητής αυξάνεται με ΕΝΑ ατομικό UPDATE (παίρνει το κλείδωμα εγγραφής) και αν ο κωδικός υπάρχει ήδη προχωρά στον επόμενο ελεύθερο."""
+    import re
+    from sqlalchemy import text
+    now = datetime.now(); yy = now.year % 100
+    cc = material_content_code(db, mat)
+    pre = f"{'DEMO-' if demo else ''}{yy:02d}-{cc}-B"
+    key = f"matbale.cat.{'DEMO.' if demo else ''}{now.year}.{cc}"
+    row = db.scalar(select(AppSetting).where(AppSetting.key == key))
+    if not row:
+        # πρώτη χρήση: ξεκινά μετά τον μεγαλύτερο ήδη υπάρχοντα αριθμό «Β» της κατηγορίας (αν υπάρχει)
+        mx = 0
+        for (c,) in db.execute(select(CollectionMedium.code).where(CollectionMedium.code.like(pre + "%"))).all():
+            m = re.fullmatch(re.escape(pre) + r"(\d+)", c or "")
+            if m:
+                mx = max(mx, int(m.group(1)))
+        if not consume:
+            n = mx
+            while True:
+                n += 1
+                code = f"{pre}{n:04d}"
+                if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
+                    return code
+        row = AppSetting(key=key, value=str(mx)); db.add(row); db.flush()
+    if not consume:
+        n = int(row.value or 0)
+        while True:
+            n += 1
+            code = f"{pre}{n:04d}"
+            if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
+                return code
+    while True:
+        db.execute(text("UPDATE app_settings SET value = CAST(value AS INTEGER) + 1 WHERE key = :k"), {"k": key})
+        n = int(db.execute(text("SELECT value FROM app_settings WHERE key = :k"), {"k": key}).scalar())
+        code = f"{pre}{n:04d}"
+        if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.code == code)):
+            return code
+
+
 def _types(db: Session) -> dict:
     return {t.code: t for t in db.scalars(select(CollectionMediumType)).all()}
 
@@ -117,11 +205,12 @@ def _net(form: str, gross, tare, net):
     return n
 
 
-def _new_medium(db: Session, form: str, tare, demo: bool, status: str, mat=None):
+def _new_medium(db: Session, form: str, tare, demo: bool, status: str, mat=None, bale: bool = False):
     if form == "BULK":
         return None
     t = _types(db)[FORMS[form]]
-    m = CollectionMedium(type_id=t.id, code=next_medium_code(db, form, demo, material_content_code(db, mat)), tare_weight=tare, status=status, active=True)
+    code = next_bale_code(db, mat, demo, True) if bale else next_medium_code(db, form, demo, material_content_code(db, mat))
+    m = CollectionMedium(type_id=t.id, code=code, tare_weight=tare, status=status, active=True)
     db.add(m); db.flush()
     return m
 
@@ -157,13 +246,57 @@ def _exported_counted(db: Session) -> dict:
     return {m: float(w or 0) for m, w in rows}
 
 
+def _commercial_stock(db: Session) -> dict:
+    """Απόθεμα εμπορικών ανά ΥΛΙΚΟ (id/ERP, όχι όνομα): κιλά των εξαγωγών (παρτίδων) − εξαγωγές εμπορικών."""
+    rows = db.execute(select(ReadyMaterialLot.material_id, func.sum(ReadyMaterialLot.net_weight)).where(ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.is_demo == False,
+                      ReadyMaterialLot.status == "AVAILABLE").group_by(ReadyMaterialLot.material_id)).all()
+    ex = _commercial_exports_map(db)
+    return {m: round(float(w or 0) - ex.get(m, {}).get("kg", 0.0), 3) for m, w in rows}
+
+
+def _ledger_raw(db: Session) -> dict:
+    """Τρέχον απόθεμα ανά ΑΚΡΙΒΗ ετικέτα (παραγωγή − αποστολές + διορθώσεις), για τις ρητές αντιστοιχίσεις ετικέτας → υλικό."""
+    bal: dict = {}
+    for t, sg in ((MaterialOutputEntry, 1), (MaterialShipmentEntry, -1)):
+        for lb, w in db.execute(select(t.material_label, func.sum(t.weight_kg)).where(t.active == True).group_by(t.material_label)).all():
+            bal[lb] = bal.get(lb, 0.0) + sg * float(w or 0)
+    for lb, w in db.execute(select(MaterialCorrectionEntry.material_label, func.sum(MaterialCorrectionEntry.weight_kg_delta)).group_by(MaterialCorrectionEntry.material_label)).all():
+        bal[lb] = bal.get(lb, 0.0) + float(w or 0)
+    return bal
+
+
+def _explicit_excel_maps(db: Session) -> dict:
+    return {r.label_key: r for r in db.scalars(select(models.MaterialLabelMap).where(models.MaterialLabelMap.source == "EXCEL")).all()}
+
+
 def available_by_material(db: Session, materials) -> dict:
-    bal = _ledger_balance(db); exp = _exported_counted(db); out = {}
+    maps = _explicit_excel_maps(db)
+    bal = _ledger_balance(db) if not maps else {}
+    owner_sum: dict = {}
+    if maps:
+        raw = _ledger_raw(db)
+        claimed = set(maps)                           # ετικέτες με ρητή αντιστοίχιση ΔΕΝ ταυτίζονται πια με το όνομα
+        for lb, kg in raw.items():
+            k = _fold_key(lb)
+            r = maps.get(k)
+            if r is not None:
+                if r.kind in ("MATERIAL", "BULK_SUB") and r.material_id:
+                    owner_sum[r.material_id] = owner_sum.get(r.material_id, 0.0) + kg
+            else:
+                bal[_norm(lb)] = bal.get(_norm(lb), 0.0) + kg
+    exp = _exported_counted(db); out = {}
+    cstock = None
     for m in materials:
+        if getattr(m, "is_commercial", False):      # εμπορικό: δικό του απόθεμα (ανά υλικό), όχι το ισοζύγιο ετικέτας
+            if cstock is None:
+                cstock = _commercial_stock(db)
+            out[m.id] = round(cstock.get(m.id, 0.0), 3)
+            continue
         key = _norm(m.official_description or m.internal_name)
         b = bal.get(key)
         if b is None:
             b = bal.get(_norm(m.internal_name), bal.get(_norm(m.galaxy_description), 0.0))
+        b = (b or 0.0) + owner_sum.get(m.id, 0.0)
         out[m.id] = round(max(0.0, b - exp.get(m.id, 0.0)), 3)
     return out
 
@@ -199,6 +332,7 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
     cats = db.scalars(select(StorageGroup).where(StorageGroup.active == True).order_by(StorageGroup.sort_order, StorageGroup.name)).all()
     mats = db.scalars(select(Material).where(Material.active == True).order_by(Material.internal_name)).all()
     avail = available_by_material(db, mats)
+    comm_gid = _commercial_group_id(db)
     types = _types(db)
     forms = []
     for f in ("PALLET", "SACK_1KG", "SACK_2KG", "BULK"):
@@ -206,17 +340,19 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
         forms.append({"form": f, "label": FORM_LABELS[f], "tare": float(t.default_tare_weight) if (t and t.default_tare_weight is not None) else None,
                       "asks_tare": f == "PALLET", "has_code": f != "BULK"})
     y, q, m = _period()
-    return {"categories": [{"id": c.id, "name": c.name, "count": sum(1 for x in mats if x.storage_group_id == c.id)} for c in cats],
-            "materials": [{"id": x.id, "name": x.official_description or x.internal_name, "code": x.galaxy_code, "category_id": x.storage_group_id, "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale)} for x in mats],
+    return {"categories": [{"id": c.id, "name": c.name, "count": sum(1 for x in mats if _eff_group(x, comm_gid) == c.id)} for c in cats],
+            "materials": [{"id": x.id, "name": x.official_description or x.internal_name, "code": x.galaxy_code, "category_id": _eff_group(x, comm_gid), "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale), "is_commercial": bool(x.is_commercial)} for x in mats],
             "forms": forms, "period": {"year": y, "quarter": q, "month": m, "month_name": MONTHS[m - 1], "quarter_month_name": MONTHS[QUARTER_MONTH[q] - 1]}}
 
 
 @router.get("/next-code")
-def next_code_preview(form: str, material_id: str | None = None, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
+def next_code_preview(form: str, material_id: str | None = None, bale: bool = False, db: Session = Depends(get_db), user=Depends(require_permission("production.view")), x_demo: str | None = Header(default=None)):
     """Ο κωδικός που θα δοθεί στο επόμενο μέσο μιας χρήσης (προεπισκόπηση, δεν δεσμεύεται)."""
     if form not in ("PALLET", "SACK_1KG", "SACK_2KG"):
         return {"code": None}
     mat = db.get(Material, material_id) if material_id else None
+    if bale and mat is not None and form == "PALLET":
+        return {"code": next_bale_code(db, mat, is_demo(x_demo), False)}
     cc = material_content_code(db, mat)
     if is_demo(x_demo):
         return {"code": _demo_seq_code(db, cc, False)}
@@ -253,7 +389,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
         net = _net(form, data.gross, tare, data.net)
         gross = data.gross if form != "BULK" else None
         counted = net
-        medium = _new_medium(db, form, tare, demo, "READY_STORAGE", mat)
+        medium = _new_medium(db, form, tare, demo, "READY_STORAGE", mat, bale=bool(data.is_bale))
     lot = ReadyMaterialLot(lot_number=_lot_number(db, mat, demo), material_id=mat.id, output_form=("CONTAINER" if medium else "BULK"),
                            collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
@@ -294,8 +430,18 @@ def list_exports(days: int = Query(default=60, ge=1, le=400), db: Session = Depe
             "form": ("BULK" if not med else next((k for k, v in FORMS.items() if v and types.get(med.type_id) and types[med.type_id].code == v), "PALLET")),
             "gross_kg": float(lot.gross_weight) if lot.gross_weight is not None else None, "tare_kg": float(lot.tare_weight) if lot.tare_weight is not None else None,
             "inv_net_kg": (lambda i: float(i.net_weight) if i else None)(db.get(MaterialInventoryEntry, lot.source_inventory_id) if lot.source_inventory_id else None),
-            "locked": _export_lock(db, lot), "is_bale": bool(lot.is_bale)})
+            "locked": _export_lock(db, lot), "is_bale": bool(lot.is_bale),
+            "asks_tare": bool(med and med.type_id in types and types[med.type_id].code == "PALLET"), "date": loc.strftime("%d/%m/%Y")})
     return [{"date": d, "items": days_map[d]} for d in sorted(days_map, reverse=True)]
+
+
+@router.get("/press-columns")
+def press_columns(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Στήλες που εμφανίζει ΠΑΝΤΑ η Πρέσα (με 0 όταν δεν υπάρχει κίνηση): τα ενεργά, μη εμπορικά υλικά με «Μπορεί να γίνει μπάλα» (όνομα στήλης = «Όνομα στήλης Πρέσας» ή επίσημη περιγραφή)
+    και οι στήλες που προέκυψαν από τα Excel της Πρέσας (οποιουδήποτε μήνα), ακόμα κι αν το υλικό δεν έχει το τσεκ."""
+    mats = db.scalars(select(Material).where(Material.active == True, Material.can_bale == True, Material.is_commercial == False).order_by(Material.internal_name)).all()
+    excel = [g for (g,) in db.execute(select(models.BaleEntry.material_group).where(models.BaleEntry.active == True).distinct()).all() if g]
+    return {"materials": [{"id": m.id, "erp": m.galaxy_code, "name": (m.press_label or "").strip() or m.official_description or m.internal_name} for m in mats], "excel": sorted(excel)}
 
 
 @router.get("/bales-summary")
@@ -311,9 +457,13 @@ def bales_summary(start: str | None = None, end: str | None = None, db: Session 
         day = (ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()).date()
         if (d0 and day < d0) or (d1 and day > d1):
             continue
+        if getattr(mat, "is_commercial", False):
+            continue
         key = (mat.press_label or "").strip() or mat.official_description or mat.internal_name
-        g = out.setdefault(key, {"material_group": key, "kg": 0.0, "count": 0})
+        g = out.setdefault(key, {"material_group": key, "kg": 0.0, "count": 0, "days": {}})
         g["kg"] += float(lot.net_weight); g["count"] += 1
+        dd = g["days"].setdefault(day.isoformat(), {"kg": 0.0, "count": 0})
+        dd["kg"] += float(lot.net_weight); dd["count"] += 1
     return sorted(out.values(), key=lambda g: -g["kg"])
 
 
@@ -336,8 +486,9 @@ def _export_lock(db: Session, lot: ReadyMaterialLot) -> str | None:
 
 class ExportEditIn(BaseModel):
     gross: Decimal | None = None          # μέσο (παλέτα/σάκος): νέο μικτό
+    tare: Decimal | None = None           # παλέτα/μπάλα: νέο απόβαρο (οι σάκοι έχουν σταθερό)
     net: Decimal | None = None            # Χύμα: νέα καθαρά κιλά
-    new_total: Decimal | None = None      # εξαγωγή από απογραφή: νέο συνολικό βάρος του μέσου
+    new_total: Decimal | None = None      # εξαγωγή από απογραφή: νέο συνολικό (καθαρό) βάρος του μέσου
 
 
 @router.put("/exports/{lot_id}")
@@ -350,22 +501,42 @@ def edit_export(lot_id: str, data: ExportEditIn, db: Session = Depends(get_db), 
         raise HTTPException(409, why)
     old = {"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "counted": str(lot.counted_kg) if lot.counted_kg is not None else None}
     inv = db.get(MaterialInventoryEntry, lot.source_inventory_id) if lot.source_inventory_id else None
-    if inv:
+    med = db.get(CollectionMedium, lot.collection_medium_id) if lot.collection_medium_id else None
+    mtype = db.get(CollectionMediumType, med.type_id) if med else None
+    is_pallet = bool(mtype and mtype.code == "PALLET")
+    old["tare"] = str(lot.tare_weight) if lot.tare_weight is not None else None
+    def _tare():
+        if is_pallet and data.tare is not None:
+            t = Decimal(str(data.tare))
+            if t < 0:
+                raise HTTPException(422, "Το απόβαρο δεν μπορεί να είναι αρνητικό")
+            return t
+        return Decimal(str(lot.tare_weight if lot.tare_weight is not None else 0))
+    if med is None:
+        net = _net("BULK", None, None, data.net)
+        lot.net_weight = net; lot.counted_kg = net
+    elif inv and data.gross is None:
         if data.new_total is None or Decimal(str(data.new_total)) <= 0:
             raise HTTPException(422, "Βάλε το νέο συνολικό βάρος του μέσου")
         total = Decimal(str(data.new_total)); counted = total - Decimal(str(inv.net_weight))
         if counted < 0:
             raise HTTPException(422, "Το νέο συνολικό βάρος δεν μπορεί να είναι μικρότερο από της απογραφής")
         lot.net_weight = total; lot.counted_kg = counted
-    elif lot.collection_medium_id is None:
-        net = _net("BULK", None, None, data.net)
-        lot.net_weight = net; lot.counted_kg = net
     else:
-        tare = Decimal(str(lot.tare_weight if lot.tare_weight is not None else 0))
+        tare = _tare()
         net = _net("PALLET", data.gross, tare, None)
-        lot.gross_weight = Decimal(str(data.gross)); lot.net_weight = net; lot.counted_kg = net
+        lot.gross_weight = Decimal(str(data.gross)); lot.tare_weight = tare; lot.net_weight = net
+        if inv:
+            counted = net - Decimal(str(inv.net_weight))
+            if counted < 0:
+                raise HTTPException(422, "Το νέο συνολικό βάρος δεν μπορεί να είναι μικρότερο από της απογραφής")
+            lot.counted_kg = counted
+        else:
+            lot.counted_kg = net
+        if is_pallet:
+            med.tare_weight = tare
     db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="EXPORT_EDIT", weight=lot.net_weight - Decimal(old["net"]), user_id=user.id, reason="Διόρθωση εξαγωγής από Android"))
-    write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old=old, new={"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "counted": str(lot.counted_kg)}, reason="Διόρθωση εξαγωγής")
+    write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old=old, new={"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "tare": str(lot.tare_weight) if lot.tare_weight is not None else None, "counted": str(lot.counted_kg)}, reason="Διόρθωση εξαγωγής")
     db.commit()
     return {"id": lot.id, "net": float(lot.net_weight), "counted_kg": float(lot.counted_kg)}
 
@@ -401,6 +572,8 @@ def add_inventory(data: InventoryIn, db: Session = Depends(get_db), user: User =
     if data.form not in FORMS:
         raise HTTPException(422, "Άγνωστο μέσο αποθήκευσης")
     mat = _material(db, data.material_id)
+    if getattr(mat, "is_commercial", False):
+        raise HTTPException(422, "Το εμπορικό υλικό δεν μετρά σε απογραφή")
     tare = _tare_for(db, data.form, data.tare)
     net = _net(data.form, data.gross, tare, data.net)
     y, q, mo = _period()
@@ -429,6 +602,7 @@ def list_inventory(year: int | None = None, quarter: int | None = None, db: Sess
     rows = _inv_rows(db, False, year=year, quarter=quarter) + (_inv_rows(db, True, year=year, quarter=quarter) if is_demo(x_demo) else [])
     media = {m.id: m for m in db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_([r.collection_medium_id for r in rows if r.collection_medium_id]))).all()} if rows else {}
     mats = {m.id: m for m in db.scalars(select(Material).where(Material.id.in_([r.material_id for r in rows]))).all()} if rows else {}
+    rows = [r for r in rows if not getattr(mats.get(r.material_id), "is_commercial", False)]      # τα εμπορικά δεν μετρούν σε απογραφή
     out: dict = {}
     for r in rows:
         g = out.setdefault(r.material_id, {"material_id": r.material_id, "material": (mats[r.material_id].official_description or mats[r.material_id].internal_name), "total_kg": 0.0, "items": []})
@@ -467,6 +641,12 @@ def warehouse(db: Session = Depends(get_db), user=Depends(require_permission("pr
         t = types.get(md.type_id) if md else None
         label = {"PALLET": "Παλέτα", "SACK_1KG": "Σάκος 1 kg", "SACK_2KG_UN": "Σάκος 2 kg"}.get(t.code if t else "", "Χύμα")
         g["items"].append({"label": ("Μπάλα" if l.is_bale else label), "code": md.code if md else None, "kg": float(l.net_weight), "demo": bool(l.is_demo)})
+    def _entry_old(mid):
+        m = db.get(Material, mid)
+        if not m: raise KeyError(mid)
+        return out.setdefault(mid, {"material_id": mid, "material": m.official_description or m.internal_name, "pieces": 0, "kg": 0.0, "items": []})
+    _apply_commercial_exports(db, out, _entry_old)
+    out = {k: v for k, v in out.items() if v["kg"] != 0 or v["pieces"] != 0 or not v.get("commercial")}
     groups = sorted(out.values(), key=lambda g: g["material"])
     return {"materials": groups, "pieces": sum(g["pieces"] for g in groups), "kg": round(sum(g["kg"] for g in groups), 3)}
 
@@ -479,10 +659,12 @@ def warehouse_grouped(include_inventory: bool = False, db: Session = Depends(get
     lots = db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status.in_(stat), ReadyMaterialLot.entry_type == "EXPORT").order_by(ReadyMaterialLot.created_at)).all()
     invs = (_inv_rows(db, False, status="COUNTED") + (_inv_rows(db, True, status="COUNTED") if is_demo(x_demo) else [])) if include_inventory else []
     mats = {m.id: m for m in db.scalars(select(Material)).all()}
+    invs = [i for i in invs if not getattr(mats.get(i.material_id), "is_commercial", False)]      # τα εμπορικά δεν μετρούν σε απογραφή
     media_ids = [x.collection_medium_id for x in list(lots) + list(invs) if x.collection_medium_id]
     media = {m.id: m for m in db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(media_ids))).all()} if media_ids else {}
     types = {t.id: t for t in _types(db).values()}
     groups = {g.id: g for g in db.scalars(select(StorageGroup)).all()}
+    comm_gid = _commercial_group_id(db)
     labels = {"PALLET": "Παλέτα", "SACK_1KG": "Σάκος 1 kg", "SACK_2KG_UN": "Σάκος 2 kg"}
     def label_of(md):
         t = types.get(md.type_id) if md else None
@@ -491,7 +673,7 @@ def warehouse_grouped(include_inventory: bool = False, db: Session = Depends(get
     def entry(mid):
         m = mats[mid]
         return out.setdefault(mid, {"material_id": mid, "material": m.official_description or m.internal_name, "short": getattr(m, "short_description", None), "erp": m.galaxy_code,
-                                    "category_id": m.storage_group_id, "category": (groups[m.storage_group_id].name if m.storage_group_id in groups else "Χωρίς κατηγορία"),
+                                    "category_id": _eff_group(m, comm_gid), "category": (groups[_eff_group(m, comm_gid)].name if _eff_group(m, comm_gid) in groups else "Χωρίς κατηγορία"),
                                     "pieces": 0, "kg": 0.0, "inv_pieces": 0, "inv_kg": 0.0, "items": []})
     for l in lots:
         if l.material_id not in mats: continue
@@ -508,7 +690,8 @@ def warehouse_grouped(include_inventory: bool = False, db: Session = Depends(get
         if md: g["inv_pieces"] += 1
         g["items"].append({"kind": "inventory", "label": label_of(md), "code": md.code if md else None, "kg": float(i.net_weight), "counted_kg": None,
                            "date": i.created_at.isoformat() if i.created_at else None, "demo": bool(i.is_demo)})
-    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0]
+    _apply_commercial_exports(db, out, entry)
+    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0 or (g.get("commercial") and g["kg"] != 0)]
     for g in rows:
         g["total_pieces"] = g["pieces"] + g["inv_pieces"]; g["total_kg"] = round(g["kg"] + g["inv_kg"], 3)
     cats: dict = {}
@@ -542,11 +725,13 @@ def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get
     invs = db.scalars(select(MaterialInventoryEntry).where(MaterialInventoryEntry.status == "COUNTED").order_by(MaterialInventoryEntry.created_at)).all() if include_inventory else []
     mats = db.scalars(select(Material)).all()
     mat_by_id = {m.id: m for m in mats}
+    invs = [i for i in invs if not getattr(mat_by_id.get(i.material_id), "is_commercial", False)]      # τα εμπορικά δεν μετρούν σε απογραφή
     avail = available_by_material(db, mats)
     media_ids = [x.collection_medium_id for x in list(lots) + list(invs) if x.collection_medium_id]
     media = {m.id: m for m in db.scalars(select(CollectionMedium).where(CollectionMedium.id.in_(media_ids))).all()} if media_ids else {}
     types = {t.id: t for t in _types(db).values()}
     groups = {g.id: g for g in db.scalars(select(StorageGroup)).all()}
+    comm_gid = _commercial_group_id(db)
 
     def label_of(md):
         t = types.get(md.type_id) if md else None
@@ -557,12 +742,17 @@ def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get
     def entry(mid):
         m = mat_by_id[mid]
         return out.setdefault(mid, {"material_id": mid, "material": m.official_description or m.internal_name, "erp": m.galaxy_code,
-                                    "category_id": m.storage_group_id, "category": (groups[m.storage_group_id].name if m.storage_group_id in groups else "Χωρίς κατηγορία"),
+                                    "category_id": _eff_group(m, comm_gid), "category": (groups[_eff_group(m, comm_gid)].name if _eff_group(m, comm_gid) in groups else "Χωρίς κατηγορία"),
                                     "pieces": 0, "kg": 0.0, "inv_kg": 0.0, "inv_pieces": 0, "items": []})
     # ποσότητα χωρίς δεδομένα μέσου = Χύμα· μία φορά ανά ετικέτα υλικού (πολλά υλικά μπορεί να μοιράζονται το ίδιο ισοζύγιο)
     seen: set = set()
+    _owner_ids = {r.material_id for r in _explicit_excel_maps(db).values() if r.kind in ("MATERIAL", "BULK_SUB") and r.material_id}
     for m in sorted(mats, key=lambda m: (m.storage_group_id is None, m.id)):
+        if getattr(m, "is_commercial", False):       # τα εμπορικά δεν παίρνουν «χύμα» από το ισοζύγιο ετικέτας (έχουν δικό τους απόθεμα ανά υλικό)
+            continue
         key = _norm(m.official_description or m.internal_name)
+        if m.id in _owner_ids:                       # υλικό με ρητές ετικέτες: ξεχωριστό από τα δίδυμα ίδιου ονόματος
+            key = "ID:" + m.id
         kg = avail.get(m.id, 0.0)
         if kg >= 0.01 and key not in seen:
             seen.add(key)
@@ -587,7 +777,8 @@ def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get
             g["inv_pieces"] += 1
         g["items"].append({"kind": "inventory", "label": label_of(md), "code": md.code if md else None, "kg": float(i.net_weight), "counted_kg": None,
                            "date": i.created_at.isoformat() if i.created_at else None, "demo": bool(i.is_demo)})
-    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0]
+    _apply_commercial_exports(db, out, entry)
+    rows = [g for g in out.values() if g["kg"] > 0 or g["inv_kg"] > 0 or (g.get("commercial") and g["kg"] != 0)]
     for g in rows:
         g["total_pieces"] = g["pieces"] + g["inv_pieces"]
         g["total_kg"] = round(g["kg"] + g["inv_kg"], 3)
@@ -608,6 +799,119 @@ def warehouse_desktop(include_inventory: bool = False, db: Session = Depends(get
             "inv_pieces": sum(c["inv_pieces"] for c in result), "inv_kg": round(sum(c["inv_kg"] for c in result), 3),
             "total_pieces": sum(c["total_pieces"] for c in result), "total_kg": round(sum(c["total_kg"] for c in result), 3),
             "demo_count": sum(1 for g in rows for it in g["items"] if it["demo"])}
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# ΕΜΠΟΡΙΚΑ υλικά (αγοράζονται από την εταιρεία): καρτέλα Windows → Υλικά → Εμπορικά
+# ---------------------------------------------------------------------------------------------------------------------
+class CommercialExportIn(BaseModel):
+    material_id: str
+    kg: Decimal = Decimal("0")
+    pieces: int = 0
+    date: str | None = None
+    note: str | None = None
+
+
+def _commercial_materials(db: Session):
+    return db.scalars(select(Material).where(Material.is_commercial == True, Material.active == True).order_by(Material.internal_name)).all()
+
+
+@router.get("/commercial")
+def commercial_table(start: str | None = None, end: str | None = None, db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Πίνακας καρτέλας «Εμπορικά»: στήλες = εμπορικά υλικά (τσεκ «Εμπορικό υλικό»). Ημερήσιες ποσότητες = οι εξαγωγές (παρτίδες) που καταχωρούνται από το Android
+    (η μόνη πηγή ποσοτήτων σήμερα), εξαγωγές Windows ανά ημέρα και τρέχον απόθεμα (παρτίδες − εξαγωγές). Δεν υπάρχει απογραφή/αποστολές."""
+    mats = _commercial_materials(db)
+    ids = [m.id for m in mats]
+    d0 = datetime.fromisoformat(start).date() if start else None
+    d1 = datetime.fromisoformat(end).date() if end else None
+    stock = _commercial_stock(db)
+    lots_all = db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.material_id.in_(ids), ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.is_demo == False,
+                                                          ReadyMaterialLot.status == "AVAILABLE")).all() if ids else []
+    pieces_all: dict = {}
+    days: dict = {}
+    for l in lots_all:
+        ts = l.created_at
+        day = (ts.replace(tzinfo=timezone.utc).astimezone() if ts.tzinfo is None else ts.astimezone()).date()
+        if l.collection_medium_id:
+            pieces_all[l.material_id] = pieces_all.get(l.material_id, 0) + 1
+        if (d0 and day < d0) or (d1 and day > d1):
+            continue
+        c = days.setdefault((day.isoformat(), l.material_id), {"work_date": day.isoformat(), "material_id": l.material_id, "kg": 0.0, "pieces": 0})
+        c["kg"] = round(c["kg"] + float(l.net_weight), 3)
+        if l.collection_medium_id:
+            c["pieces"] += 1
+    ex = _commercial_exports_map(db)
+    q = select(models.CommercialExport).where(models.CommercialExport.active == True, models.CommercialExport.material_id.in_(ids)) if ids else None
+    exports = []
+    if q is not None:
+        for e in db.scalars(q.order_by(models.CommercialExport.export_date, models.CommercialExport.created_at)).all():
+            if (d0 and e.export_date < d0) or (d1 and e.export_date > d1):
+                continue
+            exports.append({"id": e.id, "material_id": e.material_id, "work_date": e.export_date.isoformat(), "kg": float(e.kg or 0), "pieces": int(e.pieces or 0), "note": e.note})
+    return {"materials": [{"id": m.id, "name": m.official_description or m.internal_name, "erp": m.galaxy_code, "short": m.short_description,
+                           "stock_kg": round(stock.get(m.id, 0.0), 3), "stock_pieces": pieces_all.get(m.id, 0) - ex.get(m.id, {}).get("pieces", 0)} for m in mats],
+            "entries": sorted(days.values(), key=lambda x: (x["work_date"], x["material_id"])), "exports": exports}
+
+
+@router.post("/commercial-exports")
+def add_commercial_export(data: CommercialExportIn, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
+    mat = db.get(Material, data.material_id)
+    if not mat or not mat.active:
+        raise HTTPException(422, "Άγνωστο ή ανενεργό υλικό")
+    if not mat.is_commercial:
+        raise HTTPException(422, "Το υλικό δεν είναι εμπορικό")
+    kg = Decimal(str(data.kg or 0)); pcs = int(data.pieces or 0)
+    if kg < 0 or pcs < 0:
+        raise HTTPException(422, "Τα κιλά και τα τεμάχια δεν μπορεί να είναι αρνητικά")
+    if kg == 0 and pcs == 0:
+        raise HTTPException(422, "Βάλε κιλά ή τεμάχια")
+    try:
+        d = datetime.fromisoformat(data.date).date() if data.date else datetime.now().date()
+    except ValueError:
+        raise HTTPException(422, "Μη έγκυρη ημερομηνία")
+    e = models.CommercialExport(material_id=mat.id, export_date=d, kg=kg, pieces=pcs, note=(data.note or "").strip() or None, created_by=user.id)
+    db.add(e); db.flush()
+    write_audit(db, user, "commercial_export", e.id, "CREATE", new={"material": mat.internal_code, "kg": str(kg), "pieces": pcs, "date": d.isoformat(), "note": e.note})
+    db.commit()
+    return {"id": e.id, "material_id": mat.id, "work_date": d.isoformat(), "kg": float(kg), "pieces": pcs, "note": e.note}
+
+
+@router.delete("/commercial-exports/{export_id}")
+def delete_commercial_export(export_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
+    e = db.get(models.CommercialExport, export_id)
+    if not e or not e.active:
+        raise HTTPException(404, "Η εξαγωγή δεν βρέθηκε")
+    e.active = False
+    write_audit(db, user, "commercial_export", e.id, "DELETE", old={"kg": str(e.kg), "pieces": e.pieces, "date": e.export_date.isoformat()})
+    db.commit()
+    return {"id": e.id, "deleted": True}
+
+
+@router.get("/commercial-names")
+def commercial_names(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Ονόματα που ανήκουν ΜΟΝΟ σε εμπορικά υλικά (κανένα μη εμπορικό υλικό δεν έχει το ίδιο όνομα). Οι οθόνες Υλικά/Απογραφής αφαιρούν τις ετικέτες με αυτά τα ονόματα."""
+    mats = db.scalars(select(Material)).all()
+    non = set()
+    for m in mats:
+        if not m.is_commercial and m.active:
+            for n in (m.official_description, m.internal_name, m.galaxy_description):
+                if n: non.add(_fold_key(n))
+    maps = _explicit_excel_maps(db)
+    byid = {m.id: m for m in mats}
+    names = []
+    for m in mats:
+        if m.is_commercial and m.active:
+            for n in (m.official_description, m.internal_name, m.galaxy_description):
+                if n and _fold_key(n) not in non and n not in names:
+                    r = maps.get(_fold_key(n))
+                    if r is not None and r.kind in ("MATERIAL", "BULK_SUB", "SUM", "RECEIPTS", "NONE") and not (r.material_id and byid.get(r.material_id) is not None and byid[r.material_id].is_commercial):
+                        continue                         # ρητά αντιστοιχισμένη αλλού: δεν εξαιρείται λόγω ονόματος
+                    names.append(n)
+    for r in maps.values():                              # ετικέτες που ρητά ανήκουν σε εμπορικό υλικό
+        mm = byid.get(r.material_id) if r.material_id else None
+        if r.kind == "MATERIAL" and mm is not None and mm.is_commercial and r.label not in names:
+            names.append(r.label)
+    return {"names": names}
 
 
 @router.post("/demo/delete")

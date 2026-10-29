@@ -136,7 +136,7 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 .ptItem{padding:12px 0;border-top:1px solid var(--m3-divider)}
 .ptItem:first-child{border-top:0}
 .ptL1{font-size:14px;color:var(--m3-on-surface);line-height:1.35}
-.ptKg{font-size:16px;font-weight:500;color:var(--m3-primary)}
+.ptKg{font-size:16px;font-weight:500;color:var(--m3-primary)}.ptMat{font-size:15px;font-weight:700}.mtExInfo{border:1px solid #dde2ea;border-radius:10px;overflow:hidden;margin:8px 0 12px}.mtExInfo div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:13px;border-top:1px solid #dde2ea}.mtExInfo div:first-child{border:0}.mtExInfo span{color:#5f6670}.mtExInfo b{text-align:right}.mtExF{margin-bottom:10px}.mtExF label{display:block;font-size:12px;font-weight:700;margin-bottom:4px}.mtExF input{width:100%;height:46px;font-size:18px;padding:0 12px;border:1px solid #dde2ea;border-radius:8px;box-sizing:border-box}.mtExNet{display:flex;justify-content:space-between;align-items:center;background:#eff2f7;border-radius:10px;padding:10px 12px;margin:4px 0 12px;font-weight:700}.mtExNet b{font-size:18px;color:var(--m3-primary)}
 .ptL2{font-size:13px;color:var(--m3-on-surface-variant);margin-top:6px}
 .ptMedium{font-size:15px;font-weight:500;color:var(--m3-on-surface);margin-top:6px}
 .ptBtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
@@ -204,6 +204,16 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 .mtWhItems{width:100%;border-collapse:collapse;font-size:13px}.mtWhItems th{text-align:left;font-size:11px;font-weight:500;color:#44474F;padding:5px 4px;border-bottom:1px solid #DFE2EA}.mtWhItems td{padding:6px 4px;border-bottom:1px solid #E3E5EC;vertical-align:top}.mtWhItems .num{text-align:right;white-space:nowrap}.mtWhItems small{display:block;color:#74777F;font-size:11px}
 .mtWhInv{margin-top:10px;background:#FFE9C7;color:#7A4300;border-radius:var(--r-chip);padding:8px}.mtWhInv .mtWhItems th,.mtWhInv .mtWhItems td{color:#7A4300;border-color:rgba(0,0,0,.12)}.mtWhInvSum{text-align:right;font-weight:500;margin-top:4px}
 .mtWhSum{display:flex;justify-content:space-between;margin-top:10px;font-size:14px;font-weight:500}
+.mwSplit{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;align-items:start}@media(min-width:520px){.mwSplit{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
+.mwPane{background:#fff;border:1px solid #dde2ea;border-radius:10px;overflow:hidden}@media(min-width:520px){.mwDet{position:sticky;top:8px}}
+.mwCat,.mwMat{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;border:0;border-top:1px solid #dde2ea;font:inherit;cursor:pointer;border-radius:0;min-height:0}
+.mwCat{background:#e7eefe;color:#2b4c9b;font-weight:700;padding:0 12px;height:36px}.mwCat:first-child{border-top:0}.mwCat span:last-child{color:#191a1c;font-size:12px}
+.mwMat{background:#fff;color:#191a1c;padding:9px 12px;font-size:13px}.mwMat span:last-child,.mwCat span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.mwCat.on,.mwMat.on{background:#d5e3fe}.mwMat.on{font-weight:700}
+.mwTot,.mwSum{display:flex;justify-content:space-between;gap:8px;padding:10px 12px;font-weight:700;background:#eff2f7;border-top:2px solid #dde2ea;font-size:13px}
+.mwHead{padding:12px;border-bottom:1px solid #dde2ea}.mwHead h3{margin:0;font-size:15px;font-weight:700}
+.mwRow{display:flex;justify-content:space-between;gap:8px;padding:9px 12px;border-top:1px solid #dde2ea;font-size:13px}.mwHead+.mwRow{border-top:0}
+.mwRow>div:last-child{text-align:right}.mwRow b{display:block;font-weight:500;font-variant-numeric:tabular-nums}.mwRow small{display:block;color:#5f6670;font-size:11px;margin-top:2px}
 .mtStkNote{font-size:12px;color:#74777F;margin-top:8px}
 
 .mtCntMat{border:1px solid #DFE2EA;border-radius:var(--r-chip);margin-bottom:8px;overflow:hidden}
@@ -576,17 +586,20 @@ async function liveRefreshA(topics){
   }catch(e){}finally{liveABusy=false}
 }
 /* Εμφάνιση περιγραφής υλικών (Επίσημη / Σύντομη) -- ρύθμιση στον server «Android (όλα τα κινητά)»: αντικαθιστά ΜΟΝΟ το ορατό κείμενο όταν ταιριάζει ακριβώς με όνομα υλικού που έχει σύντομη περιγραφή */
+// Σύγκριση ονομάτων υλικών: λατινικά γράμματα που μοιάζουν με ελληνικά (Α Β Ε Ζ Η Ι Κ Μ Ν Ο Ρ Τ Υ Χ) = το ίδιο γράμμα («ΙΝΟΧ» = «INOX»)· το «+» μένει σημαντικό. Δεν αλλάζει κανένα αποθηκευμένο όνομα.
+const _NTWIN={A:'Α',B:'Β',E:'Ε',Z:'Ζ',H:'Η',I:'Ι',K:'Κ',M:'Μ',N:'Ν',O:'Ο',P:'Ρ',T:'Τ',Y:'Υ',X:'Χ'};
+function foldName(s){return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[ABEZHIKMNOPTYX]/g,c=>_NTWIN[c]).replace(/\+/g,' PLUS ').replace(/[^0-9A-ZΑ-Ω]+/g,' ').trim()}
 const MATDESCA=(function(){
-  let want=true,map=new Map(),timer=null,busy=false,obs=null,once=false;
-  const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^0-9a-zα-ως]+/g,' ').trim();
+  let want='official',maps={short:new Map(),her:new Map()},timer=null,busy=false,obs=null,once=false;
+  const norm=foldName;
   function apply(){
-    let root=document.getElementById('app');if(!root)return;busy=true;
+    let root=document.body;if(!root)return;busy=true;   /* όλη η σελίδα: και τα παράθυρα/φύλλα/ειδοποιήσεις εκτός #app ακολουθούν τη ρύθμιση «Android» */
     try{
-      let on=want&&map.size>0,w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{let p=n.parentNode;return p&&/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}}),n;
+      let map=want==='short'||want==='her'?maps[want]:null,on=!!map&&map.size>0,w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:n=>{let p=n.parentNode;return p&&/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.nodeName)?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}}),n;
       while(n=w.nextNode()){
-        if(n.__ms!==undefined){if(n.nodeValue!==n.__ms){delete n.__mo;delete n.__ms}else if(!on){n.nodeValue=n.__mo;delete n.__mo;delete n.__ms;continue}else continue}
+        if(n.__ms!==undefined){if(n.nodeValue!==n.__ms){delete n.__mo;delete n.__ms;delete n.__mm}else if(!on||n.__mm!==want){n.nodeValue=n.__mo;delete n.__mo;delete n.__ms;delete n.__mm;if(!on)continue}else continue}
         if(!on)continue;let t=n.nodeValue.trim();if(!t||t.length>160)continue;
-        let sh=map.get(norm(t));if(sh&&sh!==t){n.__mo=n.nodeValue;n.nodeValue=n.nodeValue.replace(t,sh);n.__ms=n.nodeValue}
+        let sh=map.get(norm(t));if(sh&&sh!==t){n.__mo=n.nodeValue;n.nodeValue=n.nodeValue.replace(t,sh);n.__ms=n.nodeValue;n.__mm=want}
       }
     }finally{if(obs)obs.takeRecords();busy=false}
   }
@@ -594,7 +607,7 @@ const MATDESCA=(function(){
   async function load(){
     try{
       let [m,l]=await Promise.all([api('/settings/material-desc'),api('/materials/short-names')]);
-      once=true;want=((m.modes||{}).android||'short')==='short';map=new Map();l.forEach(x=>x.names.forEach(nm=>{let k=norm(nm);if(k&&!map.has(k))map.set(k,x.short)}));apply();
+      once=true;want=(m.modes||{}).android||'official';maps={short:new Map(),her:new Map()};l.forEach(x=>x.names.forEach(nm=>{let k=norm(nm);if(!k)return;if(x.short&&!maps.short.has(k))maps.short.set(k,x.short);if(x.her&&!maps.her.has(k))maps.her.set(k,x.her)}));apply();
     }catch(e){}
   }
   obs=new MutationObserver(sched);obs.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class']});
@@ -1483,32 +1496,41 @@ function renderMatHist(){
   let card=$('matHistCard'),box=$('matHist');if(!card||!box)return;
   card.classList.toggle('hidden',mt.tab!=='export'||!!mt.countNew);
   let kg=n=>Number(n).toLocaleString('el-GR',{maximumFractionDigits:3});
-  box.innerHTML=matHist.length?matHist.map(day=>`<div class="ptDay">${esc(ptDayLbl(day.date))}</div>`+day.items.map(x=>`<div class="entry ptItem" data-xid="${x.id}" role="button"><div class="ptL1"><b class="ptKg">${kg(x.net_kg)} kg</b><span class="ptRest"> · ${esc(x.material)}</span></div><div class="ptMedium"><span class="ptPill m">${esc(x.form_label+(x.medium_code?' '+x.medium_code:''))}</span><span class="ptTm">${esc(x.time)}</span></div></div>`).join('')).join(''):'<div class="muted">Καμία εξαγωγή.</div>';
+  box.innerHTML=matHist.length?matHist.map(day=>`<div class="ptDay">${esc(ptDayLbl(day.date))}</div>`+day.items.map(x=>`<div class="entry ptItem" data-xid="${x.id}" role="button"><div class="ptL1"><b class="ptMat">${esc(x.material)}</b><span class="ptKg"> ${kg(x.net_kg)} kg</span></div><div class="ptMedium"><span class="ptPill m">${esc(x.form_label+(x.medium_code?' '+x.medium_code:''))}</span><span class="ptTm">${esc(x.time)}</span></div></div>`).join('')).join(''):'<div class="muted">Καμία εξαγωγή.</div>';
   box.onclick=ev=>{let it=ev.target.closest('[data-xid]');if(it)mtExpSheet(it.dataset.xid)};
 }
 /* ΔΙΟΡΘΩΣΗ / ΔΙΑΓΡΑΦΗ εξαγωγής: πάτημα σε γραμμή του ιστορικού. Αν είναι δεσμευμένη ή φορτωμένη, ο server την αρνείται και η οθόνη το λέει καθαρά */
 function mtExpFind(id){for(const d of matHist){const x=d.items.find(i=>i.id===id);if(x)return x}return null}
 function mtExpInfo(x){return `<div class="shM">${esc(x.material)} · ${esc(x.form_label+(x.medium_code?' '+x.medium_code:''))} · ${Number(x.net_kg).toLocaleString('el-GR',{maximumFractionDigits:3})} kg</div>`}
+function mtExpTable(x){return `<div class="mtExInfo"><div><span>Υλικό</span><b>${esc(x.material)}</b></div><div><span>Μέσο</span><b>${esc(x.form_label+(x.medium_code?' '+x.medium_code:''))}</b></div><div><span>Ώρα εξαγωγής</span><b>${esc(x.date||'')} · ${esc(x.time)}</b></div><div><span>Τώρα καταχωρημένο</span><b>${Number(x.net_kg).toLocaleString('el-GR',{maximumFractionDigits:3})} kg καθαρό</b></div></div>`}
 function mtExpSheet(id,mode){
   let x=mtExpFind(id),B=$('enSheetBody');if(!x)return;
-  const open=()=>$('enSheet').classList.remove('hidden');
   const fin=async(fn)=>{try{await fn();closeEnSheet();loadMatHist()}catch(err){let m=B.querySelector('.shM');if(m)m.textContent=(err&&err.message)||String(err);B.querySelectorAll('button').forEach(b=>b.disabled=false)}};
+  const hasMedium=x.form!=='BULK';
   if(!mode){
     B.innerHTML=`<b class="shT">Εξαγωγή</b>`+mtExpInfo(x)+(x.locked?`<div class="shM" style="color:#a3151a">${esc(x.locked)}</div><div class="shBtns"><button type="button" class="shEdit" data-sh="close">Κλείσιμο</button></div>`:'<div class="shBtns"><button type="button" class="shEdit" data-sh="edit">ΔΙΟΡΘΩΣΗ</button><button type="button" class="shDel" data-sh="del">ΔΙΑΓΡΑΦΗ</button></div>');
   }else if(mode==='edit'){
-    let lbl=x.from_inventory?'Νέο συνολικό βάρος μέσου (kg)':x.form==='BULK'?'Νέα καθαρά κιλά':'Νέο μικτό βάρος (kg)';
-    let cur=x.from_inventory?x.net_kg:x.form==='BULK'?x.net_kg:x.gross_kg;
-    B.innerHTML=`<b class="shT">Διόρθωση εξαγωγής</b>`+mtExpInfo(x)+`<label class="flLbl">${lbl}</label><input id="mtExpKg" type="number" inputmode="decimal" step="0.01" value="${cur??''}" style="width:100%;font-size:20px;padding:8px;box-sizing:border-box"><div class="shBtns"><button type="button" class="shEdit" data-sh="back">Ακύρωση</button><button type="button" class="shDel" data-sh="save" style="background:#18242F">Αποθήκευση</button></div>`;
+    let tare=x.tare_kg!=null?x.tare_kg:0,gross=x.gross_kg!=null?x.gross_kg:(x.net_kg+tare);
+    B.innerHTML=`<b class="shT">Διόρθωση εξαγωγής</b>`+mtExpTable(x)+(hasMedium
+      ?`<div class="mtExF"><label for="mtExpKg">Μικτό βάρος (kg)</label><input id="mtExpKg" type="text" inputmode="decimal" value="${gross}"></div>`
+       +(x.asks_tare?`<div class="mtExF"><label for="mtExpTare">Απόβαρο παλέτας (kg)</label><input id="mtExpTare" type="text" inputmode="decimal" value="${tare}"></div>`:`<div class="mtExF"><label>Απόβαρο (σταθερό)</label><input type="text" value="${tare}" disabled></div>`)
+       +`<div class="mtExNet"><span>Καθαρό βάρος</span><b id="mtExpNet"></b></div>`
+      :`<div class="mtExF"><label for="mtExpKg">Καθαρά κιλά</label><input id="mtExpKg" type="text" inputmode="decimal" value="${x.net_kg}"></div>`)
+      +`<div class="shM"></div><div class="shBtns"><button type="button" class="shEdit" data-sh="back">Ακύρωση</button><button type="button" class="shDel" data-sh="save" style="background:#18242F">Αποθήκευση</button></div>`;
+    const num=el=>parseFloat(String(el?el.value:'').replace(',','.'));
+    const upd=()=>{let n=$('mtExpNet');if(!n)return;let g=num($('mtExpKg')),t=x.asks_tare?num($('mtExpTare')):tare;n.textContent=(Number.isFinite(g)&&Number.isFinite(t)?Math.max(0,Math.round((g-t)*1000)/1000):0).toLocaleString('el-GR',{maximumFractionDigits:3})+' kg'};
+    ['mtExpKg','mtExpTare'].forEach(i=>{if($(i))$(i).oninput=upd});upd();
   }else if(mode==='del'){
     B.innerHTML=`<b class="shT">Να διαγραφεί η εξαγωγή;</b>`+mtExpInfo(x)+(x.from_inventory?'<div class="shM">Η ζύγιση της απογραφής θα γίνει ξανά διαθέσιμη.</div>':x.medium_code?'<div class="shM">Το μέσο '+esc(x.medium_code)+' θα μείνει ελεύθερο για νέα χρήση.</div>':'')+'<div class="shBtns"><button type="button" class="shEdit" data-sh="back">Ακύρωση</button><button type="button" class="shDel" data-sh="yes">Διαγραφή</button></div>';
   }
-  open();
+  $('enSheet').classList.remove('hidden');
   B.onclick=ev=>{let b=ev.target.closest('button');if(!b)return;let a=b.dataset.sh;
     if(a==='close')closeEnSheet();
     else if(a==='edit')mtExpSheet(id,'edit');else if(a==='del')mtExpSheet(id,'del');else if(a==='back')mtExpSheet(id);
     else if(a==='yes'){b.disabled=true;fin(()=>api('/mat/exports/'+id,{method:'DELETE'}))}
     else if(a==='save'){let v=parseFloat(String($('mtExpKg').value).replace(',','.'));if(!(v>0)){B.querySelector('.shM').textContent='Βάλε βάρος μεγαλύτερο από 0';return}
-      let body=x.from_inventory?{new_total:v}:x.form==='BULK'?{net:v}:{gross:v};b.disabled=true;fin(()=>api('/mat/exports/'+id,{method:'PUT',body:JSON.stringify(body)}))}
+      let body;if(x.form==='BULK')body={net:v};else{let t=x.asks_tare?parseFloat(String($('mtExpTare').value).replace(',','.')):null;if(x.asks_tare&&!(t>=0)){B.querySelector('.shM').textContent='Βάλε το απόβαρο της παλέτας';return}if(v-(x.asks_tare?t:(x.tare_kg||0))<=0){B.querySelector('.shM').textContent='Τα καθαρά κιλά πρέπει να είναι μεγαλύτερα από 0';return}body={gross:v};if(x.asks_tare)body.tare=t}
+      b.disabled=true;fin(()=>api('/mat/exports/'+id,{method:'PUT',body:JSON.stringify(body)}))}
   };
 }
 function mtRender(){
@@ -1533,7 +1555,7 @@ function mtWizHtml(){
   let cat=c.categories.find(x=>x.id===w.cat);
   h+=mtPicked('Κατηγορία',cat?.name||'',w.kind+'cat');
   if(w.step===2){
-    let q=(w.search||'').trim().sn(),list=c.materials.filter(m=>m.category_id===w.cat&&(!q||m.name.sn().includes(q)||String(m.code||'').sn().includes(q)));
+    let q=(w.search||'').trim().sn(),list=c.materials.filter(m=>m.category_id===w.cat&&!(w.kind==='count'&&m.is_commercial)&&(!q||m.name.sn().includes(q)||String(m.code||'').sn().includes(q)));
     h+=`<div class="flLbl">Υλικό</div><input id="mtSearch" placeholder="Αναζήτηση υλικού" value="${esc(w.search||'')}" style="margin-bottom:8px"><div class="mtMats">`+(list.map(m=>`<button type="button" class="btn alt mtMatBtn${w.mat===m.id?' on':''}" data-mat="${m.id}"><span>${esc(m.name)}</span>${w.kind==='export'?`<b>${mtKg(m.available_kg)} kg</b>`:''}</button>`).join('')||'<div class="muted">Κανένα υλικό.</div>')+`</div>`;
     return h;
   }
@@ -1584,7 +1606,7 @@ async function mtLoadStep3(){
 }
 async function mtPickForm(form){
   let w=mt.w;w.form=form;w.inv=null;w.gross='';w.tare='';w.net='';w.total='';mt.nextCode=null;
-  try{let r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(w.mat?'&material_id='+encodeURIComponent(w.mat):''));mt.nextCode=r.code}catch(e){}
+  try{let r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(form==='BALE'?'&bale=1':'')+(w.mat?'&material_id='+encodeURIComponent(w.mat):''));mt.nextCode=r.code}catch(e){}
   mtRender();
 }
 function mtBind(){
@@ -1615,23 +1637,41 @@ async function mtSend(){
   }catch(err){$('mtMsg').textContent=err?.message||String(err);$('mtSend').disabled=false}
 }
 /* Αποθήκη στη δομή των Windows: διακόπτης απογραφής · ΥΛΙΚΟ|ΤΕΜ.|ΚΙΛΑ ανά κατηγορία αποθήκης · λεπτομέρεια κάτω από τη γραμμή (από άκρη σε άκρη) */
-mt.whInv=false;mt.whOpen=null;mt.whData=null;
+mt.whInv=false;mt.whSel=null;mt.whData=null;
 const mtWhNum=n=>Number(n||0).toLocaleString('el-GR',{maximumFractionDigits:2});
 const mtWhDate=iso=>iso?new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+'Z').toLocaleDateString('el-GR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
-function mtWhDetail(m){
-  let main=m.items.filter(i=>i.kind!=='inventory'),inv=m.items.filter(i=>i.kind==='inventory');
-  const row=it=>`<tr><td>${esc(it.label)}${it.demo?' <b class="whDemo">DEMO</b>':''}</td><td>${esc(it.code||'—')}</td><td class="num">${mtWhNum(it.kg)} kg${it.counted_kg!=null&&Math.abs(it.counted_kg-it.kg)>0.0005?`<small>στον μήνα: ${mtWhNum(it.counted_kg)} kg</small>`:''}</td><td>${mtWhDate(it.date)}</td></tr>`;
-  const tbl=(l,c)=>`<table class="mtWhItems ${c||''}"><thead><tr><th>Μέσο</th><th>Κωδικός</th><th class="num">Κιλά</th><th>Ημερομηνία</th></tr></thead><tbody>${l.map(row).join('')}</tbody></table>`;
-  return `<div class="mtWhDet"><h3>${esc(m.material)}</h3>${main.length?tbl(main):''}${inv.length?`<div class="mtWhInv"><b>Απογραφή</b>${tbl(inv,'inv')}<div class="mtWhInvSum">${m.inv_pieces} τεμ. · ${mtWhNum(m.inv_kg)} kg</div></div>`:''}</div>`;
+function mtWhRows(m,showMat){
+  const kgT=n=>mtWhNum(n)+' kg';
+  const row=it=>`<div class="mwRow"><div><b>${esc(it.label)}${it.code?' · '+esc(it.code):''}${it.demo?' <i class="whDemo">DEMO</i>':''}</b>${showMat?`<small>${esc(m.material)}${it.kind==='inventory'?' · απογραφή':''}</small>`:(it.kind==='inventory'?'<small>απογραφή</small>':'')}</div><div><b>${kgT(it.kg)}</b><small>${mtWhDate(it.date)}${it.counted_kg!=null&&Math.abs(it.counted_kg-it.kg)>0.0005?' · στον μήνα: '+kgT(it.counted_kg):''}</small></div></div>`;
+  return m.items.map(row).join('');
+}
+function mtWhDetail(sel,d){
+  if(!sel)return '';
+  let q='';
+  if(sel[0]==='m'){
+    let m=d.categories.flatMap(c=>c.materials).find(x=>x.material_id===sel.slice(2));if(!m)return '';
+    return `<div class="mwHead"><h3>${esc(m.material)}</h3></div>${mtWhRows(m,false)}<div class="mwSum"><span>Σύνολο</span><span>${m.total_pieces} τεμ. · ${mtWhNum(m.total_kg)} kg</span></div>`;
+  }
+  let c=d.categories[+sel.slice(2)];if(!c)return '';
+  q=`<div class="mwHead"><h3>${esc(c.category)}</h3></div>`;
+  c.materials.forEach(m=>{
+    let hasMedia=m.items.some(i=>i.code);
+    if(hasMedia)q+=mtWhRows(m,true);
+    else q+=`<div class="mwRow"><div><b>${esc(m.material)}</b></div><div><b>${mtWhNum(m.total_kg)} kg</b>${m.total_pieces?`<small>${m.total_pieces} τεμ.</small>`:''}</div></div>`;
+  });
+  return q+`<div class="mwSum"><span>Σύνολο ${esc(c.category)}</span><span>${c.total_pieces} τεμ. · ${mtWhNum(c.total_kg)} kg</span></div>`;
 }
 function mtWhPaint(){
   let box=$('matArea'),d=mt.whData;if(!d)return;
-  let rows=d.categories.map(c=>`<div class="mtWhCatRow">${esc(c.category)}</div>`
-    +c.materials.map(m=>`<div class="mtWhRow${mt.whOpen===m.material_id?' open':''}" data-mid="${m.material_id}"><span class="mtStkN">${esc(m.material)}</span><span class="num">${m.total_pieces||''}${m.inv_pieces?`<i class="mtWhTag">+${m.inv_pieces}</i>`:''}</span><span class="num">${mtWhNum(m.total_kg)}${m.inv_kg?`<i class="mtWhTag">+${mtWhNum(m.inv_kg)}</i>`:''}</span></div>`+(mt.whOpen===m.material_id?mtWhDetail(m):'')).join('')
-    +`<div class="mtWhSub"><span>Σύνολο ${esc(c.category)}</span><span class="num">${c.total_pieces}</span><span class="num">${mtWhNum(c.total_kg)}</span></div>`).join('');
-  box.innerHTML=`<label class="mtWhBar"><span class="mtSw"><input type="checkbox" id="mtWhInv"${mt.whInv?' checked':''}><i></i></span><span>Συμπερίληψη ποσοτήτων απογραφής</span></label><div class="mtStk"><div class="mtWhHead"><span>ΥΛΙΚΟ</span><span class="num">ΤΕΜ.</span><span class="num">ΚΙΛΑ</span></div>${rows||'<div class="muted" style="padding:10px 0">Η αποθήκη είναι άδεια.</div>'}${d.categories.length?`<div class="mtWhTotal"><span>Σύνολο</span><span class="num">${d.total_pieces}</span><span class="num">${mtWhNum(d.total_kg)}</span></div>`:''}${mt.whInv?'':'<div class="mtStkNote">Δεν περιλαμβάνονται οι ποσότητες της απογραφής.</div>'}</div>`;
-  $('mtWhInv').onchange=e=>{mt.whInv=e.target.checked;mt.whOpen=null;mtStockRender()};
-  box.onclick=e=>{let r=e.target.closest('.mtWhRow');if(!r)return;let id=r.dataset.mid;mt.whOpen=mt.whOpen===id?null:id;mtWhPaint()};
+  let sel=mt.whSel;
+  if(sel&&sel[0]==='m'&&!d.categories.some(c=>c.materials.some(m=>m.material_id===sel.slice(2))))sel=mt.whSel=null;
+  if(sel&&sel[0]==='c'&&!d.categories[+sel.slice(2)])sel=mt.whSel=null;
+  let kgT=n=>mtWhNum(n);
+  let list=d.categories.map((c,ci)=>`<button type="button" class="mwCat${sel==='c:'+ci?' on':''}" data-sel="c:${ci}"><span>${esc(c.category)}</span><span>${kgT(c.total_kg)} kg</span></button>`
+    +c.materials.map(m=>`<button type="button" class="mwMat${sel==='m:'+m.material_id?' on':''}" data-sel="m:${m.material_id}"><span>${esc(m.material)}</span><span>${kgT(m.total_kg)}${m.inv_kg?`<i class="mtWhTag">+${kgT(m.inv_kg)}</i>`:''}</span></button>`).join('')).join('');
+  box.innerHTML=`<label class="mtWhBar"><span class="mtSw"><input type="checkbox" id="mtWhInv"${mt.whInv?' checked':''}><i></i></span><span>Συμπερίληψη ποσοτήτων απογραφής</span></label><div class="mwSplit"><div class="mwPane" id="mwL">${list||'<div class="muted" style="padding:10px 12px">Η αποθήκη είναι άδεια.</div>'}${d.categories.length?`<div class="mwTot"><span>Σύνολο</span><span>${kgT(d.total_kg)} kg</span></div>`:''}${mt.whInv?'':'<div class="mtStkNote">Δεν περιλαμβάνονται οι ποσότητες της απογραφής.</div>'}</div>${sel?`<div class="mwPane mwDet" id="mwR">${mtWhDetail(sel,d)}</div>`:''}</div>`;
+  $('mtWhInv').onchange=e=>{mt.whInv=e.target.checked;mt.whSel=null;mtStockRender()};
+  box.onclick=e=>{let r=e.target.closest('[data-sel]');if(!r)return;mt.whSel=r.dataset.sel;mtWhPaint();if(window.innerWidth<520){let el=$('mwR');if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest',behavior:'smooth'})}};
 }
 async function mtStockRender(silent){
   let box=$('matArea');if(!silent&&!mt.whData)box.innerHTML='<div class="muted">Φόρτωση…</div>';

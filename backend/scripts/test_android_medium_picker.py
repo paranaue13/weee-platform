@@ -7,6 +7,8 @@ from playwright.sync_api import sync_playwright
 from _browser import launch
 B = sys.argv[1]; S = (sys.argv[2] if len(sys.argv) > 2 else '.') + '/o_'
 bad = []
+if os.environ.get('TEST_DB'):    # το αντίγραφο μπορεί να μην έχει μέσα με απόθεμα: δίνει 3 μεγάλα καλάθια σε χύμα μερίδια (ΜΟΝΟ στο αντίγραφο)
+    from _testdata import ensure_medium_lots; ensure_medium_lots(os.environ['TEST_DB'], 3, 150, 'BASKET_LARGE')
 def ck(name, ok, info=''):
     print(('✓ ' if ok else '✗ ') + name, info)
     if not ok: bad.append(name)
@@ -80,7 +82,7 @@ with sync_playwright() as p:
     # --- διαδρομή Τμήμα → πιθανά
     pg.evaluate("document.querySelector('.flStart[data-f=d]').click()"); pg.wait_for_timeout(500)
     pg.evaluate("[...document.querySelectorAll('#flowArea .flOpt')].find(b=>/Τηλεόρασ/.test(b.innerText)).click()"); pg.wait_for_timeout(700)
-    prob = pg.evaluate("[...document.querySelector('#flowArea .flCards').querySelectorAll('.flCard')].map(e=>e.innerText.replace(/\s+/g,' ').trim())"); print('πιθανά:', prob)
+    prob = pg.evaluate("[...(document.querySelector('#flowArea .flCards')||document.createElement('div')).querySelectorAll('.flCard')].map(e=>e.innerText.replace(/\s+/g,' ').trim())"); print('πιθανά:', prob)
     ck('επικεφαλίδα πιθανών', any(x.startswith('Μέσο συλλογής · πιθανότερα για') for x in texts('#flowArea .flLbl')), str(texts('#flowArea .flLbl')))
     ck('όχι ετικέτα ΠΙΘΑΝΟ', not texts('#flowArea .flTag'))
     bulk = [c for c in prob if c.startswith('Χύμα')]
@@ -91,7 +93,7 @@ with sync_playwright() as p:
     pg.screenshot(path=S + 'probable.png', full_page=True)
     if more:
         pg.evaluate("document.querySelector('.flMore').click()"); pg.wait_for_timeout(300)
-        ck('«Εμφάνιση άλλων» ανοίγει τα υπόλοιπα', len(pg.evaluate("[...document.querySelector('#flowArea .flCards').querySelectorAll('.flCard')].map(e=>e.innerText.replace(/\s+/g,' ').trim())")) > 4)
+        ck('«Εμφάνιση άλλων» ανοίγει τα υπόλοιπα', len(pg.evaluate("[...(document.querySelector('#flowArea .flCards')||document.createElement('div')).querySelectorAll('.flCard')].map(e=>e.innerText.replace(/\s+/g,' ').trim())")) > 4)
     ck('σφάλματα σελίδας', not errs, str(errs))
     b.close()
 print('ΑΠΟΤΥΧΙΕΣ:', bad)

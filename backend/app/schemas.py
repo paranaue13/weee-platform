@@ -242,6 +242,10 @@ class MaterialCreate(BaseModel):
     storage_group_id: str|None = None   # Ομάδα αποθήκης (προαιρετικό)
     short_description: str|None = None  # Σύντομη περιγραφή (προαιρετική)
     can_bale: bool = False              # Μπορεί να γίνει μπάλα
+    is_commercial: bool = False         # Εμπορικό υλικό
+    is_umbrella: bool = False           # Κάτω από αυτό το υλικό ομαδοποιούνται υποπροϊόντα (π.χ. 00195)
+    label_group: str|None = None        # Ετικέτα στην οποία ομαδοποιείται το υλικό (π.χ. ΠΛΑΣΤΙΚΑ ΜΕΡΗ)
+    label_group_order: int = 0
     press_label: str|None = None        # Όνομα στήλης στην Πρέσα (προαιρετικό)
 
 class StorageGroupIn(BaseModel):
@@ -577,6 +581,7 @@ class ReadyMaterialOut(BaseModel):
     status: str
     source_org_unit_id: str|None
     created_at: str
+    is_bale: bool = False
 
 
 # ---- Build 0.8 ----

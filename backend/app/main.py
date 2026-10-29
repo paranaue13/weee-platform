@@ -166,10 +166,17 @@ async def lifespan(app: FastAPI):
             pti_cols={c["name"] for c in inspect(engine).get_columns("production_transfer_items")}
             for col,typ in (("tare_weight","NUMERIC(14,3)"),("sent_weight","NUMERIC(14,3)"),("remainder_net","NUMERIC(14,3)"),("remainder_gross","NUMERIC(14,3)"),("remainder_mode","VARCHAR(10)"),("remainder_at","DATETIME"),("emptied","BOOLEAN DEFAULT 0")):
                 if col not in pti_cols: conn.execute(text(f"ALTER TABLE production_transfer_items ADD COLUMN {col} {typ}"))
+        if "material_label_maps" in tables:
+            lm_cols={c["name"] for c in inspect(engine).get_columns("material_label_maps")}
+            if "sheet" not in lm_cols: conn.execute(text("ALTER TABLE material_label_maps ADD COLUMN sheet VARCHAR(30)"))
         if "materials" in tables:
             mt_cols={c["name"] for c in inspect(engine).get_columns("materials")}
             if "short_description" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN short_description VARCHAR(300)"))
             if "can_bale" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN can_bale BOOLEAN DEFAULT 0"))
+            if "is_commercial" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN is_commercial BOOLEAN DEFAULT 0"))
+            if "is_umbrella" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN is_umbrella BOOLEAN DEFAULT 0"))
+            if "label_group" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN label_group VARCHAR(120)"))
+            if "label_group_order" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN label_group_order INTEGER DEFAULT 0"))
             if "press_label" not in mt_cols: conn.execute(text("ALTER TABLE materials ADD COLUMN press_label VARCHAR(100)"))
         if "production_transfers" in tables:
             pt_cols={c["name"] for c in inspect(engine).get_columns("production_transfers")}
@@ -404,6 +411,8 @@ class _ClientTime:
 app.add_middleware(_ClientTime)
 from .mat_warehouse import router as _mat_router
 app.include_router(_mat_router)
+from .mat_labels import router as _mat_labels_router
+app.include_router(_mat_labels_router)
 
 @app.get("/health")
 def health(): return {"status":"ok","version":"2.5.35"}
@@ -1244,17 +1253,18 @@ def update_material_master(item_id:str,data:schemas.MaterialCreate,db:Session=De
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     old={"internal_name":x.internal_name,"galaxy_code":x.galaxy_code,"galaxy_description":x.galaxy_description,"genre":x.genre,"official_description":x.official_description,"her_description":x.her_description,"eka_code":x.eka_code,"reptool_code":x.reptool_code,"reptool_description":x.reptool_description}
-    old["storage_group_id"]=x.storage_group_id; old["short_description"]=x.short_description; old["can_bale"]=x.can_bale; old["press_label"]=x.press_label
+    old["storage_group_id"]=x.storage_group_id; old["short_description"]=x.short_description; old["can_bale"]=x.can_bale; old["press_label"]=x.press_label; old["is_commercial"]=x.is_commercial; old["is_umbrella"]=x.is_umbrella; old["label_group"]=x.label_group; old["label_group_order"]=x.label_group_order
     if "storage_group_id" in data.model_fields_set and data.storage_group_id and not _storage_group_ok(db,data.storage_group_id,allow_inactive_id=x.storage_group_id): raise HTTPException(422,"Μη έγκυρη κατηγορία αποθήκης")
     for k,v in data.model_dump().items():
         if k=="storage_group_id" and "storage_group_id" not in data.model_fields_set: continue   # παλιοί πελάτες δεν σβήνουν την ομάδα
         if k=="short_description" and "short_description" not in data.model_fields_set: continue  # αιτήματα χωρίς το πεδίο (π.χ. επαναφορά/μαζική επεξεργασία) δεν σβήνουν τη σύντομη περιγραφή
-        if k in ("can_bale","press_label") and k not in data.model_fields_set: continue   # παλιοί πελάτες/μαζική επεξεργασία δεν αλλάζουν τη ρύθμιση μπάλας
+        if k in ("can_bale","press_label","is_commercial","is_umbrella","label_group","label_group_order") and k not in data.model_fields_set: continue   # παλιοί πελάτες/μαζική επεξεργασία δεν αλλάζουν τη ρύθμιση μπάλας
         if k=="short_description": v=(v or "").strip() or None
         if k=="press_label": v=(v or "").strip() or None
+        if k=="label_group": v=(v or "").strip() or None
         setattr(x,k,v)
     _apply_material_rules(x)
-    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump(exclude={f for f in ("storage_group_id","short_description","can_bale","press_label") if f not in data.model_fields_set}))
+    write_audit(db,user,"material",x.id,"UPDATE",old=old,new=data.model_dump(exclude={f for f in ("storage_group_id","short_description","can_bale","press_label","is_commercial","is_umbrella","label_group","label_group_order") if f not in data.model_fields_set}))
     db.commit(); db.refresh(x); return x
 
 def _storage_group_ok(db:Session,gid:str,allow_inactive_id:str|None=None)->bool:
@@ -1355,8 +1365,13 @@ def purge_material_master(item_id:str,db:Session=Depends(get_db),user:User=Depen
     x=db.get(Material,item_id)
     if not x: raise HTTPException(404,"Το υλικό δεν βρέθηκε")
     used=(db.scalar(select(models.ReadyMaterialLot.id).where(models.ReadyMaterialLot.material_id==item_id).limit(1))
+          or db.scalar(select(models.MaterialInventoryEntry.id).where(models.MaterialInventoryEntry.material_id==item_id).limit(1))
           or db.scalar(select(models.DirectProcessingMapping.id).where(models.DirectProcessingMapping.output_material_id==item_id).limit(1)))
     if used: raise HTTPException(409,"Το υλικό έχει χρησιμοποιηθεί σε παρτίδα/αντιστοίχιση. Χρησιμοποίησε «Μη ενεργό» για να διατηρηθεί το ιστορικό.")
+    from .mat_labels import history_reasons as _hr
+    why=_hr(db,x)
+    if why: raise HTTPException(409,"Το υλικό έχει ιστορικό ("+", ".join(why)+"). Η οριστική διαγραφή δεν επιτρέπεται· μπορείς μόνο να το κάνεις «Μη ενεργό».")
+    write_audit(db,user,"material",x.id,"PURGE",old={"galaxy_code":x.galaxy_code,"internal_name":x.internal_name,"official_description":x.official_description,"active":x.active},reason="Οριστική διαγραφή υλικού")
     db.delete(x); db.commit(); return {"deleted":True,"id":item_id}
 @app.delete("/master/weee-categories/{item_id}")
 def delete_weee_master(item_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
@@ -2085,6 +2100,12 @@ def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user
     her_map=db.scalars(select(models.MaterialHerGroup)).all()
     labels_by_her:dict[str,set[str]]={}
     for m in her_map: labels_by_her.setdefault(m.her_group,set()).add(_norm_material_label(m.material_label))
+    # τα ΕΜΠΟΡΙΚΑ υλικά (τσεκ στο Προφίλ Υλικού· μόνο ονόματα που δεν έχει και μη εμπορικό υλικό) δεν μετρούν σε απογραφή
+    try:
+        from .mat_warehouse import commercial_names as _comm_names
+        _cn={_norm_material_label(n) for n in _comm_names(db=db,user=None)["names"]}
+        for _k in labels_by_her: labels_by_her[_k]-=_cn
+    except Exception: pass
     year_start=datetime(year,1,1); year_end=datetime(year+1,1,1)
     out_rows=db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True,models.MaterialOutputEntry.work_date>=year_start,models.MaterialOutputEntry.work_date<year_end)).all()
     ship_rows=db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True,models.MaterialShipmentEntry.work_date>=year_start,models.MaterialShipmentEntry.work_date<year_end)).all()
@@ -3898,13 +3919,13 @@ def export_settings_put(data:dict, db:Session=Depends(get_db), user:User=Depends
 # ---- Εμφάνιση περιγραφής υλικών (Επίσημη / Σύντομη) ανά οθόνη -- αποθηκεύεται στον server, ισχύει για ΟΛΕΣ τις συσκευές ----
 MATERIAL_DESC_KEY='app.material_desc_modes'
 MATERIAL_DESC_SCREENS=('ready','loading','inventory','reports','android')
-MATERIAL_DESC_DEFAULTS={'ready':'official','loading':'official','inventory':'official','reports':'official','android':'short'}
+MATERIAL_DESC_DEFAULTS={'ready':'official','loading':'official','inventory':'official','reports':'official','android':'official'}   # προεπιλογή παντού: Επίσημη· επιλογές: official | short (Σύντομη) | her (Περιγραφή HER)
 
 def _material_desc_modes(db:Session)->dict:
     row=db.scalar(select(AppSetting).where(AppSetting.key==MATERIAL_DESC_KEY))
     try: saved=json.loads(row.value) if row else {}
     except Exception: saved={}
-    return {k:(saved.get(k) if saved.get(k) in ('official','short') else MATERIAL_DESC_DEFAULTS[k]) for k in MATERIAL_DESC_SCREENS}
+    return {k:(saved.get(k) if saved.get(k) in ('official','short','her') else MATERIAL_DESC_DEFAULTS[k]) for k in MATERIAL_DESC_SCREENS}
 
 @app.get('/settings/material-desc')
 def material_desc_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -3914,7 +3935,7 @@ def material_desc_get(db:Session=Depends(get_db), user:User=Depends(current_user
 def material_desc_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
     new=data.get('modes') if isinstance(data.get('modes'),dict) else {}
     for k,v in new.items():
-        if k not in MATERIAL_DESC_SCREENS or v not in ('official','short'): raise HTTPException(422,'Μη έγκυρη επιλογή εμφάνισης')
+        if k not in MATERIAL_DESC_SCREENS or v not in ('official','short','her'): raise HTTPException(422,'Μη έγκυρη επιλογή εμφάνισης')
     old=_material_desc_modes(db); merged={**old,**new}
     row=db.scalar(select(AppSetting).where(AppSetting.key==MATERIAL_DESC_KEY))
     if row: row.value=json.dumps(merged,ensure_ascii=False)
@@ -3924,9 +3945,21 @@ def material_desc_put(data:dict, db:Session=Depends(get_db), user:User=Depends(r
 
 @app.get('/materials/short-names')
 def material_short_names(db:Session=Depends(get_db), user:User=Depends(current_user)):
-    """Υλικά που έχουν σύντομη περιγραφή: τα ονόματα με τα οποία εμφανίζονται στις οθόνες (επίσημη/εσωτερική/Galaxy) -> σύντομη."""
-    rows=db.scalars(select(Material).where(Material.short_description.is_not(None))).all()
-    return [{'id':m.id,'short':m.short_description.strip(),'names':[n for n in {m.official_description,m.internal_name,m.galaxy_description} if n]} for m in rows if (m.short_description or '').strip()]
+    """Υλικά που έχουν σύντομη ή HER περιγραφή: τα ονόματα με τα οποία εμφανίζονται στις οθόνες (επίσημη/εσωτερική/Galaxy) -> σύντομη / HER. Κενό = η οθόνη δείχνει την επίσημη."""
+    rows=db.scalars(select(Material).where((Material.short_description.is_not(None))|(Material.her_description.is_not(None)))).all()
+    from .mat_warehouse import _fold_key as _fk, _explicit_excel_maps as _xm
+    maps=_xm(db); own={}
+    for r in maps.values():
+        if r.kind=='MATERIAL' and r.material_id: own.setdefault(r.material_id,[]).append(r.label)
+    out=[]
+    for m in rows:
+        sh=(m.short_description or '').strip(); her=(m.her_description or '').strip()
+        if not sh and not her: continue
+        names=[n for n in {m.official_description,m.internal_name,m.galaxy_description} if n and not ((_fk(n) in maps) and maps[_fk(n)].material_id!=m.id)]   # ετικέτα ρητά αντιστοιχισμένη σε ΑΛΛΟ υλικό δεν ανήκει σε αυτό
+        for lb in own.get(m.id,[]):
+            if lb not in names: names.append(lb)
+        out.append({'id':m.id,'short':sh or None,'her':her or None,'names':names})
+    return out
 
 @app.get('/settings/android')
 def android_settings_get(db:Session=Depends(get_db), user:User=Depends(current_user)):
@@ -4599,7 +4632,7 @@ def _ready_out(db:Session,x:ReadyMaterialLot):
     mat=db.get(Material,x.material_id); med=db.get(CollectionMedium,x.collection_medium_id) if x.collection_medium_id else None
     return schemas.ReadyMaterialOut(id=x.id,lot_number=x.lot_number,material_id=x.material_id,material_code=mat.internal_code,material_name=mat.internal_name,
         output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id,
-        created_at=x.created_at.isoformat())
+        created_at=x.created_at.isoformat(),is_bale=bool(getattr(x,'is_bale',False)))
 
 @app.post('/production/outputs', response_model=schemas.ReadyMaterialOut)
 def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):

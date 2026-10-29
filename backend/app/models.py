@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, date
 from decimal import Decimal
-from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, UniqueConstraint, Table, Column, Integer
+from sqlalchemy import String, Boolean, DateTime, ForeignKey, Numeric, Text, UniqueConstraint, Table, Column, Integer, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .db import Base
 
@@ -371,6 +371,10 @@ class Material(Base, TimestampMixin):
     export_step_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=Decimal("0.500"))
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     short_description: Mapped[str|None] = mapped_column(String(300), nullable=True)   # Σύντομη περιγραφή (προαιρετική)· κενή = εμφανίζεται η επίσημη
+    is_umbrella: Mapped[bool] = mapped_column(Boolean, default=False)                  # «Κάτω από αυτό το υλικό ομαδοποιούνται υποπροϊόντα» (π.χ. 00195 Ημιέτοιμο - Χύδην)
+    label_group: Mapped[str|None] = mapped_column(String(120), nullable=True, index=True)   # «Αυτό το υλικό ομαδοποιείται σε μια ετικέτα» (π.χ. ΠΛΑΣΤΙΚΑ ΜΕΡΗ)
+    label_group_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_commercial: Mapped[bool] = mapped_column(Boolean, default=False)                # Εμπορικό υλικό: αγοράζεται από την εταιρεία, δεν μετρά σε απογραφή/ισοζύγια, φαίνεται μόνο στην Αποθήκη και στην καρτέλα «Εμπορικά»
     can_bale: Mapped[bool] = mapped_column(Boolean, default=False)                    # Μπορεί να γίνει μπάλα (εμφανίζει «Μπάλα» στην εξαγωγή Android)
     press_label: Mapped[str|None] = mapped_column(String(100), nullable=True)           # Όνομα στήλης στην Πρέσα (αν διαφέρει από το όνομα υλικού)
     storage_group_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("storage_groups.id"), nullable=True, index=True)  # «Ομάδα αποθήκης» (προαιρετικό)
@@ -698,6 +702,37 @@ class ReadyMaterialLot(Base, TimestampMixin):
     source_inventory_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_bale: Mapped[bool] = mapped_column(Boolean, default=False)                       # εξαγωγή παλέτας ως ΜΠΑΛΑ (μετράει μία φορά στο απόθεμα)
+
+class MaterialLabelMap(Base, TimestampMixin):
+    """ΜΟΝΙΜΗ αντιστοίχιση ετικέτας Excel (στήλη καρτέλας Υλικών ή στήλης Πρέσας) → υλικό των Μητρώων, ώστε κάθε νέο Excel να αναγνωρίζεται.
+    kind: MATERIAL (η ετικέτα είναι το υλικό material_id) · BULK_SUB (υποκατηγορία χύδην· πηγαίνει στο υλικό-ομπρέλα material_id, π.χ. 00195) ·
+    RECEIPTS (στήλη «από παραλαβές»· συνδέεται με κατηγορία ΑΗΗΕ weee_category_id, μόνο ανάγνωση) · SUM (η ετικέτα είναι το άθροισμα των μελών της ομάδας group_name) · NONE (δεν είναι υλικό).
+    Μία ετικέτα (ανά πηγή) έχει ένα υλικό· ένα υλικό μπορεί να έχει πολλές ετικέτες. Για BULK_SUB: active/sort_order ορίζουν ενεργή/μη ενεργή υποκατηγορία και σειρά."""
+    __tablename__ = "material_label_maps"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    source: Mapped[str] = mapped_column(String(10), default="EXCEL")            # EXCEL | PRESS
+    label: Mapped[str] = mapped_column(String(200))
+    label_key: Mapped[str] = mapped_column(String(200), index=True)
+    kind: Mapped[str] = mapped_column(String(20), default="MATERIAL")
+    material_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("materials.id"), nullable=True, index=True)
+    weee_category_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    group_name: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    sheet: Mapped[str|None] = mapped_column(String(30), nullable=True)           # καρτέλα του προγράμματος που όρισε ο χρήστης (π.χ. PLAKETES: οι ετικέτες Πλακετών ζουν στην καρτέλα 4 του Excel)
+    __table_args__ = (UniqueConstraint("source", "label_key", name="uq_material_label_map"),)
+
+class CommercialExport(Base, TimestampMixin):
+    """Εξαγωγή (πώληση/αποστολή) ΕΜΠΟΡΙΚΟΥ υλικού από τα Windows (καρτέλα Εμπορικά): αφαιρεί κιλά/τεμάχια από το απόθεμα της Αποθήκης. Ενεργή = μετρά."""
+    __tablename__ = "commercial_exports"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    material_id: Mapped[str] = mapped_column(String(36), ForeignKey("materials.id"), index=True)
+    export_date: Mapped[date] = mapped_column(Date, index=True)
+    kg: Mapped[Decimal] = mapped_column(Numeric(14, 3), default=0)
+    pieces: Mapped[int] = mapped_column(Integer, default=0)
+    note: Mapped[str|None] = mapped_column(Text, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_by: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
 
 class MaterialInventoryEntry(Base, TimestampMixin):
     """Ζύγιση απογραφής (τριμηνιαία): μέσο αποθήκευσης (παλέτα/σάκος/χύμα) με καθαρά κιλά υλικού. ΔΕΝ προσμετράται στα «διαθέσιμα προς αποστολή»."""

@@ -67,6 +67,7 @@ with sync_playwright() as p:
     segs = pg.evaluate("e=>[...document.querySelectorAll('#presBody button[data-e=\"'+e+'\"]')].map(b=>b.innerText)", E1)
     ck('κουμπί «Ολιγόωρη» μετά το «Έφυγε»', segs == ['Παρών', 'Αργοπορία', 'Απών', 'Έφυγε', 'Ολιγόωρη'], str(segs))
     c0 = chip()
+    colw0 = pg.evaluate("document.querySelectorAll('#presence .presTable thead th')[4].getBoundingClientRect().width"); hs0 = pg.evaluate("[...document.querySelectorAll('#presBody tr')].map(r=>r.getBoundingClientRect().height)")
     pg.click(row(E1) + ' button[data-s="SHORT"]'); pg.wait_for_timeout(1200)
     now = datetime.datetime.now(); nm = now.hour * 60 + now.minute
     fr = pg.input_value(row(E1) + ' .tpk[data-k="sfrom"] .tfIn'); to = pg.input_value(row(E1) + ' .tpk[data-k="sto"] .tfIn')
@@ -75,7 +76,18 @@ with sync_playwright() as p:
     ck('το κουμπί φαίνεται ενεργό με μπλε #DCE6FB / #1F3F94', pg.evaluate("e=>{const b=document.querySelector('#presBody button[data-e=\"'+e+'\"][data-s=\"SHORT\"]'),c=getComputedStyle(b);return b.getAttribute('aria-pressed')==='true'&&c.backgroundColor==='rgb(220, 230, 251)'&&c.color==='rgb(31, 63, 148)'}", E1))
     ck('chip «Ολιγόωρη N» αυξήθηκε κατά 1 (μπλε)', chip() == c0 + 1 and pg.evaluate("getComputedStyle(document.querySelector('#presence .cs')).backgroundColor") in ('rgb(220, 230, 251)', 'rgb(230, 232, 238)'))
     ck('ανοιχτή ολιγόωρη → «—» στις καθαρές ώρες', pg.inner_text(row(E1) + ' .presNet').strip() in ('–', '—'))
-    ck('εμφανίζεται «Δεν επέστρεψε → Πρόωρη αποχώρηση» και «+ Άλλη ολιγόωρη»', pg.is_visible(row(E1) + ' .slNr') and pg.inner_text(row(E1) + ' .slAdd') == '+ Άλλη ολιγόωρη')
+    ck('εμφανίζεται κουμπί «Δεν επέστρεψε» (tooltip «Δεν επέστρεψε: καταγράφεται ως πρόωρη αποχώρηση») και «+ Άλλη»', pg.is_visible(row(E1) + ' .slNr') and pg.inner_text(row(E1) + ' .slNr').strip() == 'Δεν επέστρεψε' and pg.get_attribute(row(E1) + ' .slNr', 'title') == 'Δεν επέστρεψε: καταγράφεται ως πρόωρη αποχώρηση' and pg.inner_text(row(E1) + ' .slAdd') == '+ Άλλη')
+    order = pg.evaluate("e=>{const r=document.querySelector('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"]) .slv');return [...r.children].map(c=>c.className.split(' ')[0]+':'+(c.innerText||'').trim())}", E1)
+    ck('σειρά: Έφυγε · ώρα · → Επέστρεψε · ώρα · × · Δεν επέστρεψε · + Άλλη', [o.split(':')[0] for o in order] == ['slL', 'tpk', 'slL', 'tpk', 'slX', 'slNr', 'slAdd'] and order[0].endswith('Έφυγε') and order[2].endswith('→ Επέστρεψε'), str(order))
+    pg.evaluate("(()=>{let th=document.querySelector('#presence .presTable th.presShTh');th.style.width='415px';th.style.minWidth='415px'})()"); pg.wait_for_timeout(300)   # πλάτος στήλης όπως στο παράθυρο του χρήστη (415 px)
+    geo = pg.evaluate("e=>{const r=document.querySelector('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"]) .slv');const q=[...r.children].map(c=>c.getBoundingClientRect());const i=r.querySelector('.tfIn').getBoundingClientRect(),f=getComputedStyle(r.querySelector('.slL')).fontSize,fn=getComputedStyle(r.querySelector('.slNr')).fontSize;return {oneLine:Math.max(...q.map(x=>x.top))-Math.min(...q.map(x=>x.top))<14,w:Math.round(i.width),h:Math.round(i.height),f,fn,right:Math.max(...q.map(x=>x.right)),cell:r.closest('td').getBoundingClientRect().right}}", E1)
+    ck('όλα σε ΜΙΑ σειρά, πεδίο ώρας 56×30, γράμματα 11px', geo['oneLine'] and (geo['w'], geo['h']) == (56, 30) and geo['f'] == '11px' and geo['fn'] == '11px', str(geo))
+    ck('η σειρά χωράει μέσα στη στήλη (δεν βγαίνει δεξιά από το κελί)', geo['right'] <= geo['cell'] + 1, str(geo))
+    pg.evaluate("(()=>{let th=document.querySelector('#presence .presTable th.presShTh');th.style.width='';th.style.minWidth=''})()"); pg.wait_for_timeout(300)
+    colw1 = pg.evaluate("document.querySelectorAll('#presence .presTable thead th')[4].getBoundingClientRect().width"); hs1 = pg.evaluate("[...document.querySelectorAll('#presBody tr')].map(r=>r.getBoundingClientRect().height)")
+    ck('το πλάτος της στήλης «Ολιγόωρες απουσίες» ΔΕΝ άλλαξε', abs(colw1 - colw0) < 1, f'{colw0} → {colw1}')
+    hrow = pg.evaluate("e=>document.querySelector('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"])').getBoundingClientRect().height", E1)
+    ck('η γραμμή του εργαζόμενου έχει το ίδιο ύψος με τις υπόλοιπες', abs(hrow - sorted(hs0)[len(hs0) // 2]) <= 1, f'{hrow} vs {sorted(hs0)[len(hs0)//2]}')
     pg.screenshot(path=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'sl_tmp.png')) if False else None
     # δεύτερο πάτημα όσο υπάρχει ανοιχτή → επικάλυψη: μήνυμα, όχι αποθήκευση
     pg.click(row(E1) + ' .slAdd'); pg.wait_for_timeout(900)
@@ -95,7 +107,9 @@ with sync_playwright() as p:
     if nm > 10 * 60 + 31:
         pg.click(row(E1) + ' .slAdd'); pg.wait_for_timeout(1200)
         n = pg.evaluate("e=>document.querySelectorAll('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"]) .slv').length", E1)
-        ck('«+ Άλλη ολιγόωρη»: προστίθεται ΑΛΛΟ κελί (πολλές την ίδια μέρα)', n == 2, str(n))
+        ck('«+ Άλλη»: προστίθεται ΑΛΛΟ κελί (πολλές την ίδια μέρα)', n == 2, str(n))
+        two = pg.evaluate("e=>[...document.querySelectorAll('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"]) .slv')].map(r=>[r.getBoundingClientRect().height,r.querySelectorAll('.slAdd').length])", E1)
+        ck('δύο ολιγώρες: κάθε μία δική της σειρά με την ίδια διάταξη, το «+ Άλλη» μόνο στην τελευταία', len(two) == 2 and two[0][1] == 0 and two[1][1] == 1 and abs(two[0][0] - two[1][0]) <= 2, str(two))
     while pg.evaluate("e=>document.querySelectorAll('#presBody tr:has(button[data-e=\"'+e+'\"][data-s=\"PRESENT\"]) .slX').length", E1):
         pg.click(row(E1) + ' .slX'); pg.wait_for_timeout(900)
     ck('το × διαγράφει· χωρίς κελιά το κουμπί γυρνά σε ανενεργό', pg.evaluate("e=>document.querySelector('#presBody button[data-e=\"'+e+'\"][data-s=\"SHORT\"]').getAttribute('aria-pressed')", E1) == 'false' and chip() == c0)
