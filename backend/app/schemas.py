@@ -578,6 +578,7 @@ class ReadyMaterialOut(BaseModel):
     output_form: str
     medium_code: str|None
     net_weight: Decimal
+    original_weight: Decimal|None = None
     status: str
     source_org_unit_id: str|None
     created_at: str

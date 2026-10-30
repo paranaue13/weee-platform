@@ -216,8 +216,9 @@ async def lifespan(app: FastAPI):
             if "storage_group_id" not in mat2: conn.execute(text("ALTER TABLE materials ADD COLUMN storage_group_id VARCHAR(36)"))
         if "ready_material_lots" in tables:
             rl={c["name"] for c in inspect(engine).get_columns("ready_material_lots")}
-            for col,typ in [("entry_type","VARCHAR(20) DEFAULT 'EXPORT'"),("period_year","INTEGER"),("period_quarter","INTEGER"),("period_month","INTEGER"),("counted_kg","NUMERIC(14,3)"),("storage_group_id","VARCHAR(36)"),("source_inventory_id","VARCHAR(36)"),("is_demo","BOOLEAN DEFAULT 0"),("is_bale","BOOLEAN DEFAULT 0")]:
+            for col,typ in [("entry_type","VARCHAR(20) DEFAULT 'EXPORT'"),("period_year","INTEGER"),("period_quarter","INTEGER"),("period_month","INTEGER"),("counted_kg","NUMERIC(14,3)"),("storage_group_id","VARCHAR(36)"),("source_inventory_id","VARCHAR(36)"),("is_demo","BOOLEAN DEFAULT 0"),("is_bale","BOOLEAN DEFAULT 0"),("original_weight","NUMERIC(14,3)")]:
                 if col not in rl: conn.execute(text(f"ALTER TABLE ready_material_lots ADD COLUMN {col} {typ}"))
+            conn.execute(text("UPDATE ready_material_lots SET original_weight=net_weight WHERE original_weight IS NULL"))
         if "weee_categories" in tables:
             wcols={c["name"] for c in inspect(engine).get_columns("weee_categories")}
             if "her_description" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN her_description VARCHAR(300)"))
@@ -4631,7 +4632,7 @@ def _ready_lot_number(db:Session, material:Material)->str:
 def _ready_out(db:Session,x:ReadyMaterialLot):
     mat=db.get(Material,x.material_id); med=db.get(CollectionMedium,x.collection_medium_id) if x.collection_medium_id else None
     return schemas.ReadyMaterialOut(id=x.id,lot_number=x.lot_number,material_id=x.material_id,material_code=mat.internal_code,material_name=mat.internal_name,
-        output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id,
+        output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,original_weight=x.original_weight if x.original_weight is not None else x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id,
         created_at=x.created_at.isoformat(),is_bale=bool(getattr(x,'is_bale',False)))
 
 @app.post('/production/outputs', response_model=schemas.ReadyMaterialOut)
@@ -4651,7 +4652,7 @@ def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_d
         net=data.gross_weight-(tare or Decimal('0'))
     if net<=0: raise HTTPException(422,'Το καθαρό βάρος πρέπει να είναι θετικό')
     loc=_ready_main_location(db); lot=ReadyMaterialLot(lot_number=_ready_lot_number(db,mat),material_id=mat.id,output_form=data.output_form,
-        collection_medium_id=data.collection_medium_id,gross_weight=data.gross_weight,tare_weight=data.tare_weight,net_weight=net,location_id=loc.id,
+        collection_medium_id=data.collection_medium_id,gross_weight=data.gross_weight,tare_weight=data.tare_weight,net_weight=net,original_weight=net,location_id=loc.id,
         source_org_unit_id=data.source_org_unit_id,status='AVAILABLE',created_by=user.id,notes=data.notes)
     db.add(lot); db.flush(); db.add(ReadyMaterialMovement(lot_id=lot.id,movement_type='PRODUCTION_OUT',weight=net,user_id=user.id,reason=data.notes))
     if medium: medium.status='READY_STORAGE'
@@ -5234,7 +5235,7 @@ def direct_process(stock_lot_id:str,data:schemas.DirectProcessCreate,db:Session=
     mat=db.get(Material,mapping.output_material_id); ready_loc=_ready_main_location(db); qty=lot.available_weight
     from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,mat)
     output=ReadyMaterialLot(lot_number=_ready_lot_number(db,mat),material_id=mat.id,output_form=mapping.output_form,collection_medium_id=lot.collection_medium_id,
-        net_weight=qty,location_id=ready_loc.id,source_org_unit_id=data.source_org_unit_id,status='AVAILABLE',created_by=user.id,notes=data.notes)
+        net_weight=qty,original_weight=qty,location_id=ready_loc.id,source_org_unit_id=data.source_org_unit_id,status='AVAILABLE',created_by=user.id,notes=data.notes)
     db.add(output); db.flush(); db.add(ReadyMaterialMovement(lot_id=output.id,movement_type='DIRECT_PRODUCTION_OUT',weight=qty,user_id=user.id,reason=data.notes))
     db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='DIRECT_TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,weight=qty,
         org_unit_id=data.source_org_unit_id,user_id=user.id,reason=data.notes))

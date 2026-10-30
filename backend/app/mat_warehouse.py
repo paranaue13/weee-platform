@@ -443,7 +443,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
         counted = net
         medium = _new_medium(db, form, tare, demo, "READY_STORAGE", mat, bale=bool(data.is_bale))
     lot = ReadyMaterialLot(lot_number=_lot_number(db, mat, demo), material_id=mat.id, output_form=("CONTAINER" if medium else "BULK"),
-                           collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net,
+                           collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net, original_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
                            notes=("DEMO" if demo else None), entry_type="EXPORT", period_year=y, period_quarter=q, period_month=mo,
                            counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo, is_bale=bool(data.is_bale))
@@ -587,6 +587,7 @@ def edit_export(lot_id: str, data: ExportEditIn, db: Session = Depends(get_db), 
             lot.counted_kg = net
         if is_pallet:
             med.tare_weight = tare
+    lot.original_weight = Decimal(str(lot.original_weight if lot.original_weight is not None else old["net"])) + (lot.net_weight - Decimal(old["net"]))   # η διόρθωση μετακινεί και το αρχικό βάρος
     db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="EXPORT_EDIT", weight=lot.net_weight - Decimal(old["net"]), user_id=user.id, reason="Διόρθωση εξαγωγής από Android"))
     write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old=old, new={"net": str(lot.net_weight), "gross": str(lot.gross_weight) if lot.gross_weight is not None else None, "tare": str(lot.tare_weight) if lot.tare_weight is not None else None, "counted": str(lot.counted_kg)}, reason="Διόρθωση εξαγωγής")
     db.commit()

@@ -687,6 +687,7 @@ class ReadyMaterialLot(Base, TimestampMixin):
     gross_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
     tare_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
     net_weight: Mapped[Decimal] = mapped_column(Numeric(14,3))
+    original_weight: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)   # αρχικό βάρος εξαγωγής (δεν αλλάζει με τις μερικές φορτώσεις· το net_weight είναι το υπόλοιπο)
     location_id: Mapped[str] = mapped_column(String(36), ForeignKey("inventory_locations.id"), index=True)
     source_org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="AVAILABLE", index=True)
