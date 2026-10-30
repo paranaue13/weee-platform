@@ -4667,7 +4667,16 @@ def ready_materials(available_only:bool=True, in_stock:bool=False, start:str|Non
     q=q.where(ReadyMaterialLot.status!='DEMO')   # τα DEMO δεν μπαίνουν ποτέ στα πραγματικά ισοζύγια/λίστες
     if start: q=q.where(ReadyMaterialLot.created_at>=datetime.fromisoformat(start))
     if end: q=q.where(ReadyMaterialLot.created_at<datetime.fromisoformat(end)+timedelta(days=1))
-    return [_ready_out(db,x) for x in db.scalars(q).all()]
+    rows=db.scalars(q).all(); out=[]
+    for x in rows:
+        o=_ready_out(db,x)
+        if in_stock and x.status=='LOADING':   # από τη στιγμή που φορτώνεται δεν είναι απόθεμα: μένει μόνο ό,τι δεν φορτώθηκε (το υπόλοιπο μερικής φόρτωσης)
+            ld=db.scalar(select(func.coalesce(func.sum(LoadingActual.loaded_weight),0)).join(LoadingOrder,LoadingOrder.id==LoadingActual.loading_order_id).where(LoadingActual.ready_material_lot_id==x.id,LoadingOrder.status=='OPEN')) or 0
+            rest=x.net_weight-Decimal(str(ld))
+            if rest<=0: continue
+            o.net_weight=rest
+        out.append(o)
+    return out
 
 @app.get('/inventory/ready-materials/stock-by-name')
 def ready_materials_stock_by_name(db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
