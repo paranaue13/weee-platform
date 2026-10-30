@@ -12,7 +12,7 @@ from .security import require_permission
 from . import models
 from .models import Material, MaterialLabelMap, User
 from .audit import write_audit
-from .mat_warehouse import _fold_key, _norm
+from .mat_warehouse import _fold_key, _norm, materials_with_column, LABEL_GROUP_TAB
 
 router = APIRouter(prefix="/mat", tags=["material-labels"])
 KINDS = {"MATERIAL", "BULK_SUB", "RECEIPTS", "SUM", "NONE"}
@@ -227,7 +227,7 @@ def label_maps_effective(db: Session = Depends(get_db), user=Depends(require_per
         if m.label_group:
             groups.setdefault(m.label_group, []).append({"id": m.id, "erp": m.galaxy_code, "name": (m.official_description or m.internal_name or "").strip(), "active": bool(m.active),
                                                           "order": m.label_group_order or 0, "short": (m.short_description or "").strip(), "can_bale": bool(m.can_bale), "press_column": (m.press_label or "").strip() or (m.official_description or m.internal_name or "").strip()})
-    return {"maps": rows, "umbrellas": umbrellas, "weee_stock": {w["id"]: w["stock_kg"] for w in _weee_stock(db)}, "groups": [{"name": k, "members": sorted(v, key=lambda x: (x["order"], x["name"]))} for k, v in sorted(groups.items())],
+    return {"group_tabs": LABEL_GROUP_TAB, "maps": rows, "umbrellas": umbrellas, "weee_stock": {w["id"]: w["stock_kg"] for w in _weee_stock(db)}, "groups": [{"name": k, "members": sorted(v, key=lambda x: (x["order"], x["name"]))} for k, v in sorted(groups.items())],
             "inactive_names": sorted({n for m in mats.values() if not m.active for n in (m.official_description, m.internal_name, m.galaxy_description) if n})}
 
 
@@ -329,3 +329,11 @@ def material_usage(material_id: str, db: Session = Depends(get_db), user=Depends
     why = history_reasons(db, m)
     return {"id": m.id, "lots": lots, "inventory": inv, "commercial_exports": cex, "moves": lots + inv + cex, "stock_kg": round(wh if m.is_commercial else stock, 3),
             "mapped_labels": labels, "delete_locked": bool(why), "delete_reasons": why}
+
+
+@router.get("/label-maps/uncovered")
+def uncovered_materials(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Ενεργά υλικά του μητρώου που ΔΕΝ έχουν στήλη σε καρτέλα Υλικών (καμία κίνηση δεν γίνεται δεκτή γι' αυτά)."""
+    ok = materials_with_column(db)
+    return [{"id": m.id, "code": m.galaxy_code, "name": (m.official_description or m.internal_name or "").strip(), "commercial": bool(m.is_commercial)}
+            for m in db.scalars(select(Material).where(Material.active == True).order_by(Material.galaxy_code)).all() if m.id not in ok]

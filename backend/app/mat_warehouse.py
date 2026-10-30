@@ -320,6 +320,55 @@ class InventoryIn(BaseModel):
     net: Decimal | None = None
 
 
+# ---- Κανόνας «κάθε ενεργό υλικό έχει στήλη»: καμία κίνηση υλικού (εξαγωγή, φόρτωση, απογραφή, παραγωγή) αν το υλικό δεν έχει στήλη σε καρτέλα Υλικών ----
+LABEL_GROUP_TAB = {"Συσκευές για επαναχρησιμοποίηση": "EIDIKIS_DIACHEIRISIS", "Σιδηρούχα": "AXIOPOIISIMA"}   # καρτέλα όπου φαίνεται η ομάδα ετικέτας (ίδιο με την οθόνη Υλικά)
+_COLUMN_TABS = ("AXIOPOIISIMA", "EIDIKIS_DIACHEIRISIS", "PLAKETES", "APORRIPSI")
+
+
+def materials_with_column(db: Session) -> set:
+    """Κωδικοί (id) υλικών που έχουν στήλη: αντιστοίχιση Excel με καρτέλα (υλικό ή υποκατηγορία ομάδας-ομπρέλας)· μέλος ομάδας ετικέτας με στήλη (άθροισμα Excel ή ομάδα με άνοιγμα)· ενεργό εμπορικό υλικό (η καρτέλα Εμπορικά έχει στήλη για κάθε ένα)."""
+    ids, sum_groups, groups = set(), set(), {}
+    for x in db.scalars(select(models.MaterialLabelMap).where(models.MaterialLabelMap.source == "EXCEL")).all():
+        if x.kind in ("MATERIAL", "BULK_SUB") and x.material_id and x.sheet in _COLUMN_TABS:
+            ids.add(x.material_id)
+        if x.kind == "SUM" and x.group_name:
+            sum_groups.add(x.group_name)
+    for m in db.scalars(select(Material)).all():
+        if m.is_commercial and m.active:
+            ids.add(m.id)
+        if m.label_group:
+            groups.setdefault(m.label_group, []).append(m.id)
+    for g, l in groups.items():
+        if g in sum_groups or (g in LABEL_GROUP_TAB and len(l) > 1):
+            ids.update(l)
+    return ids
+
+
+def ensure_column(db: Session, mat: Material):
+    if mat.id not in materials_with_column(db):
+        raise HTTPException(422, "Το υλικό «" + (mat.official_description or mat.internal_name or mat.galaxy_code or "") + "» δεν έχει στήλη στις καρτέλες Υλικών, οπότε δεν γίνεται κίνηση. Αντιστοίχισέ το πρώτα σε στήλη.")
+
+
+def _android_name(db: Session, mat: Material, mode: str) -> str:
+    """Όνομα υλικού στο Android με βάση την ρύθμιση «Εμφάνιση περιγραφής» (Επίσημη / Σύντομη / HER)."""
+    base = mat.official_description or mat.internal_name
+    if mode == "short" and (mat.short_description or "").strip():
+        return mat.short_description.strip()
+    if mode == "her" and (mat.her_description or "").strip():
+        return mat.her_description.strip()
+    return base
+
+
+def _android_mode(db: Session) -> str:
+    import json
+    row = db.scalar(select(AppSetting).where(AppSetting.key == "app.material_desc_modes"))
+    try:
+        v = (json.loads(row.value) if row else {}).get("android")
+    except Exception:
+        v = None
+    return v if v in ("official", "short", "her") else "official"
+
+
 def _material(db: Session, mid: str) -> Material:
     mat = db.get(Material, mid)
     if not mat or not mat.active:
@@ -330,8 +379,10 @@ def _material(db: Session, mid: str) -> Material:
 @router.get("/catalog")
 def catalog(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
     cats = db.scalars(select(StorageGroup).where(StorageGroup.active == True).order_by(StorageGroup.sort_order, StorageGroup.name)).all()
-    mats = db.scalars(select(Material).where(Material.active == True).order_by(Material.internal_name)).all()
+    with_col = materials_with_column(db)
+    mats = [x for x in db.scalars(select(Material).where(Material.active == True).order_by(Material.internal_name)).all() if x.id in with_col]
     avail = available_by_material(db, mats)
+    dmode = _android_mode(db)
     comm_gid = _commercial_group_id(db)
     types = _types(db)
     forms = []
@@ -341,7 +392,7 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
                       "asks_tare": f == "PALLET", "has_code": f != "BULK"})
     y, q, m = _period()
     return {"categories": [{"id": c.id, "name": c.name, "count": sum(1 for x in mats if _eff_group(x, comm_gid) == c.id)} for c in cats],
-            "materials": [{"id": x.id, "name": x.official_description or x.internal_name, "code": x.galaxy_code, "category_id": _eff_group(x, comm_gid), "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale), "is_commercial": bool(x.is_commercial)} for x in mats],
+            "materials": [{"id": x.id, "name": _android_name(db, x, dmode), "code": x.galaxy_code, "category_id": _eff_group(x, comm_gid), "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale), "is_commercial": bool(x.is_commercial)} for x in mats],
             "forms": forms, "period": {"year": y, "quarter": q, "month": m, "month_name": MONTHS[m - 1], "quarter_month_name": MONTHS[QUARTER_MONTH[q] - 1]}}
 
 
@@ -366,6 +417,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
     if data.form not in FORMS:
         raise HTTPException(422, "Άγνωστο μέσο αποθήκευσης")
     mat = _material(db, data.material_id)
+    ensure_column(db, mat)
     if data.is_bale and (data.form != "PALLET" or data.inventory_id or not mat.can_bale):
         raise HTTPException(422, "Μπάλα μπορεί να γίνει μόνο παλέτα υλικού που επιτρέπεται να γίνει μπάλα")
     y, q, mo = _period()
@@ -572,6 +624,7 @@ def add_inventory(data: InventoryIn, db: Session = Depends(get_db), user: User =
     if data.form not in FORMS:
         raise HTTPException(422, "Άγνωστο μέσο αποθήκευσης")
     mat = _material(db, data.material_id)
+    ensure_column(db, mat)
     if getattr(mat, "is_commercial", False):
         raise HTTPException(422, "Το εμπορικό υλικό δεν μετρά σε απογραφή")
     tare = _tare_for(db, data.form, data.tare)

@@ -4638,6 +4638,7 @@ def _ready_out(db:Session,x:ReadyMaterialLot):
 def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
     mat=db.get(Material,data.material_id)
     if not mat or not mat.active: raise HTTPException(422,'Άγνωστο ή ανενεργό εξερχόμενο υλικό')
+    from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,mat)   # κανόνας: υλικό χωρίς στήλη δεν δέχεται κίνηση
     if data.source_org_unit_id and not db.get(OrganizationalUnit,data.source_org_unit_id): raise HTTPException(422,'Άγνωστο τμήμα')
     medium=None
     if data.collection_medium_id:
@@ -4748,6 +4749,7 @@ def loading_reserve(order_id:str,data:schemas.LoadingLotAction,db:Session=Depend
     if o.selection_mode!='OFFICE_RESERVED': raise HTTPException(409,'Η φόρτωση έχει οριστεί για επιλογή από τον χειριστή')
     lot=db.get(ReadyMaterialLot,data.ready_material_lot_id)
     if not lot or lot.status!='AVAILABLE': raise HTTPException(409,'Το υλικό δεν είναι διαθέσιμο')
+    from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,db.get(Material,lot.material_id))
     if db.scalar(select(LoadingReservation).where(LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED')): raise HTTPException(409,'Το υλικό είναι ήδη δεσμευμένο')
     qty=lot.net_weight if data.weight is None else data.weight
     if qty<=0 or qty>lot.net_weight: raise HTTPException(422,'Μη έγκυρο βάρος δέσμευσης')
@@ -4763,6 +4765,7 @@ def loading_actual(order_id:str,data:schemas.LoadingLotAction,db:Session=Depends
     if not o or o.status!='OPEN': raise HTTPException(409,'Η φόρτωση δεν είναι ανοικτή')
     lot=db.get(ReadyMaterialLot,data.ready_material_lot_id)
     if not lot: raise HTTPException(404,'Το υλικό δεν βρέθηκε')
+    from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,db.get(Material,lot.material_id))
     if db.scalar(select(LoadingActual).where(LoadingActual.loading_order_id==o.id,LoadingActual.ready_material_lot_id==lot.id)): raise HTTPException(409,'Το υλικό έχει ήδη καταγραφεί ως φορτωμένο')
     reservation=db.scalar(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED'))
     if o.selection_mode=='OFFICE_RESERVED' and not reservation: raise HTTPException(409,'Το υλικό δεν έχει δεσμευτεί από το Logistics')
@@ -5229,6 +5232,7 @@ def direct_process(stock_lot_id:str,data:schemas.DirectProcessCreate,db:Session=
     if not mapping: raise HTTPException(422,'Δεν υπάρχει ενεργή αντιστοίχιση άμεσης παραγωγής για αυτή την κατηγορία')
     if mapping.requires_confirmation and not data.confirm: raise HTTPException(409,'Απαιτείται επιβεβαίωση για την άμεση παραγωγή/εξαγωγή')
     mat=db.get(Material,mapping.output_material_id); ready_loc=_ready_main_location(db); qty=lot.available_weight
+    from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,mat)
     output=ReadyMaterialLot(lot_number=_ready_lot_number(db,mat),material_id=mat.id,output_form=mapping.output_form,collection_medium_id=lot.collection_medium_id,
         net_weight=qty,location_id=ready_loc.id,source_org_unit_id=data.source_org_unit_id,status='AVAILABLE',created_by=user.id,notes=data.notes)
     db.add(output); db.flush(); db.add(ReadyMaterialMovement(lot_id=output.id,movement_type='DIRECT_PRODUCTION_OUT',weight=qty,user_id=user.id,reason=data.notes))
