@@ -3244,7 +3244,8 @@ function applyFeedOrderToSmallRow(i,o,interactive=true){
  let oi=document.querySelector(`.spOrder[data-i="${i}"]`);if(oi&&oi.value!==o.order_no)oi.value=o.order_no;
  if(!$('carrier').value){let cm=resolveOrgFromLiveFeed(o.carrier,carriers);if(cm){$('carrier').value=cm.id;$('carrierText').value=orgName(cm);refreshDrivers()}}
  let t=document.querySelector(`.spSupplierText[data-i="${i}"]`);
- if(r.supplier_id||(t&&t.value.trim()))return;
+ if(r.supplier_id){let cur=suppliers.find(x=>x.id===r.supplier_id);if(!cur||feedOrderMatchesSupplier(o,cur))return;r.supplier_id='';if(t)t.value=''}   // ο προμηθευτής που δεν ταιριάζει με την εντολή αντικαθίσταται από τον προμηθευτή της εντολής
+ if(t&&t.value.trim())return;
  let sv=supplierForFeedOrder(o,interactive);
  const setSup=org=>{r.supplier_id=org?org.id:'';if(t)t.value=org?orgName(org):''};
  if(sv.askName)editOrgPopup('SUPPLIER','supplier',null,async saved=>{if(smallPointRows[i]&&!smallPointRows[i].supplier_id)setSup(saved)},sv.askName);
