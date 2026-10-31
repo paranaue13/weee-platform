@@ -332,6 +332,13 @@ class WEEEInternalSubcategoryCreate(BaseModel):
     parent_category_id: str
     display_name: str
 
+class WEEESubcatItem(BaseModel):
+    id: str|None = None
+    name: str
+
+class WEEESubcatSave(BaseModel):
+    items: list[WEEESubcatItem]
+
 from datetime import datetime
 
 class ContainerCreate(BaseModel):

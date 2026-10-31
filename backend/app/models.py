@@ -353,6 +353,7 @@ class WEEECategory(Base, TimestampMixin):
     eka_code: Mapped[str|None] = mapped_column(String(50), nullable=True)
     processable: Mapped[bool] = mapped_column(Boolean, default=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    sort_order: Mapped[int|None] = mapped_column(Integer, nullable=True)   # σειρά των δικών μας υποκατηγοριών μέσα στην ΑΗΗΕ-γονέα (Windows και Android)
 
 class Material(Base, TimestampMixin):
     __tablename__ = "materials"

@@ -224,6 +224,11 @@ async def lifespan(app: FastAPI):
             if "her_description" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN her_description VARCHAR(300)"))
             if "eka_code" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN eka_code VARCHAR(50)"))
             if "processable" not in wcols: conn.execute(text("ALTER TABLE weee_categories ADD COLUMN processable BOOLEAN DEFAULT 1"))
+            if "sort_order" not in wcols:
+                conn.execute(text("ALTER TABLE weee_categories ADD COLUMN sort_order INTEGER"))
+                _legacy={"4Δ0000":["INT-4D-AUDIO","INT-4D-PROJ"],"4Ι0000":["INT-4I-UPS","INT-4I-MON","INT-4I-CASH"],"4Λ0000":["INT-4L-PCSERVER","INT-4L-PRINT","INT-4L-SCAN","INT-4L-COPY","INT-4L-KEYB"],"5Δ0000":["INT-5D-AV","INT-5D-SPEAK","INT-5D-PROJ"],"5Ι2000":["INT-5I2-UPS","INT-5I2-MON","INT-5I2-CASH"],"6Α0000":["INT-6A-PCSERVER","INT-6A-PRINT","INT-6A-MODEM","INT-6A-KEYB","INT-6A-TELCO"]}
+                for _lst in _legacy.values():
+                    for _i,_c in enumerate(_lst): conn.execute(text("UPDATE weee_categories SET sort_order=:o WHERE code=:c"),{"o":_i+1,"c":_c})
         if "materials" in tables:
             mcols={c["name"] for c in inspect(engine).get_columns("materials")}
             for col,sqltype in [("genre","VARCHAR(120)"),("official_description","VARCHAR(300)"),("her_description","VARCHAR(300)"),("reptool_description","VARCHAR(500)"),("export_step_kg","NUMERIC(14,3) DEFAULT 0.500")]:
@@ -803,15 +808,18 @@ def list_weee_display(include_inactive:bool=Query(default=False), db:Session=Dep
       "5Ι2000":["INT-5I2-UPS","INT-5I2-MON","INT-5I2-CASH"],
       "6Α0000":["INT-6A-PCSERVER","INT-6A-PRINT","INT-6A-MODEM","INT-6A-KEYB","INT-6A-TELCO"]}
     def _disp_sort(c):
-        if c.is_internal_subcategory and c.parent_code in internal_order:
-            try: return (c.parent_code,1,internal_order[c.parent_code].index(c.code))
-            except ValueError: return (c.parent_code,1,999)
+        if c.is_internal_subcategory and c.parent_code:
+            if c.sort_order is not None: return (c.parent_code,1,c.sort_order)
+            if c.parent_code in internal_order:
+                try: return (c.parent_code,1,internal_order[c.parent_code].index(c.code))
+                except ValueError: pass
+            return (c.parent_code,1,999)
         return (c.code,0,0)
     rows=sorted(rows,key=_disp_sort)
     for c in rows:
         cfg=_weee_display_setting(db,c.id); parent=db.scalar(select(WEEECategory).where(WEEECategory.code==c.parent_code)) if c.parent_code else None
         official=parent if c.is_internal_subcategory and parent else c
-        out.append({"id":c.id,"code":c.code,"official_code":official.code,"official_description":official.description_el,"her_description":official.her_description,"eka_code":official.eka_code,"processable":bool(official.processable),"display_name":cfg.get("display_name") or c.description_el,"display_group":cfg.get("display_group"),"parent_code":c.parent_code,"is_internal_subcategory":c.is_internal_subcategory,"average_weight":float(c.average_weight) if c.average_weight is not None else None,"group_no":(official.code[:1] if official.code[:1] in "123456" else None),"active":bool(c.active)})
+        out.append({"id":c.id,"code":c.code,"official_code":official.code,"official_description":official.description_el,"her_description":official.her_description,"eka_code":official.eka_code,"processable":bool(official.processable),"display_name":cfg.get("display_name") or c.description_el,"display_group":cfg.get("display_group"),"parent_code":c.parent_code,"is_internal_subcategory":c.is_internal_subcategory,"average_weight":float(c.average_weight) if c.average_weight is not None else None,"group_no":(official.code[:1] if official.code[:1] in "123456" else None),"active":bool(c.active),"sort_order":c.sort_order})
     return out
 
 @app.put("/master/weee-display/{category_id}")
@@ -833,6 +841,45 @@ def create_weee_internal(data:schemas.WEEEInternalSubcategoryCreate,db:Session=D
     obj=WEEECategory(code=code,description_el=data.display_name,parent_code=parent.code,is_internal_subcategory=True,average_weight=parent.average_weight,active=True); db.add(obj); db.flush()
     write_audit(db,user,"weee_category",obj.id,"CREATE_INTERNAL",new={"display_name":data.display_name,"official_parent":parent.code}); db.commit(); db.refresh(obj)
     return {"id":obj.id,"code":obj.code,"display_name":obj.description_el,"official_code":parent.code}
+
+@app.put("/master/weee-categories/{category_id}/internal-subcategories")
+def save_weee_internal_list(category_id:str, data:schemas.WEEESubcatSave, db:Session=Depends(get_db), user:User=Depends(require_permission("master.edit"))):
+    """Λίστα «Δικές μας υποκατηγορίες» μιας ΑΗΗΕ: σειρά, νέες, μετονομασίες, αφαιρέσεις. Όσες αφαιρούνται ΔΕΝ διαγράφονται (οι παλιές καταχωρήσεις μένουν ως έχουν)· γίνονται μη ενεργές και δεν προσφέρονται σε νέες."""
+    import json
+    parent=db.get(WEEECategory,category_id)
+    if not parent or parent.is_internal_subcategory: raise HTTPException(422,"Επίλεξε επίσημη κατηγορία ΑΗΗΕ")
+    names=[x.name.strip() for x in data.items]
+    if any(not n for n in names): raise HTTPException(422,"Συμπλήρωσε όνομα σε κάθε υποκατηγορία")
+    low=[n.casefold() for n in names]
+    if len(set(low))!=len(low): raise HTTPException(422,"Υπάρχουν δύο υποκατηγορίες με το ίδιο όνομα")
+    existing={c.id:c for c in db.scalars(select(WEEECategory).where(WEEECategory.parent_code==parent.code,WEEECategory.is_internal_subcategory==True)).all()}
+    def _label(c):
+        cfg=_weee_display_setting(db,c.id); return cfg.get("display_name") or c.description_el
+    before=sorted([c for c in existing.values() if c.active],key=lambda c:(c.sort_order if c.sort_order is not None else 999,c.code))
+    old_txt="; ".join(f"{i+1}. {_label(c)}" for i,c in enumerate(before))
+    keep=set(); order=1
+    for it,name in zip(data.items,names):
+        if it.id:
+            c=existing.get(it.id)
+            if not c: raise HTTPException(422,"Άγνωστη υποκατηγορία στη λίστα")
+            if _label(c)!=name:
+                c.description_el=name
+                row=db.scalar(select(AppSetting).where(AppSetting.key==f"weee.display.{c.id}"))
+                if row: row.value=json.dumps({"display_name":name,"display_group":_weee_display_setting(db,c.id).get("display_group")},ensure_ascii=False)
+            c.active=True
+        else:
+            n=db.scalar(select(func.count()).select_from(WEEECategory).where(WEEECategory.is_internal_subcategory==True))+1
+            code=f"INT-{n:06d}"
+            while db.scalar(select(WEEECategory).where(WEEECategory.code==code)): n+=1; code=f"INT-{n:06d}"
+            c=WEEECategory(code=code,description_el=name,parent_code=parent.code,is_internal_subcategory=True,average_weight=parent.average_weight,active=True); db.add(c); db.flush()
+        c.sort_order=order; order+=1; keep.add(c.id)
+    for c in existing.values():
+        if c.id not in keep and c.active: c.active=False
+    db.flush()
+    new_txt="; ".join(f"{i+1}. {n}" for i,n in enumerate(names))
+    if old_txt!=new_txt: write_audit(db,user,"weee_category",parent.id,"UPDATE",old={"subcategories":old_txt},new={"subcategories":new_txt})
+    db.commit()
+    return {"ok":True,"count":len(names)}
 
 @app.get("/master/materials", response_model=list[schemas.MaterialOut])
 def list_materials(include_inactive:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission("master.view"))):
@@ -3487,7 +3534,24 @@ def sorting_photo(load_id:str, category:str=Form('GENERAL'), file:UploadFile=Fil
     if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
     suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=UPLOAD_DIR/stored
     with path.open('wb') as f: shutil.copyfileobj(file.file,f)
-    obj=FileAttachment(entity_type='INBOUND_LOAD',entity_id=load_id,category=category,filename=file.filename or stored,stored_path=str(path),content_type=file.content_type,uploaded_by=user.id)
+    ctype=file.content_type
+    if (ctype or '').startswith('image/'):
+        # κανόνας φωτογραφιών: ανάλυση περίπου 853×480 (480×853 για κάθετες) και κάτω από 150 KB — μικραίνουν πριν την αποθήκευση
+        try:
+            from PIL import Image, ImageOps
+            import io
+            im=ImageOps.exif_transpose(Image.open(path)).convert('RGB')
+            box=(853,480) if im.width>=im.height else (480,853)
+            im.thumbnail(box,Image.LANCZOS)
+            q=85; buf=io.BytesIO()
+            while True:
+                buf=io.BytesIO(); im.save(buf,'JPEG',quality=q,optimize=True)
+                if buf.tell()<150*1000 or q<=35: break
+                q-=7
+            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=UPLOAD_DIR/stored; path.write_bytes(buf.getvalue()); ctype='image/jpeg'
+            file.filename=(Path(file.filename or 'photo').stem or 'photo')+'.jpg'
+        except Exception: pass   # αν δεν διαβάζεται ως εικόνα, μένει όπως ήρθε
+    obj=FileAttachment(entity_type='INBOUND_LOAD',entity_id=load_id,category=category,filename=file.filename or stored,stored_path=str(path),content_type=ctype,uploaded_by=user.id)
     db.add(obj); db.flush(); write_audit(db,user,'attachment',obj.id,'UPLOAD',new={'load_id':load_id,'category':category,'filename':obj.filename}); db.commit(); return {'id':obj.id,'filename':obj.filename,'category':obj.category}
 
 @app.get('/sorting/{load_id}/photos')
