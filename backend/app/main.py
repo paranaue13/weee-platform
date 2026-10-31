@@ -4654,6 +4654,9 @@ def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_d
     loc=_ready_main_location(db); lot=ReadyMaterialLot(lot_number=_ready_lot_number(db,mat),material_id=mat.id,output_form=data.output_form,
         collection_medium_id=data.collection_medium_id,gross_weight=data.gross_weight,tare_weight=data.tare_weight,net_weight=net,original_weight=net,location_id=loc.id,
         source_org_unit_id=data.source_org_unit_id,status='AVAILABLE',created_by=user.id,notes=data.notes)
+    from .mat_warehouse import _pick_date,_period
+    pick,pick_at=_pick_date(data.export_date); py,pq,pm=_period(pick); lot.entry_type='EXPORT'; lot.period_year=py; lot.period_quarter=pq; lot.period_month=pm
+    if pick_at: lot.created_at=pick_at
     db.add(lot); db.flush(); db.add(ReadyMaterialMovement(lot_id=lot.id,movement_type='PRODUCTION_OUT',weight=net,user_id=user.id,reason=data.notes))
     if medium: medium.status='READY_STORAGE'
     write_audit(db,user,'ready_material_lot',lot.id,'CREATE',new={'lot_number':lot.lot_number,'material':mat.internal_code,'weight':str(net),'form':data.output_form})
@@ -4670,11 +4673,10 @@ def ready_materials(available_only:bool=True, in_stock:bool=False, start:str|Non
     rows=db.scalars(q).all(); out=[]
     for x in rows:
         o=_ready_out(db,x)
-        if in_stock and x.status=='LOADING':   # από τη στιγμή που φορτώνεται δεν είναι απόθεμα: μένει μόνο ό,τι δεν φορτώθηκε (το υπόλοιπο μερικής φόρτωσης)
-            ld=db.scalar(select(func.coalesce(func.sum(LoadingActual.loaded_weight),0)).join(LoadingOrder,LoadingOrder.id==LoadingActual.loading_order_id).where(LoadingActual.ready_material_lot_id==x.id,LoadingOrder.status=='OPEN')) or 0
-            rest=x.net_weight-Decimal(str(ld))
-            if rest<=0: continue
-            o.net_weight=rest
+        if x.status in ('AVAILABLE','RESERVED','LOADING'):   # το διαθέσιμο είναι πάντα το υπόλοιπο: ό,τι δεσμεύτηκε ή φορτώθηκε δεν φαίνεται πια ως απόθεμα
+            free=_lot_free(db,x)
+            if in_stock and free<=0: continue
+            o.net_weight=free if in_stock or x.status=='AVAILABLE' else o.net_weight
         out.append(o)
     return out
 
@@ -4752,6 +4754,22 @@ def loading_create(data:schemas.LoadingOrderCreate, db:Session=Depends(get_db), 
 def loading_list(db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
     return [_loading_out(db,o) for o in db.scalars(select(LoadingOrder).order_by(LoadingOrder.created_at.desc())).all()]
 
+def _lot_pending(db:Session,lot)->Decimal:
+    """Κιλά της παρτίδας που έχουν δεσμευτεί ή φορτωθεί σε ανοικτές φορτώσεις (δεν είναι πια διαθέσιμα)."""
+    r=db.scalar(select(func.coalesce(func.sum(LoadingReservation.reserved_weight),0)).join(LoadingOrder,LoadingOrder.id==LoadingReservation.loading_order_id).where(LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED',LoadingOrder.status=='OPEN')) or 0
+    a=db.scalar(select(func.coalesce(func.sum(LoadingActual.loaded_weight),0)).join(LoadingOrder,LoadingOrder.id==LoadingActual.loading_order_id).where(LoadingActual.ready_material_lot_id==lot.id,LoadingOrder.status=='OPEN')) or 0
+    return Decimal(str(r))+Decimal(str(a))
+def _lot_free(db:Session,lot)->Decimal:
+    return max(lot.net_weight-_lot_pending(db,lot),Decimal('0'))
+def _lot_sync_status(db:Session,lot):
+    """Διαθέσιμη (AVAILABLE) όσο υπάρχει υπόλοιπο· όταν δεσμευτεί/φορτωθεί ΟΛΟ το υπόλοιπο γίνεται Δεσμευμένη ή Σε φόρτωση."""
+    if lot.status not in ('AVAILABLE','RESERVED','LOADING'): return
+    db.flush()
+    if _lot_free(db,lot)>0: lot.status='AVAILABLE'
+    else:
+        ld=db.scalar(select(func.count(LoadingActual.id)).join(LoadingOrder,LoadingOrder.id==LoadingActual.loading_order_id).where(LoadingActual.ready_material_lot_id==lot.id,LoadingOrder.status=='OPEN')) or 0
+        lot.status='LOADING' if ld else 'RESERVED'
+
 @app.post('/loading/orders/{order_id}/reserve', response_model=schemas.LoadingOrderOut)
 def loading_reserve(order_id:str,data:schemas.LoadingLotAction,db:Session=Depends(get_db),user:User=Depends(require_permission('loading.view'))):
     o=db.get(LoadingOrder,order_id)
@@ -4760,12 +4778,17 @@ def loading_reserve(order_id:str,data:schemas.LoadingLotAction,db:Session=Depend
     lot=db.get(ReadyMaterialLot,data.ready_material_lot_id)
     if not lot or lot.status!='AVAILABLE': raise HTTPException(409,'Το υλικό δεν είναι διαθέσιμο')
     from .mat_warehouse import ensure_column as _ensure_col; _ensure_col(db,db.get(Material,lot.material_id))
-    if db.scalar(select(LoadingReservation).where(LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED')): raise HTTPException(409,'Το υλικό είναι ήδη δεσμευμένο')
-    qty=lot.net_weight if data.weight is None else data.weight
-    if qty<=0 or qty>lot.net_weight: raise HTTPException(422,'Μη έγκυρο βάρος δέσμευσης')
+    free=_lot_free(db,lot)
+    if free<=0: raise HTTPException(409,'Το υλικό είναι ήδη δεσμευμένο')
+    qty=free if data.weight is None else data.weight
+    if qty<=0 or qty>free: raise HTTPException(422,f'Μη έγκυρο βάρος δέσμευσης (διαθέσιμα {free:f} kg)')
     reserved,_=_loading_totals(db,o)
     if reserved+qty>o.max_allowed_weight: raise HTTPException(422,f'Υπέρβαση μέγιστου βάρους κατά {reserved+qty-o.max_allowed_weight} kg')
-    r=LoadingReservation(loading_order_id=o.id,ready_material_lot_id=lot.id,reserved_weight=qty,created_by=user.id); db.add(r); lot.status='RESERVED'
+    r=db.scalar(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED'))
+    if r: r.reserved_weight=r.reserved_weight+qty
+    else:
+        r=LoadingReservation(loading_order_id=o.id,ready_material_lot_id=lot.id,reserved_weight=qty,created_by=user.id); db.add(r)
+    _lot_sync_status(db,lot)
     write_audit(db,user,'loading_order',o.id,'RESERVE',new={'lot':lot.lot_number,'weight':str(qty)})
     db.commit(); return _loading_out(db,o)
 
@@ -4779,14 +4802,15 @@ def loading_actual(order_id:str,data:schemas.LoadingLotAction,db:Session=Depends
     if db.scalar(select(LoadingActual).where(LoadingActual.loading_order_id==o.id,LoadingActual.ready_material_lot_id==lot.id)): raise HTTPException(409,'Το υλικό έχει ήδη καταγραφεί ως φορτωμένο')
     reservation=db.scalar(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.ready_material_lot_id==lot.id,LoadingReservation.status=='RESERVED'))
     if o.selection_mode=='OFFICE_RESERVED' and not reservation: raise HTTPException(409,'Το υλικό δεν έχει δεσμευτεί από το Logistics')
-    if o.selection_mode=='OPERATOR_SELECTION' and lot.status!='AVAILABLE': raise HTTPException(409,'Το υλικό δεν είναι διαθέσιμο για επιλογή')
-    max_lot=reservation.reserved_weight if reservation else lot.net_weight
+    if o.selection_mode=='OPERATOR_SELECTION' and (lot.status!='AVAILABLE' or _lot_free(db,lot)<=0): raise HTTPException(409,'Το υλικό δεν είναι διαθέσιμο για επιλογή')
+    max_lot=reservation.reserved_weight if reservation else _lot_free(db,lot)
     qty=max_lot if data.weight is None else data.weight
     if qty<=0 or qty>max_lot: raise HTTPException(422,'Μη έγκυρο βάρος φόρτωσης')
     _,loaded=_loading_totals(db,o)
     if loaded+qty>o.max_allowed_weight: raise HTTPException(422,f'Υπέρβαση μέγιστου βάρους κατά {loaded+qty-o.max_allowed_weight} kg')
-    db.add(LoadingActual(loading_order_id=o.id,ready_material_lot_id=lot.id,loaded_weight=qty,loaded_by=user.id)); lot.status='LOADING'
+    db.add(LoadingActual(loading_order_id=o.id,ready_material_lot_id=lot.id,loaded_weight=qty,loaded_by=user.id))
     if reservation: reservation.status='LOADED'
+    _lot_sync_status(db,lot)
     write_audit(db,user,'loading_order',o.id,'LOAD_ITEM',new={'lot':lot.lot_number,'weight':str(qty)})
     db.commit(); return _loading_out(db,o)
 
@@ -4804,8 +4828,11 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         db.add(ReadyMaterialMovement(lot_id=lot.id,movement_type='DISPATCH',weight=a.loaded_weight,user_id=user.id,reason=o.loading_number))
     for r in db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.status=='RESERVED')).all():
         lot=db.get(ReadyMaterialLot,r.ready_material_lot_id); r.status='RELEASED'
-        if lot and lot.status=='RESERVED': lot.status='AVAILABLE'
-    o.status='COMPLETED'; write_audit(db,user,'loading_order',o.id,'COMPLETE',new={'actual_items':len(actuals),'loaded_weight':str(_loading_totals(db,o)[1])})
+    o.status='COMPLETED'; db.flush()
+    for lid in {x.ready_material_lot_id for x in db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id)).all()}:
+        lt=db.get(ReadyMaterialLot,lid)
+        if lt: _lot_sync_status(db,lt)
+    write_audit(db,user,'loading_order',o.id,'COMPLETE',new={'actual_items':len(actuals),'loaded_weight':str(_loading_totals(db,o)[1])})
     # Οριστικοποίηση = αυτόματος Αρ. Δ.Α. (αύξων ανά έτος) και μετάβαση στο Ιστορικό Δελτίων Αποστολής: μία γραμμή ανά υλικό, όλες με τον ίδιο αριθμό
     now=datetime.now(); typed=(o.dispatch_document_number or '').strip()
     wd=now
@@ -5032,7 +5059,7 @@ def loading_prep_finalize(order_id:str,data:schemas.LoadingPrepIn,db:Session=Dep
         l=db.get(ReadyMaterialLot,lid)
         if not l: missing.append('μέσο που δεν υπάρχει πια'); continue
         info=_prep_lot_info(db,l,cache); m=mats.get(l.material_id)
-        if l.status!='AVAILABLE':
+        if l.status!='AVAILABLE' or _lot_free(db,l)<l.net_weight:
             why={'RESERVED':'έχει δεσμευτεί από άλλη φόρτωση','LOADING':'φορτώνεται σε άλλη φόρτωση','DISPATCHED':'έχει ήδη αποσταλεί'}.get(l.status,'δεν είναι διαθέσιμο')
             missing.append(f"{info['label']} {info['code'] or ''} · {(m.official_description or m.internal_name) if m else ''} · {info['kg']:g} kg — {why}".replace('  ',' '))
         else: lots.append(l)
@@ -5111,12 +5138,12 @@ def loading_cancel(order_id:str,db:Session=Depends(get_db),user:User=Depends(req
     o=db.get(LoadingOrder,order_id)
     if not o or o.status!='OPEN': raise HTTPException(409,'Η φόρτωση δεν είναι ανοικτή')
     for r in db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id,LoadingReservation.status=='RESERVED')).all():
-        lot=db.get(ReadyMaterialLot,r.ready_material_lot_id); r.status='RELEASED'
-        if lot and lot.status in ('RESERVED','LOADING'): lot.status='AVAILABLE'
-    for a in db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all():
-        lot=db.get(ReadyMaterialLot,a.ready_material_lot_id)
-        if lot and lot.status=='LOADING': lot.status='AVAILABLE'
-    o.status='CANCELLED'; released=_release_bulk(db,o); write_audit(db,user,'loading_order',o.id,'CANCEL',new={'bulk_released':released})
+        r.status='RELEASED'
+    o.status='CANCELLED'; db.flush()
+    for lid in {x.ready_material_lot_id for x in db.scalars(select(LoadingReservation).where(LoadingReservation.loading_order_id==o.id)).all()}|{x.ready_material_lot_id for x in db.scalars(select(LoadingActual).where(LoadingActual.loading_order_id==o.id)).all()}:
+        lt=db.get(ReadyMaterialLot,lid)
+        if lt: _lot_sync_status(db,lt)
+    released=_release_bulk(db,o); write_audit(db,user,'loading_order',o.id,'CANCEL',new={'bulk_released':released})
     db.commit(); return _loading_out(db,o)
 
 @app.get('/loading/bulk-shortages')

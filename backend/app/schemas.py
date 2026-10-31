@@ -568,6 +568,7 @@ class ReadyMaterialCreate(BaseModel):
     tare_weight: Decimal|None = None
     net_weight: Decimal|None = None
     notes: str|None = None
+    export_date: str|None = None   # ημερομηνία εξαγωγής YYYY-MM-DD (ορίζει την περίοδο)· χωρίς τιμή = σήμερα
 
 class ReadyMaterialOut(BaseModel):
     id: str
