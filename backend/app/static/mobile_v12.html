@@ -177,7 +177,7 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 .mtForms{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
 .mtForm,.mtInvBtn{min-height:48px;font-size:14px}
 .mtForm.on,.mtInvBtn.on{background:var(--btn-on);color:var(--btn-on-fg);outline:0;box-shadow:inset 0 0 0 2px #2F5FC4}
-.mtFields{margin-top:12px}.mtFields input{width:100%;margin-bottom:8px}
+.loadDayBack{width:100%;justify-content:flex-start;text-align:left;font-weight:700;margin:2px 0 4px}.mtFields{margin-top:12px}.mtFields input{width:100%;margin-bottom:8px}.mtLblRow{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px}.mtLblRow label{margin:0}.mtSw{display:flex;border:1px solid #c9d1e4;border-radius:8px;overflow:hidden;height:30px;flex:none;box-sizing:border-box}.mtLblRow .mtSw{display:inline-flex;width:auto;max-width:none}.mtLblRow .mtSw button{display:flex;align-items:center;justify-content:center;border:0;margin:0;padding:0 12px;height:100%;min-height:0;width:auto;min-width:0;flex:none;line-height:1;font-size:13px;font-weight:700;border-radius:0;box-shadow:none;background:transparent;color:#5b6577}.mtLblRow .mtSw button.on{background:#1a5fd0;color:#fff}
 .mtLine{font-size:14px;color:#44474F;margin:2px 0 6px}.mtLine:empty{display:none}.mtCode b{color:#1A1B20}
 .mtSummary{font-size:13px;color:#44474F;margin:10px 0 8px}.mtSummary:empty{display:none}
 .mtMain{width:100%;margin-top:6px}
@@ -405,7 +405,19 @@ function fmtDMY(v){let d=new Date(v);if(isNaN(d))return '';return String(d.getDa
 function listCardHtml(o){return `<div class="lcL">${o.date?`<span class="lcDate">${o.date}</span>`:''}${o.num?`<span class="lcNum">${o.num}</span><span class="lcName">${o.name}</span>`:`<span class="lcTitle">${o.name}</span>`}${o.extra?`<span class="lcExtra">${o.extra}</span>`:''}</div>${o.kg!=null?`<span class="lcKg">${o.kg}</span>`:''}`}
 function loadCardHtml(x){let kg=Number(x.net_weight).toLocaleString('el-GR',{maximumFractionDigits:0})+' kg',o={date:fmtDMY(x.receipt_date),kg};if(x.receipt_type==='CONTAINER'){o.num='ΚΑΔΟΣ '+esc(x.container_number||x.receipt_number);o.name=[x.carrier,x.supplier].filter(Boolean).map(esc).join(' · ')||'—'}else if(x.receipt_type==='CURTAIN_TRAILER'){o.name=esc(x.supplier)}else{o.num=esc(x.order_number||x.receipt_number);o.name=esc(x.supplier)}return listCardHtml(o)}
 function loadInfoHtml(x){let dt=fmtDMY(x.receipt_date),kg=Number(x.net_weight).toLocaleString('el-GR',{maximumFractionDigits:0})+' kg',lines;if(x.receipt_type==='CONTAINER')lines=[esc(x.carrier||'—'),'ΚΑΔΟΣ '+esc(x.container_number||x.receipt_number),esc(x.supplier)];else if(x.receipt_type==='CURTAIN_TRAILER')lines=[esc(x.supplier)];else lines=[esc(x.order_number||x.receipt_number),esc(x.supplier)];return `<span style="font-size:14px;font-weight:700">${dt}</span>`+lines.map((t,i)=>`<br><span class="${i===0?'loadPrimary':'loadSecondary'}">${t}</span>`).join('')+`<br><span style="font-size:14px;font-weight:600">${kg}</span>`}
-async function loadLoads(){let rows=await api('/sorting/available');let groups=[['CONTAINER','CONTAINER'],['CURTAIN_TRAILER','ΚΑΡΟΤΣΑ'],['SMALL_POINTS','ΜΙΚΡΑ ΣΗΜΕΙΑ']];let tile=x=>`<button class="btn tile listCard" style="width:100%;margin:7px 0" data-id="${x.load_id}">${loadCardHtml(x)}</button>`;$('loadList').innerHTML=groups.map(([t,title])=>{let g=rows.filter(x=>x.receipt_type===t);return g.length?`<div class="groupHead">${title} (${g.length})</div>`+g.map(tile).join(''):''}).join('')||'<div class="muted">Δεν υπάρχουν διαθέσιμα φορτία.</div>';document.querySelectorAll('#loadList [data-id]').forEach(b=>b.onclick=()=>openLoad(b.dataset.id,rows.find(x=>x.load_id===b.dataset.id)))}
+let loadDay=null;
+function loadDayKey(x){return localISODate(new Date(x.receipt_date))}
+function loadDayLabel(k){let d=new Date(k+'T12:00:00'),w=d.toLocaleDateString('el-GR',{weekday:'long'});return w.charAt(0).toUpperCase()+w.slice(1)+' '+k.slice(8,10)+'/'+k.slice(5,7)+'/'+k.slice(0,4)}
+async function loadLoads(){let rows=await api('/sorting/available');let groups=[['CONTAINER','CONTAINER'],['CURTAIN_TRAILER','ΚΑΡΟΤΣΑ'],['SMALL_POINTS','ΜΙΚΡΑ ΣΗΜΕΙΑ']];let tile=x=>`<button class="btn tile listCard" style="width:100%;margin:7px 0" data-id="${x.load_id}">${loadCardHtml(x)}</button>`;
+  if(loadDay&&!rows.some(x=>loadDayKey(x)===loadDay))loadDay=null;
+  if(!loadDay){
+    let days={};rows.forEach(x=>{let k=loadDayKey(x);(days[k]=days[k]||{n:0,kg:0});days[k].n++;days[k].kg+=Number(x.net_weight)||0});
+    $('loadList').innerHTML=Object.keys(days).sort().reverse().map(k=>`<button class="btn tile listCard loadDayBtn" style="width:100%;margin:7px 0" data-day="${k}"><div class="lcL"><span class="lcTitle">${loadDayLabel(k)}</span><span class="lcExtra">${days[k].n} ${days[k].n===1?'παραλαβή':'παραλαβές'}</span></div><span class="lcKg">${days[k].kg.toLocaleString('el-GR',{maximumFractionDigits:0})} kg</span></button>`).join('')||'<div class="muted">Δεν υπάρχουν διαθέσιμα φορτία.</div>';
+    document.querySelectorAll('#loadList [data-day]').forEach(b=>b.onclick=()=>{loadDay=b.dataset.day;loadLoads()});return}
+  rows=rows.filter(x=>loadDayKey(x)===loadDay);
+  $('loadList').innerHTML=`<button type="button" class="btn alt loadDayBack" id="loadDayBack">← ${loadDayLabel(loadDay)}</button>`+groups.map(([t,title])=>{let g=rows.filter(x=>x.receipt_type===t);return g.length?`<div class="groupHead">${title} (${g.length})</div>`+g.map(tile).join(''):''}).join('');
+  $('loadDayBack').onclick=()=>{loadDay=null;loadLoads()};
+  document.querySelectorAll('#loadList [data-id]').forEach(b=>b.onclick=()=>openLoad(b.dataset.id,rows.find(x=>x.load_id===b.dataset.id)))}
 $('reload').onclick=loadLoads;$('back').onclick=()=>{$('work').classList.add('hidden');$('loads').classList.remove('hidden');loadLoads()};async function openLoad(id,m){cur={id,m};try{await api('/sorting/'+id+'/start',{method:'POST'})}catch{}$('loads').classList.add('hidden');$('work').classList.remove('hidden');window.scrollTo(0,0);$('title').innerHTML=loadInfoHtml(m);$('meta').innerHTML='';$('ctrlBody').classList.add('hidden');$('ctrlArrow').textContent='▼';phCount=0;flEntryCats=[];closePanels();try{await reloadMasters()}catch{}await refresh();await loadCtrl()}
 // Οι εργαζόμενοι του τμήματος Διοίκηση δεν εμφανίζονται πουθενά στο Android.
 function androidEmpFilter(units){return e=>e.active!==false}
@@ -1577,7 +1589,7 @@ function mtWizHtml(){
   }else if(f){
     if(f.form==='BULK')h+=`<div class="mtFields"><label>Κιλά</label><input id="mtNet" type="text" inputmode="decimal" value="${esc(w.net)}"></div>`;
     else{
-      h+=`<div class="mtFields"><label>Μικτό βάρος (kg)</label><input id="mtGross" type="text" inputmode="decimal" value="${esc(w.gross)}">`;
+      h+=`<div class="mtFields"><div class="mtLblRow"><label>${w.known==='NET'?'Καθαρό βάρος (kg)':'Μικτό βάρος (kg)'}</label><span class="mtSw"><button type="button" data-known="GROSS" class="${w.known==='NET'?'':'on'}">Μικτό</button><button type="button" data-known="NET" class="${w.known==='NET'?'on':''}">Καθαρό</button></span></div><input id="mtGross" type="text" inputmode="decimal" value="${esc(w.gross)}">`;
       if(f.asks_tare)h+=`<label>Απόβαρο παλέτας (kg)</label><input id="mtTare" type="text" inputmode="decimal" value="${esc(w.tare)}">`;
       h+=`<div class="mtLine" id="mtL1"></div>`+(mt.nextCode?`<div class="mtLine mtCode">Κωδικός μέσου: <b>${esc(mt.nextCode)}</b></div>`:'')+`</div>`;
     }
@@ -1596,6 +1608,7 @@ function mtCalc(){
   if(!f)return out;
   if(f.form==='BULK'){let n=mtNum(w.net);if(n>0){out.ok=true;out.sum=`${m?.name||''} · Χύμα · ${mtKg(n)} kg`}out.payload={material_id:w.mat,form:'BULK',net:n};return out}
   let g=mtNum(w.gross),t=f.asks_tare?mtNum(w.tare):f.tare;
+  if(w.known==='NET')g=g>0?g+t:NaN;   // γνωστό καθαρό: μικτό = καθαρό + απόβαρο, αποθηκεύονται καθαρό και απόβαρο όπως στα Windows
   if(Number.isFinite(g)&&Number.isFinite(t)&&g-t>0){out.ok=true;out.line1=(f.asks_tare?'':`Απόβαρο ${mtKg(t)} kg · `)+`Καθαρά κιλά υλικού: ${mtKg(g-t)}`;out.sum=`${m?.name||''} · ${f.label}${mt.nextCode?' '+mt.nextCode:''} · ${mtKg(g-t)} kg`}
   else if(Number.isFinite(g)&&Number.isFinite(t)&&g>0)out.line1='Τα καθαρά κιλά πρέπει να είναι μεγαλύτερα από 0';
   out.payload={material_id:w.mat,form:f.form==='BALE'?'PALLET':f.form,gross:g,tare:f.asks_tare?t:undefined};if(f.form==='BALE')out.payload.is_bale=true;return out;
@@ -1611,7 +1624,7 @@ async function mtLoadStep3(){
   mtRender();
 }
 async function mtPickForm(form){
-  let w=mt.w;w.form=form;w.inv=null;w.gross='';w.tare='';w.net='';w.total='';mt.nextCode=null;
+  let w=mt.w;w.form=form;w.inv=null;w.gross='';w.tare='';w.net='';w.total='';w.known='GROSS';mt.nextCode=null;
   try{let r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(form==='BALE'?'&bale=1':'')+(w.mat?'&material_id='+encodeURIComponent(w.mat):''));mt.nextCode=r.code}catch(e){}
   mtRender();
 }
@@ -1622,6 +1635,7 @@ function mtBind(){
     if(b.dataset.cat){w.cat=b.dataset.cat;w.step=2;w.mat=null;w.search='';mtRender();return}      // πατώντας κατηγορία πηγαίνει αμέσως στο επόμενο βήμα
     if(b.dataset.mat){w.mat=b.dataset.mat;w.step=3;w.form=null;w.inv=null;await mtLoadStep3();return}
     if(b.dataset.chg){let k=b.dataset.chg.replace(/^(export|count)/,'');if(k==='cat'){w.step=1;w.mat=null}else{w.step=2}w.form=null;w.inv=null;mtRender();return}
+    if(b.dataset.known){w.known=b.dataset.known;mtRender();return}
     if(b.dataset.form){await mtPickForm(b.dataset.form);return}
     if(b.dataset.inv){let i=mt.openInv.find(x=>x.id===b.dataset.inv);w.inv=i;w.form=i.form;w.total='';mtRender();return}
     if(b.id==='mtBack'){mt.countNew=false;mt.w=mt.wExportSaved||mtWiz('export');mtRender();return}
