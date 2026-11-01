@@ -255,6 +255,25 @@ body.flKbOn #flKb{display:grid}body.flKbOn{padding-bottom:230px}#flKb button{hei
 .profBar .modeBar button{border:1px solid #B9BDC9;border-radius:var(--r-btn)}
 .profBar .modeBar button+button{border-left:1px solid #B9BDC9}
 .profBar .modeBar button.on{border-color:#2F5FC4}
+
+/* ===== 3D στα κουμπιά του Android: ΜΙΑ μεταβλητή --k (0.2 = 20%). Αλλάζει μόνο η σκιά (βάθος): κανένα χρώμα, μέγεθος, ύψος ή θέση ===== */
+:root{--k:.2;--hi:rgba(255,255,255,.55);--e-white:#aab4cc;--e-blue:#1b3d8c;--e-green:#114a29;--e-warn:#5a3a00;--e-red:#661a1d;--e-amber:#4d2f00;--e-soft:#9db6e8}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--hi:rgba(255,255,255,.12);--e-white:#0b0e16;--e-soft:#1a2850}}
+:root[data-theme="dark"]{--hi:rgba(255,255,255,.12);--e-white:#0b0e16;--e-soft:#1a2850}
+/* μικρά κουμπιά και καρτέλες (προεπιλογή) */
+:is(button,.btn){--e:var(--e-white);--sa:.12;--sb:3px;--sc:5px;--sd:7px;box-shadow:inset 0 calc(var(--k)*2px) 0 var(--hi),0 calc(var(--k)*var(--sb)) 0 var(--e),0 calc(var(--k)*var(--sc)) calc(var(--k)*var(--sd)) rgba(0,0,0,calc(var(--k)*var(--sa)))!important}
+/* χρώματα βάσης ανά κουμπί */
+.btn,.mnOk,.btn.tile.q{--e:var(--e-blue)}
+.btn.alt,.btn.choice,.btn.listCard,.shEdit,.mnClose,.mnChip,#flKb button,.flPicked button,.kc{--e:var(--e-white)}
+.btn.good{--e:var(--e-green)}.btn.warn{--e:var(--e-warn)}.btn.danger,.shDel{--e:var(--e-red)}
+#dateBanner button{--e:var(--e-amber)}.tdBtn.tdDeltio,.btn.choice.flStart,.btn.choice.matStart{--e:var(--e-soft)}
+/* μεγάλα κουμπιά */
+.modeBar .btn,.mtMain,#loginBtn,#save,#confirm,#prodSubmit,#loadingCreateBtn,.btn.good,.btn.warn,.btn.danger,.washAction,.fridgeAction{--sb:4px;--sc:7px;--sd:10px;--sa:.22}
+.modeBar .btn.choice:not(.on),.btn.alt.mtMain{--sa:.14}
+/* επιλεγμένο: βυθισμένο, χωρίς ανασήκωση */
+.btn.choice.on,.modeBar .btn.choice.on,.sectionBar .btn.choice.on,.sectionBar>button.on,#flowBar>button.on,#matBar>button.on,.mtMatBtn.on,.mtForm.on,.mtInvBtn.on,.profBar .modeBar button.on{box-shadow:inset 0 calc(var(--k)*3px) calc(var(--k)*5px) rgba(0,0,0,calc(var(--k)*.18))!important}
+/* χωρίς 3D: διαφανή κουμπιά και ο διακόπτης Μικτό/Καθαρό (έχει δικό του πλαίσιο) */
+.tdRefresh,.ctrlHead,.tdNet,.mtLblRow .mtSw button{box-shadow:none!important}
 </style></head><body><div class="wrap">
 <div id="login" class="card"><h1>Ταξινόμηση</h1><p class="muted">Android UI 2.5.44</p><label>Χρήστης</label><input id="u" value="admin"><label>Κωδικός</label><input id="p" type="password" value="ChangeMe123!"><button id="loginBtn" class="btn" style="width:100%;margin-top:12px">ΕΙΣΟΔΟΣ</button><div id="loginMsg" class="error"></div></div>
 <div id="app" class="hidden"><div class="top"><div class="topDark"><span id="clock" class="tdClock"></span><div class="tdRow"><b id="appTitle" class="tdTitle">WEEE Platform 2.5.41</b><div class="tdRight"><b id="who"></b><button id="refreshBtn" type="button" class="tdRefresh" aria-label="Ανανέωση" title="Ανανέωση"><svg viewBox="0 -960 960 960" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg></button></div></div><div class="tdBtns"><button id="topDeltioBtn" type="button" class="tdBtn tdDeltio">ΕΡΓΑΖΟΜΕΝΟΙ</button><button id="net" type="button" class="tdBtn tdNet" title="Διεύθυνση server"><i class="netDot"></i><span id="netTxt">SERVER</span></button></div></div><div class="profBar"><div class="modeBar"><button id="modeForks" class="btn choice on">ΠΙΡΟΥΝΙΑ</button><button id="modeClamp" class="btn choice">ΠΛΑΚΕΣ</button></div></div><div class="secRow"><div class="sectionBar"><button class="btn choice on secBtn" data-section="receiving">ΠΑΡΑΛΑΒΕΣ</button><button class="btn choice secBtn" data-section="production">ΠΑΡΑΓΩΓΗ</button><button class="btn choice secBtn" data-section="materials">ΥΛΙΚΑ</button><button class="btn choice secBtn" data-section="loading">ΦΟΡΤΩΣΕΙΣ</button></div></div></div><div id="secReceiving"><div id="loads" class="card"><div class="oldHead" style="display:none"><h2>Παραλαβές</h2><button id="reload" class="btn alt">↻</button></div><div id="loadList"></div></div>
