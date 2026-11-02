@@ -3562,30 +3562,73 @@ def _stamp_photo(im,now):
     od.text((x+(bw-tw)//2-tb[0],y+pady+logo.height+gap-tb[1]),txt,font=font,fill=(59,59,59,255))
     return Image.alpha_composite(im.convert('RGBA'),ov).convert('RGB')
 
+PHOTO_MIN=100*1000; PHOTO_MAX=150*1000
+def _fit_photo(im):
+    """Μεγαλύτερη δυνατή διάσταση και ποιότητα ώστε το JPEG να πλησιάζει τα 150 KB χωρίς να τα περνά (ελάχιστο 853×480, χωρίς μεγέθυνση).
+    1) ποιότητα 80: βρίσκει τη μεγαλύτερη κλίμακα που χωρά· 2) σε αυτή την κλίμακα ανεβάζει την ποιότητα όσο χωρά· προοδευτικό JPEG με βελτιστοποίηση πινάκων."""
+    import io
+    from PIL import Image
+    W,H=im.size; land=W>=H; mw,mh=(853,480) if land else (480,853)
+    fmin=min(1.0,max(mw/W,mh/H)) if (W>mw or H>mh) else 1.0
+    cache={}
+    def at(f):
+        if f not in cache:
+            cache[f]=im if f>=0.9999 else im.resize((max(1,round(W*f)),max(1,round(H*f))),Image.LANCZOS)
+        return cache[f]
+    def enc(f,q):
+        buf=io.BytesIO(); at(f).save(buf,'JPEG',quality=q,optimize=True,progressive=True); return buf.getvalue()
+    q0=80; best=None
+    if len(enc(1.0,q0))<=PHOTO_MAX: f=1.0
+    elif len(enc(fmin,q0))>PHOTO_MAX:
+        f=fmin; q=q0
+        while q>35 and len(enc(f,q))>PHOTO_MAX: q-=5
+        d=enc(f,q); return d,at(f).size,q
+    else:
+        lo,hi=fmin,1.0                       # lo χωρά, hi δεν χωρά
+        for _ in range(9):
+            mid=round((lo+hi)/2,4)
+            if len(enc(mid,q0))<=PHOTO_MAX: lo=mid
+            else: hi=mid
+        f=lo
+    ql,qh=q0,95; best=(enc(f,q0),q0)         # ανεβάζει την ποιότητα όσο χωρά
+    for _ in range(5):
+        if qh-ql<=1: break
+        qm=(ql+qh)//2; d=enc(f,qm)
+        if len(d)<=PHOTO_MAX: ql=qm; best=(d,qm)
+        else: qh=qm
+    if len(best[0])<=PHOTO_MAX and qh==95 and ql<95:
+        d=enc(f,95)
+        if len(d)<=PHOTO_MAX: best=(d,95)
+    return best[0],at(f).size,best[1]
+
+def _load_photo_dir(db,load):
+    """Φωτογραφίες/ΕΤΟΣ/ΜΗΝΑΣ/ΗΜΕΡΑ/<container ή αριθμός εντολής>· ημέρα = ημερομηνία παραλαβής. Όσο η εντολή έχει φωτογραφίες, μένει στον ίδιο φάκελο."""
+    from . import docs_storage
+    root=str(docs_storage.photos_root()).lower()
+    for p in db.scalars(select(FileAttachment.stored_path).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load.id)).all():
+        d=Path(p).parent
+        if str(d).lower().startswith(root) and d.exists(): return d
+    trip=db.get(InboundTrip,load.trip_id); day=trip.receipt_date if trip and trip.receipt_date else docs_storage._now()
+    others=[str(Path(p).parent).lower() for p in db.scalars(select(FileAttachment.stored_path).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id!=load.id)).all()]
+    return docs_storage.photo_dir(load.order_number or load.id[:8],load.incoming_container_number,day,lambda d:str(d).lower() in others)
+
 @app.post('/sorting/{load_id}/photos')
 def sorting_photo(load_id:str, category:str=Form('GENERAL'), stamp:str=Form('0'), file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     load=db.get(InboundLoad,load_id)
     if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
     from . import docs_storage
-    now=docs_storage._now(); photo_dir=docs_storage.photo_dir(load.order_number or load.id[:8],now)   # Έγγραφα\WEEE Platform\Φωτογραφίες\YYYY-MM\Εντολή <αριθμός>
+    now=docs_storage._now(); photo_dir=_load_photo_dir(db,load)
     suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=photo_dir/stored
     with path.open('wb') as f: shutil.copyfileobj(file.file,f)
     ctype=file.content_type
     if (ctype or '').startswith('image/'):
-        # κανόνας φωτογραφιών: ανάλυση περίπου 853×480 (480×853 για κάθετες) και κάτω από 150 KB — μικραίνουν πριν την αποθήκευση
+        # σφραγίδα πριν τη συμπίεση· μετά μεγαλύτερη δυνατή διάσταση/ποιότητα κάτω από 150 KB (ελάχιστο 853×480)
         try:
             from PIL import Image, ImageOps
-            import io
             im=ImageOps.exif_transpose(Image.open(path)).convert('RGB')
-            if stamp=='1': im=_stamp_photo(im,now)   # σφραγίδα ΠΡΙΝ το μίκρυνμα
-            box=(853,480) if im.width>=im.height else (480,853)
-            im.thumbnail(box,Image.LANCZOS)
-            q=85; buf=io.BytesIO()
-            while True:
-                buf=io.BytesIO(); im.save(buf,'JPEG',quality=q,optimize=True)
-                if buf.tell()<150*1000 or q<=35: break
-                q-=7
-            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=photo_dir/stored; path.write_bytes(buf.getvalue()); ctype='image/jpeg'
+            if stamp=='1': im=_stamp_photo(im,now)
+            data,size,q=_fit_photo(im)
+            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=photo_dir/stored; path.write_bytes(data); ctype='image/jpeg'
             file.filename=(Path(file.filename or 'photo').stem or 'photo')+'.jpg'
         except Exception: pass   # αν δεν διαβάζεται ως εικόνα, μένει όπως ήρθε
     obj=FileAttachment(entity_type='INBOUND_LOAD',entity_id=load_id,category=category,filename=file.filename or stored,stored_path=str(path),content_type=ctype,uploaded_by=user.id)
@@ -3596,14 +3639,28 @@ def sorting_photos(load_id:str, db:Session=Depends(get_db), user=Depends(require
     rows=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load_id).order_by(FileAttachment.created_at)).all()
     return [{'id':x.id,'filename':x.filename,'category':x.category,'created_at':x.created_at.isoformat()} for x in rows]
 
+@app.post('/sorting/{load_id}/photos/open-folder')
+def sorting_photos_open_folder(load_id:str, db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
+    load=db.get(InboundLoad,load_id)
+    if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
+    if os.name!='nt': raise HTTPException(400,'Το άνοιγμα φακέλου γίνεται μόνο στα Windows')
+    d=_load_photo_dir(db,load)
+    os.startfile(str(d))
+    return {'path':str(d)}
 
 @app.delete('/sorting/photos/{photo_id}')
 def sorting_photo_delete(photo_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    """Το αρχείο πηγαίνει στον Κάδο ανακύκλωσης των Windows (δεν σβήνεται οριστικά)."""
+    from . import docs_storage
     obj=db.get(models.FileAttachment,photo_id)
     if not obj or obj.entity_type!='INBOUND_LOAD': raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
     path=Path(obj.stored_path); old={'load_id':obj.entity_id,'category':obj.category,'filename':obj.filename}
-    write_audit(db,user,'attachment',obj.id,'DELETE',old=old); db.delete(obj); db.commit()
-    try: path.unlink(missing_ok=True)
+    if path.exists() and not docs_storage.to_recycle_bin(path):
+        raise HTTPException(500,'Δεν μπόρεσα να στείλω τη φωτογραφία στον Κάδο ανακύκλωσης· δεν διαγράφηκε.')
+    write_audit(db,user,'attachment',obj.id,'DELETE',old=old,new={'recycle_bin':True}); db.delete(obj); db.commit()
+    try:   # άδειοι φάκελοι (εντολή/ημέρα/μήνας/έτος) δεν μένουν πίσω
+        root=docs_storage.photos_root(); d=path.parent
+        while d!=root and root in d.parents and d.exists() and not any(d.iterdir()): d.rmdir(); d=d.parent
     except OSError: pass
     return {'deleted':photo_id}
 

@@ -45,20 +45,19 @@ def run(B='http://127.0.0.1:8000'):
             bar = pg.evaluate("(()=>{const z=document.getElementById('zoomBar'),r=z.getBoundingClientRect();return [r.left,r.top,r.width,r.height,parseFloat(getComputedStyle(z).fontSize),parseFloat(getComputedStyle(document.querySelector('.nav button')).fontSize)]})()")
             if abs(bar[3] - 42) > 1.5: problems.append(f'[μπάρα Μέγεθος] ύψος {bar[3]:.0f}px (πρέπει 42)')
             if abs(bar[4] - bar[5]) > 0.5: problems.append(f'[μπάρα Μέγεθος] γραμματοσειρά {bar[4]}px ≠ αριστερό πάνελ {bar[5]}px')
-            boxes = []
+            # νέο μοντέλο: το ελαχιστοποιημένο παράθυρο κρύβεται και μπαίνει κουμπί (δύο γραμμές) στη μπάρα κάτω αριστερά, με τη σειρά που ανοίχτηκαν
             for name, js, sel, minId in wins:
                 if not minId: continue
-                g = pg.evaluate(GEOM, sel)
-                if not g or not g['min']: problems.append(f'[{name}] δεν ελαχιστοποιήθηκε'); continue
-                x, y, w, h = g['win']
-                if y < bar[1] - 1 or y + h > bar[1] + bar[3] + 1 or x < bar[0] - 1: problems.append(f'[{name}] το ελαχιστοποιημένο κουτάκι δεν είναι μέσα στη μπάρα κάτω αριστερά')
-                for q in g['ctls']:
-                    if q[0] < x - 0.5 or q[0] + q[2] > x + w + 0.5 or q[1] < y - 2 or q[1] + q[3] > y + h + 2: problems.append(f'[{name}] τα κουμπιά δεν χωράνε μέσα στο ελαχιστοποιημένο κουτάκι')
-                    if abs(q[1] + q[3] / 2 - (y + h / 2)) > 1.5: problems.append(f'[{name}] κουμπί όχι κεντραρισμένο στο κουτάκι')
-                boxes.append((name, x, x + w))
-            boxes.sort(key=lambda t: t[1])
-            for a, c in zip(boxes, boxes[1:]):
-                if c[1] < a[2] - 0.5: problems.append(f'[{a[0]}] επικαλύπτεται με [{c[0]}] στη μπάρα')
+                if pg.evaluate("(s)=>{let e=document.querySelector(s);return !!e&&getComputedStyle(e).display!=='none'}", sel) and pg.evaluate("(s)=>document.querySelector(s).classList.contains('popupMin')", sel):
+                    problems.append(f'[{name}] το ελαχιστοποιημένο παράθυρο φαίνεται ακόμα στην οθόνη')
+            chips = pg.evaluate("[...document.querySelectorAll('#winDock .wChip')].map(c=>{let r=c.getBoundingClientRect();return [r.left,r.top,r.width,r.height,c.querySelectorAll('b,small').length]})")
+            if not chips: problems.append('[μπάρα παραθύρων] δεν υπάρχει κανένα κουμπί ελαχιστοποιημένου παραθύρου')
+            for q in chips:
+                if q[1] < bar[1] - 1 or q[1] + q[3] > bar[1] + bar[3] + 1 or q[0] < bar[0] - 1: problems.append('[μπάρα παραθύρων] κουμπί έξω από τη μπάρα κάτω αριστερά')
+                if q[4] != 2: problems.append('[μπάρα παραθύρων] το κουμπί δεν έχει δύο γραμμές (τίτλος και προμηθευτής)')
+            chips.sort(key=lambda t: t[0])
+            for a_, c_ in zip(chips, chips[1:]):
+                if c_[0] < a_[0] + a_[2] - 0.5: problems.append('[μπάρα παραθύρων] κουμπιά επικαλύπτονται')
         finally:
             b.close()
     for m in problems: print(m)

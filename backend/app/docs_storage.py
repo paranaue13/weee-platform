@@ -1,4 +1,4 @@
-"""Φάκελος της εφαρμογής μέσα στα Έγγραφα του χρήστη: Έγγραφα\\WEEE Platform\\{Φωτογραφίες,Αναφορές}\\YYYY-MM.
+"""Φάκελος της εφαρμογής μέσα στα Έγγραφα του χρήστη: Έγγραφα/WEEE Platform/Φωτογραφίες/ΕΤΟΣ/ΜΗΝΑΣ/ΗΜΕΡΑ/<container> και Αναφορές/YYYY-MM.
 
 Ο φάκελος «Έγγραφα» ζητείται από τα Windows (Known Folder), ώστε να δουλεύει και όταν είναι μέσα σε OneDrive,
 και είναι ο ίδιος είτε τρέχει η εφαρμογή από τον κώδικα είτε από το .exe. Η μεταβλητή WEEE_DOCS_DIR
@@ -86,9 +86,30 @@ def safe_name(x: str) -> str:
     return "".join(c for c in str(x or "") if c not in '<>:"/' + chr(92) + '|?*').strip(" .") or "χωρίς αριθμό"
 
 
-def photo_dir(order_no, when=None) -> Path:
-    """Φωτογραφίες/YYYY-MM/Εντολή <αριθμός> — δημιουργείται μόνος του."""
-    d = month_dir(PHOTOS, when) / f"Εντολή {safe_name(order_no)}"
+def photos_root() -> Path:
+    """Έγγραφα/WEEE Platform/Φωτογραφίες — δημιουργείται μόνος του· αν δεν γράφεται, καθαρό μήνυμα (507)."""
+    d = documents_dir() / APP_DIR / PHOTOS
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        probe = d / ".write_test"
+        probe.write_bytes(b"")
+        probe.unlink()
+    except OSError as e:
+        raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). "
+                                 f"Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής, ή επίλεξε άλλον φάκελο αποθήκευσης.")
+    return d
+
+
+def photo_dir(order_no, container, day, taken_by_other=None) -> Path:
+    """Φωτογραφίες/ΕΤΟΣ/ΜΗΝΑΣ/ΗΜΕΡΑ/<αριθμός container> — ημέρα = ημερομηνία παραλαβής της εντολής.
+    Χωρίς container: ο αριθμός της εντολής. Αν τον ίδιο φάκελο τον έχει ήδη άλλη εντολή (ίδιο container, ίδια ημέρα),
+    ο φάκελος γίνεται «<container> - Εντολή <αριθμός>» ώστε τα αρχεία να μη ανακατεύονται."""
+    day = day or _now()
+    name = safe_name(container) if str(container or "").strip() else safe_name(order_no)
+    base = photos_root() / f"{day.year}" / f"{day.month:02d}" / f"{day.day:02d}"
+    d = base / name
+    if taken_by_other and taken_by_other(d):
+        d = base / f"{name} - Εντολή {safe_name(order_no)}"
     try:
         d.mkdir(parents=True, exist_ok=True)
     except OSError as e:
@@ -96,13 +117,32 @@ def photo_dir(order_no, when=None) -> Path:
     return d
 
 
+def to_recycle_bin(path) -> bool:
+    """Στέλνει αρχείο στον Κάδο ανακύκλωσης των Windows (όχι οριστική διαγραφή). True αν έγινε."""
+    p = str(Path(path))
+    if os.name != "nt" or not os.path.exists(p):
+        return False
+    import ctypes
+    from ctypes import wintypes
+
+    class SHFILEOPSTRUCTW(ctypes.Structure):
+        _fields_ = [("hwnd", wintypes.HWND), ("wFunc", wintypes.UINT), ("pFrom", wintypes.LPCWSTR), ("pTo", wintypes.LPCWSTR),
+                    ("fFlags", ctypes.c_ushort), ("fAnyOperationsAborted", wintypes.BOOL), ("hNameMappings", ctypes.c_void_p),
+                    ("lpszProgressTitle", wintypes.LPCWSTR)]
+
+    # FO_DELETE=3, FOF_SILENT|FOF_NOCONFIRMATION|FOF_ALLOWUNDO|FOF_NOERRORUI = 0x0004|0x0010|0x0040|0x0400
+    op = SHFILEOPSTRUCTW(None, 3, p + "\0", None, 0x0004 | 0x0010 | 0x0040 | 0x0400, False, None, None)
+    rc = ctypes.windll.shell32.SHFileOperationW(ctypes.byref(op))
+    return rc == 0 and not op.fAnyOperationsAborted and not os.path.exists(p)
+
+
 def ensure_folders() -> None:
     """Στην εκκίνηση: φτιάχνει τους φακέλους του τρέχοντος μήνα· αν δεν γίνει, γράφεται στο log (η εκκίνηση συνεχίζει)."""
-    for kind in (PHOTOS, REPORTS):
-        try:
-            month_dir(kind)
-        except HTTPException as e:
-            log.error(e.detail)
+    try:
+        photos_root()
+        month_dir(REPORTS)
+    except HTTPException as e:
+        log.error(e.detail)
 
 
 def unique_path(d: Path, name: str) -> Path:
