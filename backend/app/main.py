@@ -71,7 +71,9 @@ async def _electrocycle_loop():
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     try:
-        from . import docs_storage; docs_storage.ensure_folders()
+        from . import docs_storage
+        with SessionLocal() as _s: docs_storage.load_custom_dir(_s)
+        docs_storage.ensure_folders()
     except Exception: pass
     try: _purge_idem()
     except Exception: pass
@@ -3565,7 +3567,7 @@ def sorting_photo(load_id:str, category:str=Form('GENERAL'), stamp:str=Form('0')
     load=db.get(InboundLoad,load_id)
     if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
     from . import docs_storage
-    now=docs_storage._now(); photo_dir=docs_storage.month_dir(docs_storage.PHOTOS,now)   # Έγγραφα\WEEE Platform\Φωτογραφίες\YYYY-MM
+    now=docs_storage._now(); photo_dir=docs_storage.photo_dir(load.order_number or load.id[:8],now)   # Έγγραφα\WEEE Platform\Φωτογραφίες\YYYY-MM\Εντολή <αριθμός>
     suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=photo_dir/stored
     with path.open('wb') as f: shutil.copyfileobj(file.file,f)
     ctype=file.content_type
@@ -4017,6 +4019,29 @@ def _pick_folder_dialog(initial:str|None)->str|None:
     finally:
         root.destroy()
     return path or None
+
+@app.get('/settings/docs-folder')
+def docs_folder_get(user:User=Depends(current_user)):
+    from . import docs_storage
+    return {'path':str(docs_storage.documents_dir()/docs_storage.APP_DIR),'root':str(docs_storage.documents_dir()),'custom':bool(docs_storage._custom_dir)}
+
+@app.put('/settings/docs-folder')
+def docs_folder_put(data:dict, db:Session=Depends(get_db), user:User=Depends(require_permission('settings.manage'))):
+    from . import docs_storage
+    path=(data.get('path') or '').strip()
+    if path:
+        try:
+            p=Path(path); (p/docs_storage.APP_DIR/docs_storage.PHOTOS).mkdir(parents=True,exist_ok=True); (p/docs_storage.APP_DIR/docs_storage.REPORTS).mkdir(parents=True,exist_ok=True)
+            probe=p/'.weee_test'; probe.write_text('ok',encoding='utf-8'); probe.unlink()
+        except Exception as e:
+            raise HTTPException(422,f'Ο φάκελος δεν είναι προσβάσιμος για εγγραφή: {e}')
+    row=db.scalar(select(AppSetting).where(AppSetting.key==docs_storage.DOCS_KEY))
+    old=row.value if row else None
+    if row: row.value=path
+    else: db.add(AppSetting(key=docs_storage.DOCS_KEY,value=path))
+    write_audit(db,user,'app_setting',docs_storage.DOCS_KEY,'UPDATE',old={'path':old},new={'path':path}); db.commit()
+    docs_storage.set_custom_dir(path or None)
+    return {'path':str(docs_storage.documents_dir()/docs_storage.APP_DIR)}
 
 @app.post('/settings/export/browse')
 async def export_settings_browse(data:dict|None=None, user:User=Depends(require_permission('settings.manage'))):

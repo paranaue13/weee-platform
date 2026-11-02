@@ -25,6 +25,7 @@ JS_SCAN = r"""([label,rootSel])=>{
  const desc=e=>{let id=e.id?'#'+e.id:'';let c=(e.className&&e.className.baseVal===undefined?String(e.className):'').trim().split(/\s+/).slice(0,2).join('.');return e.tagName.toLowerCase()+id+(c?'.'+c:'')};
  const coverEl=(el)=>{const r=el.getBoundingClientRect();const x=r.left+Math.min(r.width/2,60),y=r.top+r.height/2;return document.elementFromPoint(x,y)};
  const cover=(el)=>{const t=coverEl(el);return !!t&&(el===t||el.contains(t))};
+ const scrollFor=(el,f)=>{if(el.id==='sortingDetail'){const T=el.querySelector('#sfTable');if(T){const tt=T.getBoundingClientRect().top-el.getBoundingClientRect().top+el.scrollTop;return Math.round(tt+Math.max(0,T.offsetHeight-el.clientHeight*0.6)*f)}}return Math.round((el.scrollHeight-el.clientHeight)*f)};   /* Ταξινόμηση: ο πίνακας δεν είναι πια τελευταίος· τα σημεία ελέγχου μετριούνται μέσα στον πίνακα */
  const list=(ROOT===document?[...document.querySelectorAll('*')]:[ROOT,...ROOT.querySelectorAll('*')]).filter(e=>!['TEXTAREA','SELECT','INPUT','HTML','BODY'].includes(e.tagName)&&scrolls(e)&&e.scrollHeight>e.clientHeight+3&&e.clientHeight>=40&&vis(e));
  for(const el of list){
   const tabs=[...el.querySelectorAll('table')].filter(t=>nearest(t)===el&&t.offsetParent!==null&&t.rows.length>0);
@@ -43,11 +44,11 @@ JS_SCAN = r"""([label,rootSel])=>{
       if(!cells.length)continue;
       const probes=tabs.length>1?[0.3,0.6,1]:[1];
       for(const f of probes){
-      el.scrollTop=Math.round((el.scrollHeight-el.clientHeight)*f);const e=er();
+      el.scrollTop=scrollFor(el,f);const e=er();
       const tr0=t.getBoundingClientRect();
       if(tabs.length>1&&(tr0.top>=e.top+4||tr0.bottom<=e.top+cells[0].getBoundingClientRect().height*3+8))continue;   // ο πίνακας δεν βρίσκεται «κάτω από την κορυφή»: δεν χρειάζεται καρφωμένη κεφαλίδα
       const th=cells.find(c=>c.getBoundingClientRect().width>8)||cells[0],r=th.getBoundingClientRect(),pos=getComputedStyle(th).position;
-      const okPos=pos==='sticky',okPlace=r.top>=e.top-2&&r.top<=e.top+280&&r.bottom<=e.bottom,okCover=cover(th);
+      const okPos=pos==='sticky',okPlace=r.top>=e.top-2&&r.top<=e.top+(el.id==='sortingDetail'?380:280)&&r.bottom<=e.bottom,okCover=cover(th);
       const ok=okPos&&okPlace&&okCover;
       rec.head=(rec.head===false)?false:ok;
       if(!ok){const m=nm+': κεφαλίδα '+(okPos?'':'ΔΕΝ είναι sticky; ')+(okPlace?'':'εκτός θέσης; ')+(okCover?'':'καλύπτεται από '+desc(coverEl(th)||document.body));if(!rec.notes.includes(m))rec.notes.push(m)}
@@ -74,8 +75,8 @@ JS_SCAN = r"""([label,rootSel])=>{
     if(nonSticky.length===heads.length){ok=false;why='οι τίτλοι δεν είναι sticky ('+desc(heads[0])+')'}
     else{
       const probe=[0.35,0.7,1];
-      for(const f of probe){el.scrollTop=Math.round(maxS*f);const e=er();
-        const pinned=heads.filter(h=>getComputedStyle(h).position==='sticky').filter(h=>{const r=h.getBoundingClientRect();return r.top>=e.top-1&&r.top<=e.top+280&&r.bottom<=e.bottom});
+      for(const f of probe){el.scrollTop=scrollFor(el,f);const e=er();
+        const pinned=heads.filter(h=>getComputedStyle(h).position==='sticky').filter(h=>{const r=h.getBoundingClientRect();return r.top>=e.top-1&&r.top<=e.top+(el.id==='sortingDetail'?380:280)&&r.bottom<=e.bottom});
         const topOne=pinned.find(h=>cover(h));
         // κομμένος τίτλος: οριζόντια ή κάθετα
         const cut=heads.find(h=>{const r=h.getBoundingClientRect();return r.bottom>e.top&&r.top<e.bottom&&h.scrollWidth>h.clientWidth+2});

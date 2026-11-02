@@ -16,10 +16,28 @@ PHOTOS = "Φωτογραφίες"
 REPORTS = "Αναφορές"
 
 
+DOCS_KEY = "app.docs_dir"
+_custom_dir = None   # φάκελος που επέλεξε ο χρήστης (αντί για τα Έγγραφα)· ορίζεται στην εκκίνηση και όταν τον αλλάζει
+
+
+def set_custom_dir(p) -> None:
+    global _custom_dir
+    _custom_dir = Path(p) if p else None
+
+
+def load_custom_dir(db) -> None:
+    from sqlalchemy import select
+    from . import models
+    row = db.scalar(select(models.AppSetting).where(models.AppSetting.key == DOCS_KEY))
+    set_custom_dir((row.value or "").strip() if row else None)
+
+
 def documents_dir() -> Path:
     override = os.environ.get("WEEE_DOCS_DIR")
     if override:
         return Path(override)
+    if _custom_dir:
+        return _custom_dir
     if os.name == "nt":
         try:
             import ctypes
@@ -59,8 +77,22 @@ def month_dir(kind: str, when=None) -> Path:
         probe.write_bytes(b"")
         probe.unlink()
     except OSError as e:
-        raise HTTPException(500, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). "
-                                 f"Έλεγξε ότι ο φάκελος Έγγραφα είναι προσβάσιμος και ότι ο χρήστης έχει δικαίωμα εγγραφής.")
+        raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). "
+                                 f"Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής, ή επίλεξε άλλον φάκελο αποθήκευσης.")
+    return d
+
+
+def safe_name(x: str) -> str:
+    return "".join(c for c in str(x or "") if c not in '<>:"/' + chr(92) + '|?*').strip(" .") or "χωρίς αριθμό"
+
+
+def photo_dir(order_no, when=None) -> Path:
+    """Φωτογραφίες/YYYY-MM/Εντολή <αριθμός> — δημιουργείται μόνος του."""
+    d = month_dir(PHOTOS, when) / f"Εντολή {safe_name(order_no)}"
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise HTTPException(507, f"Δεν μπορώ να δημιουργήσω τον φάκελο «{d}» ({e.strerror or e}). Επίλεξε άλλον φάκελο αποθήκευσης.")
     return d
 
 
@@ -89,5 +121,5 @@ def save_report(tmp_path, filename: str, when=None) -> Path:
     try:
         shutil.copyfile(str(tmp_path), str(dest))
     except OSError as e:
-        raise HTTPException(500, f"Δεν μπόρεσα να αποθηκεύσω την αναφορά στο «{dest}» ({e.strerror or e}).")
+        raise HTTPException(507, f"Δεν μπόρεσα να αποθηκεύσω την αναφορά στο «{dest}» ({e.strerror or e}). Επίλεξε άλλον φάκελο αποθήκευσης.")
     return dest

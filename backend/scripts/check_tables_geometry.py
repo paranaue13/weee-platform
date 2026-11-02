@@ -35,8 +35,9 @@ for(const t of document.querySelectorAll('table')){
     // 2) επικαλύψεις μέσα στην ίδια ενότητα
     for(const sec of [t.tHead,...t.tBodies,t.tFoot].filter(Boolean)){
       const cs=[];[...sec.rows].forEach((tr,ri)=>{if(!tr.offsetParent)return;[...tr.cells].forEach(c=>{if(c.offsetParent&&c.rowSpan===1&&c.colSpan===1&&!c.classList.contains('pinColHide')){const r=R(c);if(r.width>2&&r.height>2)cs.push({ri,c,r})}})});
+      cs.sort((a,b)=>a.r.top-b.r.top);   /* ταξινόμηση κατά ύψος: σταματά η σύγκριση όταν δεν υπάρχει πια κάθετη επικάλυψη (πριν: κάθε κελί με κάθε κελί, 80 δευτ. σε πίνακα 4.000 κελιών) */
       let n=0;
-      for(let i=0;i<cs.length&&n<3;i++)for(let j=i+1;j<cs.length&&n<3;j++){
+      for(let i=0;i<cs.length&&n<3;i++)for(let j=i+1;j<cs.length&&n<3;j++){if(cs[j].r.top>=cs[i].r.bottom-2)break;
         const a=cs[i],b=cs[j];if(a.ri===b.ri)continue;
         // κολλημένο κάθετα (π.χ. σύνολα στο κάτω μέρος) πάνω από μη κολλημένο = σκόπιμη επικάλυψη (κυλάνε από κάτω)· ελέγχονται μόνο ομοειδή ζεύγη
         if(vst(a.c)!==vst(b.c))continue;
