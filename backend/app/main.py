@@ -70,6 +70,9 @@ async def _electrocycle_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    try:
+        from . import docs_storage; docs_storage.ensure_folders()
+    except Exception: pass
     try: _purge_idem()
     except Exception: pass
     # Small forward-compatible migration for existing 1.x SQLite/PostgreSQL databases.
@@ -3423,6 +3426,7 @@ def reports_tables(data:dict, user:User=Depends(current_user)):
                 ws.column_dimensions[get_column_letter(ci)].width=min(60,max(10,w+2))
             ws.freeze_panes='A4'
         tmp=NamedTemporaryFile(delete=False,suffix='.xlsx'); tmp.close(); wb.save(tmp.name)
+        _save_report_copy(tmp.name,fname+'.xlsx')
         return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=fname+'.xlsx',background=BackgroundTask(os.unlink,tmp.name))
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
@@ -3452,6 +3456,7 @@ def reports_tables(data:dict, user:User=Depends(current_user)):
     def footer(c,d):
         c.saveState(); c.setFont(font,8); c.drawRightString(landscape(A4)[0]-28,16,f'Σελίδα {d.page}'); c.restoreState()
     doc.build(story,onFirstPage=footer,onLaterPages=footer)
+    _save_report_copy(tmp.name,fname+'.pdf')
     return FileResponse(tmp.name,media_type='application/pdf',filename=fname+'.pdf',background=BackgroundTask(os.unlink,tmp.name))
 
 @app.get('/sorting/{load_id}/export')
@@ -3461,6 +3466,7 @@ def sorting_export(load_id:str, format:str=Query(...,pattern='^(xlsx|pdf)$'), db
     data=_sorting_export_data(db,load_id)
     path=_export_xlsx(data) if format=='xlsx' else _export_pdf(data,db)
     l=data['load']; dpp=l.dpp_number or 'DPP'; ext='xlsx' if format=='xlsx' else 'pdf'
+    _save_report_copy(path,f'DPP_{dpp}_{l.order_number or "order"}.{ext}')
     return FileResponse(path,media_type=('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' if format=='xlsx' else 'application/pdf'),filename=f'DPP_{dpp}_{l.order_number or "order"}.{ext}',background=BackgroundTask(os.unlink,path))
 
 @app.post('/sorting/{load_id}/confirm', response_model=schemas.SortingSessionOut)
@@ -3528,11 +3534,39 @@ def management_approve(load_id:str, db:Session=Depends(get_db), user:User=Depend
     _materialize_weee_stock(db, load, ses, user)
     write_audit(db,user,'sorting_session',ses.id,'MANAGEMENT_APPROVE',new={'status':'CLOSED'}); db.commit(); return _sorting_payload(db,load,ses)
 
+def _save_report_copy(tmp_path,filename):
+    from . import docs_storage; docs_storage.save_report(tmp_path,filename,docs_storage._now())
+
+STAMP_LOGO=Path(__file__).parent/'static'/'logo_KEPA.png'
+def _stamp_photo(im,now):
+    """Logo + ημερομηνία/ώρα κάτω δεξιά σε ημιδιάφανο λευκό πλαίσιο· όλα ανάλογα με το πλάτος της φωτογραφίας."""
+    from PIL import Image, ImageDraw, ImageFont
+    if not STAMP_LOGO.exists(): raise HTTPException(500,'Λείπει το logo της σφραγίδας: '+str(STAMP_LOGO))
+    W,H=im.size; logo=Image.open(STAMP_LOGO).convert('RGBA')
+    lw=max(40,round(W*0.2)); logo=logo.resize((lw,max(1,round(logo.height*lw/logo.width))),Image.LANCZOS)
+    txt=now.strftime('%d/%m/%Y · %H:%M'); fs=max(8,round(W*0.016)); font=None
+    for fp in ('C:/Windows/Fonts/arialbd.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'):
+        try: font=ImageFont.truetype(fp,fs); break
+        except Exception: pass
+    font=font or ImageFont.load_default()
+    d0=ImageDraw.Draw(im); tb=d0.textbbox((0,0),txt,font=font); tw,th=tb[2]-tb[0],tb[3]-tb[1]
+    padx,pady,gap=round(lw*0.07),round(lw*0.05),round(lw*0.03)
+    bw,bh=lw+2*padx,logo.height+gap+th+2*pady    # το πλαίσιο ακολουθεί το logo· το κείμενο δεν το μεγαλώνει
+    mx,my=round(W*0.024),round(H*0.034)
+    x,y=W-bw-mx,H-bh-my
+    ov=Image.new('RGBA',im.size,(0,0,0,0)); od=ImageDraw.Draw(ov)
+    od.rounded_rectangle((x,y,x+bw,y+bh),radius=max(4,round(lw*0.04)),fill=(255,255,255,224))
+    ov.alpha_composite(logo,(x+padx,y+pady))
+    od.text((x+(bw-tw)//2-tb[0],y+pady+logo.height+gap-tb[1]),txt,font=font,fill=(59,59,59,255))
+    return Image.alpha_composite(im.convert('RGBA'),ov).convert('RGB')
+
 @app.post('/sorting/{load_id}/photos')
-def sorting_photo(load_id:str, category:str=Form('GENERAL'), file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+def sorting_photo(load_id:str, category:str=Form('GENERAL'), stamp:str=Form('0'), file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     load=db.get(InboundLoad,load_id)
     if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
-    suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=UPLOAD_DIR/stored
+    from . import docs_storage
+    now=docs_storage._now(); photo_dir=docs_storage.month_dir(docs_storage.PHOTOS,now)   # Έγγραφα\WEEE Platform\Φωτογραφίες\YYYY-MM
+    suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=photo_dir/stored
     with path.open('wb') as f: shutil.copyfileobj(file.file,f)
     ctype=file.content_type
     if (ctype or '').startswith('image/'):
@@ -3541,6 +3575,7 @@ def sorting_photo(load_id:str, category:str=Form('GENERAL'), file:UploadFile=Fil
             from PIL import Image, ImageOps
             import io
             im=ImageOps.exif_transpose(Image.open(path)).convert('RGB')
+            if stamp=='1': im=_stamp_photo(im,now)   # σφραγίδα ΠΡΙΝ το μίκρυνμα
             box=(853,480) if im.width>=im.height else (480,853)
             im.thumbnail(box,Image.LANCZOS)
             q=85; buf=io.BytesIO()
@@ -3548,7 +3583,7 @@ def sorting_photo(load_id:str, category:str=Form('GENERAL'), file:UploadFile=Fil
                 buf=io.BytesIO(); im.save(buf,'JPEG',quality=q,optimize=True)
                 if buf.tell()<150*1000 or q<=35: break
                 q-=7
-            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=UPLOAD_DIR/stored; path.write_bytes(buf.getvalue()); ctype='image/jpeg'
+            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=photo_dir/stored; path.write_bytes(buf.getvalue()); ctype='image/jpeg'
             file.filename=(Path(file.filename or 'photo').stem or 'photo')+'.jpg'
         except Exception: pass   # αν δεν διαβάζεται ως εικόνα, μένει όπως ήρθε
     obj=FileAttachment(entity_type='INBOUND_LOAD',entity_id=load_id,category=category,filename=file.filename or stored,stored_path=str(path),content_type=ctype,uploaded_by=user.id)
