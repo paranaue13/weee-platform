@@ -2533,6 +2533,10 @@ def _nonneg(value, label: str):
     if value is not None and Decimal(value) < 0:
         raise HTTPException(422, f"{label}: δεν επιτρέπεται αρνητική τιμή. Έλεγξε το πεδίο.")
 
+def _pc_negative_ok(data):
+    """Αρνητικό βάρος (διόρθωση) επιτρέπεται ΜΟΝΟ σε καταχώρηση από τα Windows (source PC)· Android και ζύγιση μεικτού μένουν μη αρνητικά."""
+    return bool(data.source and data.source.upper()=='PC' and data.entry_type!='SCALE_GROSS')
+
 def _check_load_weights(ld: schemas.ReceiptLoadCreate, net, row: int):
     for v, name in ((ld.gross_weight, "1η ζύγιση"), (ld.tare_weight, "2η ζύγιση"), (ld.incoming_container_tare, "Απόβαρο κάδου εισόδου"), (ld.outgoing_container_tare, "Απόβαρο κάδου εξόδου")):
         _nonneg(v, f"Γραμμή {row} - {name}")
@@ -3142,7 +3146,8 @@ def list_media(db:Session=Depends(get_db), user=Depends(require_permission('mast
 
 @app.post('/sorting/{load_id}/entries', response_model=schemas.SortingEntryOut)
 def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
-    _nonneg(data.raw_weight,'Βάρος'); _nonneg(data.piece_count,'Τεμάχια')
+    if not _pc_negative_ok(data): _nonneg(data.raw_weight,'Βάρος')
+    _nonneg(data.piece_count,'Τεμάχια')
     load,ses=_session_for_load(db,load_id,True,user)
     if ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
     cat=db.get(WEEECategory,data.weee_category_id)
@@ -3178,7 +3183,8 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
 
 @app.put('/sorting/entries/{entry_id}', response_model=schemas.SortingEntryOut)
 def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
-    _nonneg(data.raw_weight,'Βάρος'); _nonneg(data.piece_count,'Τεμάχια')
+    if not _pc_negative_ok(data): _nonneg(data.raw_weight,'Βάρος')
+    _nonneg(data.piece_count,'Τεμάχια')
     e=db.get(SortingEntry,entry_id)
     if not e: raise HTTPException(404,'Η εγγραφή δεν βρέθηκε')
     ses=db.get(SortingSession,e.session_id)
