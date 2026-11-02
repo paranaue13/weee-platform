@@ -100,20 +100,33 @@ def photos_root() -> Path:
     return d
 
 
-def photo_dir(order_no, container, day, taken_by_other=None) -> Path:
-    """Φωτογραφίες/ΕΤΟΣ/ΜΗΝΑΣ/ΗΜΕΡΑ/<αριθμός container> — ημέρα = ημερομηνία παραλαβής της εντολής.
+MONTHS_EL = ["Ιανουάριος", "Φεβρουάριος", "Μάρτιος", "Απρίλιος", "Μάιος", "Ιούνιος",
+             "Ιούλιος", "Αύγουστος", "Σεπτέμβριος", "Οκτώβριος", "Νοέμβριος", "Δεκέμβριος"]
+
+
+def month_folder(m: int) -> str:
+    return f"{m:02d} - {MONTHS_EL[m - 1]}"
+
+
+def day_folder(day) -> str:
+    return f"{day.day}-{day.month}"          # χωρίς μηδενικό μπροστά: «21-9», «5-11»
+
+
+def photo_dir(order_no, container, day, taken_by_other=None, create=True) -> Path:
+    """Φωτογραφίες/<έτος>/<ΜΜ - Μήνας>/<ημέρα-μήνας>/<αριθμός container ή αριθμός εντολής> — ημέρα = ημερομηνία παραλαβής της εντολής.
     Χωρίς container: ο αριθμός της εντολής. Αν τον ίδιο φάκελο τον έχει ήδη άλλη εντολή (ίδιο container, ίδια ημέρα),
     ο φάκελος γίνεται «<container> - Εντολή <αριθμός>» ώστε τα αρχεία να μη ανακατεύονται."""
     day = day or _now()
     name = safe_name(container) if str(container or "").strip() else safe_name(order_no)
-    base = photos_root() / f"{day.year}" / f"{day.month:02d}" / f"{day.day:02d}"
+    base = photos_root() / f"{day.year}" / month_folder(day.month) / day_folder(day)
     d = base / name
     if taken_by_other and taken_by_other(d):
         d = base / f"{name} - Εντολή {safe_name(order_no)}"
-    try:
-        d.mkdir(parents=True, exist_ok=True)
-    except OSError as e:
-        raise HTTPException(507, f"Δεν μπορώ να δημιουργήσω τον φάκελο «{d}» ({e.strerror or e}). Επίλεξε άλλον φάκελο αποθήκευσης.")
+    if create:
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            raise HTTPException(507, f"Δεν μπορώ να δημιουργήσω τον φάκελο «{d}» ({e.strerror or e}). Επίλεξε άλλον φάκελο αποθήκευσης.")
     return d
 
 

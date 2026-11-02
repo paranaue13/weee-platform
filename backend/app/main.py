@@ -3547,25 +3547,25 @@ def _save_report_copy(tmp_path,filename):
 
 STAMP_LOGO=Path(__file__).parent/'static'/'logo_KEPA.png'
 def _stamp_photo(im,now):
-    """Logo + ημερομηνία/ώρα κάτω δεξιά σε ημιδιάφανο λευκό πλαίσιο· όλα ανάλογα με το πλάτος της φωτογραφίας."""
+    """Σήμα κάτω δεξιά (logo + όνομα εταιρείας + ημερομηνία/ώρα). ΜΕΤΡΑΕΙ ΑΠΟ ΤΗ ΜΕΓΑΛΗ ΠΛΕΥΡΑ L, άρα ίδιο μέγεθος σε οριζόντιες και κάθετες:
+    logo 20% του L (σήμα ≈21%), γράμματα 1,6% του L, περιθώριο 16 px και κενό μέσα στο κουτί 14 px, γωνίες 12 px (τιμές για L=2300 px, αναλογικά για άλλες αναλύσεις)."""
     from PIL import Image, ImageDraw, ImageFont
     if not STAMP_LOGO.exists(): raise HTTPException(500,'Λείπει το logo της σφραγίδας: '+str(STAMP_LOGO))
-    W,H=im.size; logo=Image.open(STAMP_LOGO).convert('RGBA')
-    lw=max(40,round(W*0.2)); logo=logo.resize((lw,max(1,round(logo.height*lw/logo.width))),Image.LANCZOS)
-    txt=now.strftime('%d/%m/%Y · %H:%M'); fs=max(8,round(W*0.016)); font=None
+    W,H=im.size; L=max(W,H); k=L/2300; logo=Image.open(STAMP_LOGO).convert('RGBA')
+    lw=max(40,round(L*0.2)); logo=logo.resize((lw,max(1,round(logo.height*lw/logo.width))),Image.LANCZOS)
+    txt=now.strftime('%d/%m/%Y · %H:%M'); fs=max(8,round(L*0.016)); font=None
     for fp in ('C:/Windows/Fonts/arialbd.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'):
         try: font=ImageFont.truetype(fp,fs); break
         except Exception: pass
     font=font or ImageFont.load_default()
     d0=ImageDraw.Draw(im); tb=d0.textbbox((0,0),txt,font=font); tw,th=tb[2]-tb[0],tb[3]-tb[1]
-    padx,pady,gap=round(lw*0.07),round(lw*0.05),round(lw*0.03)
-    bw,bh=lw+2*padx,logo.height+gap+th+2*pady    # το πλαίσιο ακολουθεί το logo· το κείμενο δεν το μεγαλώνει
-    mx,my=round(W*0.024),round(H*0.034)
-    x,y=W-bw-mx,H-bh-my
+    pad,gap,mg,rad=max(2,round(14*k)),round(lw*0.03),max(2,round(16*k)),max(2,round(12*k))
+    bw,bh=lw+2*pad,logo.height+gap+th+2*pad
+    x,y=W-bw-mg,H-bh-mg
     ov=Image.new('RGBA',im.size,(0,0,0,0)); od=ImageDraw.Draw(ov)
-    od.rounded_rectangle((x,y,x+bw,y+bh),radius=max(4,round(lw*0.04)),fill=(255,255,255,224))
-    ov.alpha_composite(logo,(x+padx,y+pady))
-    od.text((x+(bw-tw)//2-tb[0],y+pady+logo.height+gap-tb[1]),txt,font=font,fill=(59,59,59,255))
+    od.rounded_rectangle((x,y,x+bw,y+bh),radius=rad,fill=(255,255,255,224))
+    ov.alpha_composite(logo,(x+pad,y+pad))
+    od.text((x+(bw-tw)//2-tb[0],y+pad+logo.height+gap-tb[1]),txt,font=font,fill=(59,59,59,255))
     return Image.alpha_composite(im.convert('RGBA'),ov).convert('RGB')
 
 PHOTO_MIN=100*1000; PHOTO_MAX=150*1000
@@ -3607,7 +3607,7 @@ def _fit_photo(im):
         if len(d)<=PHOTO_MAX: best=(d,95)
     return best[0],at(f).size,best[1]
 
-def _load_photo_dir(db,load):
+def _load_photo_dir(db,load,create=True):
     """Φωτογραφίες/ΕΤΟΣ/ΜΗΝΑΣ/ΗΜΕΡΑ/<container ή αριθμός εντολής>· ημέρα = ημερομηνία παραλαβής. Όσο η εντολή έχει φωτογραφίες, μένει στον ίδιο φάκελο."""
     from . import docs_storage
     root=str(docs_storage.photos_root()).lower()
@@ -3616,7 +3616,7 @@ def _load_photo_dir(db,load):
         if str(d).lower().startswith(root) and d.exists(): return d
     trip=db.get(InboundTrip,load.trip_id); day=trip.receipt_date if trip and trip.receipt_date else docs_storage._now()
     others=[str(Path(p).parent).lower() for p in db.scalars(select(FileAttachment.stored_path).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id!=load.id)).all()]
-    return docs_storage.photo_dir(load.order_number or load.id[:8],load.incoming_container_number,day,lambda d:str(d).lower() in others)
+    return docs_storage.photo_dir(load.order_number or load.id[:8],load.incoming_container_number,day,lambda d:str(d).lower() in others,create=create)
 
 @app.post('/sorting/{load_id}/photos')
 def sorting_photo(load_id:str, category:str=Form('GENERAL'), stamp:str=Form('0'), file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
@@ -3645,6 +3645,27 @@ def sorting_photos(load_id:str, db:Session=Depends(get_db), user=Depends(require
     rows=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load_id).order_by(FileAttachment.created_at)).all()
     return [{'id':x.id,'filename':x.filename,'category':x.category,'created_at':x.created_at.isoformat()} for x in rows]
 
+@app.get('/sorting/{load_id}/frequent')
+def sorting_frequent(load_id:str, limit:int=3, db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
+    """«Συχνά» του Android: οι πιο πιθανές κατηγορίες ΞΕΧΩΡΙΣΤΑ για κάθε προμηθευτή (με βάση το id του, όχι το όνομα).
+    Μετράνε ΟΛΕΣ οι καταχωρήσεις ταξινόμησης των φορτίων του προμηθευτή (ολοκληρωμένες ή όχι, και του τρέχοντος φορτίου).
+    Βαθμός = σε πόσα φορτία εμφανίστηκε η κατηγορία, με φθίνουσα βαρύτητα προς τα παλιότερα φορτία (0,9 ανά φορτίο)· ισοβαθμία: περισσότερα kg."""
+    load=db.get(InboundLoad,load_id)
+    if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
+    rows=db.execute(select(SortingEntry.weee_category_id,SortingEntry.raw_weight,SortingEntry.approved_weight,InboundLoad.id,InboundTrip.receipt_date)
+        .join(SortingSession,SortingSession.id==SortingEntry.session_id).join(InboundLoad,InboundLoad.id==SortingSession.inbound_load_id)
+        .join(InboundTrip,InboundTrip.id==InboundLoad.trip_id)
+        .where(InboundLoad.supplier_id==load.supplier_id,InboundTrip.deleted_at.is_(None))).all()
+    order=sorted({(r[4],r[3]) for r in rows},reverse=True); rank={lid:i for i,(_,lid) in enumerate(order)}
+    score={}; kg={}; seen=set()
+    for cat,raw,appr,lid,_ in rows:
+        w=float(appr if appr is not None else (raw or 0)); kg[cat]=kg.get(cat,0)+abs(w)
+        if (cat,lid) not in seen:
+            seen.add((cat,lid)); score[cat]=score.get(cat,0)+0.9**rank[lid]
+    active={c.id for c in db.scalars(select(WEEECategory).where(WEEECategory.active==True)).all()}
+    top=sorted((c for c in score if c in active),key=lambda c:(-round(score[c],6),-kg[c]))[:max(1,min(limit,10))]
+    return [{'id':c,'score':round(score[c],3)} for c in top]
+
 @app.post('/sorting/{load_id}/photos/open-folder')
 def sorting_photos_open_folder(load_id:str, db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
     load=db.get(InboundLoad,load_id)
@@ -3653,6 +3674,12 @@ def sorting_photos_open_folder(load_id:str, db:Session=Depends(get_db), user=Dep
     d=_load_photo_dir(db,load)
     os.startfile(str(d))
     return {'path':str(d)}
+
+@app.get('/sorting/{load_id}/photos/folder')
+def sorting_photos_folder(load_id:str, db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
+    load=db.get(InboundLoad,load_id)
+    if not load: raise HTTPException(404,'Το φορτίο δεν βρέθηκε')
+    return {'path':str(_load_photo_dir(db,load,create=False))}
 
 @app.delete('/sorting/photos/{photo_id}')
 def sorting_photo_delete(photo_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
