@@ -21,7 +21,8 @@ CHECK = """(sel)=>{
   if(!vis(w))return;
   if(t.dataset.cwGap==='1')bad.push('πίνακας '+nm(t)+': μένει κενό δεξιά (δεν μοιράστηκε όλο το πλάτος στις στήλες)');
   const wr=R(w),tr=R(t),sc=w.scrollWidth>w.clientWidth+2&&/auto|scroll/.test(getComputedStyle(w).overflowX);
-  if(!sc&&t.offsetWidth>w.clientWidth+3&&!/auto|scroll/.test(getComputedStyle(w).overflowX))bad.push('πίνακας '+nm(t)+': βγαίνει έξω από το πλαίσιό του κομμένος δεξιά (πίνακας '+Math.round(t.offsetWidth)+'px, πλαίσιο '+Math.round(w.clientWidth)+'px)');
+  const hostSc=(()=>{const h=t.closest('#weee');return !!h&&/auto|scroll/.test(getComputedStyle(h).overflowX)})();      // Αποθήκη ΑΗΗΕ: το οριζόντιο scroll το κάνει όλο το παράθυρο της σελίδας (όχι ο κάθε πίνακας)
+  if(!sc&&!hostSc&&t.offsetWidth>w.clientWidth+3&&!/auto|scroll/.test(getComputedStyle(w).overflowX))bad.push('πίνακας '+nm(t)+': βγαίνει έξω από το πλαίσιό του κομμένος δεξιά (πίνακας '+Math.round(t.offsetWidth)+'px, πλαίσιο '+Math.round(w.clientWidth)+'px)');
   if(!sc&&w.clientWidth-t.offsetWidth>3)bad.push('πίνακας '+nm(t)+' στο '+nm(w)+': δεν πιάνει όλο το πλάτος (πίνακας '+Math.round(t.offsetWidth)+'px, πλαίσιο '+Math.round(w.clientWidth)+'px)');
   const rail=[...(w.parentElement?w.parentElement.children:[])].some(o=>o!==w&&o.offsetParent&&R(o).width>0&&R(o).width<=20&&Math.abs(R(o).top-wr.top)<5);   // στενή λωρίδα ενδείξεων (π.χ. αρνητικά) δίπλα στον πίνακα
   const p=w.parentElement;if(!p||p===root.parentElement||sib(w)||rail)return;
