@@ -3538,14 +3538,12 @@ def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή γ�
 def sorting_revert_closed(load_id:str, to:str=Query(...,pattern='^(SORTING|REVIEW|CORRECTION)$'), reason:str=Query(default='Επιστροφή από Ολοκληρώθηκε (Windows)'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
     """Επιστροφή ΟΛΟΚΛΗΡΩΜΕΝΗΣ ταξινόμησης (CLOSED) σε προηγούμενη κατάσταση — ΜΟΝΟ για τη Διοίκηση (sorting.approve).
     SORTING = «Προς Ταξινόμηση» (ξανά στο Android), REVIEW = «Προς Έλεγχο», CORRECTION = «Προς Διόρθωση».
-    Τα αποθέματα ΑΗΗΕ μένουν όπως είναι (ενημερώνονται ζωντανά με κάθε καταχώρηση)· καθαρίζονται μόνο τα στοιχεία της ολοκλήρωσης."""
+    Τα αποθέματα ΑΗΗΕ και τα στοιχεία ολοκλήρωσης μένουν όπως είναι· αλλάζει μόνο η κατάσταση και οι εγγραφές γίνονται ξανά επεξεργάσιμες."""
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status!='CLOSED': raise HTTPException(409,'Η ταξινόμηση δεν είναι ολοκληρωμένη')
     if to=='SORTING': ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'
     else: ses.status='LOGISTICS_REVIEW'; ses.correction=(to=='CORRECTION'); load.status='SORTING_CONFIRMED'
-    ses.final_sorting_weight=None; ses.final_difference=None; ses.requires_management_approval=False
-    ses.logistics_confirmed_at=None; ses.logistics_confirmed_by=None; ses.management_confirmed_at=None; ses.management_confirmed_by=None
-    if to=='SORTING': ses.sorting_confirmed_at=None; ses.sorting_confirmed_by=None
+    # ΔΕΝ διαγράφεται τίποτα: μένουν οι εγγραφές της ταξινόμησης και τα στοιχεία ολοκλήρωσης (τελικό βάρος, ποιος/πότε)· αλλάζει μόνο η κατάσταση
     write_audit(db,user,'sorting_session',ses.id,'REVERT_CLOSED',old={'status':'CLOSED'},new={'to':to,'status':ses.status,'correction':ses.correction},reason=reason)
     db.commit(); return _sorting_payload(db,load,ses)
 
@@ -3979,6 +3977,15 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         prev_family[fam]=pf
         cur_family[fam]=pf+classified_family.get(fam,0)-processed_family.get(fam,0)-outgoing_family.get(fam,0)
     ship_official={'1Α1100','1Α1200','1Α2100','1Α2200','1Α3000','3Α0000','3Β0000','4Γ0000','5Β1000','5Γ0000','5Ι1100','6Δ1000','6Δ2000'}
+    # Κωδικοί ΔΙΚΩΝ ΜΑΣ υποκατηγοριών (μόνο για εμφάνιση): πρώτα 3 ψηφία του γονέα + 001, 002… με τη σειρά των Μητρώων (sort_order)· ποτέ ίδιοι με επίσημο κωδικό
+    official_codes={c.code for c in db.scalars(select(WEEECategory)).all() if not c.is_internal_subcategory}
+    sub_code={}; _n={}
+    for c in sorted([x for x in cats if x.is_internal_subcategory and x.parent_code],key=lambda x:(x.parent_code,x.sort_order or 0,x.code)):
+        while True:
+            _n[c.parent_code]=_n.get(c.parent_code,0)+1
+            code=f"{c.parent_code[:3]}{_n[c.parent_code]:03d}"
+            if code not in official_codes: break
+        sub_code[c.id]=code
     rows=[]
     for c in cats:
         # Keep the official parent row as well as the user's internal subcategories.
@@ -3999,10 +4006,13 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
             opening_gap=round(undocumented_gap_family.get(official,0),3)
         else:
             prev=None; cur=None; period_change=None; opening_documented=None; opening_gap=None
+        # Ισοζύγιο ΜΟΝΟ της ίδιας της κατηγορίας (για τις δικές μας υποκατηγορίες): τεκμηριωμένο απόθεμα + κινήσεις πριν την περίοδο − παραγωγή, και στο τέλος της περιόδου
+        own_prev=round(documented_opening.get(c.code,0.0)+opening.get(c.id,0)-processed_opening.get(c.id,0),3)
+        own_cur=round(own_prev+classified-processed-out,3)
         rows.append({'id':c.id,'major_category':major,'category':official,'internal_code':c.code,'description':c.description_el,'her_description':c.her_description,'official_code':official,'parent_code':c.parent_code,
           'previous_stock':prev,'classification_period':classified,'classification_month':classified,'processed_period':processed,'processed_month':processed,'processed_month_hermes':processed_hermes,'outgoing_period':out,'outgoing_month':out,
           'current_stock':cur,'period_change':period_change,'month_change':period_change,
-          'opening_stock_documented':opening_documented,'opening_stock_gap':opening_gap,'sort_index':order_map.get(c.code,99999)})
+          'opening_stock_documented':opening_documented,'opening_stock_gap':opening_gap,'sort_index':order_map.get(c.code,99999),'sort_order':c.sort_order,'sub_code':sub_code.get(c.id),'own_previous_stock':own_prev,'own_current_stock':own_cur})
     rows.sort(key=lambda x:(x['sort_index'],x['description']))
     out_process=[x for x in rows if x['official_code'] not in ship_official]; out_ship=[x for x in rows if x['official_code'] in ship_official]
     trips=db.scalars(select(InboundTrip).where(InboundTrip.receipt_date>=start,InboundTrip.receipt_date<end,InboundTrip.deleted_at.is_(None))).all(); ids=[t.id for t in trips]
