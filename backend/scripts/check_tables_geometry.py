@@ -70,7 +70,7 @@ JS_FILL = """()=>{const out=[];
     const bw=th=>parseFloat(getComputedStyle(th).borderRightWidth)||0,hasV=leaf.filter((th,i)=>i!==li&&bw(th)>=1).length>leaf.length/2;
     if(hasV&&bw(last)<1)out.push(name+': η τελευταία στήλη «'+last.textContent.trim().slice(0,20)+'» δεν έχει κάθετη γραμμή δεξιά');
     if(!(t.dataset.cwGap)&&r.right<=wr.left+w.clientWidth+1&&last.dataset.wcol!=='stock'){
-      const py=r.top+r.height*0.7,el=(py>=0&&py<innerHeight)?document.elementFromPoint(r.right-2,py):null;
+      const py=r.top+r.height*0.7,el=(py>=0&&py<innerHeight-46)?document.elementFromPoint(r.right-2,py):null;   /* κάτω από τη μπάρα «Μέγεθος» (42px) το σημείο δεν είναι ορατό */
       if(el&&el.closest('th')!==last)out.push(name+': η τελευταία στήλη «'+last.textContent.trim().slice(0,20)+'» δεν έχει λαβή σύρσιμου (το δεξί άκρο καλύπτεται)');
     }
    }
