@@ -1,8 +1,11 @@
 import os, sys, json, sqlite3, uuid, collections
 from datetime import datetime, timezone
 sys.stdout.reconfigure(encoding='utf-8')
-D = os.path.join(os.environ['TEMP'], 'lm_test', 'jan')
+# Χρήση: python month_subcategories_apply.py <db> <ΜΜ> [--apply]   (ΜΜ = 01..09, το sub_parsed.json από το msub.py)
 DBF = sys.argv[1]
+MM = sys.argv[2]
+D = os.path.join(os.environ['TEMP'], 'lm_test', 'jan' if MM == '01' else 'm' + MM)
+LO, HI = '2026-%s-01' % MM, '2026-%02d-01' % (int(MM) + 1)
 APPLY = '--apply' in sys.argv
 SUB = json.load(open(os.path.join(D, 'sub_parsed.json'), encoding='utf-8'))
 c = sqlite3.connect(DBF, timeout=60)
@@ -12,7 +15,7 @@ cat_id = {r['code']: r['id'] for r in c.execute('select id,code from weee_catego
 def totals():
     t = {}
     for r in c.execute("""select lo.order_number,cat.code,coalesce(e.approved_weight,e.raw_weight) as raw_weight,e.piece_count from sorting_entries e join sorting_sessions s on s.id=e.session_id join inbound_loads lo on lo.id=s.inbound_load_id
-        join inbound_trips tr on tr.id=lo.trip_id join weee_categories cat on cat.id=e.weee_category_id where tr.receipt_date>='2026-01-01' and tr.receipt_date<'2026-02-01'"""):
+        join inbound_trips tr on tr.id=lo.trip_id join weee_categories cat on cat.id=e.weee_category_id where tr.receipt_date>=? and tr.receipt_date<?""", (LO, HI)):
         t.setdefault(r['order_number'], []).append((r['code'], r['raw_weight'], r['piece_count']))
     return t
 before = totals()
@@ -24,8 +27,9 @@ stats = collections.Counter(); problems = []
 c.execute('begin')
 for day, lst in SUB.items():
     for rec in lst:
-        load = c.execute('select id from inbound_loads where order_number=?', (rec['order'],)).fetchone()
+        load = c.execute('select id,status from inbound_loads where order_number=?', (rec['order'],)).fetchone()
         if not load: problems.append(('δεν βρέθηκε φορτίο', rec['order'])); continue
+        if load['status'] != 'CLOSED': stats['φορτία σε εξέλιξη (δεν αγγίχτηκαν)'] += 1; continue
         ses = c.execute('select id from sorting_sessions where inbound_load_id=?', (load['id'],)).fetchone()
         for parent, lines in rec['parents'].items():
             lines = [l for l in lines if l[2]]
@@ -64,7 +68,7 @@ print('φορτία με διαφορά στο σύνολο kg:', len(bad), '· 
 print('εγγραφές πριν:', sum(len(v) for v in before.values()), '· μετά:', sum(len(v) for v in after.values()))
 if APPLY and not problems and not bad and not famdiff:
     c.execute('insert into audit_events (id,user_id,entity_type,entity_id,action,old_values,new_values,reason,created_at) values (?,?,?,?,?,?,?,?,?)',
-              (str(uuid.uuid4()), ADMIN, 'sorting_session', '', 'IMPORT_SUBCATEGORIES', '', json.dumps(dict(stats), ensure_ascii=False), 'Ιανουάριος 2026: υποκατηγορίες από το αρχείο αποθέματος', now))
+              (str(uuid.uuid4()), ADMIN, 'sorting_session', '', 'IMPORT_SUBCATEGORIES', '', json.dumps(dict(stats), ensure_ascii=False), 'Μήνας 2026-%s: υποκατηγορίες από το αρχείο αποθέματος' % MM + '', now))
     c.commit(); print('ΕΦΑΡΜΟΣΤΗΚΕ')
 else:
     c.rollback(); print('ΔΕΝ εφαρμόστηκε (rollback)' + ('' if APPLY else ' — δοκιμαστική εκτέλεση'))
