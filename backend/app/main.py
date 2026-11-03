@@ -3534,6 +3534,21 @@ def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή γ�
     write_audit(db,user,'sorting_session',ses.id,'REOPEN_TO_SORTING',old={'status':old},new={'status':'IN_PROGRESS'},reason=reason)
     db.commit(); return _sorting_payload(db,load,ses)
 
+@app.post('/sorting/{load_id}/revert-closed', response_model=schemas.SortingSessionOut)
+def sorting_revert_closed(load_id:str, to:str=Query(...,pattern='^(SORTING|REVIEW|CORRECTION)$'), reason:str=Query(default='Επιστροφή από Ολοκληρώθηκε (Windows)'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
+    """Επιστροφή ΟΛΟΚΛΗΡΩΜΕΝΗΣ ταξινόμησης (CLOSED) σε προηγούμενη κατάσταση — ΜΟΝΟ για τη Διοίκηση (sorting.approve).
+    SORTING = «Προς Ταξινόμηση» (ξανά στο Android), REVIEW = «Προς Έλεγχο», CORRECTION = «Προς Διόρθωση».
+    Τα αποθέματα ΑΗΗΕ μένουν όπως είναι (ενημερώνονται ζωντανά με κάθε καταχώρηση)· καθαρίζονται μόνο τα στοιχεία της ολοκλήρωσης."""
+    load,ses=_session_for_load(db,load_id,False)
+    if not ses or ses.status!='CLOSED': raise HTTPException(409,'Η ταξινόμηση δεν είναι ολοκληρωμένη')
+    if to=='SORTING': ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'
+    else: ses.status='LOGISTICS_REVIEW'; ses.correction=(to=='CORRECTION'); load.status='SORTING_CONFIRMED'
+    ses.final_sorting_weight=None; ses.final_difference=None; ses.requires_management_approval=False
+    ses.logistics_confirmed_at=None; ses.logistics_confirmed_by=None; ses.management_confirmed_at=None; ses.management_confirmed_by=None
+    if to=='SORTING': ses.sorting_confirmed_at=None; ses.sorting_confirmed_by=None
+    write_audit(db,user,'sorting_session',ses.id,'REVERT_CLOSED',old={'status':'CLOSED'},new={'to':to,'status':ses.status,'correction':ses.correction},reason=reason)
+    db.commit(); return _sorting_payload(db,load,ses)
+
 @app.post('/sorting/{load_id}/management-approve', response_model=schemas.SortingSessionOut)
 def management_approve(load_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
     load,ses=_session_for_load(db,load_id,False)
