@@ -210,19 +210,22 @@ def seed(db: Session):
         db.flush()
     info_path=data_dir / "infocycle2_registry.json"
     if info_path.exists():
-        mt=db.scalar(select(CollectionMediumType).where(CollectionMediumType.code=="INFOCYCLE_2"))
-        for row in json.loads(info_path.read_text(encoding="utf-8")):
-            code=str(row.get("code","")).strip()
-            if not code: continue
-            obj=db.scalar(select(CollectionMedium).where(CollectionMedium.type_id==mt.id, CollectionMedium.code==code)) or db.scalar(select(CollectionMedium).where(CollectionMedium.type_id==mt.id, CollectionMedium.code==f"I2-{code}"))
-            if not obj:
-                # Prefix only when a legacy medium already owns the same global code. UI still shows the registry number.
-                existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code))
-                stored=code if not existing else f"I2-{code}"
-                obj=CollectionMedium(type_id=mt.id,code=stored,tare_weight=row.get("tare_kg"),status="AVAILABLE",active=True)
-                db.add(obj); db.flush()
-            else:
-                obj.tare_weight=row.get("tare_kg"); obj.active=True
+        # Η εισαγωγή των καλαθιών Infocycle 2 από το αρχείο γίνεται ΜΙΑ φορά (δείκτης στη βάση)· μετά το μητρώο ανήκει στον χρήστη:
+        # ό,τι σβήσει ή αλλάξει (απόβαρο, ενεργό) ΜΕΝΕΙ και μετά από επανεκκίνηση. (Πριν, κάθε εκκίνηση ξαναδημιουργούσε τα σβησμένα και γύριζε τα αποβαρά στις αρχικές τιμές.)
+        info_rows=json.loads(info_path.read_text(encoding="utf-8"))
+        info_key="data.infocycle2_registry.import_revision"
+        if not db.scalar(select(AppSetting).where(AppSetting.key==info_key)):
+            mt=db.scalar(select(CollectionMediumType).where(CollectionMediumType.code=="INFOCYCLE_2"))
+            # σε υπάρχουσα βάση που έχει ήδη καλάθια δεν αγγίζεται τίποτα — μπαίνει μόνο ο δείκτης· σε νέα/κενή βάση γίνεται η αρχική εισαγωγή
+            if not db.scalar(select(CollectionMedium.id).where(CollectionMedium.type_id==mt.id).limit(1)):
+                for row in info_rows:
+                    code=str(row.get("code","")).strip()
+                    if not code: continue
+                    # Prefix only when a legacy medium already owns the same global code. UI still shows the registry number.
+                    existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code))
+                    stored=code if not existing else f"I2-{code}"
+                    db.add(CollectionMedium(type_id=mt.id,code=stored,tare_weight=row.get("tare_kg"),status="AVAILABLE",active=True)); db.flush()
+            db.add(AppSetting(key=info_key,value=f"infocycle2_v1_{len(info_rows)}")); db.flush()
     ctr_path=data_dir / "container_registry.json"
     # Η εισαγωγή μητρώου γίνεται μία φορά ανά έκδοση (ίδιος δείκτης με το /master/container-registry)·
     # αλλιώς κάθε επανεκκίνηση ξαναδημιουργούσε μεταφορείς που έχουν συγχωνευθεί/διαγραφεί και τα containers τους.
