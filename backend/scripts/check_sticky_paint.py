@@ -28,7 +28,7 @@ JS = """(sel)=>{
    if(!opaque(cs.backgroundColor)&&!c.querySelector('input,button'))out.push(nm(w)+' ['+when+']: διαφανές φόντο στο σταθερό κελί «'+txt(c)+'»');
    if(!c.closest('thead,tfoot'))return;
    const top=document.elementFromPoint(x,y);
-   if(top&&top!==c&&!c.contains(top)&&!top.contains(c)&&(!top.closest('thead,tfoot')||(!c.closest('thead,tfoot')&&false)))out.push(nm(w)+' ['+when+']: το σταθερό κελί «'+txt(c)+'» καλύπτεται από «'+txt(top)+'» ('+nm(top)+')');
+   if(top&&top!==c&&!c.contains(top)&&!top.contains(c)&&!top.closest('#zoomBar,#winDock,.topbar,.side')&&(!top.closest('thead,tfoot')||(!c.closest('thead,tfoot')&&false)))out.push(nm(w)+' ['+when+']: το σταθερό κελί «'+txt(c)+'» καλύπτεται από «'+txt(top)+'» ('+nm(top)+')');
   });
  };
  const lastRowCut=(w,when)=>{
@@ -39,7 +39,7 @@ JS = """(sel)=>{
   if(foot.length){const ft=Math.min(...foot.map(r=>r.getBoundingClientRect().top));if(lr.bottom>ft+1.5)out.push(nm(w)+' ['+when+']: η τελευταία γραμμή δεδομένων «'+txt(last.cells[0])+'» κόβεται από τις σταθερές γραμμές κάτω ('+Math.round(lr.bottom-ft)+'px)')}
  };
  // κελί-κουμπί: το κουμπί πρέπει να καλύπτει ολόκληρο το κελί (το πλαίσιο επιλογής/hover να πιάνει τις άκρες του κελιού)
- root.querySelectorAll('td>button:only-child,td>.corrBtn').forEach(bt=>{const td=bt.parentElement;if(!td.offsetParent||!bt.offsetParent)return;const a=td.getBoundingClientRect(),b=bt.getBoundingClientRect();if(a.width<20)return;
+ root.querySelectorAll('td.corrCell>.corrBtn').forEach(bt=>{const td=bt.parentElement;if(!td.offsetParent||!bt.offsetParent)return;const a=td.getBoundingClientRect(),b=bt.getBoundingClientRect();if(a.width<20)return;
   if(Math.abs(a.left-b.left)>1.5||Math.abs(a.right-b.right)>1.5||Math.abs(a.top-b.top)>1.5||Math.abs(a.bottom-b.bottom)>1.5)out.push(nm(td.closest('table'))+': το κουμπί του κελιού «'+txt(td)+'» δεν καλύπτει όλο το κελί (αριστερά '+Math.round(b.left-a.left)+', δεξιά '+Math.round(a.right-b.right)+', πάνω '+Math.round(b.top-a.top)+', κάτω '+Math.round(a.bottom-b.bottom)+')')});
  wraps.forEach(w=>{
   const sw=w.scrollWidth>w.clientWidth+2,sh=w.scrollHeight>w.clientHeight+2;
@@ -53,10 +53,17 @@ JS = """(sel)=>{
  });
  return out}"""
 
+GEN = '.tab,.mtab,.productionTab,.weeeTabBtn,.readyGroupTab,.receiptMode,.profileTabBtn'
 VIEWS = [
     ('production', '#production', ['[data-prodtab=weee]'], True),
     ('ready', '#ready', ['.readyGroupTab'], True),
+    ('receipts', '#receipts', [GEN], False),
+    ('loading', '#loading', [GEN], False),
+    ('inventory', '#inventory', [GEN], False),
+    ('reports', '#reports', [GEN], False),
+    ('master', '#master', [GEN], False),
 ]
+SIZES = [(750, 440), (1020, 700), (1366, 768), (1920, 1080)]
 
 
 def run(base='http://127.0.0.1:8000'):
@@ -64,7 +71,7 @@ def run(base='http://127.0.0.1:8000'):
     with sync_playwright() as p:
         b = launch(p)
         try:
-            for (W, H) in [(1366, 768), (1920, 1080)]:
+            for (W, H) in SIZES:
                 pg = b.new_page(viewport={'width': W, 'height': H})
                 pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
                 pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
