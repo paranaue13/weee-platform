@@ -4906,7 +4906,7 @@ def _ready_out(db:Session,x:ReadyMaterialLot):
     mat=db.get(Material,x.material_id); med=db.get(CollectionMedium,x.collection_medium_id) if x.collection_medium_id else None
     return schemas.ReadyMaterialOut(id=x.id,lot_number=x.lot_number,material_id=x.material_id,material_code=mat.internal_code,material_name=mat.internal_name,
         output_form=x.output_form,medium_code=med.code if med else None,net_weight=x.net_weight,original_weight=x.original_weight if x.original_weight is not None else x.net_weight,status=x.status,source_org_unit_id=x.source_org_unit_id,
-        created_at=x.created_at.isoformat(),is_bale=bool(getattr(x,'is_bale',False)))
+        created_at=x.created_at.isoformat(),is_bale=bool(getattr(x,'is_bale',False)),sub_label=getattr(x,'sub_label',None))
 
 @app.post('/production/outputs', response_model=schemas.ReadyMaterialOut)
 def production_output(data:schemas.ReadyMaterialCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):

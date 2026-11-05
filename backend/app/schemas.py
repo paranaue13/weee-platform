@@ -591,6 +591,7 @@ class ReadyMaterialOut(BaseModel):
     source_org_unit_id: str|None
     created_at: str
     is_bale: bool = False
+    sub_label: str|None = None
 
 
 # ---- Build 0.8 ----

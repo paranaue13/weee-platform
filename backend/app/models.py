@@ -703,6 +703,7 @@ class ReadyMaterialLot(Base, TimestampMixin):
     storage_group_id: Mapped[str|None] = mapped_column(String(36), nullable=True)    # κατηγορία αποθήκης την ώρα της εξαγωγής
     source_inventory_id: Mapped[str|None] = mapped_column(String(36), nullable=True)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    sub_label: Mapped[str|None] = mapped_column(String(200), nullable=True)            # υποπροϊόν ομάδας (BULK_SUB) στο οποίο καταχωρήθηκε η εξαγωγή· κενό = εξαγωγή του ίδιου του υλικού (Parent)
     is_bale: Mapped[bool] = mapped_column(Boolean, default=False)                       # εξαγωγή παλέτας ως ΜΠΑΛΑ (μετράει μία φορά στο απόθεμα)
 
 class MaterialLabelMap(Base, TimestampMixin):

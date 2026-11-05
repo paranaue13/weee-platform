@@ -3,7 +3,7 @@
 Κανόνας: αν μια ετικέτα έχει ΡΗΤΗ αντιστοίχιση (πίνακας material_label_maps), ισχύει αυτή· αλλιώς ισχύει η παλιά ταύτιση με το όνομα του υλικού.
 Μία ετικέτα (ανά πηγή EXCEL/PRESS) έχει ένα υλικό· ένα υλικό μπορεί να έχει πολλές ετικέτες."""
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
@@ -16,6 +16,17 @@ from .mat_warehouse import _fold_key, _norm, materials_with_column, LABEL_GROUP_
 
 router = APIRouter(prefix="/mat", tags=["material-labels"])
 KINDS = {"MATERIAL", "BULK_SUB", "RECEIPTS", "SUM", "NONE"}
+
+
+def eff_sheet(x, maps) -> str | None:
+    """Καρτέλα μιας αντιστοίχισης. Υποπροϊόν ομάδας (BULK_SUB) που δεν έχει δική του καρτέλα παίρνει την πιο συχνή καρτέλα των άλλων υποπροϊόντων της ίδιας ομάδας (μόνο ανάγνωση, δεν γράφεται στη βάση)."""
+    if x.sheet or x.kind != "BULK_SUB" or not x.material_id:
+        return x.sheet
+    cnt: dict = {}
+    for y in maps:
+        if y is not x and y.kind == "BULK_SUB" and y.material_id == x.material_id and y.source == x.source and y.sheet and y.sheet != "COMMERCIAL":
+            cnt[y.sheet] = cnt.get(y.sheet, 0) + 1
+    return max(cnt, key=lambda k: cnt[k]) if cnt else None
 
 
 def explicit_maps(db: Session, source: str = "EXCEL") -> dict:
@@ -215,7 +226,7 @@ def label_maps_effective(db: Session = Depends(get_db), user=Depends(require_per
     """Ό,τι χρειάζονται οι καρτέλες Υλικών: ρητές αντιστοιχίσεις, υλικά-ομπρέλες με υποκατηγορίες, ομάδες ετικετών με μέλη, ανενεργά υλικά (για ταύτιση με το όνομα)."""
     mats = {m.id: m for m in db.scalars(select(Material)).all()}
     maps = db.scalars(select(MaterialLabelMap).order_by(MaterialLabelMap.sort_order, MaterialLabelMap.label)).all()
-    rows = [{"source": x.source, "label": x.label, "key": x.label_key, "kind": x.kind, "material_id": x.material_id, "weee_category_id": x.weee_category_id, "group_name": x.group_name, "active": bool(x.active), "sort_order": x.sort_order, "sheet": x.sheet,
+    rows = [{"source": x.source, "label": x.label, "key": x.label_key, "kind": x.kind, "material_id": x.material_id, "weee_category_id": x.weee_category_id, "group_name": x.group_name, "active": bool(x.active), "sort_order": x.sort_order, "sheet": eff_sheet(x, maps),
              "material_active": bool(mats[x.material_id].active) if x.material_id in mats else None,
              "material_name": ((mats[x.material_id].official_description or mats[x.material_id].internal_name) if x.material_id in mats else None)} for x in maps]
     umbrellas = []
@@ -359,6 +370,21 @@ def _label_tab(lb, x, g, ov, codes):
     return grp if grp in codes else DEFAULT_TAB
 
 
+def _sub_history(db: Session) -> set:
+    """Ετικέτες (fold) με κινήσεις: παραγωγή, αποστολές, αρχικά αποθέματα, διορθώσεις ή εξαγωγές Android· ένα υποπροϊόν με ιστορικό δεν σβήνεται ποτέ, μόνο απενεργοποιείται."""
+    h = set()
+    for t in (models.MaterialOutputEntry, models.MaterialShipmentEntry, models.MaterialOpeningStock):
+        for (lb,) in db.execute(select(t.material_label).where(t.active == True).distinct()).all():
+            if lb:
+                h.add(_fold_key(lb))
+    for (lb,) in db.execute(select(models.MaterialCorrectionEntry.material_label).distinct()).all():
+        if lb:
+            h.add(_fold_key(lb))
+    for (lb,) in db.execute(select(models.ReadyMaterialLot.sub_label).where(models.ReadyMaterialLot.sub_label.is_not(None)).distinct()).all():
+        h.add(_fold_key(lb))
+    return h
+
+
 def _tab_cards_state(db: Session) -> dict:
     mats = {m.id: m for m in db.scalars(select(Material)).all()}
     maps = db.scalars(select(MaterialLabelMap)).all()
@@ -380,22 +406,32 @@ def _tab_cards_state(db: Session) -> dict:
             labels_of.setdefault(x.material_id, []).append((lb, x, g))
             seen_keys.add(k)
     for k, x in xl.items():
-        if x.material_id and x.kind in ("MATERIAL", "BULK_SUB") and k not in seen_keys and x.sheet and x.sheet != "COMMERCIAL":
-            labels_of.setdefault(x.material_id, []).append((x.label, x, "EIDIKIS_DIACHEIRISIS" if x.sheet == "PLAKETES" else x.sheet))
+        sh = eff_sheet(x, maps)
+        if x.material_id and x.kind in ("MATERIAL", "BULK_SUB") and k not in seen_keys and sh and sh != "COMMERCIAL":
+            labels_of.setdefault(x.material_id, []).append((x.label, x, "EIDIKIS_DIACHEIRISIS" if sh == "PLAKETES" else sh))
     other_src: dict = {}
     for x in maps:
         if x.source in ("PRESS", "COMMERCIAL") and x.material_id:
             other_src.setdefault(x.material_id, set()).add(x.source)
+    sum_names = {x.group_name for x in maps if x.source == "EXCEL" and x.kind == "SUM" and x.group_name}
+    lbl_members: dict = {}
+    for m in mats.values():
+        if (m.label_group or "").strip():
+            lbl_members.setdefault(m.label_group, []).append(m)
+    sub_hist = _sub_history(db)
     rows = []
     for m in mats.values():
         name = (m.official_description or m.internal_name or "").strip()
         ls = labels_of.get(m.id, [])
-        row = {"id": m.id, "erp": m.galaxy_code or "", "name": name, "active": bool(m.active), "tab": None, "ord": 0, "locked": None, "mixed": False, "key": None, "labels": [x[0] for x in ls]}
+        row = {"id": m.id, "erp": m.galaxy_code or "", "name": name, "active": bool(m.active), "tab": None, "ord": 0, "locked": None, "mixed": False, "key": None, "labels": [x[0] for x in ls],
+               "label": None, "umb": bool(m.is_umbrella), "n_maps": 0}
+        if m.is_umbrella:
+            row["subs"] = [{"label": x.label, "active": bool(x.active), "has_history": _fold_key(x.label) in sub_hist} for x in sorted([y for y in maps if y.source == "EXCEL" and y.kind == "BULK_SUB" and y.material_id == m.id], key=lambda y: (y.sort_order or 0, y.label))]
         if m.is_commercial or "COMMERCIAL" in other_src.get(m.id, set()):
             row["locked"] = "Εμπορικό υλικό: η καρτέλα του ορίζεται από τα Εμπορικά"
-        elif (m.label_group or "").strip():
-            row["locked"] = "Ανήκει στην ομάδα ετικέτας «" + m.label_group + "»: μετακινείται μόνο από το Προφίλ Υλικού"
-        elif not ls and ("PRESS" in other_src.get(m.id, set()) or m.can_bale or (m.press_label or "").strip()):
+        elif (m.label_group or "").strip() and m.label_group in sum_names:
+            row["locked"] = "Ετικέτα «" + m.label_group + "»: τα κιλά της έρχονται από στήλες της Πρέσας και δένονται σε μία καρτέλα"
+        elif not ls and ("PRESS" in other_src.get(m.id, set()) or m.can_bale or (m.press_label or "").strip()) and not (m.label_group or "").strip():
             row["locked"] = "Υλικό Πρέσας: η στήλη του ορίζεται από την Πρέσα"
         if ls:
             tabs_l = [_label_tab(lb, x, g, ov, codes) for lb, x, g in ls]
@@ -419,7 +455,51 @@ def _tab_cards_state(db: Session) -> dict:
         if row["tab"] not in codes:
             row["tab"] = None
         rows.append(row)
-    return {"rows": rows, "mats": mats, "ov": ov, "xl": xl, "labels_of": labels_of, "tabs": tabs, "codes": codes}
+    # ---- ετικέτες: ενώνουν ΔΙΑΦΟΡΕΤΙΚΟΥΣ κωδικούς ERP (Προφίλ Υλικού → «Ομάδα ετικέτας»)· καρτέλα της ετικέτας: ρύθμιση LG:<όνομα> → αλλιώς από τις αντιστοιχίσεις των μελών → αλλιώς σταθερός πίνακας
+    byid = {r["id"]: r for r in rows}
+    labels = []
+    names = set(lbl_members) | {k[3:] for k in ov if k.startswith("LG:")}
+    for nm in sorted(names):
+        mem = sorted(lbl_members.get(nm, []), key=lambda m: (m.label_group_order or 0, m.galaxy_code or ""))
+        o = ov.get("LG:" + nm)
+        if len(mem) < 2 and not o and nm not in sum_names:
+            continue                      # ετικέτα με ένα μόνο υλικό και χωρίς δική της ρύθμιση: το υλικό είναι απλό υλικό
+        tab = o.category_group if (o and o.category_group in codes) else None
+        if tab is None and nm in sum_names:
+            for x in maps:
+                if x.source == "EXCEL" and x.kind == "SUM" and x.group_name == nm and x.sheet in codes:
+                    tab = x.sheet; break
+        if tab is None and mem:
+            cnt: dict = {}
+            for m in mem:
+                for lb, x, g in labels_of.get(m.id, []):
+                    if x.kind == "MATERIAL" and x.sheet in codes:
+                        cnt[x.sheet] = cnt.get(x.sheet, 0) + 1
+            if cnt:
+                tab = max(cnt, key=lambda t: cnt[t])
+        if tab is None and mem:
+            tab = LABEL_GROUP_TAB.get(nm)
+            tab = tab if tab in codes else None
+        n_maps = sum(1 for x in maps if x.material_id in {m.id for m in mem}) + sum(1 for x in maps if x.kind == "SUM" and x.group_name == nm)
+        lock = None
+        if nm in sum_names:
+            lock = "Ετικέτα «" + nm + "»: τα κιλά της έρχονται από στήλες της Πρέσας και δένονται σε μία καρτέλα"
+        elif any(byid[m.id]["locked"] for m in mem):
+            lock = next(byid[m.id]["locked"] for m in mem if byid[m.id]["locked"])
+        ordv = (o.sort_order or 0) if o else None
+        if ordv is None and nm in sum_names:
+            so = ov.get("SUM:" + nm)
+            ordv = (so.sort_order or 0) if so else 0
+        if ordv is None:
+            ordv = min([byid[m.id]["ord"] for m in mem] or [0])
+        for m in mem:
+            r = byid[m.id]; r["label"] = nm
+            if tab:
+                r["tab"] = tab
+            if lock and not r["locked"]:
+                r["locked"] = lock
+        labels.append({"name": nm, "tab": tab, "ord": ordv, "locked": lock, "members": [m.id for m in mem], "n_maps": n_maps, "sum": nm in sum_names, "title": nm})
+    return {"rows": rows, "mats": mats, "ov": ov, "xl": xl, "labels_of": labels_of, "tabs": tabs, "codes": codes, "labels": labels, "maps": maps, "sum_names": sum_names}
 
 
 @router.get("/tabs")
@@ -435,7 +515,43 @@ def tab_cards(db: Session = Depends(get_db), user=Depends(require_permission("pr
     rows = st["rows"]
     rows.sort(key=lambda r: (r["ord"], _fold_key(r["labels"][0] if r["labels"] else r["name"]), r["erp"]))
     return {"tabs": [{"key": t["code"], "name": t["name"], "is_system": t["is_system"]} for t in st["tabs"]],
-            "materials": [{**{k: v for k, v in r.items() if k != "labels"}, "n_labels": len(r["labels"])} for r in rows]}
+            "materials": [{**{k: v for k, v in r.items() if k != "labels"}, "n_labels": len(r["labels"])} for r in rows],
+            "labels": st["labels"]}
+
+
+def _place_material(db: Session, user, st: dict, m, tab: str, create_cols: bool = True) -> list:
+    """Βάζει τις ετικέτες του υλικού στην καρτέλα tab (καρτέλα ετικέτας + αντικατάσταση ομάδας). Υλικό χωρίς καμία ετικέτα παίρνει στήλη με το όνομά του (αν create_cols)."""
+    ov, xl = st["ov"], st["xl"]
+    group = "EIDIKIS_DIACHEIRISIS" if tab == "PLAKETES" else tab
+    labs = list(st["labels_of"].get(m.id, []))
+    if not labs:
+        if not create_cols:
+            return []
+        name = (m.official_description or m.internal_name or "").strip()
+        if not name:
+            raise HTTPException(422, "Το υλικό δεν έχει περιγραφή για να δημιουργηθεί στήλη")
+        k = _fold_key(name)
+        if k in xl:
+            raise HTTPException(409, "Υπάρχει ήδη ετικέτα «" + xl[k].label + "» που ανήκει σε άλλο υλικό")
+        row = MaterialLabelMap(source="EXCEL", label=name, label_key=k, kind="MATERIAL", material_id=m.id, active=True, sort_order=0, sheet=tab)
+        db.add(row)
+        db.flush()
+        write_audit(db, user, "material_label_map", row.id, "UPSERT", new={"label": name, "kind": "MATERIAL", "material_id": m.id, "sheet": tab}, reason="Καρτέλες Υλικών: νέα στήλη")
+        labs = [(name, row, group)]
+        xl[k] = row
+    for lb, x, g in labs:
+        if x.sheet != tab:
+            old = x.sheet
+            x.sheet = tab
+            write_audit(db, user, "material_label_map", x.id, "UPSERT", old={"sheet": old}, new={"sheet": tab}, reason="Καρτέλες Υλικών: αλλαγή καρτέλας")
+        o = ov.get(lb)
+        if o:
+            o.category_group = group
+        else:
+            ov[lb] = models.MaterialGroupOverride(material_label=lb, category_group=group, sort_order=0)
+            db.add(ov[lb])
+
+    return labs
 
 
 class TabMove(BaseModel):
@@ -456,47 +572,27 @@ def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = De
         raise HTTPException(404, "Το υλικό δεν βρέθηκε")
     if mv["locked"]:
         raise HTTPException(409, mv["locked"])
+    if mv.get("label"):
+        raise HTTPException(409, "Το υλικό ανήκει στην ετικέτα «" + mv["label"] + "»: μετακινείται όλη η ετικέτα ή πρώτα πατάς «Βγάλε»")
     if data.material_id not in data.order:
         raise HTTPException(422, "Λείπει το υλικό από τη σειρά")
     ov, xl, mats = st["ov"], st["xl"], st["mats"]
     group = "EIDIKIS_DIACHEIRISIS" if data.tab == "PLAKETES" else data.tab
     m = mats[data.material_id]
-    labs = list(st["labels_of"].get(m.id, []))
-    if not labs:
-        name = (m.official_description or m.internal_name or "").strip()
-        if not name:
-            raise HTTPException(422, "Το υλικό δεν έχει περιγραφή για να δημιουργηθεί στήλη")
-        k = _fold_key(name)
-        if k in xl:
-            raise HTTPException(409, "Υπάρχει ήδη ετικέτα «" + xl[k].label + "» που ανήκει σε άλλο υλικό")
-        row = MaterialLabelMap(source="EXCEL", label=name, label_key=k, kind="MATERIAL", material_id=m.id, active=True, sort_order=0, sheet=data.tab)
-        db.add(row)
-        db.flush()
-        write_audit(db, user, "material_label_map", row.id, "UPSERT", new={"label": name, "kind": "MATERIAL", "material_id": m.id, "sheet": data.tab}, reason="Καρτέλες Υλικών: νέα στήλη")
-        labs = [(name, row, group)]
-        xl[k] = row
-    for lb, x, g in labs:
-        if x.sheet != data.tab:
-            old = x.sheet
-            x.sheet = data.tab
-            write_audit(db, user, "material_label_map", x.id, "UPSERT", old={"sheet": old}, new={"sheet": data.tab}, reason="Καρτέλες Υλικών: αλλαγή καρτέλας")
-        o = ov.get(lb)
-        if o:
-            o.category_group = group
-        else:
-            ov[lb] = models.MaterialGroupOverride(material_label=lb, category_group=group, sort_order=0)
-            db.add(ov[lb])
-
+    labs = _place_material(db, user, st, m, data.tab)
     def colkey(mat, ls_):
         if any(x.kind == "BULK_SUB" for lb, x, g in ls_):
             return "UMB:" + mat.id
         return "MAT:" + mat.id if len(ls_) > 1 else ls_[0][0]
 
     # σειρά: μόνο τα μη κλειδωμένα της στήλης-προορισμού· μπαίνουν ΜΕΤΑ από τα κλειδωμένα της ίδιας στήλης (ώστε η σειρά της οθόνης = σειρά της σελίδας)
-    base = max([r["ord"] for r in st["rows"] if r["tab"] == data.tab and r["locked"]] or [0])
+    base = max([r["ord"] for r in st["rows"] if r["tab"] == data.tab and r["locked"]] + [l["ord"] for l in st["labels"] if l["tab"] == data.tab and l["locked"]] or [0])
     for i, mid in enumerate(data.order):
+        if mid.startswith("LG:"):
+            _set_label_order(db, st, mid[3:], data.tab, base + 1 + i)
+            continue
         mt = mats.get(mid)
-        if not mt or byid[mid]["locked"]:
+        if not mt or byid[mid]["locked"] or byid[mid].get("label"):
             continue
         if mid == m.id:
             ls = labs
@@ -610,3 +706,279 @@ def mat_tab_delete(code: str, db: Session = Depends(get_db), user: User = Depend
     write_audit(db, user, "material_tab", t.id, "DELETE", old={"code": t.code, "name": t.name}, new={"materials_moved": len(moving), "to": DEFAULT_TAB}, reason="Διαγραφή καρτέλας: τα υλικά πήγαν στα Αξιοποιήσιμα")
     db.commit()
     return {"ok": True, "moved": len(moving)}
+
+
+
+# ===== ΕΤΙΚΕΤΕΣ (ενώνουν διαφορετικούς κωδικούς ERP) και ΟΜΑΔΕΣ (ένας κωδικός ERP με υποπροϊόντα) στις «Καρτέλες Υλικών» =====
+def _set_label_order(db: Session, st: dict, name: str, tab: str, value: int):
+    """Σειρά (και καρτέλα) μιας ετικέτας: ρύθμιση LG:<όνομα> στον πίνακα αντικαταστάσεων ομάδας (ο ίδιος που ήδη χρησιμοποιεί η σελίδα Υλικά για τη σειρά των στηλών)."""
+    ov = st["ov"]
+    o = ov.get("LG:" + name)
+    if o:
+        o.sort_order = value
+        if tab:
+            o.category_group = tab
+    else:
+        ov["LG:" + name] = models.MaterialGroupOverride(material_label="LG:" + name, category_group=tab or "NONE", sort_order=value)
+        db.add(ov["LG:" + name])
+
+
+class LabelName(BaseModel):
+    name: str
+
+
+class MemberIn(BaseModel):
+    material_id: str
+
+
+def _label_row(st: dict, name: str):
+    for l in st["labels"]:
+        if l["name"] == name:
+            return l
+    return None
+
+
+def _check_free_name(db: Session, st: dict, raw: str) -> str:
+    name = _re.sub(r"\s+", " ", (raw or "").strip())
+    if not name:
+        raise HTTPException(422, "Γράψε όνομα")
+    if len(name) > 60:
+        raise HTTPException(422, "Το όνομα είναι πολύ μεγάλο (έως 60 χαρακτήρες)")
+    k = _fold_key(name)
+    taken = {_fold_key(r) for r in RESERVED_TAB_NAMES} | {_fold_key(t["name"]) for t in st["tabs"]} | {_fold_key(l["name"]) for l in st["labels"]}
+    taken |= {_fold_key(m.label_group) for m in st["mats"].values() if (m.label_group or "").strip()}
+    if k in taken:
+        raise HTTPException(409, "Το όνομα «" + name + "» χρησιμοποιείται ήδη")
+    return name
+
+
+@router.post("/labels")
+def label_create(data: LabelName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    st = _tab_cards_state(db)
+    name = _check_free_name(db, st, data.name)
+    db.add(models.MaterialGroupOverride(material_label="LG:" + name, category_group="NONE", sort_order=0))
+    write_audit(db, user, "material_label", name, "CREATE", new={"name": name}, reason="Καρτέλες Υλικών: νέα ετικέτα")
+    db.commit()
+    return {"name": name}
+
+
+def _free_for_label(row: dict) -> str | None:
+    if row["locked"]:
+        return row["locked"]
+    if row.get("label"):
+        return "Το υλικό ανήκει ήδη στην ετικέτα «" + row["label"] + "»"
+    if row["umb"]:
+        return "Το υλικό είναι ομάδα με υποπροϊόντα: δεν μπαίνει σε ετικέτα"
+    return None
+
+
+@router.put("/labels/{name}/members")
+def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Βάζει υλικό (με ERP) σε ετικέτα. Το υλικό πηγαίνει στην καρτέλα της ετικέτας· αν η ετικέτα δεν έχει ακόμα καρτέλα, παίρνει την καρτέλα του υλικού."""
+    st = _tab_cards_state(db)
+    lab = _label_row(st, name)
+    if not lab and ("LG:" + name) not in st["ov"]:
+        raise HTTPException(404, "Η ετικέτα δεν βρέθηκε")
+    if lab and lab["locked"]:
+        raise HTTPException(409, lab["locked"])
+    byid = {r["id"]: r for r in st["rows"]}
+    row = byid.get(data.material_id)
+    if not row:
+        raise HTTPException(404, "Το υλικό δεν βρέθηκε")
+    why = _free_for_label(row)
+    if why:
+        raise HTTPException(409, why)
+    m = st["mats"][data.material_id]
+    tab = lab["tab"] if lab else None
+    members = [byid[i] for i in (lab["members"] if lab else [])]
+    if tab is None:
+        tab = row["tab"]
+    if tab is not None and row["tab"] != tab:
+        # το υλικό ακολουθεί την καρτέλα της ετικέτας (ίδιος μηχανισμός με τη μετακίνηση υλικού)
+        _place_material(db, user, st, m, tab)
+    m.label_group = name
+    m.label_group_order = max([st["mats"][i].label_group_order or 0 for i in (lab["members"] if lab else [])] + [-1]) + 1
+    o = st["ov"].get("LG:" + name)
+    if o:
+        o.category_group = tab or o.category_group
+    elif tab:
+        st["ov"]["LG:" + name] = models.MaterialGroupOverride(material_label="LG:" + name, category_group=tab, sort_order=min([r["ord"] for r in members] + [row["ord"]]))
+        db.add(st["ov"]["LG:" + name])
+    write_audit(db, user, "material", m.id, "UPDATE", new={"label_group": name}, reason="Καρτέλες Υλικών: μπήκε σε ετικέτα")
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/labels/{name}/members/{material_id}")
+def label_remove_member(name: str, material_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """«Βγάλε»: το υλικό βγαίνει από την ετικέτα και μένει στην ίδια καρτέλα."""
+    st = _tab_cards_state(db)
+    lab = _label_row(st, name)
+    if lab and lab["locked"]:
+        raise HTTPException(409, lab["locked"])
+    m = st["mats"].get(material_id)
+    if not m or (m.label_group or "") != name:
+        raise HTTPException(404, "Το υλικό δεν ανήκει στην ετικέτα")
+    m.label_group = None
+    m.label_group_order = 0
+    write_audit(db, user, "material", m.id, "UPDATE", old={"label_group": name}, new={"label_group": None}, reason="Καρτέλες Υλικών: βγήκε από ετικέτα")
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/labels/{name}")
+def label_delete(name: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Διαγραφή ετικέτας: ΔΕΝ σβήνει υλικά (μένουν στην ίδια καρτέλα χωρίς ετικέτα). Ετικέτα με αντιστοιχίσεις ετικετών Excel/Πρέσας δεν διαγράφεται."""
+    st = _tab_cards_state(db)
+    lab = _label_row(st, name)
+    if not lab and ("LG:" + name) not in st["ov"]:
+        raise HTTPException(404, "Η ετικέτα δεν βρέθηκε")
+    if lab and lab["locked"] and lab["sum"]:
+        raise HTTPException(409, "Κλειδωμένη: " + lab["locked"])
+    if lab and lab["n_maps"]:
+        raise HTTPException(409, "Κλειδωμένη: " + str(lab["n_maps"]) + " αντιστοιχίσεις ετικετών (ετικέτες Excel / στήλες Πρέσας). Δεν διαγράφεται.")
+    for i in (lab["members"] if lab else []):
+        m = st["mats"][i]
+        m.label_group = None
+        m.label_group_order = 0
+    o = st["ov"].get("LG:" + name)
+    if o:
+        db.delete(o)
+    write_audit(db, user, "material_label", name, "DELETE", old={"name": name, "members": len(lab["members"]) if lab else 0}, reason="Καρτέλες Υλικών: διαγραφή ετικέτας")
+    db.commit()
+    return {"ok": True}
+
+
+class LabelMove(BaseModel):
+    name: str
+    tab: str
+    order: list[str]
+
+
+@router.put("/tab-cards/move-label")
+def tab_cards_move_label(data: LabelMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Μετακινεί ΟΛΗ την ετικέτα (όλα τα υλικά της) σε άλλη καρτέλα και/ή αλλάζει τη σειρά της."""
+    st = _tab_cards_state(db)
+    if data.tab not in st["codes"]:
+        raise HTTPException(422, "Άγνωστη καρτέλα")
+    lab = _label_row(st, data.name)
+    if not lab:
+        raise HTTPException(404, "Η ετικέτα δεν βρέθηκε")
+    if lab["locked"]:
+        raise HTTPException(409, lab["locked"])
+    byid = {r["id"]: r for r in st["rows"]}
+    for i in lab["members"]:
+        _place_material(db, user, st, st["mats"][i], data.tab, create_cols=False)
+    _set_label_order(db, st, data.name, data.tab, 0)
+    base = max([r["ord"] for r in st["rows"] if r["tab"] == data.tab and r["locked"]] + [l["ord"] for l in st["labels"] if l["tab"] == data.tab and l["locked"]] or [0])
+    group = "EIDIKIS_DIACHEIRISIS" if data.tab == "PLAKETES" else data.tab
+    for k, tok in enumerate(data.order):
+        if tok.startswith("LG:"):
+            _set_label_order(db, st, tok[3:], data.tab, base + 1 + k)
+            continue
+        r = byid.get(tok)
+        if not r or r["locked"] or r.get("label") or r["tab"] != data.tab or not r["key"]:
+            continue
+        o = st["ov"].get(r["key"])
+        if o:
+            o.sort_order = base + 1 + k
+        else:
+            st["ov"][r["key"]] = models.MaterialGroupOverride(material_label=r["key"], category_group=group, sort_order=base + 1 + k)
+            db.add(st["ov"][r["key"]])
+    write_audit(db, user, "material_label", data.name, "UPDATE", new={"tab": data.tab}, reason="Καρτέλες Υλικών: μετακίνηση ετικέτας")
+    db.commit()
+    return {"ok": True}
+
+
+# ---- ΟΜΑΔΕΣ: ένας υπάρχων κωδικός ERP που περιλαμβάνει πολλά υποπροϊόντα (χωρίς δικό τους ERP)
+class GroupNew(BaseModel):
+    material_id: str
+
+
+class SubNew(BaseModel):
+    name: str
+
+
+def _group_sheet(st: dict, material_id: str) -> str | None:
+    cnt: dict = {}
+    for x in st["maps"]:
+        if x.source == "EXCEL" and x.kind == "BULK_SUB" and x.material_id == material_id:
+            sh = eff_sheet(x, st["maps"])
+            if sh and sh != "COMMERCIAL":
+                cnt[sh] = cnt.get(sh, 0) + 1
+    return max(cnt, key=lambda k: cnt[k]) if cnt else None
+
+
+@router.post("/groups")
+def group_create(data: GroupNew, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Κάνει ένα υπάρχον υλικό ΟΜΑΔΑ (υλικό-ομπρέλα). Δεν δημιουργείται νέος κωδικός ERP. Οι υπάρχουσες ετικέτες Excel του υλικού γίνονται υποπροϊόντα της, ώστε τα σύνολα να μένουν ίδια· αν δεν έχει καμία, δημιουργείται το πρώτο υποπροϊόν με το όνομα του υλικού."""
+    st = _tab_cards_state(db)
+    row = next((r for r in st["rows"] if r["id"] == data.material_id), None)
+    if not row:
+        raise HTTPException(404, "Το υλικό δεν βρέθηκε")
+    why = _free_for_label(row)
+    if why:
+        raise HTTPException(409, why)
+    m = st["mats"][data.material_id]
+    if m.is_umbrella:
+        raise HTTPException(409, "Το υλικό είναι ήδη ομάδα")
+    m.is_umbrella = True
+    mine = [x for x in st["maps"] if x.source == "EXCEL" and x.kind == "MATERIAL" and x.material_id == m.id]
+    for i, x in enumerate(mine):
+        x.kind = "BULK_SUB"
+        x.sort_order = i
+    if not mine:
+        name = (m.official_description or m.internal_name or "").strip()
+        k = _fold_key(name)
+        if not name or k in st["xl"]:
+            raise HTTPException(409, "Δεν μπορεί να δημιουργηθεί το πρώτο υποπροϊόν (το όνομα «" + name + "» υπάρχει ήδη ως ετικέτα)")
+        db.add(MaterialLabelMap(source="EXCEL", label=name, label_key=k, kind="BULK_SUB", material_id=m.id, active=True, sort_order=0, sheet=None))
+    write_audit(db, user, "material", m.id, "UPDATE", new={"is_umbrella": True, "converted_labels": [x.label for x in mine]}, reason="Καρτέλες Υλικών: νέα ομάδα")
+    db.commit()
+    return {"ok": True}
+
+
+@router.post("/groups/{material_id}/subs")
+def group_add_sub(material_id: str, data: SubNew, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    st = _tab_cards_state(db)
+    m = st["mats"].get(material_id)
+    if not m or not m.is_umbrella:
+        raise HTTPException(404, "Η ομάδα δεν βρέθηκε")
+    name = _re.sub(r"\s+", " ", (data.name or "").strip())
+    if not name:
+        raise HTTPException(422, "Γράψε όνομα υποπροϊόντος")
+    if len(name) > 120:
+        raise HTTPException(422, "Το όνομα είναι πολύ μεγάλο")
+    k = _fold_key(name)
+    if k in st["xl"]:
+        raise HTTPException(409, "Το «" + name + "» υπάρχει ήδη ως ετικέτα/υποπροϊόν")
+    for mm in st["mats"].values():
+        if mm.id != m.id and k in {_fold_key(x) for x in (mm.official_description, mm.internal_name, mm.galaxy_description) if x}:
+            raise HTTPException(409, "Το «" + name + "» είναι όνομα άλλου υλικού ERP: τα υποπροϊόντα δεν έχουν δικό τους κωδικό ERP")
+    last = max([x.sort_order or 0 for x in st["maps"] if x.source == "EXCEL" and x.kind == "BULK_SUB" and x.material_id == m.id] + [-1])
+    sheet = _group_sheet(st, m.id)
+    row = MaterialLabelMap(source="EXCEL", label=name, label_key=k, kind="BULK_SUB", material_id=m.id, active=True, sort_order=last + 1, sheet=sheet)
+    db.add(row)
+    db.flush()
+    write_audit(db, user, "material_label_map", row.id, "UPSERT", new={"label": name, "kind": "BULK_SUB", "material_id": m.id, "sheet": sheet}, reason="Καρτέλες Υλικών: νέο υποπροϊόν")
+    db.commit()
+    return {"label": name}
+
+
+@router.delete("/groups/{material_id}/subs")
+def group_remove_sub(material_id: str, label: str = Query(...), db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """✕ υποπροϊόντος: αν έχει κινήσεις/εξαγωγές ΔΕΝ σβήνεται (τα κιλά δεν αλλάζουν αναδρομικά)· απενεργοποιείται. Χωρίς κινήσεις σβήνεται."""
+    st = _tab_cards_state(db)
+    x = next((y for y in st["maps"] if y.source == "EXCEL" and y.kind == "BULK_SUB" and y.material_id == material_id and y.label == label), None)
+    if not x:
+        raise HTTPException(404, "Το υποπροϊόν δεν βρέθηκε")
+    hist = _fold_key(x.label) in _sub_history(db)
+    if hist:
+        x.active = False
+        mode = "deactivated"
+    else:
+        db.delete(x)
+        mode = "deleted"
+    write_audit(db, user, "material_label_map", x.id, "UPDATE" if hist else "DELETE", old={"label": label}, new={"mode": mode}, reason="Καρτέλες Υλικών: αφαίρεση υποπροϊόντος")
+    db.commit()
+    return {"mode": mode}

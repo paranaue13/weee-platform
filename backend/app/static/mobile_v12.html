@@ -1585,7 +1585,7 @@ function mtRender(){
   if(mt.tab!=='stock')mtBind();
 }
 function mtPicked(label,text,chg){return `<div><div class="flLbl">${label}</div><div class="flPicked"><span>${esc(text)}</span><button type="button" data-chg="${chg}">ΑΛΛΑΓΗ</button></div></div>`}
-function mtMat(){return mt.catalog.materials.find(m=>m.id===mt.w.mat)}
+function mtMat(){return mt.catalog.materials.find(m=>(m.key||m.id)===mt.w.mat)}   // key: υλικό ή υποπροϊόν ομάδας (id::υποπροϊόν)
 /* Μέσα αποθήκευσης: για υλικά με «Μπορεί να γίνει μπάλα» προστίθεται το «Μπάλα» (παλέτα με is_bale) — μόνο στην Εξαγωγή */
 function mtForms(){let c=mt.catalog,m=mtMat();return c.forms.concat(mt.w.kind==='export'&&m&&m.can_bale?[{form:'BALE',label:'Μπάλα',tare:null,asks_tare:true,has_code:true}]:[])}
 function mtWizHtml(){
@@ -1597,8 +1597,8 @@ function mtWizHtml(){
   let cat=c.categories.find(x=>x.id===w.cat);
   h+=mtPicked('Κατηγορία',cat?.name||'',w.kind+'cat');
   if(w.step===2){
-    let q=(w.search||'').trim().sn(),list=c.materials.filter(m=>m.category_id===w.cat&&!(w.kind==='count'&&m.is_commercial)&&(!q||m.name.sn().includes(q)||String(m.code||'').sn().includes(q)));
-    h+=`<div class="flLbl">Υλικό</div><input id="mtSearch" placeholder="Αναζήτηση υλικού" value="${esc(w.search||'')}" style="margin-bottom:8px"><div class="mtMats">`+(list.map(m=>`<button type="button" class="btn alt mtMatBtn${w.mat===m.id?' on':''}" data-mat="${m.id}"><span>${esc(m.name)}</span>${w.kind==='export'?`<b>${mtKg(m.available_kg)} kg</b>`:''}</button>`).join('')||'<div class="muted">Κανένα υλικό.</div>')+`</div>`;
+    let q=(w.search||'').trim().sn(),list=c.materials.filter(m=>m.category_id===w.cat&&!(w.kind==='count'&&m.is_commercial)&&!(w.kind==='export'&&m.group_active)&&!(w.kind!=='export'&&m.sub)&&(!q||m.name.sn().includes(q)||String(m.code||'').sn().includes(q)));   // ομάδα που ισχύει: στην Εξαγωγή φαίνονται ΜΟΝΟ τα υποπροϊόντα, ο Parent κρύβεται
+    h+=`<div class="flLbl">Υλικό</div><input id="mtSearch" placeholder="Αναζήτηση υλικού" value="${esc(w.search||'')}" style="margin-bottom:8px"><div class="mtMats">`+(list.map(m=>`<button type="button" class="btn alt mtMatBtn${w.mat===(m.key||m.id)?' on':''}" data-mat="${m.key||m.id}"><span>${esc(m.name)}</span>${w.kind==='export'?`<b>${mtKg(m.available_kg)} kg</b>`:''}</button>`).join('')||'<div class="muted">Κανένα υλικό.</div>')+`</div>`;
     return h;
   }
   let m=mtMat();
@@ -1627,15 +1627,15 @@ function mtCalc(){
     let t=mtNum(w.total),cnt=t-w.inv.net;
     if(Number.isFinite(t)&&t>0&&cnt>=0){out.ok=true;out.line1=`Απογραφή ${mtKg(w.inv.net)} kg · τώρα ${mtKg(t)} kg`;out.line2=`Καταμετρώνται για τον ${c.period.month_name.replace(/ος$/,'ο')}: ${mtKg(cnt)} kg`;out.sum=`${m?.name||''} · ${w.inv.label} ${w.inv.code} · ${mtKg(cnt)} kg`}
     else if(Number.isFinite(t)&&t>0)out.line1='Το νέο βάρος δεν μπορεί να είναι μικρότερο από της απογραφής';
-    out.payload={material_id:w.mat,form:w.inv.form,inventory_id:w.inv.id,new_total:t};return out;
+    out.payload={material_id:m.id,form:w.inv.form,inventory_id:w.inv.id,new_total:t};return out;
   }
   if(!f)return out;
-  if(f.form==='BULK'){let n=mtNum(w.net);if(n>0){out.ok=true;out.sum=`${m?.name||''} · Χύμα · ${mtKg(n)} kg`}out.payload={material_id:w.mat,form:'BULK',net:n};return out}
+  if(f.form==='BULK'){let n=mtNum(w.net);if(n>0){out.ok=true;out.sum=`${m?.name||''} · Χύμα · ${mtKg(n)} kg`}out.payload={material_id:m.id,form:'BULK',net:n};if(m.sub)out.payload.sub_label=m.sub;return out}
   let g=mtNum(w.gross),t=f.asks_tare?mtNum(w.tare):f.tare;
   if(w.known==='NET')g=g>0?g+t:NaN;   // γνωστό καθαρό: μικτό = καθαρό + απόβαρο, αποθηκεύονται καθαρό και απόβαρο όπως στα Windows
   if(Number.isFinite(g)&&Number.isFinite(t)&&g-t>0){out.ok=true;out.line1=(f.asks_tare?'':`Απόβαρο ${mtKg(t)} kg · `)+`Καθαρά κιλά υλικού: ${mtKg(g-t)}`;out.sum=`${m?.name||''} · ${f.label}${mt.nextCode?' '+mt.nextCode:''} · ${mtKg(g-t)} kg`}
   else if(Number.isFinite(g)&&Number.isFinite(t)&&g>0)out.line1='Τα καθαρά κιλά πρέπει να είναι μεγαλύτερα από 0';
-  out.payload={material_id:w.mat,form:f.form==='BALE'?'PALLET':f.form,gross:g,tare:f.asks_tare?t:undefined};if(f.form==='BALE')out.payload.is_bale=true;return out;
+  out.payload={material_id:m.id,form:f.form==='BALE'?'PALLET':f.form,gross:g,tare:f.asks_tare?t:undefined};if(f.form==='BALE')out.payload.is_bale=true;if(m.sub)out.payload.sub_label=m.sub;return out;
 }
 function mtUpdateCalc(){
   if(mt.w.step!==3)return;let r=mtCalc();
@@ -1644,12 +1644,12 @@ function mtUpdateCalc(){
 }
 async function mtLoadStep3(){
   let w=mt.w;mt.openInv=[];mt.nextCode=null;
-  if(w.kind==='export'){try{mt.openInv=await api('/mat/inventory/open?material_id='+w.mat)}catch(e){}}
+  if(w.kind==='export'){try{mt.openInv=await api('/mat/inventory/open?material_id='+mtMat().id)}catch(e){}}
   mtRender();
 }
 async function mtPickForm(form){
   let w=mt.w;w.form=form;w.inv=null;w.gross='';w.tare='';w.net='';w.total='';w.known='GROSS';mt.nextCode=null;
-  try{let r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(form==='BALE'?'&bale=1':'')+(w.mat?'&material_id='+encodeURIComponent(w.mat):''));mt.nextCode=r.code}catch(e){}
+  try{let r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(form==='BALE'?'&bale=1':'')+(w.mat?'&material_id='+encodeURIComponent(mtMat().id):''));mt.nextCode=r.code}catch(e){}
   mtRender();
 }
 function mtBind(){

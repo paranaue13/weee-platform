@@ -323,6 +323,25 @@ def available_by_material(db: Session, materials) -> dict:
     return out
 
 
+def umbrella_subs(db: Session) -> dict:
+    """{material_id: [ενεργά υποπροϊόντα (ετικέτες BULK_SUB) με τη σειρά τους]} για υλικά-ομπρέλες (ομάδες)· η ομάδα «ισχύει» όσο έχει ενεργά υποπροϊόντα."""
+    out: dict = {}
+    for x in db.scalars(select(models.MaterialLabelMap).where(models.MaterialLabelMap.source == "EXCEL", models.MaterialLabelMap.kind == "BULK_SUB", models.MaterialLabelMap.active == True).order_by(models.MaterialLabelMap.sort_order, models.MaterialLabelMap.label)).all():
+        if x.material_id:
+            out.setdefault(x.material_id, []).append(x.label)
+    return out
+
+
+def _sub_available(db: Session, label: str, material_id: str) -> float:
+    """Διαθέσιμα κιλά υποπροϊόντος για εξαγωγή: ισοζύγιο της ετικέτας του (παραγωγή − αποστολές) μείον ό,τι έχει ήδη εξαχθεί από το Android με αυτό το υποπροϊόν."""
+    k = _fold_key(label)
+    raw = sum(kg for lb, kg in _ledger_raw(db).items() if _fold_key(lb) == k)
+    rows = db.execute(select(ReadyMaterialLot.sub_label, func.sum(func.coalesce(ReadyMaterialLot.counted_kg, ReadyMaterialLot.net_weight)))
+                      .where(ReadyMaterialLot.material_id == material_id, ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.is_demo == False, ReadyMaterialLot.status != "CANCELLED", ReadyMaterialLot.sub_label.is_not(None)).group_by(ReadyMaterialLot.sub_label)).all()
+    exp = sum(float(w or 0) for s, w in rows if s and _fold_key(s) == k)
+    return round(max(0.0, raw - exp), 3)
+
+
 class ExportIn(BaseModel):
     material_id: str
     form: str
@@ -333,6 +352,7 @@ class ExportIn(BaseModel):
     new_total: Decimal | None = None      # νέο συνολικό βάρος του μέσου απογραφής (φυσικό)
     is_bale: bool = False                 # παλέτα που εξάγεται ως ΜΠΑΛΑ (μόνο υλικά με can_bale)
     date: str | None = None               # ημερομηνία εξαγωγής YYYY-MM-DD (ορίζει την περίοδο)· χωρίς τιμή = σήμερα
+    sub_label: str | None = None          # υποπροϊόν ομάδας (μόνο υλικά-ομπρέλες)· τα κιλά καταχωρούνται ΠΑΝΤΑ στο υποπροϊόν
 
 
 class InventoryIn(BaseModel):
@@ -389,8 +409,9 @@ def materials_with_column(db: Session) -> set:
             ids.add(m.id)
         if m.label_group:
             groups.setdefault(m.label_group, []).append(m.id)
+    lg_tabs = {r.material_label[3:]: r.category_group for r in db.scalars(select(models.MaterialGroupOverride).where(models.MaterialGroupOverride.material_label.like('LG:%'))).all()}   # ετικέτες χρήστη με καρτέλα (Καρτέλες Υλικών)
     for g, l in groups.items():
-        if g in sum_groups or (g in LABEL_GROUP_TAB and len(l) > 1):
+        if g in sum_groups or (g in LABEL_GROUP_TAB and len(l) > 1) or (len(l) > 1 and lg_tabs.get(g) in tab_codes_):
             ids.update(l)
     return ids
 
@@ -442,8 +463,16 @@ def catalog(db: Session = Depends(get_db), user=Depends(require_permission("prod
         forms.append({"form": f, "label": FORM_LABELS[f], "tare": float(t.default_tare_weight) if (t and t.default_tare_weight is not None) else None,
                       "asks_tare": f == "PALLET", "has_code": f != "BULK"})
     y, q, m = _period()
+    usubs = umbrella_subs(db)
+    mat_rows = []
+    for x in mats:
+        subs = usubs.get(x.id, []) if x.is_umbrella else []
+        mat_rows.append({"id": x.id, "key": x.id, "name": _android_name(db, x, dmode), "code": x.galaxy_code, "category_id": _eff_group(x, comm_gid), "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale), "is_commercial": bool(x.is_commercial),
+                         "group_active": bool(subs)})   # ομάδα που ισχύει: στην Εξαγωγή εμφανίζονται ΜΟΝΟ τα υποπροϊόντα και ο Parent κρύβεται
+        for lb in subs:
+            mat_rows.append({"id": x.id, "key": x.id + "::" + lb, "sub": lb, "name": lb, "code": None, "category_id": _eff_group(x, comm_gid), "available_kg": _sub_available(db, lb, x.id), "can_bale": False, "is_commercial": False, "group_active": False})
     return {"categories": [{"id": c.id, "name": c.name, "count": sum(1 for x in mats if _eff_group(x, comm_gid) == c.id)} for c in cats],
-            "materials": [{"id": x.id, "name": _android_name(db, x, dmode), "code": x.galaxy_code, "category_id": _eff_group(x, comm_gid), "available_kg": avail.get(x.id, 0.0), "can_bale": bool(x.can_bale), "is_commercial": bool(x.is_commercial)} for x in mats],
+            "materials": mat_rows,
             "forms": forms, "period": {"year": y, "quarter": q, "month": m, "month_name": MONTHS[m - 1], "quarter_month_name": MONTHS[QUARTER_MONTH[q] - 1]}}
 
 
@@ -469,6 +498,18 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
         raise HTTPException(422, "Άγνωστο μέσο αποθήκευσης")
     mat = _material(db, data.material_id)
     ensure_column(db, mat)
+    sub_label = (data.sub_label or "").strip() or None
+    if mat.is_umbrella:
+        subs = umbrella_subs(db).get(mat.id, [])
+        if sub_label:
+            hit = next((s for s in subs if _fold_key(s) == _fold_key(sub_label)), None)
+            if not hit:
+                raise HTTPException(422, "Το υποπροϊόν «" + sub_label + "» δεν ισχύει για το υλικό")
+            sub_label = hit
+        elif subs and not data.inventory_id:
+            raise HTTPException(422, "Η ομάδα έχει υποπροϊόντα: διάλεξε υποπροϊόν για την εξαγωγή")
+    elif sub_label:
+        raise HTTPException(422, "Το υλικό δεν είναι ομάδα με υποπροϊόντα")
     if data.is_bale and (data.form != "PALLET" or data.inventory_id or not mat.can_bale):
         raise HTTPException(422, "Μπάλα μπορεί να γίνει μόνο παλέτα υλικού που επιτρέπεται να γίνει μπάλα")
     pick, pick_at = _pick_date(data.date)
@@ -498,7 +539,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
                            collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net, original_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
                            notes=("DEMO" if demo else None), entry_type="EXPORT", period_year=y, period_quarter=q, period_month=mo,
-                           counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo, is_bale=bool(data.is_bale))
+                           counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo, is_bale=bool(data.is_bale), sub_label=sub_label)
     if pick_at:
         lot.created_at = pick_at
     db.add(lot); db.flush()
@@ -530,7 +571,7 @@ def list_exports(days: int = Query(default=60, ge=1, le=400), db: Session = Depe
         if lot.is_bale:
             label = "Μπάλα"
         days_map.setdefault(loc.strftime("%Y-%m-%d"), []).append({
-            "id": lot.id, "lot_number": lot.lot_number, "material": mat.official_description or mat.internal_name, "material_id": mat.id,
+            "id": lot.id, "lot_number": lot.lot_number, "material": (lot.sub_label or mat.official_description or mat.internal_name), "sub_label": lot.sub_label, "material_id": mat.id,
             "form_label": label, "medium_code": med.code if med else None, "net_kg": float(lot.net_weight), "counted_kg": float(lot.counted_kg) if lot.counted_kg is not None else None,
             "time": loc.strftime("%H:%M"), "created_at": ts, "from_inventory": bool(lot.source_inventory_id),
             "form": ("BULK" if not med else next((k for k, v in FORMS.items() if v and types.get(med.type_id) and types[med.type_id].code == v), "PALLET")),
