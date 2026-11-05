@@ -339,23 +339,32 @@ def uncovered_materials(db: Session = Depends(get_db), user=Depends(require_perm
             for m in db.scalars(select(Material).where(Material.active == True).order_by(Material.galaxy_code)).all() if m.id not in ok]
 
 
-# ===== Καρτέλες Υλικών: σε ποια από τις 4 καρτέλες της σελίδας Υλικά (και με ποια σειρά) φαίνεται κάθε υλικό =====
+# ===== Καρτέλες Υλικών: σε ποια από τις καρτέλες της σελίδας Υλικά (και με ποια σειρά) φαίνεται κάθε υλικό =====
 # Χρησιμοποιεί ΜΟΝΟ ό,τι υπάρχει ήδη: αντικατάσταση ομάδας ανά ετικέτα (material_group_overrides: ομάδα + σειρά ανά στήλη) και καρτέλα ετικέτας (material_label_maps.sheet).
-TAB_ORDER = [("AXIOPOIISIMA", "Αξιοποιήσιμα Υλικά"), ("EIDIKIS_DIACHEIRISIS", "Υλικά Ειδικής Διαχείρισης"), ("PLAKETES", "Πλακέτες"), ("APORRIPSI", "Υλικά προς Απόρριψη")]
-TAB_KEYS = {k for k, _ in TAB_ORDER}
+# Οι καρτέλες ορίζονται στον πίνακα material_tabs (οι 4 σύστημα + του χρήστη)· τίποτα δεν είναι γραμμένο εδώ.
+import re as _re
+import uuid as _uuid
+from .mat_warehouse import active_tabs, column_tab_codes, ensure_material_tabs, DEFAULT_TAB, SYSTEM_TABS
+
+# ονόματα που δεν επιτρέπονται σε νέα/μετονομασμένη καρτέλα: οι άλλες καρτέλες της σελίδας Υλικά και η στήλη «Χωρίς καρτέλα»
+RESERVED_TAB_NAMES = ["Πρέσα", "Εμπορικά", "Υλικά από εμπόριο", "Αποθήκη", "Χωρίς καρτέλα", "Όλες"]
 
 
-def _label_tab(lb, x, g, ov):
-    """Καρτέλα μιας ετικέτας όπως τη βρίσκει η σελίδα Υλικά: «Πλακέτες» από την καρτέλα της αντιστοίχισης, αλλιώς αντικατάσταση ομάδας ή πρώτη ομάδα καταχώρησης."""
+def _label_tab(lb, x, g, ov, codes):
+    """Καρτέλα μιας ετικέτας όπως τη βρίσκει η σελίδα Υλικά: «Πλακέτες» από την καρτέλα της αντιστοίχισης, αλλιώς αντικατάσταση ομάδας ή πρώτη ομάδα καταχώρησης.
+    Δίχτυ ασφαλείας: ομάδα που δεν είναι ενεργή καρτέλα (π.χ. διαγραμμένη) πέφτει στα Αξιοποιήσιμα, δεν εξαφανίζεται."""
     if x.sheet == "PLAKETES":
         return "PLAKETES"
-    return ov[lb].category_group if lb in ov else g
+    grp = ov[lb].category_group if lb in ov else g
+    return grp if grp in codes else DEFAULT_TAB
 
 
 def _tab_cards_state(db: Session) -> dict:
     mats = {m.id: m for m in db.scalars(select(Material)).all()}
     maps = db.scalars(select(MaterialLabelMap)).all()
     ov = {r.material_label: r for r in db.scalars(select(models.MaterialGroupOverride)).all()}
+    tabs = active_tabs(db)
+    codes = {t["code"] for t in tabs}
     raw: dict = {}
     for t in (models.MaterialOpeningStock, models.MaterialOutputEntry, models.MaterialShipmentEntry):
         for lb, g in db.execute(select(t.material_label, t.category_group).where(t.active == True)).all():
@@ -389,13 +398,13 @@ def _tab_cards_state(db: Session) -> dict:
         elif not ls and ("PRESS" in other_src.get(m.id, set()) or m.can_bale or (m.press_label or "").strip()):
             row["locked"] = "Υλικό Πρέσας: η στήλη του ορίζεται από την Πρέσα"
         if ls:
-            tabs = [_label_tab(lb, x, g, ov) for lb, x, g in ls]
+            tabs_l = [_label_tab(lb, x, g, ov, codes) for lb, x, g in ls]
             cnt: dict = {}
-            for t in tabs:
+            for t in tabs_l:
                 cnt[t] = cnt.get(t, 0) + 1
             row["tab"] = max(cnt, key=lambda t: cnt[t])
             row["mixed"] = len(cnt) > 1
-            in_tab = [(lb, x) for (lb, x, g), t in zip(ls, tabs) if t == row["tab"]]
+            in_tab = [(lb, x) for (lb, x, g), t in zip(ls, tabs_l) if t == row["tab"]]
             if any(x.kind == "BULK_SUB" for lb, x in in_tab):
                 row["key"] = "UMB:" + m.id
             elif len(in_tab) > 1:
@@ -407,18 +416,25 @@ def _tab_cards_state(db: Session) -> dict:
                 row["ord"] = ov[row["key"]].sort_order or 0
             elif row["key"].startswith("UMB:"):
                 row["ord"] = min([(ov[lb].sort_order or 0) for lb, x in in_tab if lb in ov] or [0])
-        if row["tab"] not in TAB_KEYS:
+        if row["tab"] not in codes:
             row["tab"] = None
         rows.append(row)
-    return {"rows": rows, "mats": mats, "ov": ov, "xl": xl, "labels_of": labels_of}
+    return {"rows": rows, "mats": mats, "ov": ov, "xl": xl, "labels_of": labels_of, "tabs": tabs, "codes": codes}
+
+
+@router.get("/tabs")
+def mat_tabs(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Οι ενεργές καρτέλες της σελίδας Υλικά με τη σειρά τους."""
+    return {"tabs": active_tabs(db)}
 
 
 @router.get("/tab-cards")
 def tab_cards(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
     """Υλικά με την καρτέλα της σελίδας Υλικά όπου φαίνονται σήμερα και τη σειρά τους εκεί (μόνο ανάγνωση)."""
-    rows = _tab_cards_state(db)["rows"]
+    st = _tab_cards_state(db)
+    rows = st["rows"]
     rows.sort(key=lambda r: (r["ord"], _fold_key(r["labels"][0] if r["labels"] else r["name"]), r["erp"]))
-    return {"tabs": [{"key": k, "name": n} for k, n in TAB_ORDER],
+    return {"tabs": [{"key": t["code"], "name": t["name"], "is_system": t["is_system"]} for t in st["tabs"]],
             "materials": [{**{k: v for k, v in r.items() if k != "labels"}, "n_labels": len(r["labels"])} for r in rows]}
 
 
@@ -431,9 +447,9 @@ class TabMove(BaseModel):
 @router.put("/tab-cards/move")
 def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
     """Μετακίνηση υλικού σε καρτέλα και/ή αλλαγή σειράς. Δεν πειράζει υλικά με δικό τους κανόνα (Πρέσα, Εμπορικά, ομάδες ετικετών)."""
-    if data.tab not in TAB_KEYS:
-        raise HTTPException(422, "Άγνωστη καρτέλα")
     st = _tab_cards_state(db)
+    if data.tab not in st["codes"]:
+        raise HTTPException(422, "Άγνωστη καρτέλα")
     byid = {r["id"]: r for r in st["rows"]}
     mv = byid.get(data.material_id)
     if not mv:
@@ -500,3 +516,97 @@ def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = De
     write_audit(db, user, "material", m.id, "UPDATE", new={"tab": data.tab, "order": data.order}, reason="Καρτέλες Υλικών")
     db.commit()
     return {"ok": True}
+
+
+# ----- Καρτέλες του χρήστη: δημιουργία / μετονομασία / διαγραφή (απενεργοποίηση) -----
+class TabName(BaseModel):
+    name: str
+
+
+def _clean_tab_name(db: Session, raw: str, exclude_code: str | None = None) -> str:
+    name = _re.sub(r"\s+", " ", (raw or "").strip())
+    if not name:
+        raise HTTPException(422, "Γράψε όνομα καρτέλας")
+    if len(name) > 60:
+        raise HTTPException(422, "Το όνομα είναι πολύ μεγάλο (έως 60 χαρακτήρες)")
+    k = _fold_key(name)
+    for r in RESERVED_TAB_NAMES:
+        if _fold_key(r) == k:
+            raise HTTPException(409, "Το όνομα «" + name + "» χρησιμοποιείται ήδη")
+    for t in db.scalars(select(models.MaterialTab).where(models.MaterialTab.active == True)).all():
+        if t.code != exclude_code and _fold_key(t.name) == k:
+            raise HTTPException(409, "Υπάρχει ήδη καρτέλα με όνομα «" + t.name + "»")
+    return name
+
+
+def _custom_tab(db: Session, code: str) -> "models.MaterialTab":
+    t = db.scalar(select(models.MaterialTab).where(models.MaterialTab.code == code))
+    if not t or not t.active:
+        raise HTTPException(404, "Η καρτέλα δεν βρέθηκε")
+    if t.is_system:
+        raise HTTPException(403, "Οι καρτέλες του συστήματος δεν μετονομάζονται και δεν διαγράφονται")
+    return t
+
+
+@router.post("/tabs")
+def mat_tab_create(data: TabName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    ensure_material_tabs(db)
+    name = _clean_tab_name(db, data.name)
+    last = max([t.sort_order or 0 for t in db.scalars(select(models.MaterialTab)).all()] or [0])
+    t = models.MaterialTab(code="TAB_" + _uuid.uuid4().hex[:8].upper(), name=name, sort_order=max(last, 90) + 10, is_system=False, active=True)
+    db.add(t)
+    db.flush()
+    write_audit(db, user, "material_tab", t.id, "CREATE", new={"code": t.code, "name": name})
+    db.commit()
+    return {"code": t.code, "name": t.name}
+
+
+@router.put("/tabs/{code}")
+def mat_tab_rename(code: str, data: TabName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    t = _custom_tab(db, code)
+    name = _clean_tab_name(db, data.name, exclude_code=code)
+    old = t.name
+    t.name = name           # ο εσωτερικός κωδικός μένει ίδιος
+    write_audit(db, user, "material_tab", t.id, "UPDATE", old={"name": old}, new={"name": name})
+    db.commit()
+    return {"code": t.code, "name": t.name}
+
+
+@router.delete("/tabs/{code}")
+def mat_tab_delete(code: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Απενεργοποιεί την καρτέλα. ΟΛΑ τα υλικά της πάνε αυτόματα στα Αξιοποιήσιμα, στο τέλος τους, με την ίδια μεταξύ τους σειρά. Δεν σβήνεται υλικό ούτε κίνηση."""
+    t = _custom_tab(db, code)
+    st = _tab_cards_state(db)
+    ov, labels_of = st["ov"], st["labels_of"]
+    moving = sorted([r for r in st["rows"] if r["tab"] == code], key=lambda r: (r["ord"], _fold_key(r["labels"][0] if r["labels"] else r["name"]), r["erp"]))
+    base = max([r["ord"] for r in st["rows"] if r["tab"] == DEFAULT_TAB] or [0])
+    n_labels = 0
+    for i, r in enumerate(moving):
+        for lb, x, g in labels_of.get(r["id"], []):
+            if x.sheet == code:
+                x.sheet = DEFAULT_TAB
+            o = ov.get(lb)
+            if o:
+                o.category_group = DEFAULT_TAB
+            else:
+                ov[lb] = models.MaterialGroupOverride(material_label=lb, category_group=DEFAULT_TAB, sort_order=0)
+                db.add(ov[lb])
+            n_labels += 1
+        key = r["key"]
+        if key:
+            o = ov.get(key)
+            if o:
+                o.category_group = DEFAULT_TAB
+                o.sort_order = base + 1 + i
+            else:
+                ov[key] = models.MaterialGroupOverride(material_label=key, category_group=DEFAULT_TAB, sort_order=base + 1 + i)
+                db.add(ov[key])
+    # υπόλοιπες αντικαταστάσεις/αντιστοιχίσεις που δείχνουν στην καρτέλα (π.χ. ετικέτες χωρίς υλικό): επίσης στα Αξιοποιήσιμα
+    for o in db.scalars(select(models.MaterialGroupOverride).where(models.MaterialGroupOverride.category_group == code)).all():
+        o.category_group = DEFAULT_TAB
+    for x in db.scalars(select(MaterialLabelMap).where(MaterialLabelMap.sheet == code)).all():
+        x.sheet = DEFAULT_TAB
+    t.active = False
+    write_audit(db, user, "material_tab", t.id, "DELETE", old={"code": t.code, "name": t.name}, new={"materials_moved": len(moving), "to": DEFAULT_TAB}, reason="Διαγραφή καρτέλας: τα υλικά πήγαν στα Αξιοποιήσιμα")
+    db.commit()
+    return {"ok": True, "moved": len(moving)}

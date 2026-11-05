@@ -1090,3 +1090,16 @@ class DeviceYieldBatchCell(Base, TimestampMixin):
     weight_kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
     percentage: Mapped[Decimal] = mapped_column(Numeric(9,4), default=0)
     __table_args__ = (UniqueConstraint("batch_id", "report_row_id", name="uq_device_yield_batch_cell"),)
+
+
+class MaterialTab(Base, TimestampMixin):
+    """Καρτέλες της σελίδας Υλικά που ορίζονται από τον χρήστη + οι 4 σύστημα (Αξιοποιήσιμα, Ειδικής Διαχείρισης, Πλακέτες, Προς Απόρριψη).
+    code = ο ΣΤΑΘΕΡΟΣ εσωτερικός κωδικός (δεν αλλάζει ποτέ με μετονομασία)· είναι η τιμή που γράφεται ως category_group (αντικατάσταση ομάδας) και ως sheet (αντιστοίχιση ετικέτας).
+    Η διαγραφή είναι απενεργοποίηση (active=False): δεν σβήνεται γραμμή. is_system: οι 4 σημερινές δεν διαγράφονται/μετονομάζονται."""
+    __tablename__ = "material_tabs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    code: Mapped[str] = mapped_column(String(30), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    sort_order: Mapped[int] = mapped_column(default=0)
+    is_system: Mapped[bool] = mapped_column(default=False)
+    active: Mapped[bool] = mapped_column(default=True)

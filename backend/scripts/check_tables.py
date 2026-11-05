@@ -63,3 +63,6 @@ _sp = check_sticky_paint.run(B); print("ΠΡΟΒΛΗΜΑΤΑ ΣΤΑΘΕΡΩΝ Σ
 
 import check_weee_sticky   # Αποθήκη ΑΗΗΕ: σταθερά σημεία (καρτέλες, κάρτες, τίτλος, κεφαλίδα, πρώτες στήλες) σε στενά/χαμηλά παράθυρα και διατάξεις (γρήγορη έκδοση· η πλήρης: python check_weee_sticky.py)
 _ws = check_weee_sticky.run(B, True); print('ΠΡΟΒΛΗΜΑΤΑ ΑΠΟΘΗΚΗΣ ΣΤΑΘΕΡΩΝ ΣΗΜΕΙΩΝ:', _ws)
+
+import check_tab_codes   # καρτέλες Υλικών: καμία γραμμένη λίστα καρτελών στον κώδικα (ορίζονται μόνο στον πίνακα material_tabs)
+_tc = check_tab_codes.main()

@@ -345,14 +345,42 @@ class InventoryIn(BaseModel):
 
 # ---- Κανόνας «κάθε ενεργό υλικό έχει στήλη»: καμία κίνηση υλικού (εξαγωγή, φόρτωση, απογραφή, παραγωγή) αν το υλικό δεν έχει στήλη σε καρτέλα Υλικών ----
 LABEL_GROUP_TAB = {"Συσκευές για επαναχρησιμοποίηση": "EIDIKIS_DIACHEIRISIS", "Σιδηρούχα": "AXIOPOIISIMA"}   # καρτέλα όπου φαίνεται η ομάδα ετικέτας (ίδιο με την οθόνη Υλικά)
-_COLUMN_TABS = ("AXIOPOIISIMA", "EIDIKIS_DIACHEIRISIS", "PLAKETES", "APORRIPSI")
+# Οι 4 καρτέλες-σύστημα (σπόρος του πίνακα material_tabs). Οι καρτέλες που φτιάχνει ο χρήστης διαβάζονται ΜΟΝΟ από τη βάση.
+SYSTEM_TABS = (("AXIOPOIISIMA", "Αξιοποιήσιμα Υλικά", 10), ("EIDIKIS_DIACHEIRISIS", "Υλικά Ειδικής Διαχείρισης", 20), ("PLAKETES", "Πλακέτες", 30), ("APORRIPSI", "Υλικά προς Απόρριψη", 40))
+DEFAULT_TAB = "AXIOPOIISIMA"
+
+
+def ensure_material_tabs(db: Session) -> None:
+    """Ο πίνακας material_tabs περιέχει πάντα τις 4 καρτέλες-σύστημα (idempotent· δεν πειράζει υπάρχουσες γραμμές)."""
+    have = {t.code for t in db.scalars(select(models.MaterialTab)).all()}
+    add = [models.MaterialTab(code=c, name=n, sort_order=o, is_system=True, active=True) for c, n, o in SYSTEM_TABS if c not in have]
+    if add:
+        db.add_all(add)
+        db.commit()
+
+
+def active_tabs(db: Session) -> list:
+    """Ενεργές καρτέλες με τη σειρά τους: [{code, name, is_system}]. Αν ο πίνακας λείπει/είναι κενός, επιστρέφονται οι 4 σημερινές (ποτέ σφάλμα)."""
+    try:
+        rows = db.scalars(select(models.MaterialTab).where(models.MaterialTab.active == True).order_by(models.MaterialTab.sort_order, models.MaterialTab.name)).all()
+    except Exception:
+        rows = []
+    if not rows:
+        return [{"code": c, "name": n, "is_system": True} for c, n, o in SYSTEM_TABS]
+    return [{"code": r.code, "name": r.name, "is_system": bool(r.is_system)} for r in rows]
+
+
+def column_tab_codes(db: Session) -> set:
+    """Κωδικοί καρτελών όπου μπορεί να έχει στήλη ένα υλικό (οι 4 σύστημα + οι ενεργές του χρήστη)."""
+    return {t["code"] for t in active_tabs(db)} | {c for c, n, o in SYSTEM_TABS}
 
 
 def materials_with_column(db: Session) -> set:
     """Κωδικοί (id) υλικών που έχουν στήλη: αντιστοίχιση Excel με καρτέλα (υλικό ή υποκατηγορία ομάδας-ομπρέλας)· μέλος ομάδας ετικέτας με στήλη (άθροισμα Excel ή ομάδα με άνοιγμα)· ενεργό εμπορικό υλικό (η καρτέλα Εμπορικά έχει στήλη για κάθε ένα)."""
     ids, sum_groups, groups = set(), set(), {}
+    tab_codes_ = column_tab_codes(db)
     for x in db.scalars(select(models.MaterialLabelMap).where(models.MaterialLabelMap.source == "EXCEL")).all():
-        if x.kind in ("MATERIAL", "BULK_SUB") and x.material_id and x.sheet in _COLUMN_TABS:
+        if x.kind in ("MATERIAL", "BULK_SUB") and x.material_id and x.sheet in tab_codes_:
             ids.add(x.material_id)
         if x.kind == "SUM" and x.group_name:
             sum_groups.add(x.group_name)

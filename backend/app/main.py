@@ -242,6 +242,10 @@ async def lifespan(app: FastAPI):
     # ALTER TABLE block above. This only stamps/upgrades -- it never re-runs the
     # baseline DDL against a database that already has it (see app/migrations.py).
     run_alembic_migrations(engine)
+    try:
+        from .mat_warehouse import ensure_material_tabs
+        with SessionLocal() as _s: ensure_material_tabs(_s)
+    except Exception: logging.getLogger('weee').exception('material_tabs seed failed')
     _setup_file_log()   # ξανά μετά το alembic (που απενεργοποιεί τους loggers)
     with SessionLocal() as db:
         # Backfill legacy employee default department into the new many-to-many mapping.
@@ -2465,7 +2469,8 @@ def material_group_overrides(db:Session=Depends(get_db),user=Depends(require_per
 
 @app.put("/materials/group-overrides/{material_label:path}")
 def material_group_override_set(material_label:str,data:schemas.MaterialGroupOverrideSet,db:Session=Depends(get_db),user=Depends(require_permission("production.edit"))):
-    if data.category_group not in {"AXIOPOIISIMA","EIDIKIS_DIACHEIRISIS","APORRIPSI"}: raise HTTPException(422,"Άγνωστη ομάδα υλικού")
+    from .mat_warehouse import column_tab_codes as _ctc
+    if data.category_group not in (_ctc(db)-{"PLAKETES"}): raise HTTPException(422,"Άγνωστη ομάδα υλικού")
     row=db.scalar(select(models.MaterialGroupOverride).where(models.MaterialGroupOverride.material_label==material_label))
     if row: row.category_group=data.category_group; row.sort_order=data.sort_order
     else: db.add(models.MaterialGroupOverride(material_label=material_label,category_group=data.category_group,sort_order=data.sort_order))
@@ -5162,7 +5167,9 @@ def _prep_lot_info(db:Session,lot,cache:dict):
     return {'lot_id':lot.id,'lot_number':lot.lot_number,'label':label,'code':md.code if md else None,'kg':float(lot.net_weight)}
 
 # ---- Χύμα κιλά στη Φόρτωση: ίδιος υπολογισμός με το «Τρέχον απόθεμα» των Υλικών (παραγωγή − αποστολές, ανά ετικέτα υλικού) ----
-_BULK_GROUP_ORDER={'AXIOPOIISIMA':0,'EIDIKIS_DIACHEIRISIS':1,'APORRIPSI':2}
+def _bulk_group_order(db):
+    from .mat_warehouse import active_tabs as _at
+    return {t['code']:i for i,t in enumerate(_at(db))}   # σειρά καρτελών από τον πίνακα material_tabs· άγνωστη ομάδα → στο τέλος
 def _bulk_balances(db:Session)->dict:
     bal={}
     for e in db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True)).all():
@@ -5215,7 +5222,8 @@ def loading_prep_stock(db:Session=Depends(get_db),user=Depends(require_permissio
         for m in ms: m['pieces']=sum(1 for i in m['items'] if i['code']); m['kg']=round(sum(i['kg'] for i in m['items']),3)
         out.append({'category':c['category'],'materials':ms})
     bulk=[{'material_label':lb,'category_group':b['group'],'kg':float(b['kg'])} for lb,b in _bulk_balances(db).items() if b['kg']>0]
-    bulk.sort(key=lambda x:(_BULK_GROUP_ORDER.get(x['category_group'],9),x['material_label']))
+    _bgo=_bulk_group_order(db)
+    bulk.sort(key=lambda x:(_bgo.get(x['category_group'],99),x['material_label']))
     return {'categories':out,'bulk':bulk}
 
 @app.get('/loading/prep/frequent')
