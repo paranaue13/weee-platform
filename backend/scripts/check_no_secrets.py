@@ -16,7 +16,8 @@ MAX_MB = 20
 
 
 def git(*a):
-    return subprocess.run(["git", *a], capture_output=True, text=True, timeout=60)
+    # το git δίνει ονόματα αρχείων σε UTF-8 (και ελληνικά)· χωρίς αυτό η ανάγνωση σκάει στα Windows (cp1253)
+    return subprocess.run(["git", "-c", "core.quotepath=false", *a], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60)
 
 
 def files_staged():
