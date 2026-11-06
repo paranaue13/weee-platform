@@ -448,6 +448,10 @@ def main(argv=None):
                     msg = msg.replace("ΟΚ; ", "")
                 st["onedrive"]["message"] = msg; st["onedrive"]["path"] = str(od); st["onedrive"]["running"] = running
                 log(c, f"OneDrive {od}: {msg}")
+            except PermissionError as e:
+                st["onedrive"]["message"] = ("ΑΠΟΤΥΧΙΑ: το OneDrive δεν επιτρέπει πρόσβαση στον φάκελο WEEE-Backups (προσωρινό κλείδωμα του OneDrive). "
+                                             "Λύση: δεξί κλικ στο εικονίδιο OneDrive (δίπλα στο ρολόι) → Παύση συγχρονισμού → Συνέχιση, ή επανεκκίνηση του υπολογιστή· μετά «ΑΝΤΙΓΡΑΦΟ ΑΣΦΑΛΕΙΑΣ ΤΩΡΑ.cmd»")
+                log(c, "ΑΠΟΤΥΧΙΑ OneDrive (PermissionError): " + str(e))
             except Exception as e:
                 st["onedrive"]["message"] = "ΑΠΟΤΥΧΙΑ: " + str(e); log(c, "ΑΠΟΤΥΧΙΑ OneDrive: " + traceback.format_exc())
         # --- GitHub

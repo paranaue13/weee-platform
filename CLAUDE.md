@@ -122,3 +122,5 @@ If a screenshot clearly identifies the UI area, do not require the user to descr
 - Πριν ολοκληρωθεί κάθε αλλαγή που αγγίζει πίνακα ή λίστα, τρέχει ο έλεγχος του σημείου 3 (`backend/scripts/check_tables.py`, που καλεί το `check_sticky.py`) και πρέπει να περνά.
 
 Πολλαπλή οθόνη (split screen): σε κάθε αλλαγή διάταξης/πλάτους/πινάκων τρέξε και `backend/scripts/check_split.py` (διατάξεις 2/3/4 οθονών, όλες οι σελίδες, άλλο μέγεθος γραμμάτων, σύρσιμο διαχωριστή): οριζόντιο scroll μέσα στον πίνακα μέχρι την τελευταία στήλη, καμία οριζόντια υπερχείλιση της σελίδας της οθόνης, μπάρα «Μέγεθος» ίδια σε όλες τις οθόνες.
+
+Αντίγραφα ασφαλείας ΕΚΤΟΣ ΔΙΣΚΟΥ (από 6/11/2026): καθημερινά 21:30 (εργασία «WEEE Platform Offsite Backup», backend/scripts/offsite_backup.py) σε USB «WEEE-BACKUP» και OneDrive, κώδικας και στο ιδιωτικό GitHub paranaue13/weee-platform (hooks στο backend/scripts/git_hooks: δεν περνούν .db/.env). Βάση ΜΟΝΟ με backup API· στο OneDrive κρυπτογραφημένη (.wbk, δημόσιο κλειδί· ο κωδικός δεν γράφεται πουθενά). Κατάσταση: backup_status.json + «ΑΝΤΙΓΡΑΦΑ ΑΣΦΑΛΕΙΑΣ - ΚΑΤΑΣΤΑΣΗ.txt». Οδηγίες: docs/ΟΔΗΓΙΕΣ ΕΠΑΝΑΦΟΡΑΣ.txt. Ποτέ εγγραφή στο M: (server εταιρείας).
