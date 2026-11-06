@@ -13,6 +13,10 @@ import sys
 
 
 def launch(p, **kw):
+    # WEEE_SCROLLBARS=1: ΟΡΑΤΕΣ μπάρες scroll όπως στον πραγματικό Chrome (το headless τις κρύβει και οι μπάρες δεν παίρνουν πλάτος· έτσι δεν φαίνονται λάθη πλάτους)
+    import os
+    if os.environ.get("WEEE_SCROLLBARS") == "1" and "ignore_default_args" not in kw:
+        kw["ignore_default_args"] = ["--hide-scrollbars"]
     b = p.chromium.launch(**kw)
 
     def _close(*_):
