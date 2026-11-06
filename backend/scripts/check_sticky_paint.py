@@ -82,6 +82,7 @@ def run(base='http://127.0.0.1:8000'):
                     n = max(pg.evaluate(f"[...document.querySelectorAll('{sel} {tabs[0]}')].filter(b=>b.offsetParent).length"), 1)
                     for i in range(n):
                         pg.evaluate(f"(()=>{{let l=[...document.querySelectorAll('{sel} {tabs[0]}')].filter(b=>b.offsetParent);if(l[{i}])l[{i}].click()}})()"); pg.wait_for_timeout(1800)
+                        if pg.evaluate("(()=>{let e=document.getElementById('recAnalysis');return !!e&&!e.classList.contains('hidden')})()"): pg.wait_for_timeout(6000)   # η Ανάλυση παραλαβών φορτώνει δεδομένα (~3")
                         for state in ('κλειστές ομάδες', 'ανοιχτές ομάδες'):
                             if state == 'ανοιχτές ομάδες':
                                 pg.evaluate(f"document.querySelectorAll('{sel} .prodMajorHead:not(.expanded), {sel} th.rmGTop:not(.expanded), {sel} th.thGroup:not(.expanded)').forEach(x=>{{if(x.offsetParent)x.click()}})"); pg.wait_for_timeout(1500)

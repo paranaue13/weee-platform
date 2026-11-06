@@ -3884,6 +3884,37 @@ def _load_opening_stock_2025()->dict:
         _opening_stock_2025_cache={k:float(v) for k,v in raw.items() if not k.startswith('_')}
     return _opening_stock_2025_cache
 
+# Κωδικοί ΑΗΗΕ που πάνε «προς αποστολή» (οι υπόλοιποι «προς επεξεργασία»)· κοινό για την Αποθήκη ΑΗΗΕ και την Ανάλυση παραλαβών
+WEEE_SHIP_OFFICIAL={'1Α1100','1Α1200','1Α2100','1Α2200','1Α3000','3Α0000','3Β0000','4Γ0000','5Β1000','5Γ0000','5Ι1100','6Δ1000','6Δ2000'}
+
+@app.get('/inventory/weee-receipt-analysis')
+def weee_receipt_analysis(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), by:str=Query(default='day',pattern=r'^(day|month)$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    # Ανάλυση παραλαβών: ανά ημέρα (ή μήνα) η συνολική παραλαβή (καθαρό βάρος φορτίων, όπως το KPI «Παραλαβές» της Αποθήκης ΑΗΗΕ)
+    # και η ταξινόμηση που πάει προς επεξεργασία / προς αποστολή (ίδιος κανόνας βάρους και ίδια λίστα WEEE_SHIP_OFFICIAL με την Αποθήκη ΑΗΗΕ).
+    s=datetime.fromisoformat(start); e=datetime.fromisoformat(end)
+    lo=datetime(s.year,s.month,s.day); hi=datetime(e.year,e.month,e.day)+timedelta(days=1)
+    cats=db.scalars(select(WEEECategory).where(WEEECategory.active==True)).all()
+    official={c.id:(c.parent_code if c.is_internal_subcategory and c.parent_code else c.code) for c in cats}
+    key=(lambda d:d.strftime('%Y-%m-%d')) if by=='day' else (lambda d:d.strftime('%Y-%m'))
+    out={}
+    def slot(k):
+        return out.setdefault(k,{'key':k,'receipts':0.0,'to_process':0.0,'to_ship':0.0,'days':set()})
+    trips=db.scalars(select(InboundTrip).where(InboundTrip.receipt_date>=lo,InboundTrip.receipt_date<hi,InboundTrip.deleted_at.is_(None))).all()
+    tdate={t.id:t.receipt_date for t in trips}
+    for t in trips:
+        slot(key(t.receipt_date))['days'].add(t.receipt_date.strftime('%Y-%m-%d'))
+    if tdate:
+        for l in db.scalars(select(InboundLoad).where(InboundLoad.trip_id.in_(list(tdate.keys())))).all():
+            slot(key(tdate[l.trip_id]))['receipts']+=float(l.net_weight or 0)
+    entries=db.execute(select(models.SortingEntry,InboundTrip).join(SortingSession,models.SortingEntry.session_id==SortingSession.id).join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(InboundTrip.receipt_date>=lo,InboundTrip.receipt_date<hi,InboundTrip.deleted_at.is_(None))).all()
+    for en,trip in entries:
+        off=official.get(en.weee_category_id)
+        if off is None or (len(str(off))==6 and str(off).isdigit()): continue   # μόνο ΑΗΗΕ (όχι οι ΜΗ ΑΗΗΕ των 6 ψηφίων)
+        w=float(en.approved_weight if en.approved_weight is not None else (en.raw_weight or 0))
+        sl=slot(key(trip.receipt_date)); sl['to_ship' if off in WEEE_SHIP_OFFICIAL else 'to_process']+=w
+    rows=[{'key':k,'receipts':round(v['receipts'],3),'to_process':round(v['to_process'],3),'to_ship':round(v['to_ship'],3),'days':len(v['days'])} for k,v in sorted(out.items())]
+    return {'by':by,'start':start,'end':end,'rows':rows}
+
 @app.get('/inventory/weee-dashboard')
 def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), day:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), start:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     now=datetime.now()
@@ -3997,7 +4028,7 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         pf=carry_in.get(fam,0)+opening_family.get(fam,0)-processed_opening_family.get(fam,0)
         prev_family[fam]=pf
         cur_family[fam]=pf+classified_family.get(fam,0)-processed_family.get(fam,0)-outgoing_family.get(fam,0)
-    ship_official={'1Α1100','1Α1200','1Α2100','1Α2200','1Α3000','3Α0000','3Β0000','4Γ0000','5Β1000','5Γ0000','5Ι1100','6Δ1000','6Δ2000'}
+    ship_official=WEEE_SHIP_OFFICIAL
     # Κωδικοί ΔΙΚΩΝ ΜΑΣ υποκατηγοριών (μόνο για εμφάνιση): πρώτα 3 ψηφία του γονέα + 001, 002… με τη σειρά των Μητρώων (sort_order)· ποτέ ίδιοι με επίσημο κωδικό
     official_codes={c.code for c in db.scalars(select(WEEECategory)).all() if not c.is_internal_subcategory}
     sub_code={}; _n={}
