@@ -1,0 +1,14 @@
+#!/bin/sh
+# Πριν από push: ίδιος έλεγχος στα commit που ανεβαίνουν. Ποτέ δεν μπλοκάρει αν δεν τρέχει ο έλεγχος.
+ROOT="$(git rev-parse --show-toplevel)"
+PY="$ROOT/backend/.venv/Scripts/python.exe"
+[ -x "$PY" ] || PY=python
+ZERO=0000000000000000000000000000000000000000
+while read local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$ZERO" ] && continue
+  if [ "$remote_sha" = "$ZERO" ]; then RANGE="$(git hash-object -t tree /dev/null)..$local_sha"; else RANGE="$remote_sha..$local_sha"; fi
+  "$PY" "$ROOT/backend/scripts/check_no_secrets.py" --range "$RANGE"
+  rc=$?
+  [ "$rc" -eq 1 ] && exit 1
+done
+exit 0

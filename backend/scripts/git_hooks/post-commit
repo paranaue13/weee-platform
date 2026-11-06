@@ -1,0 +1,15 @@
+#!/bin/sh
+# Μετά από κάθε commit: ανεβάζει τον κώδικα στο GitHub ΣΤΟ ΠΑΡΑΣΚΗΝΙΟ.
+# Ποτέ δεν καθυστερεί και ποτέ δεν σπάει το commit: χωρίς δίκτυο ή χωρίς σύνδεση στο GitHub γράφεται απλά στο git_push.log.
+git remote get-url origin >/dev/null 2>&1 || exit 0
+LOGDIR="${LOCALAPPDATA:-$HOME}/WEEE Platform"
+mkdir -p "$LOGDIR" 2>/dev/null
+LOG="$LOGDIR/git_push.log"
+(
+  if GIT_TERMINAL_PROMPT=0 GCM_INTERACTIVE=never timeout 90 git push -q origin HEAD >>"$LOG" 2>&1; then
+    echo "$(date '+%Y-%m-%d %H:%M:%S') push OK" >>"$LOG"
+  else
+    echo "$(date '+%Y-%m-%d %H:%M:%S') push ΑΠΕΤΥΧΕ (χωρίς δίκτυο ή χωρίς σύνδεση GitHub)" >>"$LOG"
+  fi
+) >/dev/null 2>&1 &
+exit 0

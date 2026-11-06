@@ -445,6 +445,22 @@ def refresh_token(user: User=Depends(current_user)):
     """Νέο token με νέα διάρκεια (για το κανάλι /events και για μακρές βάρδιες)."""
     return schemas.Token(access_token=make_token(user))
 
+@app.get("/system/backup-status")
+def system_backup_status(user: User=Depends(current_user)):
+    """Κατάσταση των αντιγράφων ΕΚΤΟΣ ΔΙΣΚΟΥ (γράφεται από backend/scripts/offsite_backup.py). stale=True αν το τελευταίο επιτυχημένο εξωτερικό αντίγραφο είναι παλιότερο από 36 ώρες ή δεν υπάρχει."""
+    import json as _json
+    from datetime import datetime as _dt
+    p=Path(os.environ.get("WEEE_BACKUP_STATUS") or (Path(os.environ.get("LOCALAPPDATA") or (Path.home()/"AppData"/"Local"))/"WEEE Platform"/"backup_status.json"))
+    st={}
+    try: st=_json.loads(p.read_text(encoding="utf-8"))
+    except Exception: pass
+    ext=st.get("last_external_ok"); hours=None
+    try: hours=round((_dt.now()-_dt.strptime(ext,"%Y-%m-%d %H:%M:%S")).total_seconds()/3600,1) if ext else None
+    except Exception: hours=None
+    stale=hours is None or hours>36
+    return {"stale":stale,"hours":hours,"last_external_ok":ext,"last_run":st.get("last_run"),"errors":st.get("errors") or [],
+            "usb":st.get("usb") or {},"onedrive":st.get("onedrive") or {},"github":st.get("github") or {}}
+
 @app.get("/me")
 def me(db: Session=Depends(get_db), user: User=Depends(current_user)):
     person=db.get(Person,user.person_id) if user.person_id else None

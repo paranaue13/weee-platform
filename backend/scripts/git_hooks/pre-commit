@@ -1,0 +1,9 @@
+#!/bin/sh
+# Αρνείται commit με .db/.env/κλειδιά/μεγάλα αρχεία. Αν δεν μπορεί να τρέξει ο έλεγχος, ΑΦΗΝΕΙ το commit να περάσει.
+ROOT="$(git rev-parse --show-toplevel)"
+PY="$ROOT/backend/.venv/Scripts/python.exe"
+[ -x "$PY" ] || PY=python
+"$PY" "$ROOT/backend/scripts/check_no_secrets.py" --staged
+rc=$?
+[ "$rc" -eq 1 ] && exit 1
+exit 0
