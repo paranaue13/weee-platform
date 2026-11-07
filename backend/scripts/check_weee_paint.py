@@ -18,9 +18,9 @@ SIZES = [(1920, 1080), (1536, 730), (1366, 768), (1280, 720), (1100, 700)]
 TABS = ["stock", "media", "nonweee"]
 
 GEOM = """()=>{const v=document.getElementById('weee');const R=e=>{const b=e.getBoundingClientRect();return {l:b.left,r:b.right,t:b.top,b:b.bottom,w:b.width}};
- const vr=R(v),cr=vr.r-(v.offsetWidth-v.clientWidth);
+ const sc=(document.getElementById('weeeBody')&&!v.classList.contains('weeeNoStick'))?document.getElementById('weeeBody'):v;const vr=R(v),cr=R(sc).r-(sc.offsetWidth-sc.clientWidth);
  const tabs=[...v.querySelectorAll('.stockTable')].filter(t=>t.offsetParent);
- const o={view:vr,clientR:cr,sw:v.scrollWidth,cw:v.clientWidth,sx:v.scrollLeft,sy:v.scrollTop,maxY:v.scrollHeight-v.clientHeight,tables:tabs.map(t=>({id:t.id,rect:R(t),
+ const o={view:vr,clientR:cr,sw:sc.scrollWidth,cw:sc.clientWidth,sx:sc.scrollLeft,sy:sc.scrollTop,maxY:sc.scrollHeight-sc.clientHeight,tables:tabs.map(t=>({id:t.id,rect:R(t),
    hdr:[...t.tHead.rows[0].cells].filter(c=>getComputedStyle(c).display!=='none').map(c=>{const b=c.getBoundingClientRect();const cs=getComputedStyle(c);return {txt:c.innerText.trim().slice(0,16),l:b.left,r:b.right,t:b.top,b:b.bottom,bg:cs.backgroundColor,bgi:cs.backgroundImage,pos:cs.position,wcol:c.dataset.wcol||''}}),
    rows:[...t.tBodies[0].rows].slice(0,12).map(r=>{const rr=r.getBoundingClientRect(),rs=getComputedStyle(r);return {cls:r.className,t:rr.top,b:rr.bottom,bg:rs.backgroundColor,cells:[...r.cells].filter(c=>getComputedStyle(c).display!=='none').map(c=>{const cs=getComputedStyle(c);return {l:c.getBoundingClientRect().left,r:c.getBoundingClientRect().right,bg:cs.backgroundColor,bgi:cs.backgroundImage,pos:cs.position}})}})}))};
  const btns=[...document.querySelectorAll('#weeeStick .weeeRight .btn, #weeeStick .weeeKpisCompact>*:last-child')].filter(e=>e.offsetParent).map(e=>({n:(e.id||e.className).toString().slice(0,24),r:e.getBoundingClientRect().right}));
@@ -57,7 +57,7 @@ def run(base="http://127.0.0.1:8000", quick=False):
                     pg.evaluate(f"document.querySelector('[data-weeetab=\"{tab}\"]').click()"); pg.mouse.move(2, 2); pg.wait_for_timeout(1800)
                     T = f"[{W}x{H} · {tab}]"
                     for sx in ("0", "max"):
-                        pg.evaluate(f"(()=>{{const v=document.getElementById('weee');v.scrollLeft={'0' if sx=='0' else '1e9'};v.scrollTop=0}})()"); pg.wait_for_timeout(250)
+                        pg.evaluate(f"(()=>{{const w0=document.getElementById('weee'),v=(document.getElementById('weeeBody')&&!w0.classList.contains('weeeNoStick'))?document.getElementById('weeeBody'):w0;v.scrollLeft={'0' if sx=='0' else '1e9'};v.scrollTop=0}})()"); pg.wait_for_timeout(250)
                         g = pg.evaluate(GEOM)
                         cr = g["clientR"]
                         tbs = g["tables"]
@@ -83,8 +83,8 @@ def run(base="http://127.0.0.1:8000", quick=False):
                         # (5) δεξιά άκρα
                         if sx == "0":
                             for e in g["edge"]:
-                                if e["r"] > cr + 0.6:
-                                    bad(f"{T} το «{e['n']}» κόβεται/κολλά στο δεξί άκρο ({e['r']:.1f} > {cr + 0.6:.1f})")
+                                if e["r"] > g["view"]["r"] + 0.6:   # το πάνω μέρος είναι εκτός του κυλιόμενου πλαισίου: φτάνει μέχρι το δεξί άκρο της σελίδας
+                                    bad(f"{T} το «{e['n']}» κόβεται/κολλά στο δεξί άκρο ({e['r']:.1f} > {g['view']['r'] + 0.6:.1f})")
                         # (3) χρώματα με στοιχεία DOM
                         for t in tbs:
                             hb = [rgb(h["bg"]) for h in t["hdr"]]
@@ -123,7 +123,7 @@ def run(base="http://127.0.0.1:8000", quick=False):
                     # (4) γραμμή κεφαλίδας με scroll κάτω
                     if tab == "stock":
                         for sy in ("mid", "max"):
-                            pg.evaluate(f"(()=>{{const v=document.getElementById('weee');v.scrollLeft=0;v.scrollTop={'Math.round((v.scrollHeight-v.clientHeight)/2)' if sy=='mid' else 'v.scrollHeight'}}})()"); pg.wait_for_timeout(300)
+                            pg.evaluate(f"(()=>{{const w0=document.getElementById('weee'),v=(document.getElementById('weeeBody')&&!w0.classList.contains('weeeNoStick'))?document.getElementById('weeeBody'):w0;v.scrollLeft=0;v.scrollTop={'Math.round((v.scrollHeight-v.clientHeight)/2)' if sy=='mid' else 'v.scrollHeight'}}})()"); pg.wait_for_timeout(300)
                             g = pg.evaluate(GEOM)
                             img = Image.open(io.BytesIO(pg.screenshot())).convert("RGB")
                             pinned = max((t["hdr"][0]["t"] for t in g["tables"]), default=0)

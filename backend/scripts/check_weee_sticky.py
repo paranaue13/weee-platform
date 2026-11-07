@@ -11,21 +11,22 @@ from _browser import launch
 
 AUDIT = """async()=>{
  const out=[],v=document.getElementById('weee');if(!v||!v.offsetParent)return ['(η Αποθήκη ΑΗΗΕ δεν φαίνεται)'];
- const vr=()=>v.getBoundingClientRect(),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+ const sc=(document.getElementById('weeeBody')&&!v.classList.contains('weeeNoStick'))?document.getElementById('weeeBody'):v;
+ const vr=()=>sc.getBoundingClientRect(),sleep=ms=>new Promise(r=>setTimeout(r,ms));
  const stick=document.getElementById('weeeStick');
  const pane=document.getElementById('weeeStockPane');
  const secs=[...v.querySelectorAll('#weeeStockPane .weeeSec')].filter(s=>s.offsetParent);
- const maxY=Math.max(0,v.scrollHeight-v.clientHeight),maxX=Math.max(0,v.scrollWidth-v.clientWidth);
+ const maxY=Math.max(0,sc.scrollHeight-sc.clientHeight),maxX=Math.max(0,sc.scrollWidth-sc.clientWidth);
  const ys=[0,Math.round(maxY*.12),Math.round(maxY*.3),Math.round(maxY*.55),Math.round(maxY*.8),maxY];
  const xs=maxX>2?[0,maxX]:[0];
  const noStick=v.classList.contains('weeeNoStick');
  const half=v.getBoundingClientRect().height/2;
  const sticks=getComputedStyle(stick).position==='sticky';
  // (6) όριο μισού ύψους
- const topBand=(stick?stick.getBoundingClientRect().height:0)+(secs[0]&&secs[0].querySelector('.weeeSecHd')?secs[0].querySelector('.weeeSecHd').getBoundingClientRect().height:0)+(secs[0]&&secs[0].querySelector('thead')?secs[0].querySelector('thead').getBoundingClientRect().height:0);
+ const topBand=((stick&&getComputedStyle(stick).position==='sticky')?stick.getBoundingClientRect().height:0)+(secs[0]&&secs[0].querySelector('.weeeSecHd')?secs[0].querySelector('.weeeSecHd').getBoundingClientRect().height:0)+(secs[0]&&secs[0].querySelector('thead')?secs[0].querySelector('thead').getBoundingClientRect().height:0);
  if(topBand>half+1&&(sticks&&!noStick))out.push('το σταθερό κομμάτι ('+Math.round(topBand)+'px) πιάνει πάνω από το μισό ύψος ('+Math.round(half*2)+'px) αλλά κολλά');
  for(const sx of xs)for(const sy of ys){
-  v.scrollLeft=sx;v.scrollTop=sy;await sleep(60);
+  sc.scrollLeft=sx;sc.scrollTop=sy;await sleep(60);
   const R=vr(),tag='[scroll '+(sx?'δεξιά ':'')+sy+'/'+maxY+']';
   // ζώνη σταθερών: από την κορυφή του scroll ως το κάτω όριο του τελευταίου κολλημένου στοιχείου
   let bottom=R.top;const kept=[];
@@ -63,7 +64,7 @@ AUDIT = """async()=>{
   if(sx>0){secs.forEach(s=>{const t=s.querySelector('tbody tr td:first-child'),th=s.querySelector('thead th:first-child');
     [t,th].forEach(e=>{if(!e||!e.offsetParent)return;const b=e.getBoundingClientRect();if(b.bottom>top&&b.top<R.bottom&&b.right<R.left+10)out.push(tag+' η πρώτη στήλη («'+(e.innerText||'').trim().slice(0,10)+'») δεν μένει ορατή στο οριζόντιο scroll')})})}
  }
- v.scrollLeft=0;v.scrollTop=0;
+ sc.scrollLeft=0;sc.scrollTop=0;
  return [...new Set(out)];
 }"""
 
