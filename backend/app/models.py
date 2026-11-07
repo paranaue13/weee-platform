@@ -1104,3 +1104,21 @@ class MaterialTab(Base, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(default=0)
     is_system: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=True)
+
+
+class ActionHistory(Base):
+    """Καθολικό ιστορικό ενεργειών Windows για Αναίρεση/Επανάληψη (Φάση 1: μόνο ασφαλείς ενέργειες + «κλεισίματα» ως φραγμοί).
+    kind: ενέργεια που αναιρείται (mat_corr_add / mat_corr_del / receipt_delete) ή 'closing' (κλείσιμο φόρτωσης/παραλαβής/ΔΠΠ: ΠΟΤΕ δεν αναιρείται από εδώ).
+    subjects: στοιχεία που αγγίζει η ενέργεια (π.χ. 'mat:ΥΛΙΚΟ', 'receipt:ID')· δύο ενέργειες συγκρούονται μόνο αν μοιράζονται στοιχείο.
+    status: DONE (ενεργή) / UNDONE (αναιρέθηκε, διαθέσιμη για Επανάληψη)."""
+    __tablename__ = "action_history"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True, index=True)
+    username: Mapped[str|None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    kind: Mapped[str] = mapped_column(String(40), index=True)
+    label: Mapped[str] = mapped_column(String(300))
+    subjects: Mapped[str] = mapped_column(Text, default="[]")
+    payload: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(10), default="DONE", index=True)
+    undoable: Mapped[bool] = mapped_column(Boolean, default=True)

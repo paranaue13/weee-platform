@@ -21,7 +21,7 @@ for(const t of document.querySelectorAll('table')){if(!t.offsetParent)continue;
  let foot=[...t.querySelectorAll('tfoot tr')].filter(r=>(getComputedStyle(r.firstElementChild||r).position==='sticky'&&getComputedStyle(r.firstElementChild||r).bottom!=='auto'));
  if(foot.length){let tot=0,prev=null;for(const r of foot){let b=r.getBoundingClientRect();tot+=b.height;if(prev&&b.top<prev.bottom-1.5)bad.push(name+': γραμμές συνόλων επικαλύπτονται');prev=b}
   /* ΑΛΛΑΓΗ ΚΗ-2: το κάτω μπλοκ είναι ΠΑΝΤΑ ολόκληρο ορατό — ο παλιός περιορισμός «μισό ύψος» αφαιρέθηκε (η ορατότητα ελέγχεται στο check_tables_geometry.py) */}
- if(w.scrollHeight>w.clientHeight+2&&wr.bottom<vh-60&&![...(w.parentElement?w.parentElement.querySelectorAll('table'):[])].some(o=>o!==t&&o.offsetParent&&(t.compareDocumentPosition(o)&4))&&!w.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail'))bad.push(name+': ο πίνακας δεν γεμίζει το παράθυρο (άδειο '+Math.round(vh-wr.bottom)+'px κάτω)');
+ if(w.scrollHeight>w.clientHeight+2&&wr.bottom<vh-60-(document.body.dataset.menupos==='bottom'?68:0)&&![...(w.parentElement?w.parentElement.querySelectorAll('table'):[])].some(o=>o!==t&&o.offsetParent&&(t.compareDocumentPosition(o)&4))&&!w.closest('.floatPanel,#floatingEditor,#receiptForm,#sortingDetail'))bad.push(name+': ο πίνακας δεν γεμίζει το παράθυρο (άδειο '+Math.round(vh-wr.bottom)+'px κάτω)');
 }return [...new Set(bad)]}"""
 with sync_playwright() as p:
     b = launch(p)

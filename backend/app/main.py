@@ -428,6 +428,8 @@ from .mat_warehouse import router as _mat_router
 app.include_router(_mat_router)
 from .mat_labels import router as _mat_labels_router
 app.include_router(_mat_labels_router)
+from .history import router as _history_router, record as _hist_record
+app.include_router(_history_router)
 
 @app.get("/health")
 def health(): return {"status":"ok","version":"2.5.35"}
@@ -2308,6 +2310,7 @@ def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Dep
     obj=models.MaterialCorrectionEntry(work_date=wd,material_label=data.material_label,weight_kg_delta=data.weight_kg_delta,piece_delta=data.piece_delta,reason=data.reason,created_by_user_id=user.id)
     db.add(obj); db.flush()
     write_audit(db,user,'material_correction',obj.id,'CREATE',new={'material':data.material_label,'kg':str(data.weight_kg_delta),'pieces':data.piece_delta,'reason':data.reason})
+    _hist_record(db,user,'mat_corr_add','Διόρθωση υλικού «'+data.material_label+'» ('+str(data.weight_kg_delta)+' kg, '+str(data.piece_delta)+' τεμ.)',['mat:'+data.material_label],{'id':obj.id,'work_date':wd.isoformat(),'material_label':data.material_label,'kg':str(data.weight_kg_delta),'pieces':data.piece_delta,'reason':data.reason,'created_by':user.id})
     db.commit(); db.refresh(obj)
     return schemas.MaterialCorrectionOut(id=obj.id,work_date=obj.work_date.date().isoformat(),material_label=obj.material_label,weight_kg_delta=obj.weight_kg_delta,piece_delta=obj.piece_delta,reason=obj.reason,created_by=user.username,created_at=obj.created_at.isoformat() if obj.created_at else None)
 
@@ -2317,6 +2320,7 @@ def delete_material_correction(entry_id:str, db:Session=Depends(get_db), user:Us
     obj=db.get(models.MaterialCorrectionEntry,entry_id)
     if not obj: raise HTTPException(404,"Δεν βρέθηκε")
     write_audit(db,user,'material_correction',obj.id,'DELETE',old={'material':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta})
+    _hist_record(db,user,'mat_corr_del','Διαγραφή διόρθωσης υλικού «'+obj.material_label+'» ('+str(obj.weight_kg_delta)+' kg, '+str(obj.piece_delta)+' τεμ.)',['mat:'+obj.material_label],{'id':obj.id,'work_date':obj.work_date.isoformat(),'material_label':obj.material_label,'kg':str(obj.weight_kg_delta),'pieces':obj.piece_delta,'reason':obj.reason,'created_by':obj.created_by_user_id})
     db.delete(obj); db.commit()
     return {"ok":True}
 
@@ -2809,6 +2813,7 @@ def delete_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends
     # Το απόθεμα της διαγραμμένης παραλαβής δεν υπολογίζεται πουθενά (ό,τι έχει ήδη καταναλωθεί στην παραγωγή μένει ως έχει)
     for lot in db.scalars(select(WEEEStockLot).join(InboundLoad,InboundLoad.id==WEEEStockLot.inbound_load_id).where(InboundLoad.trip_id==receipt_id)).all(): _retire_lot(db,lot)
     write_audit(db,user,"receipt",receipt_id,"SOFT_DELETE",old={"receipt_number":trip.receipt_number},new={"deleted":True})
+    _hist_record(db,user,'receipt_delete','Διαγραφή παραλαβής '+str(trip.receipt_number),['receipt:'+receipt_id],{'id':receipt_id})
     db.commit(); return {"status":"archived","id":receipt_id}
 
 @app.get("/receipts-archive", response_model=list[schemas.ReceiptOut])
@@ -2849,6 +2854,7 @@ def ready_for_sorting(receipt_id:str, db:Session=Depends(get_db), user:User=Depe
     for l in loads: l.status="READY_FOR_SORTING"; l.ready_for_sorting_at=now
     trip.status="READY_FOR_SORTING"
     write_audit(db,user,"receipt",trip.id,"READY_FOR_SORTING",new={"loads":len(loads),"at":now.isoformat()})
+    _hist_record(db,user,'closing','Κλείσιμο παραλαβής '+str(trip.receipt_number),['receipt:'+trip.id],{},undoable=False)
     db.commit()
     return schemas.ReceiptStatusOut(id=trip.id,receipt_number=trip.receipt_number,status=trip.status,loads_ready=len(loads),loads_total=len(loads))
 
@@ -3574,7 +3580,9 @@ def management_approve(load_id:str, db:Session=Depends(get_db), user:User=Depend
     if not ses or ses.status!='MANAGEMENT_REVIEW': raise HTTPException(409,'Δεν υπάρχει εκκρεμής έγκριση Διοίκησης')
     ses.status='CLOSED'; ses.correction=False; ses.management_confirmed_at=datetime.now(timezone.utc); ses.management_confirmed_by=user.id; load.status='CLOSED'
     _materialize_weee_stock(db, load, ses, user)
-    write_audit(db,user,'sorting_session',ses.id,'MANAGEMENT_APPROVE',new={'status':'CLOSED'}); db.commit(); return _sorting_payload(db,load,ses)
+    write_audit(db,user,'sorting_session',ses.id,'MANAGEMENT_APPROVE',new={'status':'CLOSED'})
+    _hist_record(db,user,'closing','Κλείσιμο ταξινόμησης (έγκριση Διοίκησης)',['receipt:'+str(load.trip_id),'load:'+str(load.id)],{},undoable=False)
+    db.commit(); return _sorting_payload(db,load,ses)
 
 def _save_report_copy(tmp_path,filename):
     from . import docs_storage; docs_storage.save_report(tmp_path,filename,docs_storage._now())
@@ -5183,6 +5191,7 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
             description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(o.eka_code or (m.eka_code if m else None)),reptool_code=(o.reptool_code or (m.reptool_code if m else None)),
             kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
     _enqueue_sync(db,'LOADING_ORDER',o.id,'UPSERT',{'loading_number':o.loading_number,'status':o.status,'loaded_weight':str(_loading_totals(db,o)[1])})
+    _hist_record(db,user,'closing','Κλείσιμο φόρτωσης / Δ.Α. '+str(number),['loading:'+o.id,'da:'+str(number)]+['mat:'+str(b.material_label) for b in bulk]+['mat:'+str(d['mat'].internal_name) for d in per_mat.values() if d['mat'] is not None]+['mat:'+str(d['mat'].official_description) for d in per_mat.values() if d['mat'] is not None and d['mat'].official_description],{},undoable=False)
     db.commit(); return _loading_out(db,o)
 
 @app.put('/loading/orders/{order_id}/da-details', response_model=schemas.LoadingOrderOut)

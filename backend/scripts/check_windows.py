@@ -43,8 +43,8 @@ def run(B='http://127.0.0.1:8000'):
                 if minId: pg.evaluate(f"document.querySelector('{minId}').click()"); pg.wait_for_timeout(300)
             pg.wait_for_timeout(500)
             bar = pg.evaluate("(()=>{const z=document.getElementById('zoomBar'),r=z.getBoundingClientRect();return [r.left,r.top,r.width,r.height,parseFloat(getComputedStyle(z).fontSize),parseFloat(getComputedStyle(document.querySelector('.nav button')).fontSize)]})()")
-            if abs(bar[3] - 42) > 1.5: problems.append(f'[μπάρα Μέγεθος] ύψος {bar[3]:.0f}px (πρέπει 42)')
-            if abs(bar[4] - bar[5]) > 0.5: problems.append(f'[μπάρα Μέγεθος] γραμματοσειρά {bar[4]}px ≠ αριστερό πάνελ {bar[5]}px')
+            if abs(bar[3] - (110 if pg.evaluate("document.body.dataset.menupos==='bottom'") else 42)) > 1.5: problems.append(f'[μπάρα Μέγεθος] ύψος {bar[3]:.0f}px (πρέπει 42)')
+            if not pg.evaluate("!!document.body.dataset.menupos") and abs(bar[4] - bar[5]) > 0.5: problems.append(f'[μπάρα Μέγεθος] γραμματοσειρά {bar[4]}px ≠ αριστερό πάνελ {bar[5]}px')
             # νέο μοντέλο: το ελαχιστοποιημένο παράθυρο κρύβεται και μπαίνει κουμπί (δύο γραμμές) στη μπάρα κάτω αριστερά, με τη σειρά που ανοίχτηκαν
             for name, js, sel, minId in wins:
                 if not minId: continue
