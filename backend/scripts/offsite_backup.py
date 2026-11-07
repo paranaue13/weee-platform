@@ -7,7 +7,7 @@
  - OneDrive: βάση και φωτογραφίες ΚΡΥΠΤΟΓΡΑΦΗΜΕΝΕΣ (.wbk, με δημόσιο κλειδί· χωρίς κωδικό στον υπολογιστή), πακέτο κώδικα όπως είναι.
  - Κράτηση (μόνο στα δικά μας αρχεία): 14 ημερήσια + 12 εβδομαδιαία + 12 μηνιαία.
  - Ανέβασμα κώδικα στο GitHub (ιδιωτικό αποθετήριο) αν έχει οριστεί remote «origin» (χωρίς ερώτηση κωδικού· αν δεν είναι συνδεδεμένο, γράφεται στην κατάσταση).
- - Κατάσταση: %LOCALAPPDATA%\\WEEE Platform\\backup_status.json + αρχείο «ΑΝΤΙΓΡΑΦΑ ΑΣΦΑΛΕΙΑΣ - ΚΑΤΑΣΤΑΣΗ.txt» στην Επιφάνεια Εργασίας.
+ - Κατάσταση: %LOCALAPPDATA%\\WEEE Platform\\backup_status.json + αρχείο «ΑΝΤΙΓΡΑΦΑ ΑΣΦΑΛΕΙΑΣ - ΚΑΤΑΣΤΑΣΗ.txt» στον φάκελο Έγγραφα/WEEE Platform/Αντίγραφα ασφαλείας.
 Δοκιμές/παράμετροι: --usb-root --onedrive-root --db --local-dir --desktop --excel-dir --no-git"""
 import argparse, ctypes, hashlib, json, os, re, shutil, sqlite3, string, subprocess, sys, time, traceback, zipfile
 from datetime import datetime, timedelta
@@ -260,7 +260,7 @@ def write_status(c, st):
         c.desktop.mkdir(parents=True, exist_ok=True)
         (c.desktop / STATUS_TXT).write_text(render_txt(st), encoding="utf-8-sig")
     except Exception as e:
-        log(c, "δεν γράφτηκε το αρχείο κατάστασης στην Επιφάνεια Εργασίας: " + str(e))
+        log(c, "δεν γράφτηκε το αρχείο κατάστασης στο φάκελο Έγγραφα/WEEE Platform/Αντίγραφα ασφαλείας: " + str(e))
 
 
 # ------------------------------------------------------------------ κύρια ροή
@@ -351,7 +351,7 @@ def main(argv=None):
     c = Ctx()
     c.local = Path(a.local_dir) if a.local_dir else Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local") / "WEEE Platform"
     c.keys = Path(a.keys_dir) if a.keys_dir else c.local / "backup_keys"
-    c.desktop = Path(a.desktop) if a.desktop else Path.home() / "Desktop"
+    c.desktop = Path(a.desktop) if a.desktop else Path.home() / "Documents" / "WEEE Platform" / "Αντίγραφα ασφαλείας"   # (παλιότερα Επιφάνεια Εργασίας)
     c.excel_dir = Path(a.excel_dir) if a.excel_dir else PROJECT.parents[1] / "Files"
     c.force_weekly = a.force_weekly
     c.stamp = datetime.now().strftime("%Y%m%d_%H%M")
