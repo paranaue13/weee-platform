@@ -3976,6 +3976,14 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         else:
             processed_period[cid]=processed_period.get(cid,0)+w
             if pe.supplier_group=='HERMES': processed_period_hermes[cid]=processed_period_hermes.get(cid,0)+w
+    # Διορθώσεις Παραγωγής (+/- kg ανά κατηγορία ΑΗΗΕ): μετράνε ως επεξεργασία της περιόδου τους. +500 => +500 «Επεξεργασία» => −500 στο απόθεμα (και στο «Χύμα»)· −500 αντίστροφα.
+    prod_corr=[]
+    for ce in db.scalars(select(models.MaterialCorrectionEntry).where(models.MaterialCorrectionEntry.material_label.like('ΠΑΡΑΓΩΓΗ:%'),models.MaterialCorrectionEntry.work_date<end)).all():
+        cid=ce.material_label.split(':',1)[1]
+        if cid not in cat_by_id: continue
+        w=float(ce.weight_kg_delta or 0); prod_corr.append((cid,ce.work_date,w))
+        if ce.work_date<start: processed_opening[cid]=processed_opening.get(cid,0)+w
+        else: processed_period[cid]=processed_period.get(cid,0)+w
     # One joined query instead of thousands of db.get() calls: critical for date-to-date navigation speed.
     movements=db.execute(select(StockMovement,WEEEStockLot,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',StockMovement.created_at<end,InboundTrip.deleted_at.is_(None)).order_by(StockMovement.created_at)).all()
     for mv,lot,trip in movements:
@@ -4007,6 +4015,8 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True)).all():
         fam=family_of.get(pe.weee_category_id,pe.weee_category_id)
         events.setdefault(fam,[]).append((pe.work_date,-float(pe.weight_kg or 0)))
+    for cid_,wd_,w_ in prod_corr:
+        events.setdefault(family_of.get(cid_,cid_),[]).append((wd_,-w_))
     for fam,evs in events.items():
         doc=documented_opening_family.get(fam,0.0)
         bal=doc; min_bal=doc
@@ -4039,6 +4049,28 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         pf=carry_in.get(fam,0)+opening_family.get(fam,0)-processed_opening_family.get(fam,0)
         prev_family[fam]=pf
         cur_family[fam]=pf+classified_family.get(fam,0)-processed_family.get(fam,0)-outgoing_family.get(fam,0)
+    # --- Επιμερισμός του «Απόθεματος προς επεξεργασία» στα μέσα συλλογής (Αποθήκη ΑΗΗΕ › Μέσα συλλογής) ---
+    # Κάθε αριθμημένο μέσο των Μητρώων παίρνει ό,τι έχει μπει σε αυτό με ταξινόμηση μείον ό,τι έφυγε από τις παρτίδες του (ίδια πρόσημα με το απόθεμα).
+    # Η επεξεργασία (παραγωγή), οι διορθώσεις Παραγωγής και το αρχικό απόθεμα δεν έχουν μέσο: μειώνουν/αυξάνουν ΠΑΝΤΑ το «Χύμα / χωρίς μέσο».
+    # Χύμα = Απόθεμα προς επεξεργασία − Σ(μέσα)· άρα το άθροισμα των στηλών ισούται πάντα με το απόθεμα· το έλλειμμα φαίνεται αρνητικό στο Χύμα (τα άλλα μέσα δεν γίνονται αρνητικά).
+    med_type_of={m.id:m.type_id for m in db.scalars(select(CollectionMedium)).all()}
+    _order=['BASKET_SMALL','BASKET_LARGE','INFOCYCLE_1','INFOCYCLE_2','SACK_1KG','SACK_2KG_UN','PALLET','BOX']
+    show_types=sorted([t for t in db.scalars(select(CollectionMediumType)).all() if t.active and t.code!='BULK' and (t.usage or 'BOTH')!='OUT'],key=lambda t:(_order.index(t.code) if t.code in _order else 90,t.name_el))
+    show_ids={t.id for t in show_types}
+    med_sum={}
+    for mv,lot,trip in db.execute(select(StockMovement,WEEEStockLot,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',WEEEStockLot.collection_medium_id.is_not(None),InboundTrip.deleted_at.is_(None))).all():
+        tid=med_type_of.get(lot.collection_medium_id)
+        if tid not in show_ids or lot.weee_category_id not in family_of: continue
+        ev=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
+        if ev>=end: continue
+        fam_=family_of[lot.weee_category_id]; k_=(fam_,tid)
+        med_sum[k_]=med_sum.get(k_,0.0)+(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0)
+    media_by_code={}
+    for fam_ in set(family_of.values()):
+        d_={t.id:round(max(0.0,med_sum.get((fam_,t.id),0.0)),3) for t in show_types}
+        d_['NONE']=round(cur_family.get(fam_,0)-sum(d_.values()),3)
+        media_by_code[fam_]=d_
+    _media={'types':[{'key':t.id,'code':t.code,'name':t.name_el} for t in show_types],'by_code':media_by_code}
     ship_official=WEEE_SHIP_OFFICIAL
     # Κωδικοί ΔΙΚΩΝ ΜΑΣ υποκατηγοριών (μόνο για εμφάνιση): πρώτα 3 ψηφία του γονέα + 001, 002… με τη σειρά των Μητρώων (sort_order)· ποτέ ίδιοι με επίσημο κωδικό
     official_codes={c.code for c in db.scalars(select(WEEECategory)).all() if not c.is_internal_subcategory}
@@ -4083,7 +4115,7 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     if ids:
         receipt_total=sum(float(l.net_weight or 0) for l in db.scalars(select(InboundLoad).where(InboundLoad.trip_id.in_(ids))).all())
     classified_process=round(sum(x['classification_period'] for x in out_process),3);classified_ship=round(sum(x['classification_period'] for x in out_ship),3)
-    return {'period':period,'selected':label,'month':label[:7],'kpis':{'receipts_period':round(receipt_total,3),'receipts_month':round(receipt_total,3),'classified_total':round(classified_process+classified_ship,3),'classified_to_process':classified_process,'classified_to_ship':classified_ship,'processed_period':round(sum(x['processed_period'] for x in rows),3),'processed_month':round(sum(x['processed_period'] for x in rows),3),'processed_hermes_total':round(sum(x['processed_month_hermes'] for x in rows),3),'weee_shipments_period':round(sum(x['outgoing_period'] for x in out_ship),3),'weee_shipments_month':round(sum(x['outgoing_period'] for x in out_ship),3),'stock_to_process':round(sum(x['current_stock'] for x in out_process if x['current_stock'] is not None),3),'stock_to_ship':round(sum(x['current_stock'] for x in out_ship if x['current_stock'] is not None),3),'inferred_carry_in':round(sum(carry_in.values()),3),'opening_stock_documented_total':round(sum(documented_opening_family.values()),3),'opening_stock_gap_total':round(sum(undocumented_gap_family.values()),3),'opening_stock_period_total':round(sum(x['previous_stock'] for x in rows if x['previous_stock'] is not None),3)},'to_process':out_process,'to_ship':out_ship}
+    return {'media':_media,'period':period,'selected':label,'month':label[:7],'kpis':{'receipts_period':round(receipt_total,3),'receipts_month':round(receipt_total,3),'classified_total':round(classified_process+classified_ship,3),'classified_to_process':classified_process,'classified_to_ship':classified_ship,'processed_period':round(sum(x['processed_period'] for x in rows),3),'processed_month':round(sum(x['processed_period'] for x in rows),3),'processed_hermes_total':round(sum(x['processed_month_hermes'] for x in rows),3),'weee_shipments_period':round(sum(x['outgoing_period'] for x in out_ship),3),'weee_shipments_month':round(sum(x['outgoing_period'] for x in out_ship),3),'stock_to_process':round(sum(x['current_stock'] for x in out_process if x['current_stock'] is not None),3),'stock_to_ship':round(sum(x['current_stock'] for x in out_ship if x['current_stock'] is not None),3),'inferred_carry_in':round(sum(carry_in.values()),3),'opening_stock_documented_total':round(sum(documented_opening_family.values()),3),'opening_stock_gap_total':round(sum(undocumented_gap_family.values()),3),'opening_stock_period_total':round(sum(x['previous_stock'] for x in rows if x['previous_stock'] is not None),3)},'to_process':out_process,'to_ship':out_ship}
 
 
 def _weee_family_code(c):
