@@ -430,6 +430,9 @@ from .mat_labels import router as _mat_labels_router
 app.include_router(_mat_labels_router)
 from .history import router as _history_router, record as _hist_record
 app.include_router(_history_router)
+from . import history_rows as _history_rows
+_history_rows.install(engine)
+app.add_middleware(_history_rows.HistCtx)
 
 @app.get("/health")
 def health(): return {"status":"ok","version":"2.5.35"}

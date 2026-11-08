@@ -58,6 +58,11 @@ def _conflict(db: Session, e: ActionHistory, user: User):
 def _valid(db: Session, e: ActionHistory, redo: bool) -> bool:
     """Η τρέχουσα κατάσταση των δεδομένων πρέπει να είναι ακριβώς αυτή που περιμένει η αναίρεση/επανάληψη."""
     p = json.loads(e.payload or "{}")
+    if e.kind == "rows":
+        from . import history_rows as HR
+        why = HR.check(db, p, redo)
+        _WHY[e.id] = why
+        return why is None
     if e.kind in ("mat_corr_add", "mat_corr_del"):
         exists = db.get(models.MaterialCorrectionEntry, p["id"]) is not None
         after = (e.kind == "mat_corr_add")      # μετά την ενέργεια η εγγραφή υπάρχει (add) ή όχι (del)
@@ -70,6 +75,10 @@ def _valid(db: Session, e: ActionHistory, redo: bool) -> bool:
     return False
 
 
+_WHY: dict = {}
+_LAST_WHY: dict = {}
+
+
 def _pick(db: Session, user: User, redo: bool):
     """Επιστρέφει (πρώτη εφαρμόσιμη ενέργεια ή None, υπάρχουν_υποψήφιες)."""
     st = "UNDONE" if redo else "DONE"
@@ -77,16 +86,19 @@ def _pick(db: Session, user: User, redo: bool):
     # Αναίρεση: από την πιο πρόσφατη. Επανάληψη: από την πιο παλιά αναιρεμένη (η ενέργεια που αναιρέθηκε πιο πρόσφατα είναι η παλαιότερη των αναιρεμένων)
     rows = db.scalars(q.order_by(ActionHistory.id.desc() if not redo else ActionHistory.id.asc())).all()
     for e in rows:
-        if _conflict(db, e, user) is None and _valid(db, e, redo):
+        c = _conflict(db, e, user)
+        if c is None and _valid(db, e, redo):
             return e, True
+        _WHY[e.id] = _WHY.get(e.id) if c is None else ("Η αλλαγή αφορά κλεισμένα δεδομένα (φόρτωση/παραλαβή/ΔΠΠ) και δεν αναιρείται από εδώ." if c == "closing" else "Την ίδια εγγραφή την άλλαξε στο μεταξύ άλλος χρήστης.")
+        _LAST_WHY[(user.id, redo)] = _WHY.get(e.id)
     return None, bool(rows)
 
 
 def _state(db: Session, user: User):
     u, hu = _pick(db, user, False)
     r, hr = _pick(db, user, True)
-    return {"can_undo": hu, "undo_label": (u.label if u else None), "undo_msg": (NOTHING_MSG if (hu and not u) else None),
-            "can_redo": hr, "redo_label": (r.label if r else None), "redo_msg": (NOTHING_REDO_MSG if (hr and not r) else None)}
+    return {"can_undo": hu, "undo_label": (u.label if u else None), "undo_msg": ((NOTHING_MSG + " " + (_LAST_WHY.get((user.id, False)) or "")).strip() if (hu and not u) else None),
+            "can_redo": hr, "redo_label": (r.label if r else None), "redo_msg": ((NOTHING_REDO_MSG + " " + (_LAST_WHY.get((user.id, True)) or "")).strip() if (hr and not r) else None)}
 
 
 def _recreate_correction(db: Session, p: dict, user: User):
@@ -106,12 +118,17 @@ def _run(db: Session, user: User, redo: bool):
     e, has = _pick(db, user, redo)
     if not e:
         if has:
-            raise HTTPException(409, NOTHING_REDO_MSG if redo else NOTHING_MSG)
+            raise HTTPException(409, ((NOTHING_REDO_MSG if redo else NOTHING_MSG) + " " + (_LAST_WHY.get((user.id, redo)) or "")).strip())
         raise HTTPException(409, "Δεν υπάρχει τίποτα για επανάληψη." if redo else "Δεν υπάρχει τίποτα για αναίρεση.")
     p = json.loads(e.payload or "{}")
     if e.kind in ("mat_corr_add", "mat_corr_del"):
         make = (e.kind == "mat_corr_del") != redo      # undo(add)=διαγραφή · undo(del)=επαναδημιουργία · redo = αντίστροφα
         (_recreate_correction if make else _delete_correction)(db, p, user)
+        e.status = "DONE" if redo else "UNDONE"
+        db.commit()
+    elif e.kind == "rows":
+        from . import history_rows as HR
+        HR.apply(db, p, redo)
         e.status = "DONE" if redo else "UNDONE"
         db.commit()
     elif e.kind == "receipt_delete":

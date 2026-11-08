@@ -34,6 +34,7 @@ def current_user(token: str = Depends(oauth2), db: Session = Depends(get_db)) ->
     user = db.get(User, uid)
     if not user or not user.active:
         raise HTTPException(status_code=401, detail="Ανενεργός χρήστης")
+    db.info["hist_user"] = user.id   # για το ιστορικό Αναίρεσης (history_rows)
     return user
 
 def user_permissions(user: User) -> set[str]:
