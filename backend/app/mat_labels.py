@@ -657,6 +657,28 @@ def mat_tab_create(data: TabName, db: Session = Depends(get_db), user: User = De
     return {"code": t.code, "name": t.name}
 
 
+class TabOrder(BaseModel):
+    codes: list[str]
+
+
+@router.put("/tabs-order")
+def mat_tabs_order(data: TabOrder, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+    """Νέα σειρά των καρτελών υλικών (σύρσιμο ολόκληρης καρτέλας). Αλλάζει ΜΟΝΟ το sort_order των ενεργών καρτελών· υλικά, ετικέτες, σύνολα και χρώματα μένουν ως έχουν.
+    Η στήλη «Χωρίς καρτέλα» δεν είναι καρτέλα και μένει πάντα τελευταία."""
+    ensure_material_tabs(db)
+    act = list(db.scalars(select(models.MaterialTab).where(models.MaterialTab.active == True)).all())
+    by = {t.code: t for t in act}
+    want = [c for c in data.codes if c in by]
+    if len(set(want)) != len(want) or set(want) != set(by):
+        raise HTTPException(409, "Η λίστα καρτελών δεν ταιριάζει με τις ενεργές καρτέλες· ανανέωσε τη σελίδα και ξαναπροσπάθησε")
+    old = [t.code for t in sorted(act, key=lambda x: (x.sort_order or 0, x.name))]
+    for i, c in enumerate(want):
+        by[c].sort_order = (i + 1) * 10
+    write_audit(db, user, "material_tab", None, "REORDER", old={"order": old}, new={"order": want})
+    db.commit()
+    return {"order": want}
+
+
 @router.put("/tabs/{code}")
 def mat_tab_rename(code: str, data: TabName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
     t = _custom_tab(db, code)
