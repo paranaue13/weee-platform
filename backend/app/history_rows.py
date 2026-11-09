@@ -21,7 +21,7 @@ req_ctx: ContextVar = ContextVar("hist_req", default=None)
 TRACKED = {c for c in (
     models.OrganizationalUnit, models.Employee, models.ProductionWorkEntry, models.Organization, models.OrganizationRegistryDetail,
     models.CarrierDriver, models.CarrierVehicle, models.WEEECategory, models.Material, models.StorageGroup, models.CollectionMediumType,
-    models.CollectionMedium, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None),
+    models.CollectionMedium, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "ProductionPlacementInterval", None),
 ) if c is not None}
 IGNORE_TABLES = {"audit_events", "action_history"}
 # πίνακες συσχετίσεων που γράφονται «ωμά»: (πίνακας) → (στήλη ιδιοκτήτη, στήλη τιμής, πίνακας ιδιοκτήτη)
@@ -40,11 +40,11 @@ ROUTES = [
 ]
 NEVER = re.compile(r"/(merge|purge|permanent|bulk-[a-z]+|move)$")
 
-TABLE_LABEL = {"organization_roles": "ρόλων οργανισμού", "organizations": "οργανισμού", "organization_registry_details": "στοιχείων οργανισμού", "organizational_units": "τμήματος", "employees": "εργαζομένου",
+TABLE_LABEL = {"organization_roles": "ρόλων οργανισμού", "organizations": "οργανισμού", "organization_registry_details": "στοιχείων οργανισμού", "organizational_units": "τμήματος", "employees": "εργαζομένου", "production_placement_intervals": "ιστορικού τοποθέτησης εργαζομένου",
                "production_work_entries": "εγγραφής παραγωγής", "carrier_drivers": "οδηγού", "carrier_vehicles": "οχήματος", "weee_categories": "κατηγορίας ΑΗΗΕ",
                "materials": "υλικού", "storage_groups": "ομάδας αποθήκευσης", "collection_medium_types": "τύπου μέσου", "collection_media": "μέσου συλλογής",
                "containers": "εμπορευματοκιβωτίου", "sorting_entries": "καταχώρησης ταξινόμησης", "weee_stock_lots": "παρτίδας αποθέματος", "stock_movements": "κίνησης αποθέματος", "org_unit_positions": "θέσης τμήματος", "people": "προσώπου", "employee_org_units": "τμημάτων εργαζομένου", "material_tabs": "καρτέλας υλικών"}
-PRIMARY_ORDER = ["sorting_entries", "production_work_entries", "organizations", "materials", "weee_categories", "organizational_units", "employees", "collection_media",
+PRIMARY_ORDER = ["sorting_entries", "production_work_entries", "organizations", "materials", "weee_categories", "organizational_units", "employees", "production_placement_intervals", "collection_media",
                  "collection_medium_types", "containers", "carrier_drivers", "carrier_vehicles", "storage_groups", "material_tabs", "organization_roles", "organization_registry_details", "weee_stock_lots", "stock_movements", "org_unit_positions", "employee_org_units", "people"]
 NAME_ATTRS = ("trade_name", "legal_name", "internal_name", "name_el", "display_name", "full_name", "name", "official_description", "code", "container_number", "plate")
 VERB = {"create": "Προσθήκη", "update": "Αλλαγή", "delete": "Διαγραφή"}
