@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     access_token_minutes: int = 480
     bootstrap_admin_username: str = "admin"
     bootstrap_admin_password: str = "ChangeMe123!"
-    # Ανακύκλωση Συσκευών Α.Ε. (electrocycle.itn.services) portal — read-only mirror of
+    # Ανακύκλωση Συσκευών Α.Ε. (eweee.electrocycle.gr) portal — read-only mirror of
     # today's "Ροή Εντολών" pickup orders. The persistent browser profile below is what
     # lets a scheduled sync skip the OTP step after the one-time "Θυμήσου αυτή τη συσκευή"
     # login; if that trust ever expires the sync fails visibly (see integrations/electrocycle.py)

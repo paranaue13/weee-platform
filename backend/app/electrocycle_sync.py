@@ -1,5 +1,5 @@
 """Live mirror of today's pickup orders from the Ανακύκλωση Συσκευών Α.Ε. portal
-(electrocycle.itn.services), 'Αναφορές -> Ροή Εντολών', filtered to our company and
+(eweee.electrocycle.gr), 'Αναφορές -> Ροή Εντολών', filtered to our company and
 delivery point 001, Παράδοση από/έως = today.
 
 This is a READ-ONLY monitoring feed: rows are cached in ElectrocycleOrder and shown
@@ -25,8 +25,8 @@ from . import models
 
 log = logging.getLogger("electrocycle")
 
-LOGIN_URL = "https://electrocycle.itn.services/Trash/login.aspx?ReturnUrl=%2fTrash%2fdefault.aspx"
-FLOW_URL = "https://electrocycle.itn.services/Trash/StatementFlow.aspx"
+LOGIN_URL = "https://eweee.electrocycle.gr/Trash/login.aspx?ReturnUrl=%2fTrash%2fdefault.aspx"
+FLOW_URL = "https://eweee.electrocycle.gr/Trash/StatementFlow.aspx"
 
 # CSV export column order confirmed by inspecting a real export (Build 2.5.36):
 # Α/Α Εντολής, Δρομ. Εκτέλεσης, Δρομ. Παράδοσης, Αποστολέας, Σημείο Παραλαβής,
