@@ -3926,6 +3926,10 @@ def weee_receipt_analysis(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:s
     rows=[{'key':k,'receipts':round(v['receipts'],3),'to_process':round(v['to_process'],3),'to_ship':round(v['to_ship'],3),'days':len(v['days'])} for k,v in sorted(out.items())]
     return {'by':by,'start':start,'end':end,'rows':rows}
 
+def _mv_sign(mt):
+    """Πρόσημο κίνησης στο απόθεμα ΑΗΗΕ. Μπαίνουν (+): εισαγωγή από ταξινόμηση, ΑΚΥΡΩΣΗ μεταφοράς προς παραγωγή (το αντίθετο της μεταφοράς), διόρθωση ταξινόμησης (το βάρος είναι ήδη με πρόσημο). Όλα τα άλλα βγαίνουν (−)."""
+    return 1 if mt in ('SORTING_IN','CANCEL_TO_PRODUCTION','SORTING_ADJUST') else -1
+
 @app.get('/inventory/weee-dashboard')
 def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), day:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), start:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     now=datetime.now()
@@ -3987,13 +3991,14 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     # One joined query instead of thousands of db.get() calls: critical for date-to-date navigation speed.
     movements=db.execute(select(StockMovement,WEEEStockLot,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',StockMovement.created_at<end,InboundTrip.deleted_at.is_(None)).order_by(StockMovement.created_at)).all()
     for mv,lot,trip in movements:
-        sign=1 if mv.movement_type=='SORTING_IN' else -1; w=sign*float(mv.weight or 0); cid=lot.weee_category_id
+        sign=_mv_sign(mv.movement_type); w=sign*float(mv.weight or 0); cid=lot.weee_category_id
         # Imported 2026 SORTING_IN movements were created on import day; inventory must follow the
         # actual receipt date. Otherwise historical months start at zero and production creates false negatives.
         event_at=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
         if event_at<start: opening[cid]=opening.get(cid,0)+w
         current[cid]=current.get(cid,0)+w
         if start<=event_at<end and sign<0: outgoing[cid]=outgoing.get(cid,0)+abs(w)
+        elif start<=event_at<end and mv.movement_type=='CANCEL_TO_PRODUCTION': outgoing[cid]=outgoing.get(cid,0)-w   # η ακύρωση αναιρεί την έξοδο της μεταφοράς
     # Opening stock at 31/12/2025 is documented (user-supplied physical count), not
     # invented. Where a code isn't on that sheet, or the documented amount still isn't
     # enough to cover recorded 2026 consumption at some point in the year, the gap is
@@ -4009,7 +4014,7 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     events={}
     for mv,lot,trip in all_movements:
         event_at=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
-        delta=(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0)
+        delta=_mv_sign(mv.movement_type)*float(mv.weight or 0)
         fam=family_of.get(lot.weee_category_id,lot.weee_category_id)
         events.setdefault(fam,[]).append((event_at,delta))
     for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True)).all():
@@ -4064,7 +4069,7 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         ev=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
         if ev>=end: continue
         fam_=family_of[lot.weee_category_id]; k_=(fam_,tid)
-        med_sum[k_]=med_sum.get(k_,0.0)+(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0)
+        med_sum[k_]=med_sum.get(k_,0.0)+_mv_sign(mv.movement_type)*float(mv.weight or 0)
     media_by_code={}
     for fam_ in set(family_of.values()):
         d_={t.id:round(max(0.0,med_sum.get((fam_,t.id),0.0)),3) for t in show_types}
@@ -4402,7 +4407,7 @@ def weee_category_history(official_code:str, db:Session=Depends(get_db), user=De
     ids=[c.id for c in db.scalars(select(WEEECategory).where(WEEECategory.code==official_code)).all()]
     if not ids: raise HTTPException(404,'Άγνωστη κατηγορία')
     cat=db.get(WEEECategory,ids[0])
-    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
+    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','CANCEL_TO_PRODUCTION':'Ακύρωση μεταφοράς προς παραγωγή','SORTING_ADJUST':'Διόρθωση ταξινόμησης','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
     events=[]; pieces_stock=0
     for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.weee_category_id.in_(ids)).order_by(WEEEStockLot.created_at)).all():
         load=db.get(InboundLoad,lot.inbound_load_id); trip=db.get(InboundTrip,load.trip_id) if load else None
@@ -4412,7 +4417,7 @@ def weee_category_history(official_code:str, db:Session=Depends(get_db), user=De
         for mv in db.scalars(select(StockMovement).where(StockMovement.lot_id==lot.id).order_by(StockMovement.created_at)).all():
             unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
             at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
-            events.append({'at':at.isoformat(),'label':labels.get(mv.movement_type,mv.movement_type),'weight':(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0),
+            events.append({'at':at.isoformat(),'label':labels.get(mv.movement_type,mv.movement_type),'weight':_mv_sign(mv.movement_type)*float(mv.weight or 0),
               'pieces':lot.piece_count if mv.movement_type=='SORTING_IN' else None,'supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
               'unit':unit.name_el if unit else None,'reason':mv.reason})
     for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.weee_category_id.in_(ids),ProductionWorkEntry.active==True)).all():
@@ -4426,7 +4431,7 @@ def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(
     med=db.get(CollectionMedium,medium_id)
     if not med: raise HTTPException(404,'Το μέσο συλλογής δεν βρέθηκε')
     mt=db.get(CollectionMediumType,med.type_id)
-    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
+    labels={'SORTING_IN':'Εισαγωγή από ταξινόμηση','CANCEL_TO_PRODUCTION':'Ακύρωση μεταφοράς προς παραγωγή','SORTING_ADJUST':'Διόρθωση ταξινόμησης','TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή'}
     events=[]; current=0.0
     for lot in db.scalars(select(WEEEStockLot).where(WEEEStockLot.collection_medium_id==medium_id).order_by(WEEEStockLot.created_at)).all():
         load=db.get(InboundLoad,lot.inbound_load_id); trip=db.get(InboundTrip,load.trip_id) if load else None
@@ -4436,7 +4441,7 @@ def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(
         for mv in db.scalars(select(StockMovement).where(StockMovement.lot_id==lot.id).order_by(StockMovement.created_at)).all():
             unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
             at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
-            events.append({'at':at.isoformat(),'type':mv.movement_type,'label':labels.get(mv.movement_type,mv.movement_type),'weight':(1 if mv.movement_type=='SORTING_IN' else -1)*float(mv.weight or 0),
+            events.append({'at':at.isoformat(),'type':mv.movement_type,'label':labels.get(mv.movement_type,mv.movement_type),'weight':_mv_sign(mv.movement_type)*float(mv.weight or 0),
               'category':cat.code if cat else '','description':cat.description_el if cat else '','supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
               'unit':unit.name_el if unit else None,'reason':mv.reason})
     events.sort(key=lambda e:e['at'],reverse=True)
