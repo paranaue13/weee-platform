@@ -67,7 +67,8 @@ def _fetch_orders_csv(target_date: date) -> bytes:
             pg.goto(FLOW_URL, wait_until="networkidle", timeout=30000)
             pg.wait_for_timeout(800)
 
-            if pg.query_selector("#MainContent_login1_UserName") or pg.query_selector("#MainContent_TxtExtraPin"):
+            if ("login.aspx" in pg.url.lower() or pg.query_selector("#MainContent_login1_UserName") or pg.query_selector("#MainContent_TxtExtraPin")
+                    or pg.query_selector("#MainContent_TxtEmail")):
                 raise ElectrocycleAuthError(
                     "Το portal ζήτησε σύνδεση/OTP -- η εμπιστοσύνη της συσκευής έχει λήξει, "
                     "χρειάζεται νέα χειροκίνητη σύνδεση."
