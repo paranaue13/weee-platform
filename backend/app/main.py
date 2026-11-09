@@ -189,6 +189,11 @@ async def lifespan(app: FastAPI):
         if "production_transfer_items" in tables:
             pti2={c["name"] for c in inspect(engine).get_columns("production_transfer_items")}
             if "remainder_present" not in pti2: conn.execute(text("ALTER TABLE production_transfer_items ADD COLUMN remainder_present TEXT"))
+        if "stock_movements" in tables:
+            sm_cols={c["name"] for c in inspect(engine).get_columns("stock_movements")}
+            if "transfer_id" not in sm_cols:
+                conn.execute(text("ALTER TABLE stock_movements ADD COLUMN transfer_id VARCHAR(36)"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_stock_movements_transfer_id ON stock_movements (transfer_id)"))
         if "production_work_entries" in tables:
             pwe_cols={c["name"] for c in inspect(engine).get_columns("production_work_entries")}
             if "transfer_id" not in pwe_cols: conn.execute(text("ALTER TABLE production_work_entries ADD COLUMN transfer_id VARCHAR(36)"))
@@ -1617,22 +1622,40 @@ def update_employee(employee_id:str,data:schemas.EmployeeCreate,db:Session=Depen
     db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)
 
-@app.delete("/master/employees/{employee_id}/permanent")
-def delete_employee_permanent(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
-    """Οριστική διαγραφή -- ΜΟΝΟ αν ο εργαζόμενος δεν έχει καμία εγγραφή ιστορικού (παρουσίες, παραγωγή, διαστήματα κ.λπ.).
-    Αλλιώς 409: το ιστορικό και οι αναφορές μένουν ανέγγιχτα και ο χρήστης χρησιμοποιεί «Μη ενεργό»."""
-    emp=db.get(Employee,employee_id)
-    if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+def _employee_delete_refs(db,emp):
+    """Ιστορικό που ΜΠΛΟΚΑΡΕΙ τη διαγραφή (πραγματική συμμετοχή: παραγωγή, παρουσίες, εξοπλισμός, λογαριασμός...).
+    Το ιστορικό τοποθέτησης (production_placement_intervals) ΔΕΝ μετράει: διαγράφεται μαζί."""
     refs=[]
     for t in Base.metadata.tables.values():
-        if t.name in ("employees","employee_org_units"): continue
+        if t.name in ("employees","employee_org_units","production_placement_intervals"): continue
         for fk in t.foreign_keys:
             if fk.column.table.name=="employees":
                 n=db.scalar(select(func.count()).select_from(t).where(fk.parent==emp.id)) or 0
-                if n: refs.append(f"{t.name} ({n})")
-    if refs: raise HTTPException(409,"Ο εργαζόμενος έχει ιστορικό ("+", ".join(refs)+") και δεν μπορεί να διαγραφεί οριστικά -- χρησιμοποίησε «Μη ενεργό».")
-    person_id=emp.person_id; name=emp.full_name if hasattr(emp,"full_name") else employee_id
+                if n: refs.append((t.name,n))
+    return refs
+
+@app.get("/master/employees/{employee_id}/delete-preview")
+def employee_delete_preview(employee_id:str,db:Session=Depends(get_db),user=Depends(require_permission("master.view"))):
+    emp=db.get(Employee,employee_id)
+    if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    refs=_employee_delete_refs(db,emp)
+    n_int=db.scalar(select(func.count()).select_from(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==emp.id)) or 0
+    n_real=db.scalar(select(func.count()).select_from(ProductionPlacementInterval).where(ProductionPlacementInterval.employee_id==emp.id,ProductionPlacementInterval.org_unit_id.is_not(None))) or 0
+    n_units=db.scalar(select(func.count()).select_from(employee_org_units).where(employee_org_units.c.employee_id==emp.id)) or 0
+    return {"can_delete":not refs,"blocking":[{"table":t,"count":n} for t,n in refs],"will_delete":{"employee":1,"placement_intervals":n_int,"placement_intervals_with_department":n_real,"department_links":n_units}}
+
+@app.delete("/master/employees/{employee_id}/permanent")
+def delete_employee_permanent(employee_id:str,db:Session=Depends(get_db),user:User=Depends(require_permission("master.edit"))):
+    """Οριστική διαγραφή -- επιτρέπεται όταν ο εργαζόμενος ΔΕΝ έχει πραγματική συμμετοχή (παραγωγή, παρουσίες,
+    γεγονότα παρουσίας, εξοπλισμό, συνδεδεμένο λογαριασμό). Το ιστορικό τοποθέτησης διαγράφεται μαζί.
+    Αλλιώς 409: ο χρήστης χρησιμοποιεί «Μη ενεργό»."""
+    emp=db.get(Employee,employee_id)
+    if not emp: raise HTTPException(404,"Ο εργαζόμενος δεν βρέθηκε")
+    refs=[f"{t} ({n})" for t,n in _employee_delete_refs(db,emp)]
+    if refs: raise HTTPException(409,"Ο εργαζόμενος έχει πραγματική συμμετοχή ("+", ".join(refs)+") και δεν μπορεί να διαγραφεί οριστικά -- χρησιμοποίησε «Μη ενεργό».")
+    person_id=emp.person_id
     db.execute(employee_org_units.delete().where(employee_org_units.c.employee_id==emp.id))
+    db.execute(ProductionPlacementInterval.__table__.delete().where(ProductionPlacementInterval.employee_id==emp.id))
     write_audit(db,user,"employee",emp.id,"DELETE",old={"person_id":person_id},new=None)
     db.delete(emp); db.flush()
     person=db.get(Person,person_id)
@@ -3990,7 +4013,12 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         else: processed_period[cid]=processed_period.get(cid,0)+w
     # One joined query instead of thousands of db.get() calls: critical for date-to-date navigation speed.
     movements=db.execute(select(StockMovement,WEEEStockLot,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',StockMovement.created_at<end,InboundTrip.deleted_at.is_(None)).order_by(StockMovement.created_at)).all()
+    # Μεταφορά προς παραγωγή: η εγγραφή παραγωγής (στήλη «Επεξεργασία») είναι η αφαίρεση του καθολικού. Η κίνηση TO_PRODUCTION/CANCEL της ίδιας μεταφοράς
+    # δεν ξαναμετράει (αλλιώς αφαιρούσε ΔΙΠΛΑ). Στα μέσα συλλογής (physical, ανά μερίδιο) συνεχίζει να μετράει.
+    _dup_tr=set(db.scalars(select(ProductionWorkEntry.transfer_id).where(ProductionWorkEntry.transfer_id.is_not(None)).distinct()).all())
+    _dup=lambda mv: mv.movement_type in ('TO_PRODUCTION','CANCEL_TO_PRODUCTION') and mv.transfer_id is not None and mv.transfer_id in _dup_tr
     for mv,lot,trip in movements:
+        if _dup(mv): continue
         sign=_mv_sign(mv.movement_type); w=sign*float(mv.weight or 0); cid=lot.weee_category_id
         # Imported 2026 SORTING_IN movements were created on import day; inventory must follow the
         # actual receipt date. Otherwise historical months start at zero and production creates false negatives.
@@ -4013,6 +4041,7 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     all_movements=db.execute(select(StockMovement,WEEEStockLot,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',InboundTrip.deleted_at.is_(None))).all()
     events={}
     for mv,lot,trip in all_movements:
+        if _dup(mv): continue
         event_at=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
         delta=_mv_sign(mv.movement_type)*float(mv.weight or 0)
         fam=family_of.get(lot.weee_category_id,lot.weee_category_id)
@@ -4550,7 +4579,7 @@ def _consume_lot(db:Session, transfer_id:str, lot, qty, unit, user:User, notes:s
     db.add(ti); db.flush()
     db.add(ProductionInputBalance(transfer_item_id=ti.id,org_unit_id=unit.id,initial_weight=qty,current_remaining_weight=qty,status='OPEN'))
     db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,
-        weight=qty,org_unit_id=unit.id,user_id=user.id,reason=notes,created_at=_event_now()))
+        weight=qty,org_unit_id=unit.id,user_id=user.id,reason=notes,created_at=_event_now(),transfer_id=transfer_id))
     cat=db.get(WEEECategory,lot.weee_category_id); medium=db.get(CollectionMedium,lot.collection_medium_id) if lot.collection_medium_id else None
     return schemas.ProductionTransferItemOut(stock_lot_id=lot.id,weight=qty,weee_code=cat.code,medium_code=medium.code if medium else None), lot.collection_medium_id
 
@@ -4628,7 +4657,7 @@ def _reverse_transfer_item(db:Session, ti, qty, unit_id:str|None, user:User, rea
         bal.initial_weight=bal.initial_weight-qty; bal.current_remaining_weight=bal.current_remaining_weight-qty
         if bal.initial_weight<=0: bal.status='CANCELLED'
     db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='CANCEL_TO_PRODUCTION',from_location_id=None,to_location_id=lot.location_id,
-        weight=qty,org_unit_id=unit_id,user_id=user.id,reason=reason))
+        weight=qty,org_unit_id=unit_id,user_id=user.id,reason=reason,transfer_id=ti.transfer_id))
     return lot.collection_medium_id
 
 def _restore_medium_lifecycle(db:Session, medium_ids:set):
@@ -4861,7 +4890,7 @@ def _undo_remainder(db,i,t,user,reason):
         lot=db.get(WEEEStockLot,i.stock_lot_id)
         if lot.available_weight<R: raise HTTPException(409,'Το υπόλοιπο έχει ήδη σταλεί ξανά στην παραγωγή -- δεν μπορεί να αναιρεθεί')
         lot.available_weight=lot.available_weight-R; lot.status='CONSUMED' if lot.available_weight==0 else 'PARTIAL'
-        db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,weight=R,org_unit_id=t.destination_org_unit_id,user_id=user.id,reason=reason))
+        db.add(StockMovement(domain='WEEE',lot_id=lot.id,movement_type='TO_PRODUCTION',from_location_id=lot.location_id,to_location_id=None,weight=R,org_unit_id=t.destination_org_unit_id,user_id=user.id,reason=reason,transfer_id=t.id))
         mid=lot.collection_medium_id
         bal=db.scalar(select(ProductionInputBalance).where(ProductionInputBalance.transfer_item_id==i.id))
         if bal:

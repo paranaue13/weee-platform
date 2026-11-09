@@ -618,6 +618,7 @@ class StockMovement(Base):
     user_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     reason: Mapped[str|None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    transfer_id: Mapped[str|None] = mapped_column(String(36), nullable=True, index=True)  # μεταφορά προς παραγωγή που δημιούργησε την κίνηση (για να μην μετράει διπλά με την εγγραφή παραγωγής)
 
 class ProductionTransfer(Base, TimestampMixin):
     __tablename__ = "production_transfers"
