@@ -95,4 +95,8 @@ def run(base='http://127.0.0.1:8000'):
 
 
 if __name__ == '__main__':
-    print('ΠΡΟΒΛΗΜΑΤΑ ΣΤΑΘΕΡΩΝ ΣΗΜΕΙΩΝ:', run(sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8000'))
+    _b = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:8000'
+    _n = run(_b)
+    import check_prod_headers   # Παραγωγή: Απρίλιος, ανοιχτές ομάδες, κρυμμένες στήλες, οριζόντιο scroll
+    _n += check_prod_headers.run(_b)
+    print('ΠΡΟΒΛΗΜΑΤΑ ΣΤΑΘΕΡΩΝ ΣΗΜΕΙΩΝ:', _n)

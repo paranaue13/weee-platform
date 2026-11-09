@@ -133,4 +133,9 @@ def run(base='http://127.0.0.1:8000', quick=False, only=None):
 if __name__ == '__main__':
     sys.stdout.reconfigure(encoding='utf-8')
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
-    print('ΠΡΟΒΛΗΜΑΤΑ ΑΠΟΘΗΚΗΣ ΣΤΑΘΕΡΩΝ ΣΗΜΕΙΩΝ:', run(args[0] if args else 'http://127.0.0.1:8000', '--quick' in sys.argv, 'layouts' if '--layouts' in sys.argv else ('none' if '--none' in sys.argv else None)))
+    _args0 = args[0] if args else 'http://127.0.0.1:8000'
+    _n = run(_args0, '--quick' in sys.argv, 'layouts' if '--layouts' in sys.argv else ('none' if '--none' in sys.argv else None))
+    if '--none' not in sys.argv:
+        import check_prod_headers   # σταθερές επικεφαλίδες Παραγωγής (Απρίλιος, ανοιχτές ομάδες, κρυμμένες στήλες, οριζόντιο scroll)
+        _n += check_prod_headers.run(_args0)
+    print('ΠΡΟΒΛΗΜΑΤΑ ΑΠΟΘΗΚΗΣ ΣΤΑΘΕΡΩΝ ΣΗΜΕΙΩΝ:', _n)
