@@ -4027,6 +4027,20 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         current[cid]=current.get(cid,0)+w
         if start<=event_at<end and sign<0: outgoing[cid]=outgoing.get(cid,0)+abs(w)
         elif start<=event_at<end and mv.movement_type=='CANCEL_TO_PRODUCTION': outgoing[cid]=outgoing.get(cid,0)-w   # η ακύρωση αναιρεί την έξοδο της μεταφοράς
+    # Γραμμές Δ.Α. (Ιστορικό Δελτίων Αποστολής «ΚΑΤΗΓΟΡΙΑ ΧΧΧΧΧΧ») για κατηγορία που ΔΕΝ έχει καμία παρτίδα (μόνο αρχικό απόθεμα): δεν υπάρχει κίνηση SHIPPED_OUT,
+    # άρα η αποστολή μετράει από το ίδιο το Ιστορικό Δ.Α. (μόνο αυτή η περίπτωση· οι κατηγορίες με παρτίδες μετράνε όπως πριν).
+    _lotless_ship=[]
+    _has_lot=set(db.scalars(select(WEEEStockLot.weee_category_id).distinct()).all())
+    _code_cat={c.code:c for c in cats}
+    _open_doc=_load_opening_stock_2025()   # μόνο κατηγορίες με αρχικό απόθεμα (31/12/2025) και χωρίς παρτίδα
+    for _h in db.scalars(select(models.ShipmentHistoryEntry).where(models.ShipmentHistoryEntry.active==True,models.ShipmentHistoryEntry.description.like('ΚΑΤΗΓΟΡΙΑ %'),models.ShipmentHistoryEntry.work_date<end)).all():
+        _c=_code_cat.get((_h.description or '')[len('ΚΑΤΗΓΟΡΙΑ '):].strip())
+        if not _c or _c.id in _has_lot or not (_open_doc.get(_c.code,0.0)>0): continue
+        _w=float(_h.weight_kg or 0); _wd=_h.work_date.replace(tzinfo=None) if getattr(_h.work_date,'tzinfo',None) else _h.work_date
+        _lotless_ship.append((_c.id,_wd,_w))
+        if _wd<start: opening[_c.id]=opening.get(_c.id,0)-_w
+        current[_c.id]=current.get(_c.id,0)-_w
+        if start<=_wd<end: outgoing[_c.id]=outgoing.get(_c.id,0)+_w
     # Opening stock at 31/12/2025 is documented (user-supplied physical count), not
     # invented. Where a code isn't on that sheet, or the documented amount still isn't
     # enough to cover recorded 2026 consumption at some point in the year, the gap is
@@ -4049,6 +4063,8 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
     for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True)).all():
         fam=family_of.get(pe.weee_category_id,pe.weee_category_id)
         events.setdefault(fam,[]).append((pe.work_date,-float(pe.weight_kg or 0)))
+    for _cid,_wd,_w in _lotless_ship:
+        events.setdefault(family_of.get(_cid,_cid),[]).append((_wd,-_w))
     for cid_,wd_,w_ in prod_corr:
         events.setdefault(family_of.get(cid_,cid_),[]).append((wd_,-w_))
     for fam,evs in events.items():
