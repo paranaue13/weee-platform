@@ -1339,8 +1339,8 @@ body[data-theme="dark"] #invCountTable{--ln2:var(--line-strong,#5a6b80)}
 #shipHistCard .shipHistWrap td{font-size:15px;padding:12px}
 #shipHistCard .shipHistWrap th{font-size:14px;padding:12px}
 #shipHistCard :is(.prodSegment button,#shipHistSearch,.prodPeriodNav button,.prodPeriodNav b,.periodPickerBtn){font-size:14px}
-#shipHistCard .shipHistWrap table:not(.shipZ) :is(th,td):is(:nth-child(2),:nth-child(4)){text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
-#shipHistCard .shipHistWrap table:not(.shipZ) tbody td:nth-child(3){white-space:normal}
+#shipHistCard .shipHistWrap table:not(.shipZ) :is(th:is(:nth-child(2),:nth-child(4)),td.shipNum){text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
+
 #shipHistCard tfoot td{position:sticky;bottom:0;z-index:3;background:#e8f0fb;color:var(--fg,#1a1b20);font-weight:700;font-size:15px;padding:12px;border-top:0;border-bottom:0;box-shadow:inset 0 2px 0 #aeb7c9}
 body[data-theme="dark"] #shipHistCard tfoot td{background:var(--surface-2,#1f2a44)}
 #shipHistCard tfoot td.shipNum{text-align:right;padding-right:24px;font-variant-numeric:tabular-nums}
@@ -5803,9 +5803,15 @@ function openDraftFromHistory(id){let o=(shipDrafts||[]).find(x=>x.id===id);if(o
 // Προβολές Ζ(i) «Τελική διάθεση» και Ζ(ii) «Διασυνοριακές μεταφορές»: ίδια λίστα δελτίων, διαφορετικές στήλες (δεν είναι επιπλέον φορτώσεις)
 const ZV_PERM=(p,a)=>[p,a].filter(Boolean).join(' / ');
 const ZV_COLS={
- Z1:[['Ημερομηνία',x=>x._date],['Δ.ΑΠ.',x=>x._da],['Αρ. Ζυγ.',x=>x.weighbridge_number],['Παραλήπτης ή κατ’εντολήν μεσάζων - Μεταποιητής',x=>x.recipient],['1ος Αποδέκτης',x=>x.first_recipient],['Περιγραφή είδους',x=>x.description],['Ποσότητα',x=>x._kg],['Κωδ. ΕΚΑ',x=>x.eka_code],['Κωδ. Reptool',x=>x.reptool_code],['Άδεια συλλέκτη μεταφορέα / Α.Δ.Α.',x=>ZV_PERM(x.transporter_permit,x.transporter_ada)],['Άδεια αποδέκτη / Α.Δ.Α.',x=>ZV_PERM(x.recipient_permit,x.recipient_ada)],['Εργασία διαχείρισης από 1ο αποδέκτη',x=>x.mgmt_operation],['Έγγραφο παρακολούθησης',x=>x.tracking_document],['Χώρα προορισμού',x=>x.destination_country],['Αριθμός container',x=>x.container_number]],
- Z2:[['Ημερομηνία',x=>x._date],['Δ.ΑΠ.',x=>x._da],['Πελάτης (διαμεσολαβητής)',x=>x.recipient],['Περιγραφή εξοπλισμού',x=>x.description],['Ποσότητα (kg)',x=>x._kg],['Αρ. κοινοποίησης εξαγωγής (GR No)',x=>x.gr_notification_no],['Αρ. άδειας / φορτωτικής',x=>x.bill_of_lading],['Τελικός προορισμός (χώρα)',x=>x.destination_country],['EKA',x=>x.eka_code],['Εργασία διαχείρισης R ή D',x=>x.mgmt_operation]]
+ Z1:[['Ημερομηνία',x=>x._date,1],['Δ.ΑΠ.',x=>x._da,1],['Αρ. Ζυγ.',x=>x.weighbridge_number,1],['Μεταφορέας',x=>x.transporter,1],['Παραλήπτης',x=>x.recipient,1],['Περιγραφή είδους',x=>x.description,0],['Ποσότητα',x=>x._kg,0],['Κωδ. ΕΚΑ',x=>x.eka_code,0],['Κωδ. Reptool',x=>x.reptool_code,0],['Άδεια συλλέκτη μεταφορέα / Α.Δ.Α.',x=>ZV_PERM(x.transporter_permit,x.transporter_ada),1],['Άδεια αποδέκτη / Α.Δ.Α.',x=>ZV_PERM(x.recipient_permit,x.recipient_ada),1],['Εργασία διαχείρισης από 1ο αποδέκτη',x=>x.mgmt_operation,1],['Έγγραφο παρακολούθησης',x=>x.tracking_document,1],['Χώρα προορισμού',x=>x.destination_country,1],['Αριθμός container',x=>x.container_number,1]],
+ Z2:[['Ημερομηνία',x=>x._date,1],['Δ.ΑΠ.',x=>x._da,1],['Πελάτης (διαμεσολαβητής)',x=>x.recipient,1],['Περιγραφή εξοπλισμού',x=>x.description,0],['Ποσότητα (kg)',x=>x._kg,0],['Αρ. κοινοποίησης εξαγωγής (GR No)',x=>x.gr_notification_no,1],['Αρ. άδειας / φορτωτικής',x=>x.bill_of_lading,1],['Τελικός προορισμός (χώρα)',x=>x.destination_country,1],['EKA',x=>x.eka_code,0],['Εργασία διαχείρισης R ή D',x=>x.mgmt_operation,1]]
 };
+// Ένωση γραμμών: οι κοινές στήλες του Δ.Α. (3ο στοιχείο = 1) εμφανίζονται ΜΙΑ φορά (rowspan) σε όλες τις γραμμές υλικών του ίδιου Δ.Α.· μία γραμμή = χωρίς ένωση
+function shipHistGroupHtml(list,cols,cell){
+ let groups=[],idx=new Map();
+ list.forEach(x=>{let k=x.da_number?new Date(x.work_date).getFullYear()+'|'+x.da_number:null;if(k&&idx.has(k))idx.get(k).push(x);else{let g=[x];groups.push(g);if(k)idx.set(k,g)}});
+ return groups.map(g=>g.map((x,i)=>`<tr class="ecRow${x.overrun_note?' shipOver':''}${x.cancelled_at?' shipCancelled':''}${i===0?' daFirst':''}" data-da="${esc(x.da_number||'')}" data-yr="${new Date(x.work_date).getFullYear()}">${cols.map(c=>c[2]?(i===0?cell(c,x,g.length>1?` rowspan="${g.length}" class="daShared"`:''):''):cell(c,x,'')).join('')}</tr>`).join('')).join('');
+}
 function flToastSafe(t){try{let el=$('ldErr');if(el){el.className='oktext';el.textContent=t;setTimeout(()=>{el.className='error';el.textContent=''},2500)}}catch(e){}}
 // Στοιχεία δελτίου αποστολής (για τις προβολές Ζ(i)/Ζ(ii)): ίδια πεδία στη «Νέα Φόρτωση», στη φόρτωση και στο παράθυρο Δ.Α.
 const DA_FIELDS=[['first_recipient','1ος Αποδέκτης'],['mgmt_operation','Εργασία διαχείρισης (R/D)'],['tracking_document','Έγγραφο παρακολούθησης'],['destination_country','Χώρα προορισμού'],['container_number','Αριθμός container'],['gr_notification_no','Αρ. κοινοποίησης εξαγωγής (GR No)'],['bill_of_lading','Αρ. άδειας / φορτωτικής']];
@@ -5859,9 +5865,7 @@ function renderShipmentHistory(){
    const zBase=()=>baseRows.map(zAug);
    const zDefs=cols.map((c,i)=>({key:'z'+i,disp:x=>{let v=c[1](x);return v==null||v===''?'—':String(v)},val:/^Ποσότητα/.test(c[0])?(x=>Number(x.weight_kg||0)):(/^Ημερομηνία/.test(c[0])?(x=>String(x.work_date||'')):undefined),th:t=>t.tHead.rows[0].cells[i]}));
    rows=ColFilter.sorted(ColFilter.filter(zBase(),zDefs,cfNow),zDefs,cfNow);
-   const rowsZ=rows.map(x0=>{
-     let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
-     return `<tr class="ecRow${x0.overrun_note?' shipOver':''}${x0.cancelled_at?' shipCancelled':''}" data-da="${esc(x0.da_number||'')}" data-yr="${new Date(x0.work_date).getFullYear()}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
+   const rowsZ=shipHistGroupHtml(rows,cols,(c,x,attr)=>{let v=c[1](x);return `<td${attr}>${v==null||v===''?'<span class="muted">—</span>':esc(v)}</td>`});
    $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>`;
    $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e,tr.dataset.yr)});
    ColFilter.attach(_tbl,zDefs,cfNow,zBase,renderShipmentHistory);
@@ -5871,7 +5875,8 @@ function renderShipmentHistory(){
  if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
  const dDefs=shipHistDefsDefault();rows=ColFilter.sorted(ColFilter.filter(baseRows,dDefs,cfNow),dDefs,cfNow);
  const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td><td></td></tr>`).join('');
- $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow${x.overrun_note?' shipOver':''}${x.cancelled_at?' shipCancelled':''}" data-da="${esc(x.da_number||'')}" data-yr="${new Date(x.work_date).getFullYear()}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td><td class="shipNote">${x.cancelled_at?'<span class="cancelledPill">Ακυρώθηκε</span> '+esc(x.cancel_reason||''):(x.overrun_note?esc(x.overrun_note):'')}</td></tr>`).join('')||'<tr><td colspan="9" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
+ const defCols=[['Ημερομηνία',x=>esc(new Date(x.work_date).toLocaleDateString('el-GR')),1,'daNowrap'],['Αρ. Δ.Α.',x=>esc(x.da_number||'—'),1,'shipNum'],['Περιγραφή',x=>esc(x.description),0,''],['Βάρος (kg)',x=>kg(x.weight_kg),0,'shipNum'],['Μεταφορέας',x=>esc(x.transporter||'—'),1,''],['Παραλήπτης',x=>esc(x.recipient||'—'),1,''],['Κωδ. ΕΚΑ',x=>esc(x.eka_code||'—'),0,'muted'],['Reptool',x=>esc(x.reptool_code||'—'),0,'muted'],['Σημείωση',x=>x.cancelled_at?'<span class="cancelledPill">Ακυρώθηκε</span> '+esc(x.cancel_reason||''):(x.overrun_note?esc(x.overrun_note):''),0,'shipNote']];
+ $('shipHistRows').innerHTML=draftRows+shipHistGroupHtml(rows,defCols,(c,x,attr)=>{let cls=c[3]||'';if(attr.includes('class="'))attr=attr.replace('class="','class="'+cls+' ');else if(cls)attr+=` class="${cls}"`;return `<td${attr}>${c[1](x)}</td>`})||'<tr><td colspan="9" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
  $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e,tr.dataset.yr)});
  ColFilter.attach(_tbl,dDefs,cfNow,()=>baseRows,renderShipmentHistory);
  renderShipHistTotal(rows.filter(x=>!x.cancelled_at),3,9,filtNow);
@@ -12428,6 +12433,21 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 .cxOverlay{position:fixed;inset:0;background:rgba(15,30,54,.45);z-index:100000;display:grid;place-items:center;padding:16px}.cxDlg{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 20px 60px rgba(7,25,40,.35);max-width:min(620px,96vw)}.cxDlg h3{margin:0 0 14px}
 .cxBox{display:flex;flex-direction:column;gap:12px;min-width:min(520px,80vw)}.cxRo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cxRo label,.cxWhy{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.cxRo input[readonly]{background:#f3f5f8;color:#44474f}.cxWhy textarea{font:inherit;padding:8px 10px;border:1px solid #c9d2da;border-radius:8px;resize:vertical}
 .cxNote{font-size:13px;color:#44474f;line-height:1.4}.cxMsg{color:#c62828;font-size:13px;min-height:1em}.cxBtns{display:flex;justify-content:flex-end;gap:10px}.cxBtns .btn{height:40px;padding:0 20px}
+
+/* L1: Ιστορικό Δελτίων Αποστολής — κάθε στήλη παίρνει πλάτος για τον τίτλο ΚΑΙ το βελάκι (στην ίδια γραμμή) και για το περιεχόμενό της· οριζόντιο scroll όπου δεν χωράνε· ένωση κελιών ίδιου Δ.Α. */
+#shipHistCard .shipHistWrap table,#shipHistCard .shipHistWrap table.shipZ{table-layout:auto!important;width:max-content!important;min-width:100%!important}
+#shipHistCard .shipHistWrap :is(th,td){white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;width:auto!important;min-width:0!important}
+#shipHistCard .shipHistWrap thead th{white-space:nowrap!important}
+#shipHistCard .shipHistWrap thead th>*{white-space:nowrap}
+#shipHistCard .shipHistWrap td.daShared{vertical-align:top;background:var(--surface,#fff)}
+#shipHistRows tr.daFirst>td{box-shadow:inset 0 2px 0 #8a98ab}
+#shipHistRows tr.shipDraftRow>td{box-shadow:none}
+/* L1δ: γραμμή φίλτρων — κενό 10px ανάμεσα σε ΟΛΑ τα στοιχεία· αναζήτηση 200–340px· σε μικρό παράθυρο η αναζήτηση παίρνει ολόκληρη γραμμή */
+#shipHistCard>.productionTop{gap:10px!important;row-gap:10px!important;column-gap:10px!important;justify-content:flex-start!important}
+#shipHistCard>.productionTop>div{gap:10px!important}
+#shipHistCard #shipHistSearch{flex:1 1 200px!important;min-width:200px!important;max-width:340px!important}
+@media(max-width:1800px){#shipHistCard #shipHistSearch{flex:1 1 100%!important;max-width:none!important}}
+#shipHistCard #shipHistKindFilter>button,#shipHistCard #shipHistZView>button,#shipHistCard #shipHistPeriodSeg>button,#shipHistCard .prodPeriodNav>button,#shipHistCard .periodPickerBtn{white-space:nowrap;overflow:visible;text-overflow:clip}
 /* K3/K4 Φόρμα Δ.Α. (ολοκληρωμένη φόρτωση) */
 #floatingEditor.daWin #floatingEditorBody{padding:0}
 .daFrm{display:flex;flex-direction:column;min-height:0;max-height:calc(100vh - 140px)}
