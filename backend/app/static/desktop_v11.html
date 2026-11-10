@@ -12347,6 +12347,7 @@ body[data-menupos="bottom"]:not(.pane) #settingsMenu{position:fixed!important;bo
 /* J3: το αριστερό μενού έχει σταθερό πλάτος 212px και πλήρες ύψος σε ΟΛΑ τα πλάτη παραθύρου· δεν στοιβάζεται πάνω από τη σελίδα. Σε στενό παράθυρο κυλά μόνο το περιεχόμενο δεξιά από το μενού. */
 body:not([data-menupos]):not(.sideAuto):not(.pane) .shell{grid-template-columns:212px minmax(620px,1fr)!important}
 body:not([data-menupos]):not(.sideAuto):not(.pane) aside.side{display:flex!important;width:212px;min-width:212px;max-width:212px;position:sticky;left:0;top:0;height:100vh;align-self:start}
+body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα 5 κουμπιά διάταξης χωράνε στα 212px */
 
 /* J5: Ιστορικό Δελτίων Αποστολής — γραμμή φίλτρων: μεγάλο παράθυρο όλα σε μία γραμμή (η αναζήτηση παίρνει το υπόλοιπο πλάτος, ελάχ. 200px)· μικρό παράθυρο: πέφτουν σε νέες γραμμές αριστερά, η αναζήτηση παίρνει ολόκληρη γραμμή· ίδιο ύψος σε όλα τα κουτιά */
 #shipHistCard>.productionTop{display:flex!important;flex-wrap:wrap;align-items:stretch;justify-content:flex-start;gap:8px 10px}
