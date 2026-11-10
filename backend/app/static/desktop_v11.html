@@ -4457,6 +4457,8 @@ function renderReadyMaterials(){
  let shipGroupEntries=(readyState.shipEntries||[]).filter(inGroup);
  let shipTotal=shipGroupEntries.reduce((s,e)=>s+Number(e.weight_kg||0),0);
  let balanceTotal=cols.reduce((s,c)=>s+colBalance(c),0);
+ const openOfCol=c=>c.labels.reduce((t,l)=>t+(readyOpeningByName[l]||0),0);   // Απόθεμα έναρξης 1/1/2026 (Excel «ΕΚ ΜΕΤΑΦΟΡΑΣ»)
+ let openTotal=cols.reduce((t,c)=>t+(c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?0:openOfCol(c)),0);
  let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
  let isMonthView=readyState.period==='month';
  const cnt=c=>{let v=c.labels.map(l=>readyState.countEntries?.[l]).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+Number(b),0):null};
@@ -4492,7 +4494,7 @@ function renderReadyMaterials(){
  const piecesBalance=c=>c.sub&&c.sub.split==='bale'?lgLots(availLots,c.sub)+corrSum(c,'pieces'):c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?0:lotsOf(availLots,c)+corrSum(c,'pieces');
  let piecesPeriodTotal=cols.reduce((s,c)=>s+(c.kind==='sum'?0:piecesInPeriod(c)),0);
  let piecesBalanceTotal=cols.reduce((s,c)=>s+piecesBalance(c),0);
- let piecesPeriodRow=isMonthView?`<tr><td>Τεμάχια ${readyPW()}</td><td>${piecesPeriodTotal||''}</td>${bodyCols.map(c=>tdc(c,piecesInPeriod(c)||'')).join('')}</tr>`:'';
+ let piecesPeriodRow=isMonthView?`<tr><td>Τεμάχια</td><td>${piecesPeriodTotal||''}</td>${bodyCols.map(c=>tdc(c,piecesInPeriod(c)||'')).join('')}</tr>`:'';
  let piecesBalanceRow=`<tr class="prodBalanceRow"><td>Τεμάχια</td><td>${piecesBalanceTotal||''}</td>${bodyCols.map(c=>tdc(c,piecesBalance(c)||'')).join('')}</tr>`;
  const balCell=c=>{
    if(c.kind==='rcpt')return tdc(c,`<b>${prodVal(rcptKg(c.col))}</b>`);
@@ -4502,9 +4504,10 @@ function renderReadyMaterials(){
  };
 
  $('readyMatFoot').innerHTML=correctionRow
-  +`<tr><td>Σύνολο ${readyPW()}</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>tdc(c,cellVal(groupEntries,c,null))).join('')}</tr>`
+  +`<tr id="readyOpenRow"><td>Απόθεμα έναρξης Ιανουαρίου 2026</td><td>${prodVal(openTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?'':prodVal(openOfCol(c)))).join('')}</tr>`
+  +`<tr><td>Σύνολο</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>tdc(c,cellVal(groupEntries,c,null))).join('')}</tr>`
   +piecesPeriodRow
-  +`<tr class="prodShipRow"><td>Αποστολές ${readyPW()}</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?'':prodVal(kgOf(shipGroupEntries,c)))).join('')}</tr>`
+  +`<tr class="prodShipRow"><td>Αποστολές</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?'':prodVal(kgOf(shipGroupEntries,c)))).join('')}</tr>`
   +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(balCell).join('')}</tr>`
   +piecesBalanceRow
   +invRow;
