@@ -12343,6 +12343,10 @@ body[data-menupos="bottom"]:not(.pane) #settingsMenu{position:fixed!important;bo
 #gUndoToast.hidden{display:none}
 /* τα παλιά, τοπικά κουμπιά αντικαθίστανται από τα καθολικά */
 #receiptUndoBtn,#receiptRedoBtn,#receiptUndoMsg,#readyCorrUndoBtn,#readyCorrRedoBtn{display:none!important}
+
+/* J3: το αριστερό μενού έχει σταθερό πλάτος 212px και πλήρες ύψος σε ΟΛΑ τα πλάτη παραθύρου· δεν στοιβάζεται πάνω από τη σελίδα. Σε στενό παράθυρο κυλά μόνο το περιεχόμενο δεξιά από το μενού. */
+body:not([data-menupos]):not(.sideAuto):not(.pane) .shell{grid-template-columns:212px minmax(620px,1fr)!important}
+body:not([data-menupos]):not(.sideAuto):not(.pane) aside.side{display:flex!important;width:212px;min-width:212px;max-width:212px;position:sticky;left:0;top:0;height:100vh;align-self:start}
 </style>
 <script id="histJs">
 (function(){
