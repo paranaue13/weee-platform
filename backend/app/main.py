@@ -2254,6 +2254,9 @@ def inventory_count_report(year:int=Query(...), db:Session=Depends(get_db), user
     all_out=db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True)).all()
     all_ship=db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True)).all()
     current_balance:dict[str,float]={}
+    for e in db.scalars(select(models.MaterialOpeningStock).where(models.MaterialOpeningStock.active==True)).all():   # Τρέχον απόθεμα = Απόθεμα έναρξης + παραγωγή − αποστολές
+        lbl=_norm_material_label(e.material_label)
+        current_balance[lbl]=current_balance.get(lbl,0.0)+float(e.kg or 0)
     for e in all_out:
         lbl=_norm_material_label(e.material_label)
         current_balance[lbl]=current_balance.get(lbl,0.0)+float(e.weight_kg or 0)
@@ -5313,6 +5316,8 @@ def _bulk_group_order(db):
     return {t['code']:i for i,t in enumerate(_at(db))}   # σειρά καρτελών από τον πίνακα material_tabs· άγνωστη ομάδα → στο τέλος
 def _bulk_balances(db:Session)->dict:
     bal={}
+    for e in db.scalars(select(models.MaterialOpeningStock).where(models.MaterialOpeningStock.active==True)).all():
+        x=bal.setdefault(e.material_label,{'group':e.category_group,'kg':Decimal('0')}); x['kg']+=(e.kg or Decimal('0'))
     for e in db.scalars(select(models.MaterialOutputEntry).where(models.MaterialOutputEntry.active==True)).all():
         b=bal.setdefault(e.material_label,{'group':e.category_group,'kg':Decimal('0')}); b['kg']+=(e.weight_kg or Decimal('0'))
     for e in db.scalars(select(models.MaterialShipmentEntry).where(models.MaterialShipmentEntry.active==True)).all():

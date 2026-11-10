@@ -4079,7 +4079,7 @@ function readySortOrder(lb){return (matGroupOverrides[lb]&&matGroupOverrides[lb]
 // balance per material label (see loadReadyBalance), not the physical-lot registry -- lot tracking
 // isn't in real use yet so it stayed permanently empty; the shipments-based balance reflects real
 // recorded output net of real recorded shipments instead.
-let readyBalanceByName={},readyProducedByName={},readyShippedByName={};let readyStockOnly=false;
+let readyBalanceByName={},readyProducedByName={},readyShippedByName={},readyOpeningByName={};let readyStockOnly=false;
 // Full (all-time, unfiltered by period) universe of material_label -> its raw category_group, so
 // renderReadyMaterials() can show a column for every material ever recorded -- including one with
 // zero entries in the currently selected period -- instead of only materials with period activity.
@@ -4107,9 +4107,10 @@ async function loadReadyBalance(){
   readyAllLabels=Object.entries(labelSeen).map(([label,category_group])=>({label,category_group}));
   // Kept un-floored (can be negative) on purpose -- prodVal() highlights a negative cell red and
   // raises an alert (see flagNegativeKg) instead of silently hiding a real shortfall behind a 0.
-  readyProducedByName=produced;readyShippedByName=shipped;
+  let opened={};allOpening.forEach(e=>{let lb=e.material_label;opened[lb]=(opened[lb]||0)+Number(e.kg||0)});   // Τρέχον απόθεμα = Απόθεμα έναρξης + Παραγωγή + Διορθώσεις − Αποστολές
+  readyProducedByName=produced;readyShippedByName=shipped;readyOpeningByName=opened;
   readyBalanceByName={};
-  new Set([...Object.keys(produced),...Object.keys(shipped)]).forEach(lb=>{readyBalanceByName[lb]=(produced[lb]||0)-(shipped[lb]||0)});
+  new Set([...Object.keys(opened),...Object.keys(produced),...Object.keys(shipped)]).forEach(lb=>{readyBalanceByName[lb]=(opened[lb]||0)+(produced[lb]||0)-(shipped[lb]||0)});
  }catch(e){console.error('ready balance load failed',e)}
 }
 function readyHasStock(displayLb){return (readyBalanceByName[displayLb]||0)>0}
@@ -5049,16 +5050,16 @@ async function openNegPop(anchor,label,kind){
   const n1=v=>Number(v||0).toLocaleString('el-GR',{maximumFractionDigits:1});
   const sg=v=>v<0?'−'+n1(Math.abs(v)):(v>0?'+'+n1(v):'0');
   const norm=readyNorm(label);
-  let prod=Number(readyProducedByName[label]||0),ship=Number(readyShippedByName[label]||0),corr=(readyState.corrTotals||[]).filter(x=>readyNorm(x.material_label)===norm).reduce((a,x)=>a+Number(x.weight_kg||0),0),bal=prod-ship+corr;
+  let prod=Number(readyProducedByName[label]||0),ship=Number(readyShippedByName[label]||0),corr=(readyState.corrTotals||[]).filter(x=>readyNorm(x.material_label)===norm).reduce((a,x)=>a+Number(x.weight_kg||0),0),opn=Number(readyOpeningByName[label]||0),bal=opn+prod-ship+corr;
   let sh=[];if(bal<0){try{sh=await api('/loading/bulk-shortages?label='+encodeURIComponent(label))}catch(e){sh=[]}}
   const dmy=iso=>{let m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:''};
   let why='';
   if(bal<0){
-    why=`<div class="npCalc"><div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b class="neg">${sg(bal)}</b></div></div>`
+    why=`<div class="npCalc">${opn?`<div><span>Απόθεμα έναρξης</span><b>${n1(opn)}</b></div>`:''}<div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b class="neg">${sg(bal)}</b></div></div>`
       +(sh.length?`<div class="npBox">Υπέρβαση ${n1(sh[0].kg)} kg από φόρτωση ${esc(dmy(sh[0].date))}. Λόγος: ${esc(sh[0].reason||'—')}</div><a href="#" class="npLink" data-npda="${esc(sh[0].da_number||'')}">Άνοιγμα φόρτωσης ▸</a>`
         :`<div class="npPlain">Δεν προέρχεται από φόρτωση: οι αποστολές ξεπερνούν την παραγωγή και τις διορθώσεις.</div>`);
   }else if(kind==='neg'){
-    why=`<div class="npCalc"><div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b>${sg(bal)}</b></div></div>`;
+    why=`<div class="npCalc">${opn?`<div><span>Απόθεμα έναρξης</span><b>${n1(opn)}</b></div>`:''}<div><span>Παραγωγή</span><b>${n1(prod)}</b></div><div><span>Αποστολές</span><b>−${n1(ship)}</b></div><div><span>Διορθώσεις</span><b>${sg(corr)}</b></div><div class="npSum"><span>Τρέχον απόθεμα</span><b>${sg(bal)}</b></div></div>`;
   }
   let html='';
   if(kind==='corr'){

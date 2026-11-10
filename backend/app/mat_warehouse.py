@@ -252,6 +252,8 @@ def _lot_number(db: Session, mat: Material, demo: bool) -> str:
 def _ledger_balance(db: Session) -> dict:
     """Τρέχον απόθεμα ανά ετικέτα υλικού (όπως στα Windows): παραγωγή − αποστολές + διορθώσεις."""
     bal: dict = {}
+    for lb, w in db.execute(select(models.MaterialOpeningStock.material_label, func.sum(models.MaterialOpeningStock.kg)).where(models.MaterialOpeningStock.active == True).group_by(models.MaterialOpeningStock.material_label)).all():
+        bal[_norm(lb)] = bal.get(_norm(lb), 0.0) + float(w or 0)
     for lb, w in db.execute(select(MaterialOutputEntry.material_label, func.sum(MaterialOutputEntry.weight_kg)).where(MaterialOutputEntry.active == True).group_by(MaterialOutputEntry.material_label)).all():
         bal[_norm(lb)] = bal.get(_norm(lb), 0.0) + float(w or 0)
     for lb, w in db.execute(select(MaterialShipmentEntry.material_label, func.sum(MaterialShipmentEntry.weight_kg)).where(MaterialShipmentEntry.active == True).group_by(MaterialShipmentEntry.material_label)).all():
@@ -279,6 +281,8 @@ def _commercial_stock(db: Session) -> dict:
 def _ledger_raw(db: Session) -> dict:
     """Τρέχον απόθεμα ανά ΑΚΡΙΒΗ ετικέτα (παραγωγή − αποστολές + διορθώσεις), για τις ρητές αντιστοιχίσεις ετικέτας → υλικό."""
     bal: dict = {}
+    for lb, w in db.execute(select(models.MaterialOpeningStock.material_label, func.sum(models.MaterialOpeningStock.kg)).where(models.MaterialOpeningStock.active == True).group_by(models.MaterialOpeningStock.material_label)).all():
+        bal[lb] = bal.get(lb, 0.0) + float(w or 0)
     for t, sg in ((MaterialOutputEntry, 1), (MaterialShipmentEntry, -1)):
         for lb, w in db.execute(select(t.material_label, func.sum(t.weight_kg)).where(t.active == True).group_by(t.material_label)).all():
             bal[lb] = bal.get(lb, 0.0) + sg * float(w or 0)
