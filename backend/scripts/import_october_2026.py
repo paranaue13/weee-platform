@@ -41,6 +41,7 @@ for o in c.execute('select id,legal_name,trade_name from organizations'):
 sup_type = collections.defaultdict(collections.Counter)
 for r in c.execute("select l.supplier_id,t.receipt_type from inbound_loads l join inbound_trips t on t.id=l.trip_id where l.incoming_container_number is null or l.incoming_container_number=''"):
     sup_type[r[0]][r[1]] += 1
+NEW_OK = {norm(x) for x in ('BUYPARTS ΜΟΝΟΠΡΟΣΩΠΗ Ι.Κ.Ε.', 'JOY WORLD Ι.Κ.Ε.', 'ΠΑΝΤΕΛΗΣ ΠΑΝ. ΠΡΟΚΟΠΙΟΣ')}
 MANUAL = {  # ταυτίσεις που εγκρίθηκαν από τον χρήστη / βρέθηκαν στα Μητρώα (νέοι προμηθευτές ΔΕΝ δημιουργούνται)
     'PUBLICRETAILΑΕ': 'faa01402-a29f-437c-ae8c-b89606ac88b1', 'SGBΕΛΛΗΝΙΚΗΕΤΑΙΡΕΙΑΙΔΙΟΚΑΤΑΣΚΕΥΩΝΑΕ': '0c7e8f5a-f16f-4b08-b6a6-2ab6f108c01b',
     'ΙΑΚΩΒΙΔΗΣΙΟΡΙΑΚΩΒΟΣ': '0ee349ad-b81d-4a3a-83c7-0c3daddaf0e6', 'ΚΑΣΣΑΝΔΡΑBAYΑΕ': 'b5a639a8-7ca7-44d0-bd26-eda80f159b8a',
@@ -95,6 +96,12 @@ for day, lst in P.items():
             c.execute('update sorting_sessions set final_sorting_weight=?,foreign_materials=?,foreign_weight=?,special_waste=?,special_waste_weight=? where id=?', (net, fm, fw, sw, sww, ses['id']))
             add_entries(ses['id'], ld['id'], dt, r['cats']); stats['φορτία που συμπληρώθηκαν'] += 1; continue
         sup = find_org(r['supplier'], sup_map); car = find_org(r['carrier'], car_map)
+        if not sup and norm(r['supplier']) in NEW_OK:   # ΜΟΝΟ οι 3 προμηθευτές που ενέκρινε ο χρήστης (όπως γράφονται στο Excel)
+            tpl_org = c.execute("select * from organizations o where exists(select 1 from organization_roles r where r.organization_id=o.id and r.role='SUPPLIER') limit 1").fetchone()
+            sup = str(uuid.uuid4()); nm = ' '.join(str(r['supplier']).split())
+            clone('organizations', tpl_org, id=sup, legal_name=nm, trade_name=nm, tax_id=None, email=None, phone=None, galaxy_id=None, permit_number=None, permit_ada=None, active=1, created_at=dt, updated_at=dt)
+            c.execute("insert into organization_roles (organization_id,role) values (?,'SUPPLIER')", (sup,))
+            sup_map[norm(r['supplier'])][sup] += 1; stats['νέοι προμηθευτές'] += 1
         if not sup: skipped.append((o, ' '.join(str(r['supplier']).split()), day[:10])); continue
         if not car: problems.append(('άγνωστος μεταφορέας', o, r['carrier'])); continue
         cont = fx(r['container'])
