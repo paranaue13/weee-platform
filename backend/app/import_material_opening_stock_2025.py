@@ -9,6 +9,14 @@ from . import models
 REVISION='REAL_MATERIAL_OPENING_STOCK_2025_12_31_V2_APOGRAFI2026'
 AS_OF_DATE='2025-12-31T00:00:00'
 
+def ensure_press_opening_stock_import(db:Session):
+    """Αρχική φόρτωση του αρχικού αποθέματος μπαλών πρέσας (μόνο όταν ο πίνακας είναι κενός· δεν αντικαθιστά ποτέ υπάρχοντα δεδομένα)."""
+    path=Path(__file__).parent/'data'/'press_opening_stock_2025_12_31.json'
+    if not path.exists() or db.scalar(select(func.count(models.PressOpeningStock.id))): return False
+    for r in json.loads(path.read_text(encoding='utf-8')):
+        db.add(models.PressOpeningStock(press_group=r['press_group'],bales=int(r['bales']),kg=Decimal(str(r['kg'])),as_of_date=datetime.fromisoformat(AS_OF_DATE)))
+    db.commit(); return True
+
 def ensure_material_opening_stock_2025_import(db:Session):
     path=Path(__file__).parent/'data'/'material_opening_stock_2025_12_31.json'
     if not path.exists(): return False

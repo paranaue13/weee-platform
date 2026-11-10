@@ -14,7 +14,7 @@ from .seed import seed
 from .import_real_2026 import ensure_real_2026_import
 from .import_production_2026 import ensure_real_production_2026_import
 from .import_material_output_2026 import ensure_material_output_2026_import
-from .import_material_opening_stock_2025 import ensure_material_opening_stock_2025_import
+from .import_material_opening_stock_2025 import ensure_material_opening_stock_2025_import, ensure_press_opening_stock_import
 from .audit import write_audit
 from .migrations import run_alembic_migrations
 from .config import settings
@@ -284,6 +284,7 @@ async def lifespan(app: FastAPI):
         ensure_real_production_2026_import(db)
         ensure_material_output_2026_import(db)
         ensure_material_opening_stock_2025_import(db)
+        ensure_press_opening_stock_import(db)
         _backfill_dpp_numbers(db)
     ec_task = asyncio.create_task(_electrocycle_loop())
     yield
@@ -2506,6 +2507,11 @@ def press_bale_entries(start:str|None=Query(default=None), end:str|None=Query(de
     if end: stmt=stmt.where(models.BaleEntry.period<datetime.fromisoformat(end)+timedelta(days=1))
     rows=db.scalars(stmt.order_by(models.BaleEntry.material_group,models.BaleEntry.bale_seq)).all()
     return [{"id":r.id,"period":r.period.isoformat(),"material_group":r.material_group,"bale_seq":r.bale_seq,"weight_kg":float(r.weight_kg or 0),"is_bulk":r.is_bulk,"bale_count":r.bale_count,"notes":r.notes} for r in rows]
+
+@app.get("/production/press-opening")
+def press_opening_stock(db:Session=Depends(get_db),user=Depends(require_permission("production.view"))):
+    """Αρχικό απόθεμα μπαλών πρέσας 31/12/2025 (μόνο ανάγνωση)."""
+    return [{"press_group":r.press_group,"bales":int(r.bales or 0),"kg":float(r.kg or 0)} for r in db.scalars(select(models.PressOpeningStock)).all()]
 
 @app.get("/inventory/material-opening-stock")
 def material_opening_stock(db:Session=Depends(get_db),user=Depends(require_permission("production.view"))):

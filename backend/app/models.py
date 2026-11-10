@@ -217,6 +217,15 @@ class ShipmentHistoryEntry(Base, TimestampMixin):
     cancel_reason: Mapped[str|None] = mapped_column(Text, nullable=True)
     cancelled_by: Mapped[str|None] = mapped_column(String(36), nullable=True)
 
+class PressOpeningStock(Base, TimestampMixin):
+    """Αρχικό απόθεμα ΜΠΑΛΩΝ της πρέσας (31/12/2025) ανά στήλη πρέσας: μόνο για την καρτέλα «Πρέσα»· ΔΕΝ μετράει στο απόθεμα των υλικών (υποσύνολό τους)."""
+    __tablename__ = "press_opening_stocks"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    press_group: Mapped[str] = mapped_column(String(100), unique=True, index=True)   # όπως το material_group των bale_entries
+    bales: Mapped[int] = mapped_column(Integer, default=0)
+    kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    as_of_date: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+
 class MaterialOpeningStock(Base, TimestampMixin):
     """A documented, point-in-time physical stock count for materials (e.g. 31/12/2025),
     read from the real inventory sheet -- never invented. reptool_code/her_description are

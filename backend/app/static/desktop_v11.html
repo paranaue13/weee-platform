@@ -3944,6 +3944,12 @@ async function loadReadyPress(){
  try{readyState.pressBales=await api(`/mat/bales-summary?start=${r.startISO}&end=${r.endISO}`)}catch(e){readyState.pressBales=[]}
  try{readyState.pressCols=await api('/mat/press-columns')}catch(e){readyState.pressCols={materials:[],excel:[]}}
  try{readyState.maps=rmIndex(await api('/mat/label-maps/effective'))}catch(e){readyState.maps=null}
+ // Απόθεμα έναρξης περιόδου = αρχικό απόθεμα πρέσας 31/12/2025 + παραγωγή μπαλών από 1/1/2026 μέχρι την ημέρα πριν την αρχή της περιόδου
+ readyState.pressPrior=[];readyState.pressPriorBales=[];
+ {let fl='2026-01-01';if(r.startISO>fl){let e=localISODate(new Date(new Date(r.startISO+'T12:00:00').getTime()-86400000));
+   try{readyState.pressPrior=await api(`/production/press-bales?start=${fl}&end=${e}`)}catch(err){}
+   try{readyState.pressPriorBales=await api(`/mat/bales-summary?start=${fl}&end=${e}`)}catch(err){}}}
+ try{readyState.pressOpen=await api('/production/press-opening')}catch(e){readyState.pressOpen=[]}
  renderReadyPress();
 }
 // Πρέσα: γραμμές = οι ημερομηνίες (ή μήνες σε Τρίμηνο/Έτος) που έχουν εγγραφή, όπως στις άλλες καρτέλες Υλικών· από κάτω «Σύνολο <περίοδος>».
@@ -3958,6 +3964,7 @@ function renderReadyPress(){
  (readyState.pressBales||[]).forEach(b=>Object.entries(b.days||{}).forEach(([d,v])=>add(b.material_group,d,Number(v.kg||0),Number(v.count||0))));
  // Η Πρέσα δείχνει ΠΑΝΤΑ ως στήλες: τα υλικά που μπορούν να γίνουν μπάλα και τις στήλες από τα Excel της Πρέσας (οποιουδήποτε μήνα), με 0 όταν δεν υπάρχει κίνηση στην περίοδο
  {let pc=readyState.pressCols||{materials:[],excel:[]};[...pc.excel,...pc.materials.map(m=>m.name)].forEach(nm=>{if(!nm)return;let k=nk(nm);if(!names[k]){names[k]=nm;cell[k]={}}})}
+ {let hasO=readyRange().startISO>='2026-01-01';if(hasO)(readyState.pressOpen||[]).forEach(o=>{let k=nk(o.press_group);if(!names[k]){names[k]=o.press_group;cell[k]={}}})}   // στήλες με αρχικό απόθεμα εμφανίζονται και χωρίς κίνηση
  // Αντιστοιχίσεις στηλών Πρέσας (Μητρώα → Αντιστοίχιση ετικετών): «Δεν είναι υλικό» κρύβεται· ανενεργό υλικό φαίνεται μόνο όταν υπάρχει κίνηση στην περίοδο, με την ένδειξη «ανενεργό»
  const pmap=nm=>readyState.maps&&readyState.maps.pkey[foldKeep(nm)];
  let groups=Object.keys(names).map(k=>{let g={material_group:names[k],keys:[k],kg:0,bales:0};Object.values(cell[k]).forEach(v=>{g.kg+=v.kg;g.bales+=v.pc});return g})
@@ -3999,7 +4006,19 @@ function renderReadyPress(){
    return `<tr><td>${label}</td>${pair(sumOf(k))}${groups.map(g=>pair(val(g,k))).join('')}</tr>`;
  }).join('')||`<tr><td class="prodEmpty" colspan="${ncol}">Δεν υπάρχουν καταχωρημένα δέματα πρέσας (${readyPW()}).</td></tr>`;
  let tot=g=>{let t={kg:0,pc:0};readyDateBuckets().forEach(dt=>{let v=g?val(g,readyBucketKey(dt)):sumOf(readyBucketKey(dt));t.kg+=v.kg;t.pc+=v.pc});return t};
- $('readyPressFoot').innerHTML=`<tr><td>Σύνολο ${readyPW()}</td>${pair(tot(null))}${groups.map(g=>pair(tot(g))).join('')}</tr>`;
+ // Απόθεμα έναρξης = αρχικό απόθεμα (31/12/2025) + παραγωγή από 1/1/2026 μέχρι πριν την περίοδο· Σύνολο = παραγωγή περιόδου· Πωλήσεις = δεν υπάρχουν καθαρά δεδομένα (μένουν κενές)· Τρέχον = έναρξη + σύνολο − πωλήσεις
+ let startISO=readyRange().startISO,hasOpen=startISO>='2026-01-01';
+ const open0={};if(hasOpen)(readyState.pressOpen||[]).forEach(o=>{open0[nk(o.press_group)]={kg:Number(o.kg||0),pc:Number(o.bales||0)}});
+ const priorOf=k=>{let kg=0,pc=0;(readyState.pressPrior||[]).forEach(e=>{if(nk(e.material_group)!==k)return;kg+=Number(e.weight_kg||0);pc+=e.bale_seq!=null?1:Number(e.bale_count||0)});(readyState.pressPriorBales||[]).forEach(b=>{if(nk(b.material_group)!==k)return;Object.values(b.days||{}).forEach(v=>{kg+=Number(v.kg||0);pc+=Number(v.count||0)})});return {kg,pc}};
+ const openOf=g=>{if(!hasOpen)return {kg:0,pc:0};return g.keys.reduce((t,k)=>{let o=open0[k]||{kg:0,pc:0},pr=priorOf(k);return {kg:t.kg+o.kg+pr.kg,pc:t.pc+o.pc+pr.pc}},{kg:0,pc:0})};
+ const sumPair=f=>groups.reduce((t,g)=>{let v=f(g);return {kg:t.kg+v.kg,pc:t.pc+v.pc}},{kg:0,pc:0});
+ const curOf=g=>{let o=openOf(g),t=tot(g);return {kg:o.kg+t.kg,pc:o.pc+t.pc}};
+ let openLbl=new Date(startISO+'T12:00:00').toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'}).replace(/^\d+\s*/,'');
+ let emptyPair='<td class="num"></td><td class="num"></td>';
+ $('readyPressFoot').innerHTML=`<tr id="readyPressOpenRow"><td>Απόθεμα έναρξης ${esc(openLbl)}</td>${pair(sumPair(openOf))}${groups.map(g=>pair(openOf(g))).join('')}</tr>`
+  +`<tr><td>Σύνολο</td>${pair(tot(null))}${groups.map(g=>pair(tot(g))).join('')}</tr>`
+  +`<tr class="prodShipRow"><td>Πωλήσεις</td>${emptyPair}${groups.map(()=>emptyPair).join('')}</tr>`
+  +`<tr class="prodBalanceRow" id="readyPressBalanceRow"><td><b>Τρέχον απόθεμα</b></td>${pair(sumPair(curOf))}${groups.map(g=>pair(curOf(g))).join('')}</tr>`;
  try{stickyStackFooter('readyPressFoot')}catch(e){}
 }
 let readyState={period:'month',cursor:new Date(_startupNow.getFullYear(),_startupNow.getMonth(),1),expanded:new Set(),entries:[],activeGroup:'AXIOPOIISIMA',customRange:null};
