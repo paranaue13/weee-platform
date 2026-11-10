@@ -3,6 +3,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΙΝΟΧ",
   "kg": 378.0,
+  "pieces": 5,
   "reptool_code": "16 02 16 / 07",
   "her_description": "ΙΝΟΧ"
  },
@@ -10,13 +11,15 @@
   "group": "APORRIPSI",
   "material_label": "ΠΥΚΝΩΤΕΣ ΜΕ PCB",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 09* / 02",
   "her_description": "Πυκνωτές με PCB"
  },
  {
   "group": "APORRIPSI",
   "material_label": "ΓΥΑΛΙ FUNNEL",
-  "kg": 694744.0,
+  "kg": 694807.0,
+  "pieces": 0,
   "reptool_code": "19 12 11* / 03-4",
   "her_description": "Γυαλί Funnel"
  },
@@ -24,6 +27,7 @@
   "group": "APORRIPSI",
   "material_label": "ΓΥΑΛΙ PANEL",
   "kg": 339364.0,
+  "pieces": 0,
   "reptool_code": "19 12 05 / 02",
   "her_description": "Γυαλί Panel"
  },
@@ -31,6 +35,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΦΙΣ/ ΠΡΙΖΕΣ",
   "kg": 554.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 10-5",
   "her_description": "Φις - Πρίζες"
  },
@@ -38,6 +43,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΕΤΑΣΧΗΜΑΤΙΣΤΕΣ",
   "kg": 3228.0,
+  "pieces": 3,
   "reptool_code": "16 02 16 / 11",
   "her_description": "Μετασχηματιστές"
  },
@@ -45,6 +51,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "YOKES",
   "kg": 523.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 15",
   "her_description": "TV Yokes"
  },
@@ -52,6 +59,7 @@
   "group": "APORRIPSI",
   "material_label": "ΠΟΛΥΟΥΡΕΘΑΝΗ",
   "kg": 4323.0,
+  "pieces": 30,
   "reptool_code": "19 12 04 / 05-1a",
   "her_description": "Πολυουρεθάνη"
  },
@@ -59,6 +67,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΘΕΡΜΟΣΤΑΤΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Θερμοστάτες"
  },
@@ -66,6 +75,7 @@
   "group": "APORRIPSI",
   "material_label": "ΤΗΛΕΚΟΝΤΡΟΛ",
   "kg": 305.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Τηλεκοντρόλ"
  },
@@ -73,6 +83,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΣΥΜΠΙΕΣΤΕΣ",
   "kg": 6945.0,
+  "pieces": 6,
   "reptool_code": "16 02 16 / 12",
   "her_description": "Συμπιεστές"
  },
@@ -80,6 +91,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΠΡΟΥΤΖΟΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 05",
   "her_description": "Μπρούτζος"
  },
@@ -87,6 +99,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΝΕΜΙΣΤΗΡΕΣ ΜΙΚΡΟΙ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Ανεμιστήρες"
  },
@@ -94,6 +107,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΦΟΡΤΙΣΤΕΣ",
   "kg": 614.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Φορτιστές"
  },
@@ -101,6 +115,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΤΗΛΕΦΩΝΑ",
   "kg": 340.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Τηλέφωνα"
  },
@@ -108,6 +123,7 @@
   "group": "APORRIPSI",
   "material_label": "ΠΥΚΝΩΤΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 24",
   "her_description": "Πυκνωτές"
  },
@@ -115,6 +131,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ELECTROGUN",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 15(*) / 13",
   "her_description": "Electron guns"
  },
@@ -122,6 +139,7 @@
   "group": "APORRIPSI",
   "material_label": "ΗΛΕΚΤΡΟΛΥΤΙΚΟΙ ΠΥΚΝΩΤΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 15* / 11",
   "her_description": "Hλεκτρολυτικοί πυκνωτές"
  },
@@ -129,6 +147,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΠΛΑΣΤΙΚΑ ΜΕΡΗ",
   "kg": 101635.0,
+  "pieces": 356,
   "reptool_code": "16 02 16 / 30",
   "her_description": "Πλαστικά Μέρη"
  },
@@ -136,6 +155,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΕΛΑΜΙΝΗ ΞΥΛΟ",
   "kg": 2750.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 34-3",
   "her_description": "Μελαμίνη - Ξύλο"
  },
@@ -143,6 +163,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΧΑΛΚΟΣ",
   "kg": 691.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 05",
   "her_description": "Χαλκός"
  },
@@ -150,6 +171,7 @@
   "group": "APORRIPSI",
   "material_label": "ΠΟΥΔΡΑ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "19 12 11* / 04-1",
   "her_description": "Πούδρα"
  },
@@ -157,13 +179,15 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ EQUATORS",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 10-3",
   "her_description": "Equators"
  },
  {
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΕΤΑΛΛΟ ΣΙΔΗΡΟΥΧΟ",
-  "kg": 12232.0,
+  "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "19 12 03 / 02-1",
   "her_description": "Μέταλλο μη σιδηρούχο"
  },
@@ -171,13 +195,15 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΧΑΡΤΙ",
   "kg": 1257.0,
+  "pieces": 4,
   "reptool_code": "15 01 01",
   "her_description": "Χαρτί"
  },
  {
   "group": "APORRIPSI",
   "material_label": "ΕΛΑΙΑ",
-  "kg": 1280.0,
+  "kg": 691.0,
+  "pieces": 0,
   "reptool_code": "14 06 02* / 01",
   "her_description": "Έλαια"
  },
@@ -185,6 +211,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "FLOPPY DRIVERS",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 17",
   "her_description": "Θύρες / Drivers / Σκληροί Δίσκοι"
  },
@@ -192,6 +219,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "CD-DVD DRIVERS",
   "kg": 509.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 17",
   "her_description": "Θύρες / Drivers / Σκληροί Δίσκοι"
  },
@@ -199,6 +227,7 @@
   "group": "APORRIPSI",
   "material_label": "ΨΥΚΤΙΚΟ ΜΕΣΟ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "14 06 01*",
   "her_description": "Ψυκτικά Μέσα"
  },
@@ -206,6 +235,7 @@
   "group": "APORRIPSI",
   "material_label": "ΟΘΟΝΕΣ ΥΓΡΩΝ ΚΡΥΣΤΑΛΛΩΝ",
   "kg": 24491.0,
+  "pieces": 38,
   "reptool_code": "16 02 15* / 08-2",
   "her_description": "Οθόνες υγρών κρυστάλλων >100cm²"
  },
@@ -213,6 +243,7 @@
   "group": "APORRIPSI",
   "material_label": "ΛΑΜΠΤΗΡΕΣ LED",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 15* / 07",
   "her_description": "Λαμπτήρες εκκένωσης αερίων"
  },
@@ -220,6 +251,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΕΛΑΝΟΔΟΧΕΙΑ INKJET",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 15* / 03",
   "her_description": "Μελανοδοχεία"
  },
@@ -227,6 +259,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΙΟ ΓΥΑΛΙ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -234,6 +267,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΣΙΔΗΡΟΧΑΛΚΟΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "19 12 03 / 02-1",
   "her_description": "Μέταλλο μη σιδηρούχο"
  },
@@ -241,6 +275,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΟΤΕΡ ΜΙΚΡΑ",
   "kg": 6017.0,
+  "pieces": 6,
   "reptool_code": "16 02 16 / 11",
   "her_description": "Μοτέρ"
  },
@@ -248,6 +283,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΙΟ ΜΑΛΑΚΟ",
   "kg": 821.0,
+  "pieces": 2,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -255,6 +291,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΙΟ ΣΚΛΗΡΟ",
   "kg": 624.0,
+  "pieces": 3,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -262,6 +299,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΙΟ ΠΡΟΦΙΛ",
   "kg": 482.0,
+  "pieces": 2,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -269,6 +307,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΠΡΟΥΤΖΟΣ / ΧΑΛΚΟΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 05",
   "her_description": "Μπρούτζος"
  },
@@ -276,6 +315,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ ΑΠΛΑ",
   "kg": 3476.0,
+  "pieces": 5,
   "reptool_code": "16 02 16 / 10-1",
   "her_description": "Εξωτερικά Καλώδια"
  },
@@ -283,6 +323,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ EQUATORS ΑΛΟΥΜΙΝΙΟΥ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 10-3",
   "her_description": "Equators"
  },
@@ -290,6 +331,7 @@
   "group": "APORRIPSI",
   "material_label": "ΡΑΔΙΕΝΕΡΓΑ ΣΤΟΙΧΕΙΑ",
   "kg": 48.0,
+  "pieces": 3,
   "reptool_code": "16 02 13* / 12",
   "her_description": "Ραδιενεργές συσκευές"
  },
@@ -297,6 +339,7 @@
   "group": "APORRIPSI",
   "material_label": "ΣΚΟΥΠΙΔΙΑ",
   "kg": 1886.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 90",
   "her_description": "Άχρηστα - Σκουπίδια"
  },
@@ -304,13 +347,15 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "LAPTOP",
   "kg": 582.0,
+  "pieces": 1,
   "reptool_code": "16 02 13* / 13",
   "her_description": "Κινητά - Tablet-Laptop"
  },
  {
   "group": "AXIOPOIISIMA",
   "material_label": "ΠΛΑΣΤΙΚΑ ΜΕΡΗ ΜΕ ΒΡΩΜΙΟ",
-  "kg": 3582.0,
+  "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 30",
   "her_description": "Πλαστικά Μέρη"
  },
@@ -318,6 +363,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΟΧΑΛΚΟΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -325,6 +371,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΒΑΡΥ ΣΙΔΗΡΟ",
   "kg": 22471.0,
+  "pieces": 0,
   "reptool_code": "19 12 03 / 02-1",
   "her_description": "Μέταλλο μη σιδηρούχο"
  },
@@ -332,6 +379,7 @@
   "group": "APORRIPSI",
   "material_label": "FLOPPY DISCS",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Ακουστικά, μηχανικές κεφαλές, πληκτρολόγια, CD-DVD-Floppy discs, κασσέτες"
  },
@@ -339,6 +387,7 @@
   "group": "APORRIPSI",
   "material_label": "CD / DVD DISCS",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Ακουστικά, μηχανικές κεφαλές, πληκτρολόγια, CD-DVD-Floppy discs, κασσέτες"
  },
@@ -346,6 +395,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΙΝΟΧ ΑΝΑΜΕΙΚΤΟ",
   "kg": 173.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 07",
   "her_description": "ΙΝΟΧ"
  },
@@ -353,6 +403,7 @@
   "group": "APORRIPSI",
   "material_label": "ΟΙΚΙΑΚΕΣ ΜΠΑΤΑΡΙΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -360,6 +411,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΠΑΤΑΡΙΕΣ ΛΙΘΙΟΥ (LAPTOP)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 06 xx(*) / 02-1",
   "her_description": "Μπαταρίες Απλές"
  },
@@ -367,6 +419,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΣΥΣΣΩΡΕΥΤΕΣ ΜΟΛΥΒΔΟΥ",
   "kg": 1240.0,
+  "pieces": 1,
   "reptool_code": "16 06 01*",
   "her_description": "Μπαταρίες Μολύβδου"
  },
@@ -374,6 +427,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΕΛΑΝΟΔΟΧΕΙΑ ΑΠΟ ΠΑΡΑΛΑΒΕΣ",
   "kg": 15.0,
+  "pieces": 0,
   "reptool_code": "16 02 15* / 03",
   "her_description": "Μελανοδοχεία"
  },
@@ -381,6 +435,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΑΛΟΥΜΙΝΙΟ ΑΝΑΜΕΙΚΤΟ",
   "kg": 1403.0,
+  "pieces": 4,
   "reptool_code": "16 02 16 / 03",
   "her_description": "Αλουμίνιο"
  },
@@ -388,6 +443,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΣΚΛΗΡΟΙ ΔΙΣΚΟΙ",
   "kg": 812.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 17",
   "her_description": "Θύρες / Drivers / Σκληροί Δίσκοι"
  },
@@ -395,6 +451,7 @@
   "group": "APORRIPSI",
   "material_label": "ΛΑΜΠΤΗΡΕΣ ΦΘΟΡΙΣΜΟΥ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 15* / 07",
   "her_description": "Λαμπτήρες εκκένωσης αερίων"
  },
@@ -402,6 +459,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΙΝΗΤΑ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 13* / 13",
   "her_description": "Κινητά - Tablet-Laptop"
  },
@@ -409,6 +467,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΠΑΤΑΡΙΕΣ ΛΙΘΙΟΥ (ΚΙΝΗΤΩΝ)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -416,6 +475,7 @@
   "group": "APORRIPSI",
   "material_label": "ΚΑΣΕΤΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Ανεμιστήρες"
  },
@@ -423,6 +483,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ ΣΩΛΗΝΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 16 / 10-2",
   "her_description": "Εσωτερικά Καλώδια"
  },
@@ -430,6 +491,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ ΤΑΙΝΙΕΣ",
   "kg": 266.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 10-2",
   "her_description": "Εσωτερικά Καλώδια"
  },
@@ -437,6 +499,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ ΚΕΡΑΙΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -444,6 +507,7 @@
   "group": "APORRIPSI",
   "material_label": "ΔΙΑΦΟΡΕΣ ΛΥΧΝΙΕΣ",
   "kg": 368.0,
+  "pieces": 1,
   "reptool_code": "16 02 16 / 19",
   "her_description": "Διάφορες Λυχνίες"
  },
@@ -451,6 +515,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΤΡΟΦΟΔΟΤΙΚΑ ΜΕ ΚΑΛΩΔΙΑ (Η/Υ)",
   "kg": 701.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -458,6 +523,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΝΑΫΛΟΝ",
   "kg": 412.0,
+  "pieces": 2,
   "reptool_code": null,
   "her_description": null
  },
@@ -465,6 +531,7 @@
   "group": "APORRIPSI",
   "material_label": "ΜΗ ΑΚΕΡΑΙΟΙ ΛΑΜΠΤΗΡΕΣ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -472,6 +539,7 @@
   "group": "APORRIPSI",
   "material_label": "ΡΑΔΙΕΝΕΡΓΑ ΣΤΟΙΧΕΙΑ (ΠΑΡΑΛΑΒΕΣ)",
   "kg": 64.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -479,6 +547,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΣΕΡΠΑΤΙΝΑ ΚΑΘΑΡΗ",
   "kg": 3517.0,
+  "pieces": 7,
   "reptool_code": "19 12 03 / 02-2",
   "her_description": "Μέταλλο μη σιδηρούχο"
  },
@@ -486,20 +555,23 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΠΛΕΞΙ ΓΚΛΑΣ",
   "kg": 840.0,
+  "pieces": 2,
   "reptool_code": null,
   "her_description": null
  },
  {
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Α (LAPTOPS)",
-  "kg": 12.0,
+  "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
  {
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΠΛΥΝΤΗΡΙΑ",
-  "kg": 13898.0,
+  "kg": 13000.0,
+  "pieces": 235,
   "reptool_code": null,
   "her_description": null
  },
@@ -507,6 +579,7 @@
   "group": "APORRIPSI",
   "material_label": "ΓΥΑΛΙ",
   "kg": 2790.0,
+  "pieces": 4,
   "reptool_code": null,
   "her_description": null
  },
@@ -514,6 +587,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "Η/Υ ΜΗΤΡΙΚΕΣ ΝΕΑΣ ΓΕΝΙΑΣ",
   "kg": 227.0,
+  "pieces": 1,
   "reptool_code": null,
   "her_description": null
  },
@@ -521,6 +595,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "TABLETS",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "16 02 13* / 13",
   "her_description": "Κινητά - Tablet - Laptop"
  },
@@ -528,13 +603,15 @@
   "group": "APORRIPSI",
   "material_label": "ΚΕΡΑΜΙΚΕΣ ΕΣΤΙΕΣ",
   "kg": 2361.0,
+  "pieces": 3,
   "reptool_code": "16 02 15* / 09",
   "her_description": "Κεραμικές Εστίες"
  },
  {
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΠΛΑΚΕΤΕΣ / ΚΑΤΗΓΟΡΙΑΣ ΑA1",
-  "kg": 10.0,
+  "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -542,6 +619,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Α (LCD ΕΠΙΧΡΥΣΩΜΕΝΕΣ)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -549,6 +627,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΟΥΖΙΝΕΣ",
   "kg": 6011.0,
+  "pieces": 147,
   "reptool_code": null,
   "her_description": null
  },
@@ -556,6 +635,7 @@
   "group": "APORRIPSI",
   "material_label": "ΛΑΜΠΤΗΡΕΣ ΦΘΟΡΙΣΜΟΥ ΑΠΟ ΠΑΡΑΛΑΒΕΣ",
   "kg": 22.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -563,6 +643,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Α (ΚΑΡΤΕΣ ΓΡΑΦΙΚΩΝ)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -570,6 +651,7 @@
   "group": "APORRIPSI",
   "material_label": "ΠΛΗΚΤΡΟΛΟΓΙΑ",
   "kg": 590.0,
+  "pieces": 2,
   "reptool_code": "16 02 16 / 80 (open)",
   "her_description": "Ακουστικά, μηχανικές κεφαλές, πληκτρολόγια, CD-DVD-Floppy discs, κασσέτες"
  },
@@ -577,6 +659,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Α",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -584,6 +667,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Β",
   "kg": 774.0,
+  "pieces": 3,
   "reptool_code": null,
   "her_description": null
  },
@@ -591,13 +675,15 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Γ",
   "kg": 3726.0,
+  "pieces": 14,
   "reptool_code": null,
   "her_description": null
  },
  {
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "Η/Υ ΜΗΤΡΙΚΕΣ ΠΑΛΙΑΣ ΓΕΝΙΑΣ",
-  "kg": 82.0,
+  "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -605,6 +691,7 @@
   "group": "APORRIPSI",
   "material_label": "ΠΛΑΣΤΙΚΟ LCD - ΔΙΑΦΑΝΟ & ΑΣΠΡΟ ΦΥΛΛΟ",
   "kg": 343.0,
+  "pieces": 1,
   "reptool_code": null,
   "her_description": null
  },
@@ -612,6 +699,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ Α (LCD ΕΠΙΧΑΛΚΩΜΕΝΕΣ)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -619,6 +707,7 @@
   "group": "APORRIPSI",
   "material_label": "ΑΚΕΡΑΙΟΙ ΛΑΜΠΤΗΡΕΣ (TV / MONITOR LCD)",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -626,6 +715,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ ΑA3",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -633,6 +723,7 @@
   "group": "EIDIKIS_DIACHEIRISIS",
   "material_label": "ΚΑΤΗΓΟΡΙΑΣ ΑA6",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -640,6 +731,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΚΑΛΩΔΙΑ ΧΡΙΣΤΟΥΓΕΝΝΙΑΤΙΚΑ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -647,6 +739,7 @@
   "group": "APORRIPSI",
   "material_label": "ΦΕΛΙΖΟΛ",
   "kg": 97.0,
+  "pieces": 0,
   "reptool_code": null,
   "her_description": null
  },
@@ -654,6 +747,7 @@
   "group": "APORRIPSI",
   "material_label": "TONER (ΚΑΙΝΟΥΡΙΑ)",
   "kg": 975.0,
+  "pieces": 6,
   "reptool_code": null,
   "her_description": null
  },
@@ -661,6 +755,7 @@
   "group": "AXIOPOIISIMA",
   "material_label": "ΜΟΛΥΒΙ",
   "kg": 0.0,
+  "pieces": 0,
   "reptool_code": "19 12 03 / 02-2",
   "her_description": "Μέταλλο μη σιδηρούχο"
  },
@@ -668,7 +763,16 @@
   "group": "APORRIPSI",
   "material_label": "TONER ΑΠΟ ΠΑΡΑΛΑΒΕΣ",
   "kg": 310.0,
+  "pieces": 5,
   "reptool_code": null,
   "her_description": null
+ },
+ {
+  "group": "AXIOPOIISIMA",
+  "material_label": "ΜΕΤΑΛΛΟ ΣΙΔΗΡΟΥΧΟ (ΜΠΑΛΕΣ)",
+  "kg": 12232.0,
+  "pieces": 12,
+  "reptool_code": "19 12 03 / 02-1",
+  "her_description": "Μέταλλο μη σιδηρούχο"
  }
 ]

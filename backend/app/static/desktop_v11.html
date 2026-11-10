@@ -4079,7 +4079,18 @@ function readySortOrder(lb){return (matGroupOverrides[lb]&&matGroupOverrides[lb]
 // balance per material label (see loadReadyBalance), not the physical-lot registry -- lot tracking
 // isn't in real use yet so it stayed permanently empty; the shipments-based balance reflects real
 // recorded output net of real recorded shipments instead.
-let readyBalanceByName={},readyProducedByName={},readyShippedByName={},readyOpeningByName={};let readyStockOnly=false;
+let readyBalanceByName={},readyProducedByName={},readyShippedByName={},readyOpeningByName={},readyOpeningPcsByName={},readyProdRows=[],readyShipRows=[];let readyStockOnly=false;
+// Απόθεμα στο ΤΕΛΟΣ της επιλεγμένης περιόδου = Απόθεμα έναρξης + παραγωγή − αποστολές (+ διορθώσεις) μέχρι και την τελευταία ημέρα της περιόδου· null = η περίοδος φτάνει στο σήμερα (τρέχουσα κατάσταση)
+function readyAsOfEnd(){let e=readyRange().endISO,t=localISODate(new Date());return e>=t?null:e}
+let _readyAsOfCache={};
+function readyBalAsOf(label,endISO){
+  let m=_readyAsOfCache[endISO];
+  if(!m||_readyAsOfCache._v!==readyProdRows.length+'|'+readyShipRows.length){_readyAsOfCache={_v:readyProdRows.length+'|'+readyShipRows.length};m=_readyAsOfCache[endISO]={};
+    Object.keys(readyOpeningByName).forEach(l=>{m[l]=readyOpeningByName[l]});
+    readyProdRows.forEach(e=>{if(String(e.work_date||'').slice(0,10)<=endISO)m[e.material_label]=(m[e.material_label]||0)+Number(e.weight_kg||0)});
+    readyShipRows.forEach(e=>{if(String(e.work_date||'').slice(0,10)<=endISO)m[e.material_label]=(m[e.material_label]||0)-Number(e.weight_kg||0)});}
+  return m[label]||0;
+}
 // Full (all-time, unfiltered by period) universe of material_label -> its raw category_group, so
 // renderReadyMaterials() can show a column for every material ever recorded -- including one with
 // zero entries in the currently selected period -- instead of only materials with period activity.
@@ -4107,6 +4118,8 @@ async function loadReadyBalance(){
   readyAllLabels=Object.entries(labelSeen).map(([label,category_group])=>({label,category_group}));
   // Kept un-floored (can be negative) on purpose -- prodVal() highlights a negative cell red and
   // raises an alert (see flagNegativeKg) instead of silently hiding a real shortfall behind a 0.
+  readyProdRows=allProd;readyShipRows=allShip;
+  let openedP={};allOpening.forEach(e=>{let lb=e.material_label;openedP[lb]=(openedP[lb]||0)+Number(e.pieces||0)});readyOpeningPcsByName=openedP;
   let opened={};allOpening.forEach(e=>{let lb=e.material_label;opened[lb]=(opened[lb]||0)+Number(e.kg||0)});   // Τρέχον απόθεμα = Απόθεμα έναρξης + Παραγωγή + Διορθώσεις − Αποστολές
   readyProducedByName=produced;readyShippedByName=shipped;readyOpeningByName=opened;
   readyBalanceByName={};
@@ -4279,7 +4292,7 @@ function rmPressXl(name,key){
 // Εξαγωγές της εφαρμογής (Android): ημέρα εξαγωγής (τοπική ώρα), kg ανά υλικό/ημέρα, απόθεμα αποθήκης
 function rmLotDay(l){let s=String(l.created_at||'');if(!/(Z|[+-]\d\d:?\d\d)$/i.test(s))s+='Z';return localISODate(new Date(s))}
 function rmLotsPeriod(){return readyState.lotsAll||[]}
-function rmLotsStock(){return (readyState.availLots||[]).filter(l=>!['CANCELLED','DEMO','DISPATCHED','LOADED'].includes(l.status))}
+function rmLotsStock(){let e=window.__readyEnd;return (readyState.availLots||[]).filter(l=>!['CANCELLED','DEMO','DISPATCHED','LOADED'].includes(l.status)&&(!e||rmLotDay(l)<=e))}
 function rmLotKg(arr,pred,key){let per=arr===readyState.lotsAll;return arr.reduce((t,l)=>pred(l)&&(!key||readyISOBucket(rmLotDay(l))===key)?t+Number((per&&l.original_weight!=null?l.original_weight:l.net_weight)||0):t,0)}   // Σύνολο περιόδου = αρχικό βάρος εξαγωγής· Τρέχον απόθεμα = υπόλοιπο (net_weight)
 function rmMoved(lb){return (readyState.entries||[]).some(e=>e.material_label===lb)||(readyState.shipEntries||[]).some(e=>e.material_label===lb)||(readyState.corrections||[]).some(x=>readyNorm(x.material_label)===readyNorm(lb))}
 // Στήλες της καρτέλας: απλές ετικέτες, ομάδα υποκατηγοριών (ομπρέλα), άθροισμα ετικέτας (SUM), «από παραλαβές» (rcpt)
@@ -4421,7 +4434,11 @@ function renderReadyMaterials(){
  const cellVal=(arr,c,key)=>c.kind==='lg'&&!c.sub?prodVal(c.subs.reduce((t,s)=>t+lgSubKg(arr,s,key),0)):c.sub&&c.sub.mid&&c.kind!=='subpress'?prodVal(lgSubKg(arr,c.sub,key)):c.kind==='rcpt'?'':(c.kind==='sum'||c.kind==='subpress')?prodVal(pressOf(c,key).kg):prodVal(kgOf(arr,c)+lotPlain(c,key,false));
  const corrAll=(label,k)=>(readyState.corrTotals||[]).filter(x=>readyNorm(x.material_label)===readyNorm(label)).reduce((a,x)=>a+Number(x[k]||0),0);
  const corrSum=(c,k)=>c.labels.reduce((s,l)=>s+corrAll(l,k),0);
- const colBalance=c=>c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?0:c.labels.reduce((s,l)=>s+(readyBalanceByName[l]||0),0)+corrSum(c,'weight_kg')+lotKgCol(c,null,true);   // Τρέχον απόθεμα = ιστορικό παραγωγής − αποστολές + εξαγωγές που είναι στην αποθήκη (οι φορτωμένες φεύγουν)
+ const asOfEnd=readyAsOfEnd();window.__readyEnd=asOfEnd;
+ const ledLabels=c=>c.kind==='sum'?((c.col&&c.col.moveLabels)||c.moveLabels||[]):c.labels;   // οι ομάδες «άθροισμα» (π.χ. ΠΛΑΣΤΙΚΑ ΜΕΡΗ) έχουν δική τους ετικέτα στο καθολικό υλικών
+ const balOf=l=>asOfEnd?readyBalAsOf(l,asOfEnd):(readyBalanceByName[l]||0);
+ const corrSumL=(c,k)=>ledLabels(c).reduce((s,l)=>s+corrAll(l,k),0);
+ const colBalance=c=>c.kind==='rcpt'||c.kind==='subpress'?0:ledLabels(c).reduce((s,l)=>s+balOf(l),0)+corrSumL(c,'weight_kg')+lotKgCol(c,null,true);   // Τρέχον απόθεμα = ιστορικό παραγωγής − αποστολές + εξαγωγές που είναι στην αποθήκη (οι φορτωμένες φεύγουν)
  let buckets=readyDateBuckets();
  let groupLabel=isPlaketes?'Πλακέτες':(MAT_GROUP_LABELS[g]||matTabName(g));
  let groupEntriesAll=entries.filter(inTab);
@@ -4457,8 +4474,9 @@ function renderReadyMaterials(){
  let shipGroupEntries=(readyState.shipEntries||[]).filter(inGroup);
  let shipTotal=shipGroupEntries.reduce((s,e)=>s+Number(e.weight_kg||0),0);
  let balanceTotal=cols.reduce((s,c)=>s+colBalance(c),0);
- const openOfCol=c=>c.labels.reduce((t,l)=>t+(readyOpeningByName[l]||0),0);   // Απόθεμα έναρξης 1/1/2026 (Excel «ΕΚ ΜΕΤΑΦΟΡΑΣ»)
- let openTotal=cols.reduce((t,c)=>t+(c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?0:openOfCol(c)),0);
+ const openOfCol=c=>ledLabels(c).reduce((t,l)=>t+(readyOpeningByName[l]||0),0);
+ const openPcsOf=c=>c.kind==='rcpt'||c.kind==='subpress'?0:ledLabels(c).reduce((t,l)=>t+(readyOpeningPcsByName[l]||0),0);   // Απόθεμα έναρξης 1/1/2026 (Excel «ΕΚ ΜΕΤΑΦΟΡΑΣ»)
+ let openTotal=cols.reduce((t,c)=>t+(c.kind==='rcpt'||c.kind==='subpress'?0:openOfCol(c)),0);
  let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
  let isMonthView=readyState.period==='month';
  const cnt=c=>{let v=c.labels.map(l=>readyState.countEntries?.[l]).filter(x=>x!=null);return v.length?v.reduce((a,b)=>a+Number(b),0):null};
@@ -4491,23 +4509,23 @@ function renderReadyMaterials(){
  const lgLots=(arr,s)=>arr.filter(l=>l.material_id===s.mid&&(s.split==='bale'?l.is_bale:s.split==='nobale'?!l.is_bale:true)&&(s.split||l.medium_code)).length;
  const lotsOf=(arr,c)=>umbPred(c)?arr.filter(l=>l.medium_code&&umbPred(c)(l)).length:c.kind==='lg'&&!c.sub?c.subs.reduce((t,s)=>t+lgLots(arr,s),0):(c.sub&&c.sub.mid?lgLots(arr,c.sub):(()=>{let m=midsOf(c);return arr.filter(l=>l.medium_code&&m.has(l.material_id)).length})());
  const piecesInPeriod=c=>(c.kind==='sum'||c.kind==='subpress')&&!(c.sub&&c.sub.split==='bale')?pressOf(c,null).pc:c.sub&&c.sub.split==='bale'?lgLots(periodLots,c.sub)+rmPressXl(c.sub.press,null):(c.kind==='rcpt'?0:lotsOf(periodLots,c)+(c.kind==='lg'&&!c.sub?c.subs.filter(x=>x.split==='bale').reduce((t,x)=>t+rmPressXl(x.press,null),0):0));
- const piecesBalance=c=>c.sub&&c.sub.split==='bale'?lgLots(availLots,c.sub)+corrSum(c,'pieces'):c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?0:lotsOf(availLots,c)+corrSum(c,'pieces');
+ const piecesBalance=c=>c.sub&&c.sub.split==='bale'?lgLots(availLots,c.sub)+corrSum(c,'pieces')+openPcsOf(c):c.kind==='rcpt'||c.kind==='subpress'?0:c.kind==='sum'?openPcsOf(c)+corrSumL(c,'pieces'):lotsOf(availLots,c)+corrSum(c,'pieces')+openPcsOf(c);
  let piecesPeriodTotal=cols.reduce((s,c)=>s+(c.kind==='sum'?0:piecesInPeriod(c)),0);
  let piecesBalanceTotal=cols.reduce((s,c)=>s+piecesBalance(c),0);
  let piecesPeriodRow=isMonthView?`<tr><td>Τεμάχια</td><td>${piecesPeriodTotal||''}</td>${bodyCols.map(c=>tdc(c,piecesInPeriod(c)||'')).join('')}</tr>`:'';
  let piecesBalanceRow=`<tr class="prodBalanceRow"><td>Τεμάχια</td><td>${piecesBalanceTotal||''}</td>${bodyCols.map(c=>tdc(c,piecesBalance(c)||'')).join('')}</tr>`;
  const balCell=c=>{
    if(c.kind==='rcpt')return tdc(c,`<b>${prodVal(rcptKg(c.col))}</b>`);
-   if(c.kind==='sum'||c.kind==='subpress')return tdc(c,'');
+   if(c.kind==='subpress')return tdc(c,'');
    let b=colBalance(c);
    return tdc(c,`<b>${b<0&&c.labels.length===1?`<span class="negLink" data-neglabel="${esc(c.labels[0])}" title="Γιατί είναι αρνητικό">${prodVal(b)}</span>`:prodVal(b)}</b>`);
  };
 
  $('readyMatFoot').innerHTML=correctionRow
-  +`<tr id="readyOpenRow"><td>Απόθεμα έναρξης Ιανουαρίου 2026</td><td>${prodVal(openTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?'':prodVal(openOfCol(c)))).join('')}</tr>`
+  +`<tr id="readyOpenRow"><td>Απόθεμα έναρξης Ιανουαρίου 2026</td><td>${prodVal(openTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='subpress'?'':prodVal(openOfCol(c)))).join('')}</tr>`
   +`<tr><td>Σύνολο</td><td>${prodVal(total)||'0'}</td>${bodyCols.map(c=>tdc(c,cellVal(groupEntries,c,null))).join('')}</tr>`
   +piecesPeriodRow
-  +`<tr class="prodShipRow"><td>Αποστολές</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='sum'||c.kind==='subpress'?'':prodVal(kgOf(shipGroupEntries,c)))).join('')}</tr>`
+  +`<tr class="prodShipRow"><td>Αποστολές</td><td>${prodVal(shipTotal)||'0'}</td>${bodyCols.map(c=>tdc(c,c.kind==='rcpt'||c.kind==='subpress'?'':prodVal(kgOf(shipGroupEntries,c.kind==='sum'?{...c,labels:ledLabels(c)}:c)))).join('')}</tr>`
   +`<tr class="prodBalanceRow" id="readyBalanceRow"><td><b>Τρέχον απόθεμα</b></td><td><b>${prodVal(balanceTotal)||'0'}</b></td>${bodyCols.map(balCell).join('')}</tr>`
   +piecesBalanceRow
   +invRow;
@@ -4676,7 +4694,7 @@ async function loadReadyMaterials(){
  readyState.periodLots=readyState.lotsAll;
  readyState.availLots=availLots;
  readyState.corrections=corrections;
- try{readyState.corrTotals=await api('/inventory/material-corrections/totals')}catch(err){readyState.corrTotals=readyState.corrTotals||[]}
+ try{let _e=readyAsOfEnd();readyState.corrTotals=await api('/inventory/material-corrections/totals'+(_e?'?until='+_e:''))}catch(err){readyState.corrTotals=readyState.corrTotals||[]}
  let closingMonth=readyState.period==='month'&&[2,5,8,11].includes(readyState.cursor.getMonth());
  if(closingMonth){let q=Math.floor(readyState.cursor.getMonth()/3)+1;try{readyState.countEntries=await api(`/inventory/count-entries?year=${readyState.cursor.getFullYear()}&quarter=${q}`)}catch{readyState.countEntries={}}}else{readyState.countEntries=null}
  renderReadyMaterials();renderReadyQuarterInventory();

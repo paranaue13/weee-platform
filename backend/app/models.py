@@ -228,6 +228,7 @@ class MaterialOpeningStock(Base, TimestampMixin):
     category_group: Mapped[str] = mapped_column(String(30), index=True)
     material_label: Mapped[str] = mapped_column(String(150), index=True)
     kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    pieces: Mapped[int|None] = mapped_column(Integer, nullable=True, default=0)    # τεμάχια αρχικού αποθέματος (M2)
     reptool_code: Mapped[str|None] = mapped_column(String(60), nullable=True, index=True)
     her_description: Mapped[str|None] = mapped_column(String(255), nullable=True)
     source: Mapped[str] = mapped_column(String(30), default="WINDOWS")

@@ -111,6 +111,9 @@ async def lifespan(app: FastAPI):
             for _c,_t in (("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)"),("cancel_snapshot","TEXT")):
                 if _c not in trip_cols: conn.execute(text(f"ALTER TABLE inbound_trips ADD COLUMN {_c} {_t}"))
             if "aggregate_weighbridge_number" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN aggregate_weighbridge_number VARCHAR(100)"))
+        if "material_opening_stocks" in tables:
+            _mo={c["name"] for c in inspect(engine).get_columns("material_opening_stocks")}
+            if "pieces" not in _mo: conn.execute(text("ALTER TABLE material_opening_stocks ADD COLUMN pieces INTEGER DEFAULT 0"))
         if "shipment_history_entries" in tables:
             _sh={c["name"] for c in inspect(engine).get_columns("shipment_history_entries")}
             for _c,_t in (("vehicle_registration","VARCHAR(40)"),("dispatch_reason","VARCHAR(200)"),("notes","TEXT"),("customer_address","VARCHAR(300)"),("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)")):
@@ -2340,9 +2343,11 @@ def list_material_corrections(year:int=Query(...), month:int=Query(...), db:Sess
     return [schemas.MaterialCorrectionOut(id=r.id,work_date=r.work_date.date().isoformat(),material_label=r.material_label,weight_kg_delta=r.weight_kg_delta,piece_delta=r.piece_delta,reason=r.reason,created_by=users.get(r.created_by_user_id),created_at=r.created_at.isoformat() if r.created_at else None) for r in rows]
 
 @app.get("/inventory/material-corrections/totals")
-def material_corrections_totals(db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
-    """Σύνολο ΟΛΩΝ των διορθώσεων (χειροκίνητες κινήσεις +/-) ανά υλικό -- μετράνε στο Τρέχον απόθεμα (κιλά και τεμάχια)."""
-    rows=db.execute(select(models.MaterialCorrectionEntry.material_label,func.sum(models.MaterialCorrectionEntry.weight_kg_delta),func.sum(models.MaterialCorrectionEntry.piece_delta)).group_by(models.MaterialCorrectionEntry.material_label)).all()
+def material_corrections_totals(until:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Σύνολο των διορθώσεων (χειροκίνητες κινήσεις +/-) ανά υλικό -- μετράνε στο Τρέχον απόθεμα (κιλά και τεμάχια). Με until=YYYY-MM-DD: μόνο όσες έγιναν μέχρι και εκείνη την ημέρα (απόθεμα στο τέλος περιόδου)."""
+    q=select(models.MaterialCorrectionEntry.material_label,func.sum(models.MaterialCorrectionEntry.weight_kg_delta),func.sum(models.MaterialCorrectionEntry.piece_delta))
+    if until: q=q.where(models.MaterialCorrectionEntry.work_date<datetime.fromisoformat(until[:10])+timedelta(days=1))
+    rows=db.execute(q.group_by(models.MaterialCorrectionEntry.material_label)).all()
     return [{"material_label":l,"weight_kg":float(w or 0),"pieces":int(p or 0)} for l,w,p in rows]
 
 @app.post("/inventory/material-corrections", response_model=schemas.MaterialCorrectionOut)
@@ -2505,7 +2510,7 @@ def press_bale_entries(start:str|None=Query(default=None), end:str|None=Query(de
 @app.get("/inventory/material-opening-stock")
 def material_opening_stock(db:Session=Depends(get_db),user=Depends(require_permission("production.view"))):
     rows=db.scalars(select(MaterialOpeningStock).where(MaterialOpeningStock.active==True).order_by(MaterialOpeningStock.category_group,MaterialOpeningStock.material_label)).all()
-    return [{"id":r.id,"as_of_date":r.as_of_date.isoformat(),"category_group":r.category_group,"material_label":r.material_label,"kg":float(r.kg),"reptool_code":r.reptool_code,"her_description":r.her_description,"notes":r.notes} for r in rows]
+    return [{"id":r.id,"as_of_date":r.as_of_date.isoformat(),"category_group":r.category_group,"material_label":r.material_label,"kg":float(r.kg),"pieces":int(r.pieces or 0),"reptool_code":r.reptool_code,"her_description":r.her_description,"notes":r.notes} for r in rows]
 
 @app.get("/reports/material-reptool-export")
 def material_reptool_export(db:Session=Depends(get_db),user=Depends(require_permission("production.view"))):
