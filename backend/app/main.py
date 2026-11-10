@@ -108,6 +108,8 @@ async def lifespan(app: FastAPI):
         if "inbound_trips" in tables:
             trip_cols={c["name"] for c in inspect(engine).get_columns("inbound_trips")}
             if "deleted_at" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN deleted_at DATETIME"))
+            for _c,_t in (("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)"),("cancel_snapshot","TEXT")):
+                if _c not in trip_cols: conn.execute(text(f"ALTER TABLE inbound_trips ADD COLUMN {_c} {_t}"))
             if "aggregate_weighbridge_number" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN aggregate_weighbridge_number VARCHAR(100)"))
         if "organizations" in tables:
             orgs_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
@@ -2616,6 +2618,7 @@ def _receipt_out(db: Session, trip: InboundTrip, loads=None):
         receipt_date=trip.receipt_date, carrier_id=trip.carrier_id, driver_name=trip.driver_name,
         vehicle_registration=trip.vehicle_registration, status=trip.status, notes=trip.notes,
         aggregate_weighbridge_number=trip.aggregate_weighbridge_number, deleted_at=trip.deleted_at,
+        cancelled_at=trip.cancelled_at, cancel_reason=trip.cancel_reason,
         loads=[schemas.ReceiptLoadOut.model_validate(x) for x in loads]
     )
 
@@ -2845,6 +2848,71 @@ def delete_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depends
     _hist_record(db,user,'receipt_delete','Διαγραφή παραλαβής '+str(trip.receipt_number),['receipt:'+receipt_id],{'id':receipt_id})
     db.commit(); return {"status":"archived","id":receipt_id}
 
+class ReceiptCancelIn(schemas.BaseModel):
+    reason:str
+
+def _ser_row(obj):
+    import decimal
+    out={}
+    for c in obj.__table__.columns:
+        v=getattr(obj,c.key)
+        out[c.key]=str(v) if isinstance(v,decimal.Decimal) else (v.isoformat() if isinstance(v,datetime) else v)
+    return out
+def _de_row(model,d):
+    import decimal
+    out={}
+    for c in model.__table__.columns:
+        if c.key not in d: continue
+        v=d[c.key]
+        if v is not None:
+            t=str(c.type).upper()
+            if t.startswith('NUMERIC'): v=decimal.Decimal(v)
+            elif t.startswith('DATETIME'): v=datetime.fromisoformat(v)
+        out[c.key]=v
+    return out
+def _snapshot_lots(db:Session, lots)->str:
+    import json
+    items=[]
+    for lot in lots:
+        movs=db.scalars(select(StockMovement).where(StockMovement.lot_id==lot.id)).all()
+        items.append({'lot':_ser_row(lot),'mov':[_ser_row(m) for m in movs]})
+    return json.dumps(items,ensure_ascii=False)
+def _restore_lots(db:Session, snap:str):
+    """Ακριβής επαναφορά των μεριδίων/κινήσεων όπως ήταν πριν την ακύρωση (ίδια id, ίδιες ημερομηνίες κινήσεων)."""
+    import json
+    for it in json.loads(snap or '[]'):
+        ld=_de_row(WEEEStockLot,it['lot']); lot=db.get(WEEEStockLot,ld['id'])
+        if lot:
+            for k in ('weee_category_id','collection_medium_id','location_id','original_weight','available_weight','piece_count','status'): setattr(lot,k,ld[k])
+        else:
+            db.add(WEEEStockLot(**ld)); db.flush()
+        for m in it['mov']:
+            md=_de_row(StockMovement,m)
+            if not db.get(StockMovement,md['id']): db.add(StockMovement(**md))
+        if ld.get('collection_medium_id'):
+            medium=db.get(CollectionMedium,ld['collection_medium_id'])
+            if medium: medium.status='WEEE_STORAGE'
+    db.flush()
+
+@app.post("/receipts/{receipt_id}/cancel")
+def cancel_receipt(receipt_id:str, data:ReceiptCancelIn, db:Session=Depends(get_db), user:User=Depends(require_permission("receipt.edit"))):
+    """Ακύρωση παραλαβής: μένει στο ιστορικό ως «Ακυρώθηκε» (δεν διαγράφεται), τα κιλά της φεύγουν από την Αποθήκη ΑΗΗΕ και τα σύνολα
+    (ίδιος μηχανισμός αποκλεισμού με τη διαγραφή). ΔΕΝ στέλνεται τίποτα στο Galaxy. Αναιρείται από το Αναίρεση."""
+    reason=(data.reason or '').strip()
+    if not reason: raise HTTPException(422,"Ο λόγος ακύρωσης είναι υποχρεωτικός")
+    trip=db.get(InboundTrip,receipt_id)
+    if not trip: raise HTTPException(404,"Η παραλαβή δεν βρέθηκε")
+    if trip.cancelled_at is not None: raise HTTPException(409,"Η παραλαβή είναι ήδη ακυρωμένη")
+    if trip.deleted_at is not None: raise HTTPException(409,"Η παραλαβή έχει διαγραφεί")
+    now=datetime.now(timezone.utc)
+    trip.cancelled_at=now; trip.cancel_reason=reason; trip.cancelled_by=user.id; trip.deleted_at=now
+    lots=db.scalars(select(WEEEStockLot).join(InboundLoad,InboundLoad.id==WEEEStockLot.inbound_load_id).where(InboundLoad.trip_id==receipt_id)).all()
+    trip.cancel_snapshot=_snapshot_lots(db,lots)
+    for lot in lots: _retire_lot(db,lot)
+    write_audit(db,user,"receipt",receipt_id,"CANCEL",old={"receipt_number":trip.receipt_number},new={"cancelled":True},reason=reason)
+    _hist_record(db,user,'receipt_cancel',('Ακύρωση παραλαβής '+str(trip.receipt_number)+' · '+reason)[:290],['receipt:'+receipt_id],{'id':receipt_id,'reason':reason})
+    db.commit(); return {"status":"cancelled","id":receipt_id}
+
 @app.get("/receipts-archive", response_model=list[schemas.ReceiptOut])
 def receipt_archive(db:Session=Depends(get_db), user=Depends(require_permission("receipt.view"))):
     trips=db.scalars(select(InboundTrip).where(InboundTrip.deleted_at.is_not(None)).order_by(InboundTrip.receipt_date.desc())).all()
@@ -2856,7 +2924,8 @@ def restore_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depend
     if not trip: raise HTTPException(404,"Η παραλαβή δεν βρέθηκε")
     # Οι διαγραμμένες παραλαβές δεν δεσμεύουν αριθμούς ΔΠΠ -- αν κάποιος αριθμός της έχει δοθεί στο μεταξύ
     # σε άλλη παραλαβή, παίρνει νέο (επόμενο) αριθμό ώστε να μην υπάρχουν διπλοί.
-    trip.deleted_at=None; db.flush()
+    snap=trip.cancel_snapshot
+    trip.deleted_at=None; trip.cancelled_at=None; trip.cancel_reason=None; trip.cancelled_by=None; trip.cancel_snapshot=None; db.flush()
     loads=db.scalars(select(InboundLoad).where(InboundLoad.trip_id==receipt_id).order_by(InboundLoad.load_sequence)).all()
     for l in loads:
         if l.dpp_number is None: continue
@@ -2864,6 +2933,7 @@ def restore_receipt(receipt_id:str, db:Session=Depends(get_db), user:User=Depend
         clash=db.scalar(select(InboundLoad.id).join(InboundTrip,InboundTrip.id==InboundLoad.trip_id).where(InboundLoad.dpp_number==l.dpp_number,InboundLoad.trip_id!=receipt_id,InboundTrip.deleted_at.is_(None),InboundTrip.receipt_date>=datetime(year,1,1),InboundTrip.receipt_date<datetime(year+1,1,1)).limit(1))
         if clash: l.dpp_number=_next_dpp_numbers(db,year,1,exclude_load_ids={l.id})[0]; db.flush()
     trip.deleted_at=None
+    if snap: _restore_lots(db,snap)
     for e in db.scalars(select(SortingEntry).join(SortingSession,SortingSession.id==SortingEntry.session_id).join(InboundLoad,InboundLoad.id==SortingSession.inbound_load_id).where(InboundLoad.trip_id==receipt_id)).all(): _sync_entry_stock(db,e,user)
     write_audit(db,user,"receipt",receipt_id,"RESTORE",new={"deleted":False}); db.commit()
     return {"status":"restored","id":receipt_id}
@@ -3115,7 +3185,7 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
           'piece_count':e.piece_count,'notes':e.notes,'created_at':e.created_at.isoformat(),'source':e.source})
     photos=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='INBOUND_LOAD',FileAttachment.entity_id==load.id).order_by(FileAttachment.created_at)).all()
     audits=db.scalars(select(models.AuditEvent).where(models.AuditEvent.entity_type.in_(['sorting_session','sorting_entry'])).order_by(models.AuditEvent.created_at.desc()).limit(100)).all()
-    return {'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'correction':bool(ses.correction) if ses else False,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
+    return {'cancelled_at':trip.cancelled_at.isoformat() if trip.cancelled_at else None,'cancel_reason':trip.cancel_reason,'load_id':load.id,'receipt_id':trip.id,'status':(ses.status if ses else load.status),'correction':bool(ses.correction) if ses else False,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),
       'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''), 'order_number':load.order_number,'net_weight':float(load.net_weight or 0),
       'sorting_weight':sum((r['approved_weight'] if r['approved_weight'] is not None else r['raw_weight']) for r in rows),'entries':rows,
       'dpp_number':load.dpp_number,'foreign_materials':(ses.foreign_materials if ses else None),'foreign_weight':(float(ses.foreign_weight) if ses and ses.foreign_weight is not None else 0),

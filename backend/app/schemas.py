@@ -411,6 +411,8 @@ class ReceiptOut(BaseModel):
     notes: str|None
     aggregate_weighbridge_number: str|None
     deleted_at: datetime|None = None
+    cancelled_at: datetime|None = None
+    cancel_reason: str|None = None
     loads: list[ReceiptLoadOut]
 
 class ReceiptStatusOut(BaseModel):

@@ -67,7 +67,7 @@ def _valid(db: Session, e: ActionHistory, redo: bool) -> bool:
         exists = db.get(models.MaterialCorrectionEntry, p["id"]) is not None
         after = (e.kind == "mat_corr_add")      # μετά την ενέργεια η εγγραφή υπάρχει (add) ή όχι (del)
         return exists == (after if not redo else not after)
-    if e.kind == "receipt_delete":
+    if e.kind in ("receipt_delete", "receipt_cancel"):
         t = db.get(models.InboundTrip, p["id"])
         if not t:
             return False
@@ -137,6 +137,12 @@ def _run(db: Session, user: User, redo: bool):
         db.flush()
         # οι συναρτήσεις του server κάνουν δικό τους commit -> μαζί και η αλλαγή κατάστασης του ιστορικού (ατομικά)
         (M.delete_receipt if redo else M.restore_receipt)(p["id"], db, user)
+    elif e.kind == "receipt_cancel":
+        from . import main as M
+        e.status = "DONE" if redo else "UNDONE"
+        db.flush()
+        if redo: M.cancel_receipt(p["id"], M.ReceiptCancelIn(reason=p.get("reason") or "—"), db, user)
+        else: M.restore_receipt(p["id"], db, user)
     return e
 
 

@@ -494,6 +494,10 @@ class InboundTrip(Base, TimestampMixin):
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
     aggregate_weighbridge_number: Mapped[str|None] = mapped_column(String(100), nullable=True)
     deleted_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    cancelled_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)   # Ακυρώθηκε (μένει στο ιστορικό· δεν μετράει σε σύνολα/αποθέματα, όπως η διαγραφή)
+    cancel_reason: Mapped[str|None] = mapped_column(Text, nullable=True)
+    cancelled_by: Mapped[str|None] = mapped_column(String(36), nullable=True)
+    cancel_snapshot: Mapped[str|None] = mapped_column(Text, nullable=True)   # JSON: μερίδια αποθέματος + κινήσεις πριν την ακύρωση (για ακριβή επαναφορά με Αναίρεση)
 
 class InboundLoad(Base, TimestampMixin):
     __tablename__ = "inbound_loads"
