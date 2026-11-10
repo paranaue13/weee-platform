@@ -4,7 +4,7 @@ import asyncio, logging, json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from fastapi import FastAPI, Depends, HTTPException, Query, Request
-from sqlalchemy import select, inspect, text, update, func
+from sqlalchemy import select, inspect, text, update, func, or_
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
 from . import models, schemas
@@ -111,6 +111,14 @@ async def lifespan(app: FastAPI):
             for _c,_t in (("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)"),("cancel_snapshot","TEXT")):
                 if _c not in trip_cols: conn.execute(text(f"ALTER TABLE inbound_trips ADD COLUMN {_c} {_t}"))
             if "aggregate_weighbridge_number" not in trip_cols: conn.execute(text("ALTER TABLE inbound_trips ADD COLUMN aggregate_weighbridge_number VARCHAR(100)"))
+        if "shipment_history_entries" in tables:
+            _sh={c["name"] for c in inspect(engine).get_columns("shipment_history_entries")}
+            for _c,_t in (("vehicle_registration","VARCHAR(40)"),("dispatch_reason","VARCHAR(200)"),("notes","TEXT"),("customer_address","VARCHAR(300)"),("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)")):
+                if _c not in _sh: conn.execute(text(f"ALTER TABLE shipment_history_entries ADD COLUMN {_c} {_t}"))
+        if "loading_orders" in tables:
+            _lo={c["name"] for c in inspect(engine).get_columns("loading_orders")}
+            for _c,_t in (("customer_address","VARCHAR(300)"),("cancelled_at","DATETIME"),("cancel_reason","TEXT"),("cancelled_by","VARCHAR(36)")):
+                if _c not in _lo: conn.execute(text(f"ALTER TABLE loading_orders ADD COLUMN {_c} {_t}"))
         if "organizations" in tables:
             orgs_cols={c["name"] for c in inspect(engine).get_columns("organizations")}
             if "supplier_kind" not in orgs_cols: conn.execute(text("ALTER TABLE organizations ADD COLUMN supplier_kind VARCHAR(20)"))
@@ -437,6 +445,8 @@ from .mat_labels import router as _mat_labels_router
 app.include_router(_mat_labels_router)
 from .history import router as _history_router, record as _hist_record
 app.include_router(_history_router)
+from .da_form import router as _da_form_router
+app.include_router(_da_form_router)
 from . import history_rows as _history_rows
 _history_rows.install(engine)
 app.add_middleware(_history_rows.HistCtx)
@@ -5187,7 +5197,7 @@ def _loading_number(db:Session)->str:
 def _next_da_number(db:Session,year:int)->int:
     """Αρ. Δ.Α.: αύξων ανά έτος, ένα κοινό ρεύμα (Πωλήσεις + Ενδοδιακίνηση) -- επόμενος μετά τον μεγαλύτερο του έτους στο Ιστορικό Δελτίων Αποστολής."""
     H=models.ShipmentHistoryEntry
-    rows=db.scalars(select(H.da_number).where(H.active==True,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1))).all()
+    rows=db.scalars(select(H.da_number).where(or_(H.active==True,H.cancelled_at.is_not(None)),H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1))).all()
     nums=[int(x) for x in rows if x and str(x).strip().isdigit()]
     # και οι αριθμοί που έχουν ήδη δοθεί από τον χρήστη σε πρόχειρα/οριστικοποιημένα δελτία φόρτωσης του έτους
     for o in db.scalars(select(LoadingOrder).where(LoadingOrder.status.in_(['OPEN','COMPLETED']),LoadingOrder.dispatch_document_number.is_not(None))).all():
@@ -5197,7 +5207,7 @@ def _next_da_number(db:Session,year:int)->int:
 def _da_in_use(db:Session,year:int,number:str,exclude_order_id:str|None=None)->bool:
     """Ο Αρ. Δ.Α. είναι μοναδικός ανά έτος: κατειλημμένος είτε στο Ιστορικό είτε από άλλο πρόχειρο/οριστικοποιημένο δελτίο φόρτωσης."""
     H=models.ShipmentHistoryEntry
-    if db.scalar(select(func.count()).select_from(H).where(H.active==True,H.da_number==number,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1)))>0: return True
+    if db.scalar(select(func.count()).select_from(H).where(or_(H.active==True,H.cancelled_at.is_not(None)),H.da_number==number,H.work_date>=datetime(year,1,1),H.work_date<datetime(year+1,1,1)))>0: return True
     for o in db.scalars(select(LoadingOrder).where(LoadingOrder.status.in_(['OPEN','COMPLETED']),LoadingOrder.dispatch_document_number==number)).all():
         if o.id!=exclude_order_id and o.created_at and o.created_at.year==year: return True
     return False
@@ -5342,12 +5352,12 @@ def loading_complete(order_id:str,db:Session=Depends(get_db),user:User=Depends(r
         db.add(models.MaterialShipmentEntry(work_date=wd,category_group=b.category_group,material_label=b.material_label,weight_kg=b.weight_kg,source='LOADING',notes='LOADING:'+o.id,created_by_user_id=user.id,active=True))
         db.add(models.ShipmentHistoryEntry(work_date=wd,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
             description=b.material_label,weight_kg=b.weight_kg,eka_code=o.eka_code,reptool_code=o.reptool_code,
-            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
+            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading,vehicle_registration=o.vehicle_registration,dispatch_reason=o.dispatch_reason,notes=o.notes,customer_address=o.customer_address))
     for d in per_mat.values():
         m=d['mat']
         db.add(models.ShipmentHistoryEntry(work_date=wd,da_number=number,weighbridge_number=o.weighbridge_number,transporter=orgname(carr),recipient=orgname(cust),
             description=((m.official_description or m.internal_name) if m else 'Υλικό'),weight_kg=d['w'],eka_code=(o.eka_code or (m.eka_code if m else None)),reptool_code=(o.reptool_code or (m.reptool_code if m else None)),
-            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading))
+            kind='MATERIAL',source='LOADING',active=True,first_recipient=o.first_recipient,mgmt_operation=o.mgmt_operation,tracking_document=o.tracking_document,destination_country=o.destination_country,container_number=o.container_number,gr_notification_no=o.gr_notification_no,bill_of_lading=o.bill_of_lading,vehicle_registration=o.vehicle_registration,dispatch_reason=o.dispatch_reason,notes=o.notes,customer_address=o.customer_address))
     _enqueue_sync(db,'LOADING_ORDER',o.id,'UPSERT',{'loading_number':o.loading_number,'status':o.status,'loaded_weight':str(_loading_totals(db,o)[1])})
     _hist_record(db,user,'closing','Κλείσιμο φόρτωσης / Δ.Α. '+str(number),['loading:'+o.id,'da:'+str(number)]+['mat:'+str(b.material_label) for b in bulk]+['mat:'+str(d['mat'].internal_name) for d in per_mat.values() if d['mat'] is not None]+['mat:'+str(d['mat'].official_description) for d in per_mat.values() if d['mat'] is not None and d['mat'].official_description],{},undoable=False)
     db.commit(); return _loading_out(db,o)
@@ -5645,8 +5655,8 @@ def loading_bulk_shortages(label:str,db:Session=Depends(get_db),user=Depends(req
     return [{'order_id':lo.id,'loading_number':lo.loading_number,'da_number':lo.dispatch_document_number,'date':((lo.delivery_date or lo.created_at.date().isoformat())[:10]),'kg':float(bi.shortage_kg),'reason':bi.shortage_reason or ''} for bi,lo in rows]
 
 @app.get('/loading/shipment-history')
-def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Query(default=None), kind:str|None=Query(default=None), q:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
-    stmt=select(models.ShipmentHistoryEntry).where(models.ShipmentHistoryEntry.active==True)
+def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Query(default=None), kind:str|None=Query(default=None), q:str|None=Query(default=None), include_cancelled:bool=Query(default=False), db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+    stmt=select(models.ShipmentHistoryEntry).where(or_(models.ShipmentHistoryEntry.active==True,models.ShipmentHistoryEntry.cancelled_at.is_not(None)) if include_cancelled else models.ShipmentHistoryEntry.active==True)
     if start: stmt=stmt.where(models.ShipmentHistoryEntry.work_date>=datetime.fromisoformat(start))
     if end: stmt=stmt.where(models.ShipmentHistoryEntry.work_date<datetime.fromisoformat(end)+timedelta(days=1))
     if kind: stmt=stmt.where(models.ShipmentHistoryEntry.kind==kind)
@@ -5674,13 +5684,14 @@ def loading_shipment_history(start:str|None=Query(default=None), end:str|None=Qu
         except Exception: y=lo.created_at.year
         _over[(lo.dispatch_document_number,y,bi.material_label)]=f"Υπέρβαση {float(bi.shortage_kg):g} kg: {bi.shortage_reason or ''}".strip()
     def _purpose(r):
+        if r.dispatch_reason: return r.dispatch_reason
         v=_reason.get((r.da_number,r.work_date.year))
         if v: return v
         if r.source=='LOADING': return ''
         return 'Ενδοδιακίνηση' if r.kind=='WEEE_TO_UNIT' else 'Πώληση'
     out=[{"id":r.id,"work_date":r.work_date.isoformat(),"da_number":r.da_number,"weighbridge_number":r.weighbridge_number,
           "transporter":r.transporter,"recipient":r.recipient,"description":r.description,"weight_kg":float(r.weight_kg or 0),
-          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"purpose":_purpose(r),"overrun_note":_over.get((r.da_number,r.work_date.year,r.description)),"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
+          "eka_code":r.eka_code,"reptool_code":r.reptool_code,"kind":r.kind,"purpose":_purpose(r),"overrun_note":_over.get((r.da_number,r.work_date.year,r.description)),"cancelled_at":(r.cancelled_at.isoformat() if r.cancelled_at else None),"cancel_reason":r.cancel_reason,"source":r.source,"first_recipient":r.first_recipient,"mgmt_operation":r.mgmt_operation,"tracking_document":r.tracking_document,"destination_country":r.destination_country,"container_number":r.container_number,"gr_notification_no":r.gr_notification_no,"bill_of_lading":r.bill_of_lading,
           "transporter_permit":_perm(r.transporter)[0],"transporter_ada":_perm(r.transporter)[1],"recipient_permit":_perm(r.recipient)[0],"recipient_ada":_perm(r.recipient)[1]} for r in rows]
     if ql:
         out=[r for r in out if ql in ' '.join(str(r.get(k) or '') for k in ('da_number','transporter','recipient','description','eka_code','reptool_code')).lower()]

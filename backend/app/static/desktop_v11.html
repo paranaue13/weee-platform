@@ -5786,7 +5786,7 @@ async function loadLoading(){
  loadShipmentHistory();
 }
 if($('newLoadingBtn'))$('newLoadingBtn').onclick=openNewLoadingPopup;
-if($('loadingShowCancelled'))$('loadingShowCancelled').onchange=()=>loadLoading();
+if($('loadingShowCancelled'))$('loadingShowCancelled').onchange=()=>{loadLoading();try{loadShipmentHistory()}catch(e){}};
 // Ιστορικό Δ.Α.: read-only traceability list from the official 2026 delivery-note log (see
 // ShipmentHistoryEntry / BUSINESS_RULES) -- independent of the lot-based loading workflow above,
 // since there's no real historical lot data to attach these rows to.
@@ -5813,7 +5813,7 @@ function daFieldsHtml(o,prefix){return DA_FIELDS.map(([k,l])=>`<label>${l}<input
 function daFieldsRead(prefix){return Object.fromEntries(DA_FIELDS.map(([k])=>[k,($(prefix+k)?.value||'').trim()||null]))}
 async function daFieldsSave(orderId,prefix){return api('/loading/orders/'+orderId+'/da-details',{method:'PUT',body:JSON.stringify(daFieldsRead(prefix))})}
 async function loadShipmentHistory(){
- shipHistEntries=await api('/loading/shipment-history');
+ shipHistEntries=await api('/loading/shipment-history'+($('loadingShowCancelled')&&$('loadingShowCancelled').checked?'?include_cancelled=true':''));
  // Πρόχειρα δελτία = ανοιχτές φορτώσεις (δεν έχουν ολοκληρωθεί)· διαβάζονται όπως αποθηκεύονται ήδη, μόνο για εμφάνιση
  try{shipLoadings=await api('/loading/orders');shipDrafts=shipLoadings.filter(o=>o.status==='OPEN')}catch(e){shipLoadings=[];shipDrafts=[]}
  renderShipmentHistory();
@@ -5861,38 +5861,91 @@ function renderShipmentHistory(){
    rows=ColFilter.sorted(ColFilter.filter(zBase(),zDefs,cfNow),zDefs,cfNow);
    const rowsZ=rows.map(x0=>{
      let x={...x0,_date:new Date(x0.work_date).toLocaleDateString('el-GR'),_da:x0.da_number,_kg:shipHistZ==='Z2'?Number(x0.weight_kg||0).toLocaleString('el-GR'):kg(x0.weight_kg)};
-     return `<tr class="ecRow${x0.overrun_note?' shipOver':''}" data-da="${esc(x0.da_number||'')}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
+     return `<tr class="ecRow${x0.overrun_note?' shipOver':''}${x0.cancelled_at?' shipCancelled':''}" data-da="${esc(x0.da_number||'')}" data-yr="${new Date(x0.work_date).getFullYear()}">${cols.map(c=>{let v=c[1](x);return cell(v==null||v===''?v:esc(v))}).join('')}</tr>`}).join('');
    $('shipHistRows').innerHTML=(draftZ+rowsZ)||`<tr><td colspan="${cols.length}" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>`;
-   $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+   $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e,tr.dataset.yr)});
    ColFilter.attach(_tbl,zDefs,cfNow,zBase,renderShipmentHistory);
-   renderShipHistTotal(rows,Math.max(1,cols.findIndex(c=>/^Ποσότητα/.test(c[0]))),cols.length,filtNow);
+   renderShipHistTotal(rows.filter(x=>!x.cancelled_at),Math.max(1,cols.findIndex(c=>/^Ποσότητα/.test(c[0]))),cols.length,filtNow);
    return;
  }
  if(_tbl.classList.contains('shipZ')){_tbl.classList.remove('shipZ');_tbl.tHead.innerHTML=shipHistDefHead}
  const dDefs=shipHistDefsDefault();rows=ColFilter.sorted(ColFilter.filter(baseRows,dDefs,cfNow),dDefs,cfNow);
  const draftRows=(shipDrafts||[]).map(o=>`<tr class="ecRow shipDraftRow" data-draft="${esc(o.id)}"><td>${esc(new Date(o.created_at||Date.now()).toLocaleDateString('el-GR'))}</td><td>${o.dispatch_document_number?esc(o.dispatch_document_number)+' ':''}<span class="draftPill">Πρόχειρο</span></td><td>${esc(o.dispatch_reason||'—')}</td><td>${Number(o.loaded_weight)>0?kg(o.loaded_weight):'—'}</td><td>${esc(o.carrier_id?dName(o.carrier_id):'—')}</td><td>${esc(o.customer_id?dName(o.customer_id):'—')}</td><td class="muted">—</td><td class="muted">—</td><td></td></tr>`).join('');
- $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow${x.overrun_note?' shipOver':''}" data-da="${esc(x.da_number||'')}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td><td class="shipNote">${x.overrun_note?esc(x.overrun_note):''}</td></tr>`).join('')||'<tr><td colspan="9" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
- $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e)});
+ $('shipHistRows').innerHTML=draftRows+rows.map(x=>`<tr class="ecRow${x.overrun_note?' shipOver':''}${x.cancelled_at?' shipCancelled':''}" data-da="${esc(x.da_number||'')}" data-yr="${new Date(x.work_date).getFullYear()}"><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.da_number||'—')}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td><td class="muted">${esc(x.eka_code||'—')}</td><td class="muted">${esc(x.reptool_code||'—')}</td><td class="shipNote">${x.cancelled_at?'<span class="cancelledPill">Ακυρώθηκε</span> '+esc(x.cancel_reason||''):(x.overrun_note?esc(x.overrun_note):'')}</td></tr>`).join('')||'<tr><td colspan="9" class="muted">Δεν βρέθηκαν αποτελέσματα</td></tr>';
+ $('shipHistRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>{if(tr.dataset.draft)openDraftFromHistory(tr.dataset.draft);else if(tr.dataset.da)openDaDetail(tr.dataset.da,e,tr.dataset.yr)});
  ColFilter.attach(_tbl,dDefs,cfNow,()=>baseRows,renderShipmentHistory);
- renderShipHistTotal(rows,3,9,filtNow);
+ renderShipHistTotal(rows.filter(x=>!x.cancelled_at),3,9,filtNow);
 }
 // Clicking a row opens the full Δ.Α. (dispatch note) it belongs to, with every line item under that
 // same Δ.Α. number -- one delivery note can cover several materials/rows. Looks across all of
 // shipHistEntries (not just the currently period-filtered rows), since a Δ.Α.'s lines could span
 // the filtered view's edges. Opens at the click point, like the ζωντανή ροή row popups.
-function openDaDetail(daNumber,e){
- let items=shipHistEntries.filter(x=>String(x.da_number||'')===daNumber);
- if(!items.length)return;
- let total=items.reduce((s,x)=>s+Number(x.weight_kg||0),0);
- let html=`<div class="tablewrap"><table class="daTbl"><thead><tr><th>Ημερομηνία</th><th>Περιγραφή</th><th>Κιλά</th><th>Μεταφορέας</th><th>Παραλήπτης</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(new Date(x.work_date).toLocaleDateString('el-GR'))}</td><td>${esc(x.description)}</td><td>${kg(x.weight_kg)}</td><td>${esc(x.transporter||'—')}</td><td>${esc(x.recipient||'—')}</td></tr>`).join('')}</tbody><tfoot><tr><td colspan="2"><b>Σύνολο</b></td><td><b>${kg(total)}</b></td><td colspan="2"></td></tr></tfoot></table></div>`;
- // Οριστικοποιημένο δελτίο φόρτωσης: ο αριθμός Δ.Α. είναι επεξεργάσιμος εδώ
- let ld=items.some(x=>x.source==='LOADING')?(shipLoadings||[]).find(o=>o.status==='COMPLETED'&&String(o.dispatch_document_number||'')===daNumber):null;
- if(ld)html=`<div class="toolbar" style="gap:10px;align-items:flex-end;margin-bottom:10px"><label style="flex:1">Αρ. Δ.Α.<input id="daNumInput" inputmode="numeric" value="${esc(daNumber)}"></label><button type="button" class="btn" id="daNumSave">Αποθήκευση αριθμού</button></div><div class="formgrid" style="margin-bottom:6px">${daFieldsHtml(ld,'dada_')}</div><div class="toolbar" style="justify-content:flex-end;margin-bottom:8px"><button type="button" class="btn alt" id="daDetSave">Αποθήκευση στοιχείων</button></div><div id="daNumErr" class="error"></div>`+html;
- openFloatAt('Δ.Α. '+daNumber,html,e.clientX,e.clientY);
- if(ld&&$('daDetSave'))$('daDetSave').onclick=async()=>{try{await daFieldsSave(ld.id,'dada_');$('floatingEditor').classList.add('hidden');await loadShipmentHistory()}catch(err){$('daNumErr').textContent=err.message||String(err)}};
- if(ld&&$('daNumSave'))$('daNumSave').onclick=async()=>{
-   try{await api('/loading/orders/'+ld.id+'/dispatch-number',{method:'PUT',body:JSON.stringify({number:$('daNumInput').value})});$('floatingEditor').classList.add('hidden');await loadShipmentHistory()}
-   catch(err){$('daNumErr').textContent=err.message||String(err)}
+async function openDaDetail(daNumber,e,yr){
+ if(!yr){let it=shipHistEntries.find(x=>String(x.da_number||'')===String(daNumber));yr=it?new Date(it.work_date).getFullYear():new Date().getFullYear()}
+ return openDaForm(String(daNumber),Number(yr));
+}
+// Φόρμα ολοκληρωμένης φόρτωσης (Δ.Α.): ανοίγει από μια γραμμή του Ιστορικού Δελτίων Αποστολής. Ο αριθμός Δ.Α. δεν αλλάζει· όλα τα άλλα αλλάζουν.
+async function openDaForm(da,yr){
+ let d,clients=[],carriers=[];
+ try{d=await api('/loading/da/'+yr+'/'+encodeURIComponent(da))}catch(err){alert(err.message||String(err));return}
+ try{[clients,carriers]=await Promise.all([api('/master/organizations?role=CLIENT'),api('/master/organizations?role=CARRIER')])}catch(err){}
+ const nm=o=>o.trade_name||o.legal_name||'';
+ const ro=d.status==='CANCELLED',hist=d.source!=='LOADING';
+ const v=x=>x==null?'':String(x);
+ const fld=(id,label,val,o={})=>`<label class="daF${o.span?' daSpan':''}"><span>${label}</span>${o.area?`<textarea id="daf_${id}" rows="3"${ro?' disabled':''}>${esc(v(val))}</textarea>`:`<input id="daf_${id}" type="${o.type||'text'}"${o.step?` step="${o.step}"`:''}${o.list?` list="${o.list}"`:''} value="${esc(v(val))}"${(ro||o.ro)?' disabled':''}>`}${o.hint?`<small class="daHint">${o.hint}</small>`:''}</label>`;
+ const sec=(t,inner)=>`<div class="daSec"><h4>${t}</h4><div class="daGrid">${inner}</div></div>`;
+ const fmtD=iso=>iso?new Date(iso+'T12:00:00').toLocaleDateString('el-GR'):'';
+ const info=`<div class="daHdr"><b class="daDate" id="daHdDate">${esc(fmtD(d.date))}</b><span class="daMeta" id="daHdCar">Μεταφορέας: <b>${esc(d.carrier||'—')}</b></span><span class="daMeta" id="daHdRec">Παραλήπτης: <b>${esc(d.customer||'—')}</b></span><span class="daChip ${d.galaxy_sent?'daSent':'daNotSent'}" id="daHdGal">${esc(d.galaxy_label)}</span>${ro?'<span class="cancelledPill">Ακυρώθηκε</span>':'<span class="daChip daOk">Ολοκληρωμένη</span>'}</div>`;
+ const info1=sec('Φόρτωση',fld('da','Αριθμός Δ.Α.',d.da_number,{ro:1,hint:'Δεν αλλάζει'})+fld('date','Ημερομηνία',d.date,{type:'date'}))
+  +sec('Πελάτης',fld('customer','Πελάτης',d.customer,{list:'daDlClients'})+fld('customer_address','Διεύθυνση πελάτη',d.customer_address))
+  +sec('Μεταφορά',fld('carrier','Μεταφορέας',d.carrier,{list:'daDlCarriers'})+fld('vehicle_registration','Πινακίδα οχήματος',d.vehicle_registration)+fld('weight','Βάρος (kg)',hist?d.weight_kg:d.max_weight,{type:'number',step:'0.001',ro:hist})+fld('weighbridge_number','Ζυγολόγιο',d.weighbridge_number)+fld('container_number','Αριθμός container',d.container_number))
+  +sec('Αποστολή και διαχείριση',fld('dispatch_reason','Αιτιολογία αποστολής',d.dispatch_reason)+fld('destination_country','Χώρα προορισμού',d.destination_country)+fld('mgmt_operation','Εργασία διαχείρισης (R/D)',d.mgmt_operation))
+  +sec('Έγγραφα',fld('tracking_document','Έγγραφο παρακολούθησης',d.tracking_document)+fld('gr_notification_no','Αρ. κοινοποίησης εξαγωγής (GR No)',d.gr_notification_no)+fld('bill_of_lading','Αρ. άδειας / φορτωτικής',d.bill_of_lading))
+  +sec('Σημειώσεις',fld('notes','Σημειώσεις',d.notes,{area:1,span:1}));
+ const total=d.lines.reduce((s,x)=>s+Number(x.weight_kg||0),0);
+ const mats=`<div class="daRoNote">(μόνο ανάγνωση σε ολοκληρωμένη φόρτωση)</div><div class="tablewrap daTblWrap"><table class="daTbl"><thead><tr><th>Περιγραφή</th><th class="daNum">Κιλά</th><th>Κωδ. ΕΚΑ</th><th>Reptool</th></tr></thead><tbody>${d.lines.map(x=>`<tr><td>${esc(x.description||'')}</td><td class="daNum">${esc(kg(x.weight_kg))}</td><td>${esc(x.eka_code||'—')}</td><td>${esc(x.reptool_code||'—')}</td></tr>`).join('')}</tbody><tfoot><tr><td><b>Σύνολο</b></td><td class="daNum"><b>${esc(kg(total))}</b></td><td></td><td></td></tr></tfoot></table></div>`;
+ let html=`<div class="daFrm">${info}<div class="uTabs daTabs"><button type="button" class="uTab active" data-datab="info">Στοιχεία</button><button type="button" class="uTab" data-datab="mat">Υλικά</button></div>
+  <div class="daBody"><div class="daPane" data-dapane="info">${info1}</div><div class="daPane hidden" data-dapane="mat">${mats}</div></div>
+  <datalist id="daDlClients">${clients.map(o=>`<option value="${esc(nm(o))}">`).join('')}</datalist><datalist id="daDlCarriers">${carriers.map(o=>`<option value="${esc(nm(o))}">`).join('')}</datalist>
+  <div class="daFoot"><div class="daFootL"><button type="button" class="btn cancelRcpt" id="daCancelBtn"${d.can_cancel?'':' disabled'} title="${esc(d.cancel_block||'')}">Ακύρωση φόρτωσης</button><span class="daBlock" id="daBlockMsg">${d.can_cancel?'':esc(d.cancel_block||'')}</span></div><div class="daFootR"><span class="daMsg" id="daMsg"></span><button type="button" class="btn alt" id="daClose">Κλείσιμο</button><button type="button" class="btn" id="daSave"${ro?' disabled':''}>Αποθήκευση</button></div></div></div>`;
+ let p=openFloat('Δ.Α. '+da,html);p.classList.add('daWin');p.style.width='min(1000px,calc(100vw - 16px))';
+ document.querySelectorAll('#floatingEditor [data-datab]').forEach(b=>b.onclick=()=>{document.querySelectorAll('#floatingEditor [data-datab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('#floatingEditor [data-dapane]').forEach(x=>x.classList.toggle('hidden',x.dataset.dapane!==b.dataset.datab))});
+ $('daClose').onclick=()=>$('floatingEditor').classList.add('hidden');
+ const say=(t,ok)=>{let m=$('daMsg');if(m){m.textContent=t;m.className='daMsg '+(ok?'daMsgOk':'daMsgBad')}};
+ const keys=['date','customer','customer_address','carrier','vehicle_registration','weighbridge_number','container_number','dispatch_reason','destination_country','mgmt_operation','tracking_document','gr_notification_no','bill_of_lading','notes'];
+ const cur=()=>Object.fromEntries(keys.map(k=>[k,($('daf_'+k)?.value||'').trim()]));
+ const refreshAfter=async()=>{try{await loadShipmentHistory()}catch(e){}try{if($('loadingShowCancelled'))await loadLoading()}catch(e){}try{if(typeof refreshHistoryState==='function')refreshHistoryState()}catch(e){}};
+ $('daSave').onclick=async()=>{
+  let n=cur(),body={},base=Object.fromEntries(keys.map(k=>[k,v(d[k]).trim()]));
+  keys.forEach(k=>{if(n[k]!==base[k])body[k]=n[k]});
+  if(!hist){let w=($('daf_weight')?.value||'').trim();if(w!==''&&Number(w)!==Number(d.max_weight))body.max_weight=w}
+  if(!Object.keys(body).length){say('Δεν υπάρχουν αλλαγές.',true);return}
+  const send=async()=>{
+   try{$('daSave').disabled=true;let r=await api('/loading/da/'+yr+'/'+encodeURIComponent(da),{method:'PUT',body:JSON.stringify(body)});
+    say('Αποθηκεύτηκε. '+(r.note||'Η αλλαγή δεν στάλθηκε στο Galaxy')+'.',true);d=r;
+    $('daHdDate').textContent=fmtD(r.date);$('daHdCar').innerHTML='Μεταφορέας: <b>'+esc(r.carrier||'—')+'</b>';$('daHdRec').innerHTML='Παραλήπτης: <b>'+esc(r.customer||'—')+'</b>';
+    await refreshAfter()}
+   catch(err){say(err.message||String(err),false)}finally{if($('daSave'))$('daSave').disabled=false}};
+  if(body.date){
+   let ov=document.createElement('div');ov.className='cxOverlay';ov.innerHTML=`<div class="cxDlg" role="dialog" aria-label="Αλλαγή ημερομηνίας"><h3>Αλλαγή ημερομηνίας</h3><div class="cxBox"><div class="cxNote">Η αλλαγή ημερομηνίας από <b>${esc(fmtD(d.date))}</b> σε <b>${esc(fmtD(body.date))}</b> μεταφέρει τα κιλά σε άλλον μήνα ή περίοδο και αλλάζει τα σύνολα και τα αποθέματα εκείνων των περιόδων. Δεν στέλνεται στο Galaxy. Να γίνει η αλλαγή;</div><div class="cxBtns"><button type="button" class="btn alt" id="daDtBack">Πίσω</button><button type="button" class="btn" id="daDtGo">Ναι, αλλαγή</button></div></div></div>`;
+   document.body.appendChild(ov);$('daDtBack').onclick=()=>ov.remove();$('daDtGo').onclick=async()=>{ov.remove();body.confirm_date_change=true;await send()};
+  }else await send();
+ };
+ $('daCancelBtn').onclick=async()=>{
+  let pv;try{pv=await api('/loading/da/'+yr+'/'+encodeURIComponent(da)+'/cancel-preview')}catch(err){say(err.message||String(err),false);return}
+  if(!pv.can_cancel){say(pv.block||'Η ακύρωση δεν επιτρέπεται.',false);return}
+  const fk=x=>{let n=Number(x||0);return (n>0?'+':n<0?'−':'')+kg(Math.abs(n))};
+  let ov=document.createElement('div');ov.className='cxOverlay';
+  ov.innerHTML=`<div class="cxDlg cxWide" role="dialog" aria-label="Ακύρωση φόρτωσης"><h3>Ακύρωση φόρτωσης</h3><div class="cxBox"><div class="cxRo"><label>Αριθμός Δ.Α.<input type="text" readonly value="${esc(da)}"></label><label>Συνολικά kg<input type="text" readonly value="${esc(kg(pv.weight_kg))}"></label></div>
+   <label class="cxWhy">Λόγος ακύρωσης *<textarea id="daCxReason" rows="3" placeholder="Υποχρεωτικό"></textarea></label>
+   <div class="cxNote">Η φόρτωση μένει στο ιστορικό ως Ακυρώθηκε (ορατή με «Εμφάνιση ακυρωμένων»). Τα κιλά επιστρέφουν στα αποθέματα των υλικών (προεπισκόπηση πιο κάτω). Δεν στέλνεται στο Galaxy. Αν το Δ.Α. έχει σταλεί στο Galaxy, η ακύρωση μπλοκάρεται.</div>
+   <div class="tablewrap daTblWrap daPvWrap"><table class="daTbl"><thead><tr><th>Υλικό</th><th class="daNum">Πριν</th><th class="daNum">Μετά</th><th class="daNum">Διαφορά</th></tr></thead><tbody>${pv.items.map(x=>`<tr><td>${esc(x.material)}</td><td class="daNum">${esc(kg(x.before))}</td><td class="daNum">${esc(kg(x.after))}</td><td class="daNum">${esc(fk(x.kg))}</td></tr>`).join('')||'<tr><td colspan="4" class="muted">—</td></tr>'}</tbody></table></div>
+   <div class="cxMsg" id="daCxMsg"></div><div class="cxBtns"><button type="button" class="btn alt" id="daCxBack">Πίσω</button><button type="button" class="btn cancelRcpt" id="daCxGo">Ακύρωση φόρτωσης</button></div></div></div>`;
+  document.body.appendChild(ov);$('daCxReason').focus();$('daCxBack').onclick=()=>ov.remove();
+  $('daCxGo').onclick=async()=>{let why=($('daCxReason').value||'').trim();if(!why){$('daCxMsg').textContent='Ο λόγος ακύρωσης είναι υποχρεωτικός.';$('daCxReason').focus();return}
+   try{$('daCxGo').disabled=true;await api('/loading/da/'+yr+'/'+encodeURIComponent(da)+'/cancel',{method:'POST',body:JSON.stringify({reason:why})});ov.remove();
+    $('floatingEditor').classList.add('hidden');await refreshAfter()}
+   catch(err){$('daCxGo').disabled=false;$('daCxMsg').textContent=err.message||String(err)}};
  };
 }
 if($('shipHistSearch'))$('shipHistSearch').addEventListener('input',renderShipmentHistory);
@@ -12375,6 +12428,42 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 .cxOverlay{position:fixed;inset:0;background:rgba(15,30,54,.45);z-index:100000;display:grid;place-items:center;padding:16px}.cxDlg{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 20px 60px rgba(7,25,40,.35);max-width:min(620px,96vw)}.cxDlg h3{margin:0 0 14px}
 .cxBox{display:flex;flex-direction:column;gap:12px;min-width:min(520px,80vw)}.cxRo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cxRo label,.cxWhy{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.cxRo input[readonly]{background:#f3f5f8;color:#44474f}.cxWhy textarea{font:inherit;padding:8px 10px;border:1px solid #c9d2da;border-radius:8px;resize:vertical}
 .cxNote{font-size:13px;color:#44474f;line-height:1.4}.cxMsg{color:#c62828;font-size:13px;min-height:1em}.cxBtns{display:flex;justify-content:flex-end;gap:10px}.cxBtns .btn{height:40px;padding:0 20px}
+/* K3/K4 Φόρμα Δ.Α. (ολοκληρωμένη φόρτωση) */
+#floatingEditor.daWin #floatingEditorBody{padding:0}
+.daFrm{display:flex;flex-direction:column;min-height:0;max-height:calc(100vh - 140px)}
+.daHdr{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;padding:10px 20px;border-bottom:1px solid var(--line,#dbe2e8);flex:none}
+.daHdr .daDate{color:var(--pop-blue,#2f5fc4);font-size:16px}
+.daHdr .daMeta{font-size:13px;color:#44474f}.daHdr .daMeta b{color:var(--fg,#1a1b20)}
+.daChip{display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:12px;font-size:12px;font-weight:700;border:1px solid transparent}
+.daChip.daNotSent{background:#fff3d6;color:#8a5a00;border-color:#f0d9a0}.daChip.daSent{background:#e3f4e8;color:#19713e;border-color:#b9e0c5}.daChip.daOk{background:#e8f0fb;color:#2f5fc4;border-color:#c9d9f2}
+.daTabs.uTabs{display:flex;align-items:flex-end;gap:22px;height:44px;box-sizing:border-box;padding:0 20px;margin:0;border-bottom:1px solid var(--line,#dbe2e8);flex:none}
+.daBody{flex:1 1 auto;min-height:0;overflow:auto;padding:6px 20px 14px}
+.daPane.hidden{display:none!important}
+.daSec{margin-top:14px}.daSec h4{margin:0 0 10px;padding-bottom:5px;font-size:12.5px;font-weight:700;color:var(--pop-blue,#2f5fc4);border-bottom:1px solid var(--line,#dbe2e8);letter-spacing:.2px}
+.daGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px 16px;align-items:stretch}
+.daF{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:600;color:#44474f;min-width:0}
+.daF input,.daF textarea{font:inherit;font-weight:400;font-size:14px;color:var(--fg,#1a1b20);padding:8px 10px;border:1px solid var(--line-strong,#b9bdc9);border-radius:8px;background:var(--surface,#fff);width:100%;box-sizing:border-box;min-width:0}
+.daF input:disabled,.daF textarea:disabled{background:#f3f5f8;color:#677680}
+.daF .daHint{font-weight:400;color:#74777f;font-size:11.5px}
+.daF.daSpan{grid-column:1/-1}.daF textarea{resize:vertical}
+.daRoNote{font-size:12.5px;color:#677680;margin:12px 0 8px}
+.daTblWrap{max-height:46vh;overflow:auto}
+.daTbl,.tablewrap table.daTbl{width:100%;min-width:0!important;border-collapse:separate;border-spacing:0}
+.daTbl th,.daTbl td{padding:9px 12px;text-align:left;font-size:14px}
+.daTbl thead th{position:sticky;top:0;z-index:3;background:#e8f0fb;font-weight:700;box-shadow:inset 0 -1px 0 var(--line,#dbe2e8)}
+.daTbl tbody td{box-shadow:inset 0 -1px 0 #eef1f4}
+.daTbl tfoot td{position:sticky;bottom:0;z-index:3;background:#e8f0fb;box-shadow:inset 0 1px 0 var(--line,#dbe2e8)}
+.daTbl .daNum{text-align:right;font-variant-numeric:tabular-nums}
+.daPvWrap{max-height:24vh}
+.cxDlg.cxWide{width:min(760px,96vw);max-width:96vw}.cxDlg.cxWide .cxBox{min-width:0}.daPvWrap .daTbl th,.daPvWrap .daTbl td{white-space:normal}.daPvWrap .daTbl .daNum{white-space:nowrap}
+.daFoot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex:none;padding:12px 20px;border-top:1px solid var(--line,#dbe2e8);background:var(--surface,#fff)}
+.daFootL,.daFootR{display:flex;align-items:center;gap:10px;min-width:0}
+.daFoot .btn{height:40px;padding:0 20px}
+.daFoot .btn.cancelRcpt:disabled{opacity:.5;cursor:not-allowed}
+.daBlock{font-size:12px;color:#8a5a00;max-width:340px}
+.daMsg{font-size:13px}.daMsgOk{color:#19713e}.daMsgBad{color:#c62828}
+#shipHistRows tr.shipCancelled td{color:#8a93a3}#shipHistRows tr.shipCancelled td:not(.shipNote){text-decoration:line-through}
+body[data-theme="dark"] .daF input:disabled,body[data-theme="dark"] .daF textarea:disabled{background:var(--surface-2,#1f2a44)}
 </style>
 <script id="histJs">
 (function(){

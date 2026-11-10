@@ -208,6 +208,14 @@ class ShipmentHistoryEntry(Base, TimestampMixin):
     container_number: Mapped[str|None] = mapped_column(String(120), nullable=True)
     gr_notification_no: Mapped[str|None] = mapped_column(String(120), nullable=True)
     bill_of_lading: Mapped[str|None] = mapped_column(String(120), nullable=True)
+    # Φόρμα Δ.Α. (K3/K4): στοιχεία δελτίου ίδια σε όλες τις γραμμές ενός Δ.Α. + ακύρωση (ακυρωμένο: active=False, cancelled_at συμπληρωμένο)
+    vehicle_registration: Mapped[str|None] = mapped_column(String(40), nullable=True)
+    dispatch_reason: Mapped[str|None] = mapped_column(String(200), nullable=True)
+    notes: Mapped[str|None] = mapped_column(Text, nullable=True)
+    customer_address: Mapped[str|None] = mapped_column(String(300), nullable=True)
+    cancelled_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_reason: Mapped[str|None] = mapped_column(Text, nullable=True)
+    cancelled_by: Mapped[str|None] = mapped_column(String(36), nullable=True)
 
 class MaterialOpeningStock(Base, TimestampMixin):
     """A documented, point-in-time physical stock count for materials (e.g. 31/12/2025),
@@ -801,6 +809,10 @@ class LoadingOrder(Base, TimestampMixin):
     reptool_code: Mapped[str|None] = mapped_column(String(80), nullable=True)
     delivery_date: Mapped[str|None] = mapped_column(String(10), nullable=True)
     prep_mode: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    customer_address: Mapped[str|None] = mapped_column(String(300), nullable=True)
+    cancelled_at: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_reason: Mapped[str|None] = mapped_column(Text, nullable=True)
+    cancelled_by: Mapped[str|None] = mapped_column(String(36), nullable=True)
 
 class LoadingPlanItem(Base):
     """Σχεδιασμένο μέσο συλλογής σε πρόχειρο της Προετοιμασίας. ΔΕΝ είναι δέσμευση: το lot μένει διαθέσιμο."""

@@ -19,6 +19,7 @@ from .db import Base
 req_ctx: ContextVar = ContextVar("hist_req", default=None)
 
 TRACKED = {c for c in (
+    models.ShipmentHistoryEntry, models.LoadingOrder, models.MaterialShipmentEntry, models.ReadyMaterialLot, models.ReadyMaterialMovement,
     models.OrganizationalUnit, models.Employee, models.ProductionWorkEntry, models.Organization, models.OrganizationRegistryDetail,
     models.CarrierDriver, models.CarrierVehicle, models.WEEECategory, models.Material, models.StorageGroup, models.CollectionMediumType,
     models.CollectionMedium, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "ProductionPlacementInterval", None),
@@ -37,6 +38,8 @@ ROUTES = [
     (("POST",), re.compile(r"^/sorting/[^/]+/entries$")),
     (("PUT", "DELETE"), re.compile(r"^/sorting/entries/[^/]+$")),
     (("POST", "PUT"), re.compile(r"^/mat/tabs(-order|/[^/]+)?$")),
+    (("PUT",), re.compile(r"^/loading/da/\d+/[^/]+$")),
+    (("POST",), re.compile(r"^/loading/da/\d+/[^/]+/cancel$")),
 ]
 NEVER = re.compile(r"/(merge|purge|permanent|bulk-[a-z]+|move)$")
 
@@ -236,6 +239,7 @@ def install(engine):
         label = "%s %s%s" % (VERB[main["op"]], TABLE_LABEL.get(main["t"], main["t"]), (" «%s»" % name[:60]) if name else "")
         if len(rows) > 1:
             label += " (+%d σχετικές εγγραφές)" % (len(rows) - 1)
+        label = session.info.pop("hist_label", None) or label
         for rw in rows:
             rw.pop("obj", None)
         from .history import record
