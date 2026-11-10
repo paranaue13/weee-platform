@@ -9026,6 +9026,59 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
   function toast(t){let el=$('pfToast');el.textContent=t;el.classList.remove('hidden');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.add('hidden'),2600)}
   function msg(t,ok){let m=$('pfMsg');m.textContent=t||'';m.classList.toggle('ok',!!ok)}
 
+
+  // Πεδίο με αναζήτηση (combobox) πάνω από ένα κρυφό <select>: γράφω → φιλτράρεται η λίστα (χωρίς τόνους/κεφαλαία)· το <select> μένει η πηγή τιμής (value/onchange όπως πριν)
+  const PF_CB=[];
+  function pfCombo(selId,cfg){
+    let sel=$(selId);if(!sel||sel._cb)return;
+    sel.style.display='none';
+    let box=document.createElement('div');box.className='pfCb';
+    box.innerHTML='<input type="text" class="pfCbIn" autocomplete="off" placeholder="Γράψε για αναζήτηση…"><button type="button" class="pfCbDrop" tabindex="-1" aria-label="Άνοιγμα λίστας">▾</button><div class="pfCbList hidden" role="listbox"></div>';
+    sel.insertAdjacentElement('afterend',box);
+    let inp=box.querySelector('.pfCbIn'),list=box.querySelector('.pfCbList'),act=-1;
+    const N=t=>window.searchNorm?window.searchNorm(String(t||'')):String(t||'').toLowerCase();
+    const opts=()=>[...sel.options].filter(o=>o.value!=='').map(o=>({id:o.value,label:o.textContent.trim()}));
+    const text=()=>{let o=sel.selectedOptions[0];return o&&o.value!==''?o.textContent.trim():''};
+    const choose=(id)=>{sel.value=id;inp.value=text();close();sel.dispatchEvent(new Event('change',{bubbles:true}))};
+    const close=()=>{list.classList.add('hidden');act=-1};
+    const draw=(all)=>{
+      let q=all?'':N(inp.value.trim()),os=opts().filter(o=>!q||N(o.label).includes(q));
+      let typed=inp.value.trim(),exact=typed&&opts().some(o=>N(o.label)===N(typed));
+      let h=os.map((o,i)=>`<div class="pfCbOpt${o.id===sel.value?' on':''}" data-id="${escH(o.id)}" role="option">${escH(o.label)}</div>`).join('');
+      if(cfg.add&&typed&&!exact&&!all)h+=`<div class="pfCbOpt pfCbAdd" data-add="1">+ Προσθήκη «${escH(typed)}» στο μητρώο (${cfg.title})</div>`;
+      if(!h)h='<div class="pfCbNone">Δεν βρέθηκαν αποτελέσματα</div>';
+      list.innerHTML=h;list.classList.remove('hidden');act=-1;
+    };
+    const dialog=name=>{
+      close();
+      let ov=document.createElement('div');ov.className='cxOverlay';
+      ov.innerHTML=`<div class="cxDlg" role="dialog" aria-label="Προσθήκη στο μητρώο"><h3>Προσθήκη στο μητρώο (${cfg.title})</h3><div class="cxBox"><label class="cxWhy">Ονομασία<input type="text" id="pfAddName" value="${escH(name)}"></label><div class="cxNote">Θα προστεθεί στα Μητρώα και θα επιλεγεί στη φόρτωση. Τα υπόλοιπα στοιχεία (π.χ. ΑΦΜ) συμπληρώνονται αργότερα από τα Μητρώα.</div><div class="cxMsg" id="pfAddMsg"></div><div class="cxBtns"><button type="button" class="btn alt" id="pfAddNo">Ακύρωση</button><button type="button" class="btn" id="pfAddYes">Προσθήκη στο μητρώο</button></div></div></div>`;
+      document.body.appendChild(ov);$('pfAddName').focus();
+      $('pfAddNo').onclick=()=>ov.remove();
+      $('pfAddYes').onclick=async()=>{
+        let nm=($('pfAddName').value||'').trim().replace(/\s+/g,' ');if(!nm){$('pfAddMsg').textContent='Γράψε ονομασία.';return}
+        let ex=opts().find(o=>N(o.label)===N(nm));if(ex){ov.remove();choose(ex.id);return}
+        try{$('pfAddYes').disabled=true;
+          let o=await api('/master/organizations',{method:'POST',body:JSON.stringify({legal_name:nm,trade_name:nm,roles:[cfg.role]})});
+          sel.insertAdjacentHTML('beforeend',`<option value="${escH(o.id)}">${escH(o.trade_name||o.legal_name||nm)}</option>`);
+          try{(cfg.role==='CLIENT'?P.clients:P.carriers).push(o)}catch(e){}
+          ov.remove();choose(o.id)}
+        catch(e){$('pfAddYes').disabled=false;$('pfAddMsg').textContent=e.message||String(e)}};
+    };
+    inp.addEventListener('focus',()=>draw(true));
+    inp.addEventListener('input',()=>{draw(false);if(!inp.value.trim()&&sel.value){sel.value='';sel.dispatchEvent(new Event('change',{bubbles:true}))}});
+    box.querySelector('.pfCbDrop').onclick=()=>{if(list.classList.contains('hidden')){inp.focus();draw(true)}else close()};
+    list.addEventListener('mousedown',e=>{e.preventDefault();let o=e.target.closest('.pfCbOpt');if(!o)return;if(o.dataset.add)dialog(inp.value.trim());else choose(o.dataset.id)});
+    inp.addEventListener('keydown',e=>{
+      let items=[...list.querySelectorAll('.pfCbOpt')];
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(list.classList.contains('hidden'))draw(false);items=[...list.querySelectorAll('.pfCbOpt')];if(!items.length)return;act=(act+(e.key==='ArrowDown'?1:-1)+items.length)%items.length;items.forEach((x,i)=>x.classList.toggle('act',i===act));items[act].scrollIntoView({block:'nearest'})}
+      else if(e.key==='Enter'){e.preventDefault();let t=items[act>=0?act:0];if(t){if(t.dataset.add)dialog(inp.value.trim());else choose(t.dataset.id)}}
+      else if(e.key==='Escape'){close();inp.value=text()}
+    });
+    inp.addEventListener('blur',()=>setTimeout(()=>{close();let typed=inp.value.trim();if(!typed){inp.value=text();return}let ex=opts().find(o=>N(o.label)===N(typed));if(ex&&ex.id!==sel.value)choose(ex.id);else if(!ex)inp.value=text()},120));
+    sel._cb={sync:()=>{inp.value=text()}};PF_CB.push(sel._cb);
+  }
+  const pfSyncCombos=()=>PF_CB.forEach(c=>c.sync());
   // ---- δεδομένα ----
   async function loadStock(){
     let d=await api('/loading/prep/stock');P.stock=d.categories||[];P.bulk=d.bulk||[];P.lots=new Map();
@@ -9038,6 +9091,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     $('pfCustomer').innerHTML='<option value="">Επίλεξε…</option>'+P.clients.map(o=>`<option value="${o.id}">${escH(on(o))}</option>`).join('');
     $('pfCarrier').innerHTML='<option value="">—</option>'+P.carriers.map(o=>`<option value="${o.id}">${escH(on(o))}</option>`).join('');
     $('pfPurpose').innerHTML='<option value="">—</option>'+PURPOSES.map(x=>`<option>${x}</option>`).join('');
+    pfCombo('pfCustomer',{role:'CLIENT',title:'Πελάτες',add:true});pfCombo('pfCarrier',{role:'CARRIER',title:'Μεταφορείς',add:true});pfCombo('pfPurpose',{add:false});pfSyncCombos();
   }
   async function loadCarrierLists(){
     let cid=$('pfCarrier').value;
@@ -9169,11 +9223,11 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     bg.forEach((rows,g)=>{
       h+=`<div class="prepCat">Χύμα · ${escH(BG_LABEL(g))}</div>`;
       rows.forEach(r=>{
-        if(!r.umb){h+=`<div class="prepMat prepBulk" draggable="true" data-bk="${escH(r.l)}"><input type="checkbox" data-bkc="${escH(r.l)}" ${P.bsel.has(r.l)?'checked':''}><span class="nm">${escH(r.l)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(r.av)}</span></div>`;return}
+        if(!r.umb){h+=`<div class="prepMat prepBulk" draggable="true" data-bk="${escH(r.l)}"><input type="checkbox" data-bkc="${escH(r.l)}" ${P.bsel.has(r.l)?'checked':''}><span class="nm">${escH(r.l)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(r.av)}</span><span class="arr"></span></div>`;return}
         r.subs.sort((a,b)=>a.order-b.order);
         let open=P.open.has(r.umb)||(q&&r.subs.some(s=>nrm(s.l).includes(q))),all=r.subs.every(s=>P.bsel.has(s.l)),some=r.subs.some(s=>P.bsel.has(s.l));
         h+=`<div class="prepMat prepBulk prepUmb" draggable="true" data-bk="${escH(r.umb)}"><input type="checkbox" data-bkc="${escH(r.umb)}" data-some="${some&&!all?1:0}" ${all?'checked':''}><span class="nm">${escH(r.name)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(r.av)}</span><span class="arr" data-arrb="${escH(r.umb)}">${open?'▴':'▾'}</span></div>`;
-        if(open)r.subs.forEach(s=>{h+=`<div class="prepMat prepBulk" style="padding-left:28px" draggable="true" data-bk="${escH(s.l)}"><input type="checkbox" data-bkc="${escH(s.l)}" ${P.bsel.has(s.l)?'checked':''}><span class="nm">${escH(s.l)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(s.av)}</span></div>`});
+        if(open)r.subs.forEach(s=>{h+=`<div class="prepMat prepBulk prepIndent" draggable="true" data-bk="${escH(s.l)}"><input type="checkbox" data-bkc="${escH(s.l)}" ${P.bsel.has(s.l)?'checked':''}><span class="nm">${escH(s.l)}</span><span class="pc">χύμα</span><span class="kgc">${fmt(s.av)}</span><span class="arr"></span></div>`});
       });
     });
     let L=$('pfWhList');L.innerHTML=h||(q?`<div class="prepEmpty">Δεν βρέθηκε τίποτα για «${escH(qraw)}».</div>`:'<div class="prepEmpty">Δεν υπάρχουν διαθέσιμα μέσα συλλογής.</div>');
@@ -9265,6 +9319,7 @@ PinTable.register({match:t=>!!t.closest('#readyMatPanel'),id:()=>'ready:'+readyS
     pu.value=v;
     $('pfEka').value=o?.eka_code||'';$('pfReptool').value=o?.reptool_code||'';$('pfDa').value=o?.dispatch_document_number||'';
     $('pfDate').value=o?.delivery_date||'';$('pfNotes').value=o?.notes||'';$('pfMax').value=o?o.max_allowed_weight:25000;
+    pfSyncCombos();
   }
   function checkForm(){
     if(!$('pfCustomer').value){msg('Επίλεξε πελάτη / παραλήπτη.');$('pfCustomer').focus();return false}
@@ -12429,6 +12484,20 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 .cxOverlay{position:fixed;inset:0;background:rgba(15,30,54,.45);z-index:100000;display:grid;place-items:center;padding:16px}.cxDlg{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 20px 60px rgba(7,25,40,.35);max-width:min(620px,96vw)}.cxDlg h3{margin:0 0 14px}
 .cxBox{display:flex;flex-direction:column;gap:12px;min-width:min(520px,80vw)}.cxRo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cxRo label,.cxWhy{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.cxRo input[readonly]{background:#f3f5f8;color:#44474f}.cxWhy textarea{font:inherit;padding:8px 10px;border:1px solid #c9d2da;border-radius:8px;resize:vertical}
 .cxNote{font-size:13px;color:#44474f;line-height:1.4}.cxMsg{color:#c62828;font-size:13px;min-height:1em}.cxBtns{display:flex;justify-content:flex-end;gap:10px}.cxBtns .btn{height:40px;padding:0 20px}
+
+/* L3: Προετοιμασία φόρτωσης — πεδία με αναζήτηση· Αποθήκη: κοινές κάθετες ευθείες (☐ · περιγραφή · χύμα · αριθμός · βελάκι) */
+.pfCb{position:relative;display:flex;align-items:stretch}
+.pfCbIn{flex:1;min-width:0;padding-right:34px}
+.pfCbDrop{position:absolute;right:1px;top:1px;bottom:1px;width:32px;border:0;background:transparent;color:var(--fg-3,#74777f);cursor:pointer;font-size:14px;border-radius:0 8px 8px 0}
+.pfCbList{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:60;max-height:260px;overflow:auto;background:var(--surface,#fff);border:1px solid var(--line-strong,#b9bdc9);border-radius:8px;box-shadow:0 8px 24px rgba(15,30,54,.18)}
+.pfCbList.hidden{display:none!important}
+.pfCbOpt{padding:9px 12px;font-size:14px;cursor:pointer;color:var(--fg,#1a1b20)}.pfCbOpt:hover,.pfCbOpt.act{background:var(--hover,#eaf0fd)}.pfCbOpt.on{font-weight:700}
+.pfCbAdd{color:var(--pop-blue,#2f5fc4);font-weight:700;border-top:1px solid var(--line,#e3e5ec)}
+.pfCbNone{padding:10px 12px;color:#74777f;font-size:13px}
+#pfWhList .prepMat{display:grid!important;grid-template-columns:22px minmax(0,1fr) 56px 72px 22px;align-items:center;column-gap:10px}
+#pfWhList .prepMat>input[type=checkbox]{margin:0}
+#pfWhList .prepMat .pc,#pfWhList .prepMat .kgc,#pfWhList .prepMat .arr{width:auto}
+#pfWhList .prepMat.prepIndent .nm{padding-left:18px}
 
 /* L2: ✕ αφαίρεσης δίπλα στο φίλτρο των Συγκεντρωτικών */
 .ovFilter{display:inline-flex;align-items:center;gap:4px}
