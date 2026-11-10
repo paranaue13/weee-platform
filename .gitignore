@@ -28,3 +28,7 @@ Thumbs.db
 backend/build/
 backend/dist/
 backend/*.spec
+
+backend/server.log
+backend/server.err.log
+server.log
