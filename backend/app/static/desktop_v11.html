@@ -5973,11 +5973,11 @@ async function nlOpen(init){
   <label>Πελάτης<div class="comboAction1"><input class="comboArrow" id="nlCustomerText" autocomplete="off" placeholder="Γράψε πελάτη..."><button type="button" class="comboDrop" data-combo-target="nlCustomerText" title="Άνοιγμα λίστας">▼</button></div><input id="nlCustomer" type="hidden"></label>
   <label>Μεταφορέας<div class="comboAction1"><input class="comboArrow" id="nlCarrierText" autocomplete="off" placeholder="(προαιρετικό) Γράψε μεταφορέα..."><button type="button" class="comboDrop" data-combo-target="nlCarrierText" title="Άνοιγμα λίστας">▼</button></div><input id="nlCarrier" type="hidden"></label>
   <label>Πινακίδα οχήματος<input id="nlVehicle"></label>
-  <label>Μέγιστο βάρος (kg)<input id="nlMaxWeight" type="number" step="0.001"></label>
+  <label>Βάρος (kg)<input id="nlMaxWeight" type="number" step="0.001"></label>
   <label class="span2">Τρόπος επιλογής υλικών<div class="toolbar" id="nlModeButtons"><button type="button" class="btn alt nlModeBtn active" data-v="OFFICE_RESERVED">Δέσμευση από Logistics</button><button type="button" class="btn alt nlModeBtn" data-v="OPERATOR_SELECTION">Επιλογή από χειριστή</button></div><input type="hidden" id="nlMode" value="OFFICE_RESERVED"></label>
   <label>Αιτιολογία αποστολής<input id="nlReason"></label>
   <label>Ζυγολόγιο<input id="nlWeighbridge"></label>
-  <label>Αρ. Δελτίου Αποστολής<input id="nlDispatchDoc"></label>
+  <label style="display:none">Αρ. Δελτίου Αποστολής<input id="nlDispatchDoc"></label>
   ${daFieldsHtml(null,'nlda_')}
   <label class="span2">Σημειώσεις<textarea id="nlNotes"></textarea></label>
  </div><div id="nlErr" class="error"></div><div class="floatPanelActions"><button class="btn" id="nlSubmit">Δημιουργία</button></div>`);
@@ -6011,7 +6011,7 @@ async function nlOpen(init){
   if(nlAskCarrier())return;
   let cust=$('nlCustomer').value,maxw=Number($('nlMaxWeight').value||0);
   if(!cust){$('nlErr').textContent='Επίλεξε πελάτη';return}
-  if(maxw<=0){markInvalid($('nlMaxWeight'),'Μη έγκυρο μέγιστο βάρος');$('nlMaxWeight').focus();$('nlErr').textContent=(maxw<0?'Το μέγιστο βάρος δεν μπορεί να είναι αρνητικό':'Δώσε έγκυρο (θετικό) μέγιστο βάρος')+'. Έλεγξε το πεδίο που έχει κοκκινίσει.';return}
+  if(maxw<=0){markInvalid($('nlMaxWeight'),'Μη έγκυρο βάρος');$('nlMaxWeight').focus();$('nlErr').textContent=(maxw<0?'Το βάρος δεν μπορεί να είναι αρνητικό':'Δώσε έγκυρο (θετικό) βάρος')+'. Έλεγξε το πεδίο που έχει κοκκινίσει.';return}
   try{
    let o=await api('/loading/orders',{method:'POST',body:JSON.stringify({customer_id:cust,carrier_id:$('nlCarrier').value||null,vehicle_registration:$('nlVehicle').value||null,max_allowed_weight:maxw,selection_mode:$('nlMode').value,dispatch_reason:$('nlReason').value||null,weighbridge_number:$('nlWeighbridge').value||null,dispatch_document_number:$('nlDispatchDoc').value||null,notes:((!$('nlCarrier').value&&($('nlCarrierText').value||'').trim()?'Μεταφορέας (εκτός μητρώου): '+$('nlCarrierText').value.trim()+($('nlNotes').value?'\n':''):'')+($('nlNotes').value||''))||null,...daFieldsRead('nlda_')})});
    $('floatingEditor').classList.add('hidden'); await loadLoading(); openLoadingDetail(o.id);
