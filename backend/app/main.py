@@ -2349,7 +2349,13 @@ def material_corrections_totals(until:str|None=Query(default=None), db:Session=D
     q=select(models.MaterialCorrectionEntry.material_label,func.sum(models.MaterialCorrectionEntry.weight_kg_delta),func.sum(models.MaterialCorrectionEntry.piece_delta))
     if until: q=q.where(models.MaterialCorrectionEntry.work_date<datetime.fromisoformat(until[:10])+timedelta(days=1))
     rows=db.execute(q.group_by(models.MaterialCorrectionEntry.material_label)).all()
-    return [{"material_label":l,"weight_kg":float(w or 0),"pieces":int(p or 0)} for l,w,p in rows]
+    res={l:[float(w or 0),int(p or 0)] for l,w,p in rows}
+    # Απογραφή › Αποθέματα: διορθωμένα 31-12-Χ (Χ≥2026) = μεταφορά προς το Χ+1· μετράνε από 1/1/(Χ+1) (και στον Δεκέμβριο Χ όταν η περίοδος φτάνει την 31-12)
+    for c in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind=='MAT',models.InventoryYearCorrection.year>=2026)).all():
+        if until and f"{c.year}-12-31">until[:10]: continue
+        if c.target and (c.applied_kg or c.applied_pieces):
+            r=res.setdefault(c.target,[0.0,0]); r[0]+=float(c.applied_kg or 0); r[1]+=int(c.applied_pieces or 0)
+    return [{"material_label":l,"weight_kg":round(v[0],3),"pieces":v[1]} for l,v in res.items()]
 
 @app.post("/inventory/material-corrections", response_model=schemas.MaterialCorrectionOut)
 def create_material_correction(data:schemas.MaterialCorrectionIn, db:Session=Depends(get_db), user:User=Depends(require_permission("production.move"))):
@@ -4025,6 +4031,11 @@ def list_year_corrections(year:int=Query(...), db:Session=Depends(get_db), user=
     return [{'kind':c.kind,'key':c.key,'target':c.target,'kg':float(c.kg) if c.kg is not None else None,'pieces':c.pieces,'applied_kg':float(c.applied_kg or 0),'applied_pieces':int(c.applied_pieces or 0)}
             for c in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.year==year)).all()]
 
+@app.get('/inventory/year-corrections/adjustments')
+def year_correction_adjustments(kind:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    return [{'year':c.year,'key':c.key,'target':c.target or c.key,'applied_kg':float(c.applied_kg or 0),'applied_pieces':int(c.applied_pieces or 0)}
+            for c in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind==kind,models.InventoryYearCorrection.year>=2026)).all()]
+
 @app.put('/inventory/year-corrections')
 def put_year_correction(data:dict=Body(...), db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
     """data: kind(WEEE|MAT|PRESS|COMM), year, key, kg|null, pieces|null, base_kg, base_pieces (το «Απόθεμα» χωρίς ήδη εφαρμοσμένη διόρθωση), target (γραμμή αρχικού αποθέματος).
@@ -4042,8 +4053,9 @@ def put_year_correction(data:dict=Body(...), db:Session=Depends(get_db), user:Us
     if row and row.target: target=row.target
     new_kg=round(kg-base_kg,3) if kg is not None else 0.0
     new_pc=(pc-base_pc) if pc is not None else 0
-    if kind in ('WEEE','COMM'): new_pc=0
-    if year!=2025 or kind=='COMM': new_kg=0.0; new_pc=0   # μόνο το 2025 τροφοδοτεί το αρχικό απόθεμα 1/1/2026 (τα επόμενα έτη αποθηκεύονται)
+    if kind=='WEEE': new_pc=0
+    if year<2025: new_kg=0.0; new_pc=0   # πριν το 2025 δεν υπάρχει καθολικό (το πρώτο αρχικό απόθεμα είναι 31/12/2025): αποθηκεύεται μόνο
+    # 2025: αλλάζει τον πίνακα αρχικού αποθέματος 1/1/2026· 2026+: αποθηκεύεται ως μεταφορά (applied_*) που προστίθεται στα αποθέματα μετά τις 31-12 του έτους
     db.info['hist_label']='Διορθωμένο απόθεμα 31-12-%d «%s»'%(year,key)
     if kg is None and pc is None:
         if row: db.delete(row)
@@ -4249,6 +4261,12 @@ def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), 
         pf=carry_in.get(fam,0)+opening_family.get(fam,0)-processed_opening_family.get(fam,0)
         prev_family[fam]=pf
         cur_family[fam]=pf+classified_family.get(fam,0)-processed_family.get(fam,0)-outgoing_family.get(fam,0)
+    # Απογραφή › Αποθέματα: διορθωμένα 31-12-Χ (Χ≥2026) = μεταφορά αποθέματος προς το Χ+1 (στο απόθεμα έναρξης των περιόδων μετά τις 31-12-Χ και στο τρέχον όταν η περίοδος περιλαμβάνει την 31-12-Χ)
+    for _yc in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind=='WEEE',models.InventoryYearCorrection.year>=2026)).all():
+        _f=_yc.target or _yc.key; _d=datetime(_yc.year,12,31); _w=float(_yc.applied_kg or 0)
+        if _f not in cur_family: continue
+        if _d<start: prev_family[_f]=prev_family.get(_f,0)+_w; cur_family[_f]=cur_family.get(_f,0)+_w
+        elif _d<end: cur_family[_f]=cur_family.get(_f,0)+_w
     # --- Επιμερισμός του «Απόθεματος προς επεξεργασία» στα μέσα συλλογής (Αποθήκη ΑΗΗΕ › Μέσα συλλογής) ---
     # Κάθε αριθμημένο μέσο των Μητρώων παίρνει ό,τι έχει μπει σε αυτό με ταξινόμηση μείον ό,τι έφυγε από τις παρτίδες του (ίδια πρόσημα με το απόθεμα).
     # Η επεξεργασία (παραγωγή), οι διορθώσεις Παραγωγής και το αρχικό απόθεμα δεν έχουν μέσο: μειώνουν/αυξάνουν ΠΑΝΤΑ το «Χύμα / χωρίς μέσο».

@@ -1001,8 +1001,11 @@ def commercial_table(start: str | None = None, end: str | None = None, db: Sessi
             if (d0 and e.export_date < d0) or (d1 and e.export_date > d1):
                 continue
             exports.append({"id": e.id, "material_id": e.material_id, "work_date": e.export_date.isoformat(), "kg": float(e.kg or 0), "pieces": int(e.pieces or 0), "note": e.note})
+    adj = {}   # Απογραφή › Αποθέματα: διορθωμένα 31-12-Χ (Χ≥2026) μεταφέρονται στο απόθεμα
+    for c in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind == 'COMM', models.InventoryYearCorrection.year >= 2026)).all():
+        a = adj.setdefault(c.key, [0.0, 0]); a[0] += float(c.applied_kg or 0); a[1] += int(c.applied_pieces or 0)
     return {"materials": [{"id": m.id, "name": m.official_description or m.internal_name, "erp": m.galaxy_code, "short": m.short_description,
-                           "stock_kg": round(stock.get(m.id, 0.0), 3), "stock_pieces": pieces_all.get(m.id, 0) - ex.get(m.id, {}).get("pieces", 0)} for m in mats],
+                           "stock_kg": round(stock.get(m.id, 0.0) + adj.get(m.id, [0, 0])[0], 3), "stock_pieces": pieces_all.get(m.id, 0) - ex.get(m.id, {}).get("pieces", 0) + adj.get(m.id, [0, 0])[1]} for m in mats],
             "entries": sorted(days.values(), key=lambda x: (x["work_date"], x["material_id"])), "exports": exports}
 
 

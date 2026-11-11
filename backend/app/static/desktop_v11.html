@@ -3950,6 +3950,7 @@ async function loadReadyPress(){
    try{readyState.pressPrior=await api(`/production/press-bales?start=${fl}&end=${e}`)}catch(err){}
    try{readyState.pressPriorBales=await api(`/mat/bales-summary?start=${fl}&end=${e}`)}catch(err){}}}
  try{readyState.pressOpen=await api('/production/press-opening')}catch(e){readyState.pressOpen=[]}
+ try{readyState.pressAdj=await api('/inventory/year-corrections/adjustments?kind=PRESS')}catch(e){readyState.pressAdj=[]}
  renderReadyPress();
 }
 // Πρέσα: γραμμές = οι ημερομηνίες (ή μήνες σε Τρίμηνο/Έτος) που έχουν εγγραφή, όπως στις άλλες καρτέλες Υλικών· από κάτω «Σύνολο <περίοδος>».
@@ -3964,7 +3965,7 @@ function renderReadyPress(){
  (readyState.pressBales||[]).forEach(b=>Object.entries(b.days||{}).forEach(([d,v])=>add(b.material_group,d,Number(v.kg||0),Number(v.count||0))));
  // Η Πρέσα δείχνει ΠΑΝΤΑ ως στήλες: τα υλικά που μπορούν να γίνουν μπάλα και τις στήλες από τα Excel της Πρέσας (οποιουδήποτε μήνα), με 0 όταν δεν υπάρχει κίνηση στην περίοδο
  {let pc=readyState.pressCols||{materials:[],excel:[]};[...pc.excel,...pc.materials.map(m=>m.name)].forEach(nm=>{if(!nm)return;let k=nk(nm);if(!names[k]){names[k]=nm;cell[k]={}}})}
- {let hasO=readyRange().startISO>='2026-01-01';if(hasO)(readyState.pressOpen||[]).forEach(o=>{let k=nk(o.press_group);if(!names[k]){names[k]=o.press_group;cell[k]={}}})}   // στήλες με αρχικό απόθεμα εμφανίζονται και χωρίς κίνηση
+ {let hasO=readyRange().startISO>='2026-01-01';if(hasO){(readyState.pressOpen||[]).forEach(o=>{let k=nk(o.press_group);if(!names[k]){names[k]=o.press_group;cell[k]={}}});(readyState.pressAdj||[]).forEach(o=>{let k=nk(o.target);if(!names[k]){names[k]=o.target;cell[k]={}}})}}   // στήλες με αρχικό απόθεμα εμφανίζονται και χωρίς κίνηση
  // Αντιστοιχίσεις στηλών Πρέσας (Μητρώα → Αντιστοίχιση ετικετών): «Δεν είναι υλικό» κρύβεται· ανενεργό υλικό φαίνεται μόνο όταν υπάρχει κίνηση στην περίοδο, με την ένδειξη «ανενεργό»
  const pmap=nm=>readyState.maps&&readyState.maps.pkey[foldKeep(nm)];
  let groups=Object.keys(names).map(k=>{let g={material_group:names[k],keys:[k],kg:0,bales:0};Object.values(cell[k]).forEach(v=>{g.kg+=v.kg;g.bales+=v.pc});return g})
@@ -4010,9 +4011,10 @@ function renderReadyPress(){
  let startISO=readyRange().startISO,hasOpen=startISO>='2026-01-01';
  const open0={};(readyState.pressOpen||[]).forEach(o=>{open0[nk(o.press_group)]={kg:Number(o.kg||0),pc:Number(o.bales||0)}});
  const priorOf=k=>{let kg=0,pc=0;(readyState.pressPrior||[]).forEach(e=>{if(nk(e.material_group)!==k)return;kg+=Number(e.weight_kg||0);pc+=e.bale_seq!=null?1:Number(e.bale_count||0)});(readyState.pressPriorBales||[]).forEach(b=>{if(nk(b.material_group)!==k)return;Object.values(b.days||{}).forEach(v=>{kg+=Number(v.kg||0);pc+=Number(v.count||0)})});return {kg,pc}};
- const openOf=g=>{if(!hasOpen)return {kg:0,pc:0};return g.keys.reduce((t,k)=>{let o=open0[k]||{kg:0,pc:0},pr=priorOf(k);return {kg:t.kg+o.kg+pr.kg,pc:t.pc+o.pc+pr.pc}},{kg:0,pc:0})};
+ const openOf=g=>{if(!hasOpen)return {kg:0,pc:0};let a=adjOf(g,d=>d<startISO);return g.keys.reduce((t,k)=>{let o=open0[k]||{kg:0,pc:0},pr=priorOf(k);return {kg:t.kg+o.kg+pr.kg,pc:t.pc+o.pc+pr.pc}},a)};
+ const adjOf=(g,fn)=>(readyState.pressAdj||[]).reduce((t,a)=>{let d=a.year+'-12-31';if(!g.keys.includes(nk(a.target))||!fn(d))return t;return {kg:t.kg+Number(a.applied_kg||0),pc:t.pc+Number(a.applied_pieces||0)}},{kg:0,pc:0});   // διορθωμένα 31-12-Χ (Χ≥2026) = μεταφορά στο Χ+1
  const sumPair=f=>groups.reduce((t,g)=>{let v=f(g);return {kg:t.kg+v.kg,pc:t.pc+v.pc}},{kg:0,pc:0});
- const curOf=g=>{let o=openOf(g),t=tot(g);return {kg:o.kg+t.kg,pc:o.pc+t.pc}};
+ const curOf=g=>{let o=openOf(g),t=tot(g),a=adjOf(g,d=>d>=startISO&&d<=readyRange().endISO);return {kg:o.kg+t.kg+a.kg,pc:o.pc+t.pc+a.pc}};
  let openLbl=new Date(startISO+'T12:00:00').toLocaleDateString('el-GR',{day:'numeric',month:'long',year:'numeric'}).replace(/^\d+\s*/,'');
  let emptyPair='<td class="num"></td><td class="num"></td>';
  $('readyPressFoot').innerHTML=`<tr id="readyPressOpenRow"><td>Απόθεμα έναρξης ${esc(openLbl)}</td>${pair(sumPair(openOf))}${groups.map(g=>pair(openOf(g))).join('')}</tr>`
@@ -5549,16 +5551,16 @@ async function invSLoad(){
     if(sub==='weee'){
       let d=await api(`/inventory/weee-dashboard?start=${y}-01-01&end=${y}-12-31`),seen=new Set();
       [...(d.to_process||[]),...(d.to_ship||[])].forEach(x=>{let code=String(x.official_code||''),isNon=/^\d{6}$/.test(code);if(isNon||x.current_stock==null||seen.has(code))return;seen.add(code);
-        rows.push(mk('WEEE',code,{code,label:x.description||'',kg:Number(x.current_stock||0),pc:null}))});
+        rows.push(mk('WEEE',code,{code,label:x.description||'',kg:Number(x.current_stock||0),pc:null,noStock:y<2025}))});
       rows.sort((a,b)=>a.code<b.code?-1:a.code>b.code?1:0);
     }else{
       let tabs=await invSCollectMat(y);
       tabs.forEach(t=>{
-        rows.push({title:t.name});
+        rows.push({title:t.name,note:t.code==='PRESS'?'δεν περιλαμβάνεται στο σύνολο':''});
         t.cols.forEach(c=>{
           if(t.code==='COMMERCIAL')rows.push(mk('COMM',c.key,{label:c.title,kg:c.kg,pc:c.pc,noStock:y<new Date().getFullYear()}));
-          else if(t.code==='PRESS')rows.push(mk('PRESS',c.key,{label:c.title,kg:c.kg,pc:c.pc,target:c.target,noTotal:true}));
-          else rows.push(mk('MAT',t.code+'|'+c.key,{label:c.title,kg:c.kg,pc:c.pc,target:c.target,group:t.code==='PLAKETES'?'EIDIKIS_DIACHEIRISIS':t.code}));
+          else if(t.code==='PRESS')rows.push(mk('PRESS',c.key,{label:c.title,kg:c.kg,pc:c.pc,target:c.target,noTotal:true,noStock:y<2025}));
+          else rows.push(mk('MAT',t.code+'|'+c.key,{label:c.title,kg:c.kg,pc:c.pc,target:c.target,noStock:y<2025,group:t.code==='PLAKETES'?'EIDIKIS_DIACHEIRISIS':t.code}));
         });
       });
     }
@@ -5573,12 +5575,12 @@ function invSRender(){
   const sA=`Απόθεμα 31-12-${y}`,sC=`Διορθωμένο Απόθεμα 31-12-${y}`;
   if(weee){
     $('invSHead').innerHTML=`<tr class="prodHeadMajor"><th class="invSC1">Κωδικός</th><th class="invSC2">Περιγραφή</th><th class="invSSepL num">${sA}</th><th class="invSSepL num">${sC}</th><th class="invSSepL num">Διαφορά</th></tr>`;
-    $('invSBody').innerHTML=rows.map((r,i)=>`<tr data-i="${i}"><td class="invSC1"><b>${esc(r.code)}</b></td><td class="invSC2">${esc(r.label)}</td><td class="num invSSepL">${invSFmt(r.baseKg)}</td><td class="num invSSepL invSEdit">${invSInp(i,'corrKg',r.corrKg)}</td><td class="num invSSepL" data-diff="kg">${invSDiffTxt(r.corrKg,r.baseKg)}</td></tr>`).join('')||'<tr><td colspan="5" class="prodEmpty">Δεν υπάρχουν κωδικοί.</td></tr>';
+    $('invSBody').innerHTML=rows.map((r,i)=>`<tr data-i="${i}"><td class="invSC1"><b>${esc(r.code)}</b></td><td class="invSC2">${esc(r.label)}</td><td class="num invSSepL">${r.noStock?'':invSFmt(r.baseKg)}</td><td class="num invSSepL invSEdit">${invSInp(i,'corrKg',r.corrKg)}</td><td class="num invSSepL" data-diff="kg">${r.noStock?'':invSDiffTxt(r.corrKg,r.baseKg)}</td></tr>`).join('')||'<tr><td colspan="5" class="prodEmpty">Δεν υπάρχουν κωδικοί.</td></tr>';
   }else{
     $('invSHead').innerHTML=`<tr class="prodHeadMajor"><th rowspan="2" class="invSC1">Υλικό</th><th colspan="2" class="invSSepL invSGH">${sA}</th><th colspan="2" class="invSSepL invSGH">${sC}</th><th colspan="2" class="invSSepL invSGH">Διαφορά</th></tr>`
       +`<tr class="prodHeadOfficial invSH2"><th class="invSSepL num">Κιλά</th><th class="num">Τεμάχια</th><th class="invSSepL num">Κιλά</th><th class="num">Τεμάχια</th><th class="invSSepL num">Κιλά</th><th class="num">Τεμάχια</th></tr>`;
     $('invSBody').innerHTML=rows.map((r,i)=>r.title!=null
-      ?`<tr class="invSGrp"><td class="invSC1">${esc(r.title)}</td><td class="invSSepL"></td><td></td><td class="invSSepL"></td><td></td><td class="invSSepL"></td><td></td></tr>`
+      ?`<tr class="invSGrp"><td class="invSC1">${esc(r.title)}${r.note?` <small class="invSNote">(${esc(r.note)})</small>`:''}</td><td class="invSSepL"></td><td></td><td class="invSSepL"></td><td></td><td class="invSSepL"></td><td></td></tr>`
       :`<tr data-i="${i}"><td class="invSC1">${esc(r.label)}</td>`
         +`<td class="num invSSepL">${r.noStock?'':invSFmt(r.baseKg)}</td><td class="num">${r.noStock||r.basePc==null?'':invSFmt(r.basePc)}</td>`
         +`<td class="num invSSepL invSEdit">${invSInp(i,'corrKg',r.corrKg)}</td><td class="num invSEdit">${invSInp(i,'corrPc',r.corrPc)}</td>`
@@ -5599,10 +5601,10 @@ function invSRender(){
 }
 function invSTotals(){
   let weee=invSub==='weee',t={baseKg:0,basePc:0,corrKg:0,corrPc:0,diffKg:0,diffPc:0};
-  invSRows.forEach(r=>{if(r.title!=null||r.noStock||r.noTotal)return;
-    t.baseKg+=r.baseKg||0;t.basePc+=r.basePc||0;
-    if(r.corrKg!=null){t.corrKg+=r.corrKg;t.diffKg+=r.corrKg-r.baseKg}
-    if(r.corrPc!=null){t.corrPc+=r.corrPc;t.diffPc+=r.corrPc-(r.basePc||0)}});
+  invSRows.forEach(r=>{if(r.title!=null||r.noTotal)return;
+    if(!r.noStock){t.baseKg+=r.baseKg||0;t.basePc+=r.basePc||0}
+    if(r.corrKg!=null){t.corrKg+=r.corrKg;if(!r.noStock)t.diffKg+=r.corrKg-r.baseKg}
+    if(r.corrPc!=null){t.corrPc+=r.corrPc;if(!r.noStock)t.diffPc+=r.corrPc-(r.basePc||0)}});
   const set=(k,v,neg)=>{let el=$('invSFoot').querySelector(`[data-t="${k}"]`);if(el)el.innerHTML=neg&&v<0?`<span class="invSNeg">${invSFmt(Math.round(v*1000)/1000)}</span>`:invSFmt(Math.round(v*1000)/1000)};
   if(weee){set('base',t.baseKg);set('corr',t.corrKg);set('diff',t.diffKg,true)}
   else{set('baseKg',t.baseKg);set('basePc',t.basePc);set('corrKg',t.corrKg);set('corrPc',t.corrPc);set('diffKg',t.diffKg,true);set('diffPc',t.diffPc,true)}
@@ -5625,7 +5627,7 @@ async function invSSave(inp){
 function invSRefreshRow(i){
   let r=invSRows[i],tr=$('invSBody').querySelector(`tr[data-i="${i}"]`);if(!tr)return;
   let k=tr.querySelector('[data-diff="kg"]'),p=tr.querySelector('[data-diff="pc"]');
-  if(k)k.innerHTML=invSDiffTxt(r.corrKg,r.baseKg);if(p)p.innerHTML=invSDiffTxt(r.corrPc,r.basePc);
+  if(k)k.innerHTML=r.noStock?'':invSDiffTxt(r.corrKg,r.baseKg);if(p)p.innerHTML=r.noStock?'':invSDiffTxt(r.corrPc,r.basePc);
 }
 // Θέσεις sticky από τα ΠΡΑΓΜΑΤΙΚΑ ύψη/πλάτη (δεύτερη γραμμή κεφαλίδας, δεύτερη σταθερή στήλη ΑΗΗΕ)
 function invSLayout(){
@@ -12702,6 +12704,7 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 #invStockTable td.invSEdit input.invSIn.bad{background:#fde3e1}
 #invStockTable td.invSEdit input.invSIn::-webkit-outer-spin-button,#invStockTable td.invSEdit input.invSIn::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .invSNeg{color:#A32D2D!important}
+.invSNote{font-weight:400;font-size:11px;color:#526172}
 
 /* L3: Προετοιμασία φόρτωσης — πεδία με αναζήτηση· Αποθήκη: κοινές κάθετες ευθείες (☐ · περιγραφή · χύμα · αριθμός · βελάκι) */
 .pfCb{position:relative;display:flex;align-items:stretch}
