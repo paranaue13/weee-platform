@@ -60,7 +60,7 @@ VIEWS = [
     ('receipts', '#receipts', [GEN], False),
     ('loading', '#loading', [GEN], False),
     ('inventory', '#inventory', [GEN], False),
-    ('inventory', '#inventory', ['#invSubTabs .readyGroupTab'], False, "invShowTab('stock')"),   # Απογραφή › Αποθέματα (ΑΗΗΕ / Υλικά)
+    ('inventory', '#inventory', ['#invTabs .readyGroupTab'], False, "0"),   # Απογραφή: Ανάλυση / ΑΗΗΕ / Υλικά (περιμένει τη φόρτωση)
     ('reports', '#reports', [GEN], False),
     ('master', '#master', [GEN], False),
 ]
