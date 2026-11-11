@@ -226,6 +226,20 @@ class PressOpeningStock(Base, TimestampMixin):
     kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
     as_of_date: Mapped[datetime|None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+class InventoryYearCorrection(Base, TimestampMixin):
+    """Απογραφή › Αποθέματα: διορθωμένο απόθεμα 31-12 ενός έτους ανά ΑΗΗΕ κωδικό / υλικό. Για το 2025 το «applied_*» (διορθωμένο − απόθεμα εφαρμογής) προστίθεται στο αρχικό απόθεμα 1/1/2026
+    (WEEE: επικάλυψη του JSON· MAT/PRESS: στη γραμμή target των πινάκων αρχικού αποθέματος)· διαγραφή της τιμής αφαιρεί ακριβώς όσο είχε προστεθεί."""
+    __tablename__ = "inventory_year_corrections"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uid)
+    kind: Mapped[str] = mapped_column(String(10), index=True)      # WEEE | MAT | PRESS | COMM
+    year: Mapped[int] = mapped_column(Integer, index=True)
+    key: Mapped[str] = mapped_column(String(200), index=True)      # κωδικός ΑΗΗΕ ή κλειδί στήλης υλικού
+    target: Mapped[str|None] = mapped_column(String(200), nullable=True)   # ετικέτα/κωδικός της γραμμής αρχικού αποθέματος που αλλάζει
+    kg: Mapped[Decimal|None] = mapped_column(Numeric(14,3), nullable=True)
+    pieces: Mapped[int|None] = mapped_column(Integer, nullable=True)
+    applied_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
+    applied_pieces: Mapped[int] = mapped_column(Integer, default=0)
+
 class MaterialOpeningStock(Base, TimestampMixin):
     """A documented, point-in-time physical stock count for materials (e.g. 31/12/2025),
     read from the real inventory sheet -- never invented. reptool_code/her_description are

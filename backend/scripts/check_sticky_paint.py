@@ -60,6 +60,7 @@ VIEWS = [
     ('receipts', '#receipts', [GEN], False),
     ('loading', '#loading', [GEN], False),
     ('inventory', '#inventory', [GEN], False),
+    ('inventory', '#inventory', ['#invSubTabs .readyGroupTab'], False, "invShowTab('stock')"),   # Απογραφή › Αποθέματα (ΑΗΗΕ / Υλικά)
     ('reports', '#reports', [GEN], False),
     ('master', '#master', [GEN], False),
 ]
@@ -75,13 +76,15 @@ def run(base='http://127.0.0.1:8000'):
                 pg = b.new_page(viewport={'width': W, 'height': H})
                 pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
                 pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
-                for (v, sel, tabs, groups) in VIEWS:
+                for (v, sel, tabs, groups, *pre) in VIEWS:
                     pg.evaluate(f"show('{v}')"); pg.wait_for_timeout(1500)
+                    if pre: pg.evaluate(pre[0]); pg.wait_for_timeout(1500)
                     pg.evaluate("(()=>{try{if(typeof readyState!=='undefined')readyState.cursor=new Date('2026-09-15T12:00:00');if(typeof prodState!=='undefined')prodState.cursor=new Date('2026-09-15T12:00:00')}catch(e){}})()")
                     pg.evaluate("(()=>{try{if(document.getElementById('production')&&!document.getElementById('production').classList.contains('hidden'))loadProduction();else readyRefreshActive()}catch(e){}})()"); pg.wait_for_timeout(2500)
                     n = max(pg.evaluate(f"[...document.querySelectorAll('{sel} {tabs[0]}')].filter(b=>b.offsetParent).length"), 1)
                     for i in range(n):
                         pg.evaluate(f"(()=>{{let l=[...document.querySelectorAll('{sel} {tabs[0]}')].filter(b=>b.offsetParent);if(l[{i}])l[{i}].click()}})()"); pg.wait_for_timeout(1800)
+                        if pre: pg.wait_for_function("!document.querySelector('#invSBody .prodEmpty')", timeout=240000); pg.wait_for_timeout(800)
                         if pg.evaluate("(()=>{let e=document.getElementById('recAnalysis');return !!e&&!e.classList.contains('hidden')})()"): pg.wait_for_timeout(6000)   # η Ανάλυση παραλαβών φορτώνει δεδομένα (~3")
                         for state in ('κλειστές ομάδες', 'ανοιχτές ομάδες'):
                             if state == 'ανοιχτές ομάδες':

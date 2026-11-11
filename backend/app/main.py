@@ -3,7 +3,7 @@ import re
 import asyncio, logging, json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
-from fastapi import FastAPI, Depends, HTTPException, Query, Request
+from fastapi import FastAPI, Depends, HTTPException, Query, Request, Body
 from sqlalchemy import select, inspect, text, update, func, or_
 from sqlalchemy.orm import Session, aliased
 from .db import Base, engine, get_db, SessionLocal
@@ -4010,7 +4010,63 @@ def _load_opening_stock_2025()->dict:
         path=Path(__file__).resolve().parent/'data'/'opening_stock_2025_12_31.json'
         raw=json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
         _opening_stock_2025_cache={k:float(v) for k,v in raw.items() if not k.startswith('_')}
-    return _opening_stock_2025_cache
+    out=dict(_opening_stock_2025_cache)
+    # Απογραφή › Αποθέματα: τα διορθωμένα αποθέματα 31-12-2025 (applied_kg) προστίθενται στο αρχικό απόθεμα του κωδικού (διαβάζονται κάθε φορά: ισχύουν αμέσως και μετά από αναίρεση/επανάληψη)
+    try:
+        with SessionLocal() as _s:
+            for c in _s.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind=='WEEE',models.InventoryYearCorrection.year==2025)).all():
+                if c.target: out[c.target]=out.get(c.target,0.0)+float(c.applied_kg or 0)
+    except Exception: pass
+    return out
+
+# ---- Απογραφή › Αποθέματα: διορθωμένο απόθεμα 31-12 ----
+@app.get('/inventory/year-corrections')
+def list_year_corrections(year:int=Query(...), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    return [{'kind':c.kind,'key':c.key,'target':c.target,'kg':float(c.kg) if c.kg is not None else None,'pieces':c.pieces,'applied_kg':float(c.applied_kg or 0),'applied_pieces':int(c.applied_pieces or 0)}
+            for c in db.scalars(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.year==year)).all()]
+
+@app.put('/inventory/year-corrections')
+def put_year_correction(data:dict=Body(...), db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
+    """data: kind(WEEE|MAT|PRESS|COMM), year, key, kg|null, pieces|null, base_kg, base_pieces (το «Απόθεμα» χωρίς ήδη εφαρμοσμένη διόρθωση), target (γραμμή αρχικού αποθέματος).
+    Για 2025 η διαφορά (διορθωμένο − απόθεμα) προστίθεται στο αρχικό απόθεμα 1/1/2026· κενή τιμή = επιστρέφει το αρχικό όπως ήταν."""
+    kind=str(data.get('kind') or ''); year=int(data.get('year') or 0); key=str(data.get('key') or '')
+    if kind not in ('WEEE','MAT','PRESS','COMM') or not (2000<year<2100) or not key: raise HTTPException(400,'Μη έγκυρη διόρθωση')
+    def num(v,integer=False):
+        if v is None or v=='': return None
+        x=float(v); return int(round(x)) if integer else round(x,3)
+    kg=num(data.get('kg')); pc=num(data.get('pieces'),True)
+    base_kg=num(data.get('base_kg')) or 0.0; base_pc=num(data.get('base_pieces'),True) or 0
+    target=(data.get('target') or key) if kind!='COMM' else None
+    row=db.scalar(select(models.InventoryYearCorrection).where(models.InventoryYearCorrection.kind==kind,models.InventoryYearCorrection.year==year,models.InventoryYearCorrection.key==key))
+    old_kg=float(row.applied_kg or 0) if row else 0.0; old_pc=int(row.applied_pieces or 0) if row else 0
+    if row and row.target: target=row.target
+    new_kg=round(kg-base_kg,3) if kg is not None else 0.0
+    new_pc=(pc-base_pc) if pc is not None else 0
+    if kind in ('WEEE','COMM'): new_pc=0
+    if year!=2025 or kind=='COMM': new_kg=0.0; new_pc=0   # μόνο το 2025 τροφοδοτεί το αρχικό απόθεμα 1/1/2026 (τα επόμενα έτη αποθηκεύονται)
+    db.info['hist_label']='Διορθωμένο απόθεμα 31-12-%d «%s»'%(year,key)
+    if kg is None and pc is None:
+        if row: db.delete(row)
+    else:
+        if not row:
+            row=models.InventoryYearCorrection(kind=kind,year=year,key=key); db.add(row)
+        row.target=target; row.kg=kg; row.pieces=pc; row.applied_kg=new_kg; row.applied_pieces=new_pc
+    d_kg=new_kg-old_kg; d_pc=new_pc-old_pc
+    if year==2025 and kind=='MAT' and target and (d_kg or d_pc):
+        o=db.scalar(select(models.MaterialOpeningStock).where(models.MaterialOpeningStock.material_label==target))
+        if not o:
+            ref=db.scalar(select(models.MaterialOpeningStock).limit(1))
+            o=models.MaterialOpeningStock(as_of_date=ref.as_of_date if ref else datetime(2025,12,31),category_group=str(data.get('group') or 'AXIOPOIISIMA'),material_label=target,kg=0,pieces=0,source='INVENTORY_CORR',notes='Διόρθωση από Απογραφή › Αποθέματα')
+            db.add(o)
+        o.kg=Decimal(str(round(float(o.kg or 0)+d_kg,3))); o.pieces=int(o.pieces or 0)+d_pc
+    if year==2025 and kind=='PRESS' and target and (d_kg or d_pc):
+        o=db.scalar(select(models.PressOpeningStock).where(models.PressOpeningStock.press_group==target))
+        if not o:
+            o=models.PressOpeningStock(press_group=target,bales=0,kg=0); db.add(o)
+        o.kg=Decimal(str(round(float(o.kg or 0)+d_kg,3))); o.bales=int(o.bales or 0)+d_pc
+    write_audit(db,user,'year_correction',f'{kind}:{year}:{key}','UPDATE',new={'kg':kg,'pieces':pc,'applied_kg':new_kg,'applied_pieces':new_pc})
+    db.commit()
+    return {'ok':True,'applied_kg':new_kg,'applied_pieces':new_pc}
 
 # Κωδικοί ΑΗΗΕ που πάνε «προς αποστολή» (οι υπόλοιποι «προς επεξεργασία»)· κοινό για την Αποθήκη ΑΗΗΕ και την Ανάλυση παραλαβών
 WEEE_SHIP_OFFICIAL={'1Α1100','1Α1200','1Α2100','1Α2200','1Α3000','3Α0000','3Β0000','4Γ0000','5Β1000','5Γ0000','5Ι1100','6Δ1000','6Δ2000'}
