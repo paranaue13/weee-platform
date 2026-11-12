@@ -429,8 +429,6 @@ def _tab_cards_state(db: Session) -> dict:
             row["subs"] = [{"label": x.label, "active": bool(x.active), "has_history": _fold_key(x.label) in sub_hist} for x in sorted([y for y in maps if y.source == "EXCEL" and y.kind == "BULK_SUB" and y.material_id == m.id], key=lambda y: (y.sort_order or 0, y.label))]
         if m.is_commercial or "COMMERCIAL" in other_src.get(m.id, set()):
             row["locked"] = "Εμπορικό υλικό: η καρτέλα του ορίζεται από τα Εμπορικά"
-        elif (m.label_group or "").strip() and m.label_group in sum_names:
-            row["locked"] = "Ετικέτα «" + m.label_group + "»: τα κιλά της έρχονται από στήλες της Πρέσας και δένονται σε μία καρτέλα"
         elif not ls and ("PRESS" in other_src.get(m.id, set()) or m.can_bale or (m.press_label or "").strip()) and not (m.label_group or "").strip():
             row["locked"] = "Υλικό Πρέσας: η στήλη του ορίζεται από την Πρέσα"
         if ls:
@@ -482,9 +480,7 @@ def _tab_cards_state(db: Session) -> dict:
             tab = tab if tab in codes else None
         n_maps = sum(1 for x in maps if x.material_id in {m.id for m in mem}) + sum(1 for x in maps if x.kind == "SUM" and x.group_name == nm)
         lock = None
-        if nm in sum_names:
-            lock = "Ετικέτα «" + nm + "»: τα κιλά της έρχονται από στήλες της Πρέσας και δένονται σε μία καρτέλα"
-        elif any(byid[m.id]["locked"] for m in mem):
+        if any(byid[m.id]["locked"] for m in mem):
             lock = next(byid[m.id]["locked"] for m in mem if byid[m.id]["locked"])
         ordv = (o.sort_order or 0) if o else None
         if ordv is None and nm in sum_names:
@@ -572,13 +568,18 @@ def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = De
         raise HTTPException(404, "Το υλικό δεν βρέθηκε")
     if mv["locked"]:
         raise HTTPException(409, mv["locked"])
-    if mv.get("label"):
-        raise HTTPException(409, "Το υλικό ανήκει στην ετικέτα «" + mv["label"] + "»: μετακινείται όλη η ετικέτα ή πρώτα πατάς «Βγάλε»")
     if data.material_id not in data.order:
         raise HTTPException(422, "Λείπει το υλικό από τη σειρά")
     ov, xl, mats = st["ov"], st["xl"], st["mats"]
     group = "EIDIKIS_DIACHEIRISIS" if data.tab == "PLAKETES" else data.tab
     m = mats[data.material_id]
+    if mv.get("label"):
+        # μέλος ετικέτας που σύρεται σε καρτέλα: βγαίνει πρώτα από την ετικέτα (όπως το «Βγάλε»)· τα δεδομένα του υλικού (κιλά, κινήσεις, ιστορικό) δεν αγγίζονται
+        old_lbl = mv["label"]
+        m.label_group = None
+        m.label_group_order = 0
+        mv["label"] = None
+        write_audit(db, user, "material", m.id, "UPDATE", old={"label_group": old_lbl}, new={"label_group": None}, reason="Καρτέλες Υλικών: βγήκε από ετικέτα (μετακίνηση σε καρτέλα)")
     labs = _place_material(db, user, st, m, data.tab)
     def colkey(mat, ls_):
         if any(x.kind == "BULK_SUB" for lb, x, g in ls_):
@@ -807,6 +808,8 @@ def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), u
     row = byid.get(data.material_id)
     if not row:
         raise HTTPException(404, "Το υλικό δεν βρέθηκε")
+    if row.get("label") == name:
+        return {"ok": True}
     why = _free_for_label(row)
     if why:
         raise HTTPException(409, why)
@@ -826,6 +829,15 @@ def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), u
     elif tab:
         st["ov"]["LG:" + name] = models.MaterialGroupOverride(material_label="LG:" + name, category_group=tab, sort_order=min([r["ord"] for r in members] + [row["ord"]]))
         db.add(st["ov"]["LG:" + name])
+    if lab and lab.get("sum"):
+        # ετικέτα-άθροισμα (στήλες Πρέσας): η αυτόματη στήλη που δημιουργήθηκε όταν το υλικό βγήκε από την ετικέτα και δεν έχει κανένα ιστορικό (κιλά, αποστολές, αρχικό, διορθώσεις) σβήνεται· δεν μένει άδεια στήλη
+        hist = _sub_history(db)
+        for x in list(st["maps"]):
+            if x.source == "EXCEL" and x.kind == "MATERIAL" and x.material_id == m.id and _fold_key(x.label) not in hist:
+                o2 = st["ov"].get(x.label)
+                if o2:
+                    db.delete(o2)
+                db.delete(x)
     write_audit(db, user, "material", m.id, "UPDATE", new={"label_group": name}, reason="Καρτέλες Υλικών: μπήκε σε ετικέτα")
     db.commit()
     return {"ok": True}
@@ -907,6 +919,24 @@ def tab_cards_move_label(data: LabelMove, db: Session = Depends(get_db), user: U
         else:
             st["ov"][r["key"]] = models.MaterialGroupOverride(material_label=r["key"], category_group=group, sort_order=base + 1 + k)
             db.add(st["ov"][r["key"]])
+    if lab.get("sum"):
+        # η στήλη-άθροισμα (π.χ. ΠΛΑΣΤΙΚΑ ΜΕΡΗ) τοποθετείται στη σελίδα Υλικά από την αντιστοίχιση SUM και τις αντικαταστάσεις ομάδας: αλλάζει ΜΟΝΟ η καρτέλα εμφάνισης
+        lg = st["ov"].get("LG:" + data.name)
+        for x in st["maps"]:
+            if x.source == "EXCEL" and x.kind == "SUM" and x.group_name == data.name:
+                if x.sheet != data.tab:
+                    old = x.sheet
+                    x.sheet = data.tab
+                    write_audit(db, user, "material_label_map", x.id, "UPSERT", old={"sheet": old}, new={"sheet": data.tab}, reason="Καρτέλες Υλικών: αλλαγή καρτέλας ετικέτας-αθροίσματος")
+                for key in (x.label, "SUM:" + data.name):
+                    o = st["ov"].get(key)
+                    if o:
+                        o.category_group = group
+                        if key.startswith("SUM:") and lg:
+                            o.sort_order = lg.sort_order or 0
+                    else:
+                        st["ov"][key] = models.MaterialGroupOverride(material_label=key, category_group=group, sort_order=(lg.sort_order or 0) if lg else 0)
+                        db.add(st["ov"][key])
     write_audit(db, user, "material_label", data.name, "UPDATE", new={"tab": data.tab}, reason="Καρτέλες Υλικών: μετακίνηση ετικέτας")
     db.commit()
     return {"ok": True}

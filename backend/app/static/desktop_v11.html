@@ -10254,7 +10254,7 @@ const SF=(function(){
   if(edit&&edit.code===c.key&&edit.mode==='del')return `<div class="mtColH"><div class="mtColT"><b>${esc(c.name)}</b>${n}</div><div class="mtColA mtConfirm"><span>Διαγραφή με ${cnt(c.items)} υλικά; Θα μεταφερθούν στα Αξιοποιήσιμα.</span><button type="button" class="btn warn" id="mtDelYes">Ναι</button><button type="button" class="btn alt" id="mtDelNo">Όχι</button></div></div>`;
   return `<div class="mtColH"><div class="mtColT">${gr}<b>${esc(c.name)}</b>${n}</div><div class="mtColA"><button type="button" class="btn alt" data-ren="${esc(c.key)}">Μετονομασία</button><button type="button" class="btn alt" data-del="${esc(c.key)}">Διαγραφή</button></div></div>`;
  }
- const rowHtml=(m,extra)=>`<div class="mtRow${m.locked?' locked':''}${m.active?'':' off'}${hitOf(m)?' hit':''}${extra&&extra.mem?' mem':''}" data-id="${m.id}" ${(m.locked||(extra&&extra.mem))?'':'draggable="true"'} title="${esc(m.locked||(m.mixed?'Οι ετικέτες του υλικού είναι σε περισσότερες από μία καρτέλες· μετακινούνται όλες μαζί':''))}"><span class="mtGrip">${m.locked?'🔒':(extra&&extra.mem?'':'⋮⋮')}</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}${m.mixed?' ⚠':''}</span>${extra&&extra.rm?`<button type="button" class="btn alt mtOut" data-out="${esc(extra.rm)}" data-mid="${m.id}">Βγάλε</button>`:''}</div>`;
+ const rowHtml=(m,extra)=>`<div class="mtRow${m.locked?' locked':''}${m.active?'':' off'}${hitOf(m)?' hit':''}${extra&&extra.mem?' mem':''}" data-id="${m.id}" ${m.locked?'':'draggable="true"'} title="${esc(m.locked||(m.mixed?'Οι ετικέτες του υλικού είναι σε περισσότερες από μία καρτέλες· μετακινούνται όλες μαζί':''))}"><span class="mtGrip">${m.locked?'🔒':'⋮⋮'}</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}${m.mixed?' ⚠':''}</span>${extra&&extra.rm?`<button type="button" class="btn alt mtOut" data-out="${esc(extra.rm)}" data-mid="${m.id}">Βγάλε</button>`:''}</div>`;
  function itemHtml(it){
   if(it.t==='mat')return `<div class="mtItem" data-tok="${it.row.id}" data-locked="${it.row.locked?1:''}">${rowHtml(it.row)}</div>`;
   if(it.t==='grp'){
@@ -10330,12 +10330,16 @@ const SF=(function(){
  function target(b,e){
   let h=e.target.closest&&e.target.closest('.mtLblH,.mtGrpH');
   if(h&&!isLblTok(dragTok)){let it=h.closest('.mtItem');if(h.classList.contains('mtLblH')&&!it.dataset.locked)return {lbl:h.dataset.lbl};if(h.classList.contains('mtGrpH'))return {grp:h.dataset.id}}
+  let mr=e.target.closest&&e.target.closest('.mtRow.mem');   // σειρά υλικών μέσα στην ετικέτα
+  if(mr&&!isLblTok(dragTok)){let lb=mr.closest('.mtLbl'),mm=data.materials.find(x=>x.id===dragTok);
+   if(lb&&mm&&mm.label&&('LG:'+mm.label)===lb.dataset.tok&&mr.dataset.id!==dragTok){let r=mr.getBoundingClientRect();return {mem:mr.dataset.id,after:e.clientY>=r.top+r.height/2,lblName:mm.label,row:mr}}}
   let its=[...b.querySelectorAll(':scope > .mtItem')].filter(x=>x.dataset.tok!==dragTok);let i=0;
   for(;i<its.length;i++){let r=its[i].getBoundingClientRect();if(e.clientY<r.top+r.height/2)break}
   return {i,its};
  }
  function mark(b,e){
   clearMarks();let t=target(b,e);
+  if(t.mem){t.row.classList.add('over');return}
   if(t.lbl){b.querySelector('.mtLblH[data-lbl="'+CSS.escape(t.lbl)+'"]').classList.add('lblOver');return}
   if(t.grp){b.querySelector('.mtGrpH[data-id="'+t.grp+'"]').classList.add('grpOver');return}
   b.classList.add('over');if(t.i<t.its.length)t.its[t.i].classList.add('dropBefore');else b.classList.add('dropEnd');
@@ -10368,6 +10372,8 @@ const SF=(function(){
  async function deleteLabel(){if(busy||!edit)return;let n=edit.lbl;edit=null;await api2('DELETE','/mat/labels/'+encodeURIComponent(n),null,'✓ Η ετικέτα διαγράφηκε· τα υλικά της έμειναν στην ίδια καρτέλα')}
  async function drop(tab,t){
   if(busy)return;let tok=dragTok;dragTok=null;
+  if(t.mem){let ids=[...view.querySelectorAll('.mtLbl[data-tok="LG:'+CSS.escape(t.lblName)+'"] .mtRow.mem')].map(x=>x.dataset.id).filter(x=>x!==tok);let i=ids.indexOf(t.mem);ids.splice(t.after?i+1:i,0,tok);
+   api2('PUT','/mat/label-group/'+encodeURIComponent(t.lblName)+'/order',{material_ids:ids},'✓ Αποθηκεύτηκε');return}
   if(t.grp){note='Μια ομάδα έχει έναν μόνο κωδικό ERP. Τα υποπροϊόντα προστίθενται με το + Υποπροϊόν.';paint();return}
   if(t.lbl){api2('PUT','/mat/labels/'+encodeURIComponent(t.lbl)+'/members',{material_id:tok},'✓ Μπήκε στην ετικέτα «'+t.lbl+'»');openSet.add('LG:'+t.lbl);return}
   if(!tab){note='Δεν μπορεί να μπει υλικό ή ετικέτα στη στήλη «Χωρίς καρτέλα»: η στήλη δείχνει μόνο ό,τι δεν έχει καρτέλα.';paint();return}
