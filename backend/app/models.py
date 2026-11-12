@@ -240,6 +240,13 @@ class InventoryYearCorrection(Base, TimestampMixin):
     applied_kg: Mapped[Decimal] = mapped_column(Numeric(14,3), default=0)
     applied_pieces: Mapped[int] = mapped_column(Integer, default=0)
 
+class MaterialLayoutSnapshot(Base, TimestampMixin):
+    """Καρτέλες Υλικών ανά ΜΗΝΑ: αποθηκευμένη διάταξη (ομαδοποίηση/σειρά) παλιότερου μήνα. Ο τρέχων μήνας ζει στους κανονικούς πίνακες. Αλλάζει ΜΟΝΟ η εμφάνιση (ποτέ απόθεμα/κινήσεις)."""
+    __tablename__ = "material_layout_snapshots"
+    month: Mapped[str] = mapped_column(String(7), primary_key=True)     # YYYY-MM
+    payload: Mapped[str] = mapped_column(Text)
+
+
 class MaterialOpeningStock(Base, TimestampMixin):
     """A documented, point-in-time physical stock count for materials (e.g. 31/12/2025),
     read from the real inventory sheet -- never invented. reptool_code/her_description are

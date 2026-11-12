@@ -2541,7 +2541,10 @@ def material_reptool_export(db:Session=Depends(get_db),user=Depends(require_perm
             "matched_total_kg":sum(x["kg"] for x in matched_out),"unmatched_total_kg":sum(x["kg"] for x in unmatched)}
 
 @app.get("/materials/group-overrides")
-def material_group_overrides(db:Session=Depends(get_db),user=Depends(require_permission("production.view"))):
+def material_group_overrides(db:Session=Depends(get_db),user=Depends(require_permission("production.view")),month:str|None=Query(default=None)):
+    if month:
+        from . import mat_layout as _ml
+        return _ml.read_month(db,month,lambda s_:material_group_overrides(s_,user,None))
     rows=db.scalars(select(models.MaterialGroupOverride)).all()
     return {r.material_label:{"category_group":r.category_group,"sort_order":r.sort_order} for r in rows}
 

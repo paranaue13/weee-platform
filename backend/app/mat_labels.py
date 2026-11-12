@@ -13,6 +13,7 @@ from . import models
 from .models import Material, MaterialLabelMap, User
 from .audit import write_audit
 from .mat_warehouse import _fold_key, _norm, materials_with_column, LABEL_GROUP_TAB
+from . import mat_layout as _ml
 
 router = APIRouter(prefix="/mat", tags=["material-labels"])
 KINDS = {"MATERIAL", "BULK_SUB", "RECEIPTS", "SUM", "NONE"}
@@ -222,7 +223,8 @@ def save_label_maps(data: MapSave, db: Session = Depends(get_db), user: User = D
 
 
 @router.get("/label-maps/effective")
-def label_maps_effective(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+def label_maps_effective(db: Session = Depends(get_db), user=Depends(require_permission("production.view")), month: str | None = Query(default=None)):
+    if month: return _ml.read_month(db, month, lambda s_: label_maps_effective(s_, user, None))
     """Ό,τι χρειάζονται οι καρτέλες Υλικών: ρητές αντιστοιχίσεις, υλικά-ομπρέλες με υποκατηγορίες, ομάδες ετικετών με μέλη, ανενεργά υλικά (για ταύτιση με το όνομα)."""
     mats = {m.id: m for m in db.scalars(select(Material)).all()}
     maps = db.scalars(select(MaterialLabelMap).order_by(MaterialLabelMap.sort_order, MaterialLabelMap.label)).all()
@@ -286,7 +288,8 @@ class OrderSave(BaseModel):
 
 
 @router.put("/label-group/{name}/order")
-def save_group_order(name: str, data: OrderSave, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def save_group_order(name: str, data: OrderSave, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: save_group_order(name, data, s_, user, None))
     for i, mid in enumerate(data.material_ids):
         m = db.get(Material, mid)
         if m and (m.label_group or "") == name:
@@ -505,14 +508,26 @@ def mat_tabs(db: Session = Depends(get_db), user=Depends(require_permission("pro
 
 
 @router.get("/tab-cards")
-def tab_cards(db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+def tab_cards(db: Session = Depends(get_db), user=Depends(require_permission("production.view")), month: str | None = Query(default=None)):
+    if month: return _ml.read_month(db, month, lambda s_: tab_cards(s_, user, None))
     """Υλικά με την καρτέλα της σελίδας Υλικά όπου φαίνονται σήμερα και τη σειρά τους εκεί (μόνο ανάγνωση)."""
     st = _tab_cards_state(db)
     rows = st["rows"]
     rows.sort(key=lambda r: (r["ord"], _fold_key(r["labels"][0] if r["labels"] else r["name"]), r["erp"]))
+    extra = {"COMMERCIAL": [], "PRESS": []}
+    for r in rows:
+        lk = r.get("locked") or ""
+        r["card"] = None
+        if r["tab"] is None and lk.startswith("Εμπορικό υλικό"): r["card"] = "COMMERCIAL"
+        elif r["tab"] is None and lk.startswith("Υλικό Πρέσας"): r["card"] = "PRESS"
+        if r["card"]: extra[r["card"]].append(r)
+    ov = st["ov"]
+    for k in extra:
+        extra[k].sort(key=lambda r: ((ov["XO:" + r["id"]].sort_order if ("XO:" + r["id"]) in ov else 10 ** 6), r["erp"]))
     return {"tabs": [{"key": t["code"], "name": t["name"], "is_system": t["is_system"]} for t in st["tabs"]],
             "materials": [{**{k: v for k, v in r.items() if k != "labels"}, "n_labels": len(r["labels"])} for r in rows],
-            "labels": st["labels"]}
+            "labels": st["labels"],
+            "extra": [{"key": "COMMERCIAL", "name": "Εμπορικά", "ids": [r["id"] for r in extra["COMMERCIAL"]]}, {"key": "PRESS", "name": "Πρέσα", "ids": [r["id"] for r in extra["PRESS"]]}]}
 
 
 def _place_material(db: Session, user, st: dict, m, tab: str, create_cols: bool = True) -> list:
@@ -557,7 +572,8 @@ class TabMove(BaseModel):
 
 
 @router.put("/tab-cards/move")
-def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def tab_cards_move(data: TabMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: tab_cards_move(data, s_, user, None))
     """Μετακίνηση υλικού σε καρτέλα και/ή αλλαγή σειράς. Δεν πειράζει υλικά με δικό τους κανόνα (Πρέσα, Εμπορικά, ομάδες ετικετών)."""
     st = _tab_cards_state(db)
     if data.tab not in st["codes"]:
@@ -776,7 +792,8 @@ def _check_free_name(db: Session, st: dict, raw: str) -> str:
 
 
 @router.post("/labels")
-def label_create(data: LabelName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def label_create(data: LabelName, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: label_create(data, s_, user, None))
     st = _tab_cards_state(db)
     name = _check_free_name(db, st, data.name)
     db.add(models.MaterialGroupOverride(material_label="LG:" + name, category_group="NONE", sort_order=0))
@@ -796,7 +813,8 @@ def _free_for_label(row: dict) -> str | None:
 
 
 @router.put("/labels/{name}/members")
-def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: label_add_member(name, data, s_, user, None))
     """Βάζει υλικό (με ERP) σε ετικέτα. Το υλικό πηγαίνει στην καρτέλα της ετικέτας· αν η ετικέτα δεν έχει ακόμα καρτέλα, παίρνει την καρτέλα του υλικού."""
     st = _tab_cards_state(db)
     lab = _label_row(st, name)
@@ -844,7 +862,8 @@ def label_add_member(name: str, data: MemberIn, db: Session = Depends(get_db), u
 
 
 @router.delete("/labels/{name}/members/{material_id}")
-def label_remove_member(name: str, material_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def label_remove_member(name: str, material_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: label_remove_member(name, material_id, s_, user, None))
     """«Βγάλε»: το υλικό βγαίνει από την ετικέτα και μένει στην ίδια καρτέλα."""
     st = _tab_cards_state(db)
     lab = _label_row(st, name)
@@ -861,7 +880,8 @@ def label_remove_member(name: str, material_id: str, db: Session = Depends(get_d
 
 
 @router.delete("/labels/{name}")
-def label_delete(name: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def label_delete(name: str, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: label_delete(name, s_, user, None))
     """Διαγραφή ετικέτας: ΔΕΝ σβήνει υλικά (μένουν στην ίδια καρτέλα χωρίς ετικέτα). Ετικέτα με αντιστοιχίσεις ετικετών Excel/Πρέσας δεν διαγράφεται."""
     st = _tab_cards_state(db)
     lab = _label_row(st, name)
@@ -890,7 +910,8 @@ class LabelMove(BaseModel):
 
 
 @router.put("/tab-cards/move-label")
-def tab_cards_move_label(data: LabelMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit"))):
+def tab_cards_move_label(data: LabelMove, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    if month: return _ml.write_month(db, month, lambda s_: tab_cards_move_label(data, s_, user, None))
     """Μετακινεί ΟΛΗ την ετικέτα (όλα τα υλικά της) σε άλλη καρτέλα και/ή αλλάζει τη σειρά της."""
     st = _tab_cards_state(db)
     if data.tab not in st["codes"]:
@@ -1034,3 +1055,21 @@ def group_remove_sub(material_id: str, label: str = Query(...), db: Session = De
     write_audit(db, user, "material_label_map", x.id, "UPDATE" if hist else "DELETE", old={"label": label}, new={"mode": mode}, reason="Καρτέλες Υλικών: αφαίρεση υποπροϊόντος")
     db.commit()
     return {"mode": mode}
+
+
+class ExtraOrder(BaseModel):
+    material_ids: list[str]
+
+
+@router.put("/tab-cards/order-extra")
+def tab_cards_order_extra(data: ExtraOrder, db: Session = Depends(get_db), user: User = Depends(require_permission("master.edit")), month: str | None = Query(default=None)):
+    """Σειρά υλικών μέσα στις κάρτες «Εμπορικά» / «Πρέσα» (μόνο εμφάνιση· δεν αλλάζει ιδιότητες, απόθεμα ή κιλά)."""
+    if month: return _ml.write_month(db, month, lambda s_: tab_cards_order_extra(data, s_, user, None))
+    ov = {o.material_label: o for o in db.scalars(select(models.MaterialGroupOverride)).all()}
+    for i, mid in enumerate(data.material_ids):
+        k = "XO:" + mid
+        if k in ov: ov[k].sort_order = i
+        else: db.add(models.MaterialGroupOverride(material_label=k, category_group="NONE", sort_order=i))
+    write_audit(db, user, "material_label", "extra", "UPDATE", new={"order": data.material_ids}, reason="Καρτέλες Υλικών: σειρά στις κάρτες Εμπορικά/Πρέσα")
+    db.commit()
+    return {"ok": True}
