@@ -522,12 +522,20 @@ def tab_cards(db: Session = Depends(get_db), user=Depends(require_permission("pr
         elif r["tab"] is None and lk.startswith("Υλικό Πρέσας"): r["card"] = "PRESS"
         if r["card"]: extra[r["card"]].append(r)
     ov = st["ov"]
+    # Πρέσα: δείχνει ΚΑΘΕ υλικό με στήλη Πρέσας ή που μπορεί να γίνει μπάλα, ως ΑΝΤΙΓΡΑΦΟ (το υλικό μένει και στη δική του κάρτα)
+    press_ids = {x.material_id for x in st["maps"] if x.source == "PRESS" and x.material_id} | {i for i, m in st["mats"].items() if m.can_bale or (m.press_label or "").strip()}
+    by_id = {r["id"]: r for r in rows}
+    own = {r["id"] for r in extra["PRESS"]}
+    for i in press_ids:
+        r = by_id.get(i)
+        if r and r["active"] and r.get("card") != "COMMERCIAL" and i not in own:
+            extra["PRESS"].append(r)
     for k in extra:
         extra[k].sort(key=lambda r: ((ov["XO:" + r["id"]].sort_order if ("XO:" + r["id"]) in ov else 10 ** 6), r["erp"]))
     return {"tabs": [{"key": t["code"], "name": t["name"], "is_system": t["is_system"]} for t in st["tabs"]],
             "materials": [{**{k: v for k, v in r.items() if k != "labels"}, "n_labels": len(r["labels"])} for r in rows],
             "labels": st["labels"],
-            "extra": [{"key": "COMMERCIAL", "name": "Εμπορικά", "ids": [r["id"] for r in extra["COMMERCIAL"]]}, {"key": "PRESS", "name": "Πρέσα", "ids": [r["id"] for r in extra["PRESS"]]}]}
+            "extra": [{"key": "COMMERCIAL", "name": "Εμπορικά", "ids": [r["id"] for r in extra["COMMERCIAL"]]}, {"key": "PRESS", "name": "Πρέσα", "ids": [r["id"] for r in extra["PRESS"]], "copies": [r["id"] for r in extra["PRESS"] if r["id"] not in own]}]}
 
 
 def _place_material(db: Session, user, st: dict, m, tab: str, create_cols: bool = True) -> list:

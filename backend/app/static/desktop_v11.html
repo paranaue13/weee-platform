@@ -4032,6 +4032,7 @@ let readyState={period:'month',cursor:new Date(_startupNow.getFullYear(),_startu
 let matGroupOverrides={};
 // Καρτέλες Υλικών ανά μήνα: για παλιό μήνα η σελίδα Υλικά διαβάζει τη διάταξη (ομαδοποίηση/σειρά) εκείνου του μήνα
 function readyLM(){try{let m=readyRange().startISO.slice(0,7),d=new Date(),c=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');return m<c&&m>='2026-01'?'?month='+m:''}catch(e){return ''}}
+function readyPastBlock(){if(!readyLM())return false;alert('Η διάταξη παλιού μήνα αλλάζει μόνο από Μητρώα ▸ Υλικά ▸ Καρτέλες Υλικών, όπου επιλέγεις μήνα.');return true}
 async function loadMatGroupOverrides(){try{matGroupOverrides=await api('/materials/group-overrides'+readyLM())}catch(e){console.error('group overrides load failed',e)}}
 // Καρτέλες της σελίδας Υλικά: οι 4 του συστήματος + του χρήστη, από τον πίνακα material_tabs (endpoint /mat/tabs)
 let matTabs=[],matTabCodes=null,matTabsLoaded=false;
@@ -4580,7 +4581,7 @@ function renderReadyMaterials(){
  // in this same list reorders both within the group. 'PLAKETES' is a display-only pseudo-group, so
  // the write below uses each item's real underlying group instead.
  document.querySelectorAll('#readyMatHead [data-material]').forEach(th=>{
-   th.ondragstart=(e)=>{dragged_=true;e.dataTransfer.setData('text/material-label',th.dataset.move||JSON.stringify([th.dataset.material]));e.dataTransfer.setData('text/rm-key',th.dataset.material);th.classList.add('dragging')};
+   th.ondragstart=(e)=>{if(readyPastBlock()){e.preventDefault();return}dragged_=true;e.dataTransfer.setData('text/material-label',th.dataset.move||JSON.stringify([th.dataset.material]));e.dataTransfer.setData('text/rm-key',th.dataset.material);th.classList.add('dragging')};
    th.ondragend=()=>{th.classList.remove('dragging');setTimeout(()=>dragged_=false,50)};
    th.ondragover=(e)=>{e.preventDefault();th.classList.add('dragTarget')};
    th.ondragleave=()=>th.classList.remove('dragTarget');
@@ -4605,7 +4606,7 @@ function renderReadyMaterials(){
  });
  // Αλλαγή θέσης υποκατηγοριών/μελών ΜΕΣΑ στην ομάδα (σύρσιμο στη δεύτερη γραμμή κεφαλίδας)
  document.querySelectorAll('#readyMatHead [data-sub]').forEach(th=>{
-   th.ondragstart=(e)=>{dragged_=true;e.dataTransfer.setData('text/rm-sub',JSON.stringify({of:th.dataset.subof,label:th.dataset.sub}));th.classList.add('dragging')};
+   th.ondragstart=(e)=>{if(readyPastBlock()){e.preventDefault();return}dragged_=true;e.dataTransfer.setData('text/rm-sub',JSON.stringify({of:th.dataset.subof,label:th.dataset.sub}));th.classList.add('dragging')};
    th.ondragend=()=>{th.classList.remove('dragging');setTimeout(()=>dragged_=false,50)};
    th.ondragover=(e)=>{if(e.dataTransfer.types.includes('text/rm-sub')){e.preventDefault();th.classList.add('dragTarget')}};
    th.ondragleave=()=>th.classList.remove('dragTarget');
@@ -4762,7 +4763,7 @@ function bindReadyTab(b){
   if(b.dataset.readygroup==='PRESS'||b.dataset.readygroup==='PLAKETES'||b.dataset.readygroup==='WAREHOUSE'||b.dataset.readygroup==='COMMERCIAL')return;
   b.ondragover=(e)=>{e.preventDefault();b.classList.add('dragTarget')};
   b.ondragleave=()=>b.classList.remove('dragTarget');
-  b.ondrop=async(e)=>{e.preventDefault();b.classList.remove('dragTarget');let raw=e.dataTransfer.getData('text/material-label');if(!raw)return;let labelsArr=JSON.parse(raw);await Promise.all(labelsArr.map(lb=>setMatGroupOverride(lb,b.dataset.readygroup,0)));await loadReadyMaterials()};
+  b.ondrop=async(e)=>{e.preventDefault();b.classList.remove('dragTarget');if(readyPastBlock())return;let raw=e.dataTransfer.getData('text/material-label');if(!raw)return;let labelsArr=JSON.parse(raw);await Promise.all(labelsArr.map(lb=>setMatGroupOverride(lb,b.dataset.readygroup,0)));await loadReadyMaterials()};
 }
 document.querySelectorAll('#readyGroupTabs [data-readygroup]').forEach(bindReadyTab);
 async function loadProduction(){let r=prodRange();$('prodPeriodTitle').textContent=r.label;let [entries,cats,units,emps,matEntries]=await Promise.all([api(`/production/work-entries?start=${r.startISO}&end=${r.endISO}`),api('/master/weee-display?include_inactive=true'),api('/master/org-units?include_inactive=true'),api('/master/employees?include_inactive=true'),api(`/production/material-output?start=${r.startISO}&end=${r.endISO}`)]);let cmap=Object.fromEntries(cats.map(c=>[c.id,c])),umap=Object.fromEntries(units.map(u=>[u.id,u])),emap=Object.fromEntries(emps.map(e=>[e.id,e]));prodState.cats=cats;prodState.units=units;prodState.employees=emps;prodState.materialEntries=matEntries;prodState.entries=entries.map(e=>{let c=cmap[e.weee_category_id]||{};return {...e,code:c.code||'',official_code:c.official_code||c.code||'',description:c.display_name||c.official_description||'',official_description:c.official_description||'',parent_code:c.parent_code||null,is_internal_subcategory:!!c.is_internal_subcategory,top:c.group_no||prodTop(c.official_code||c.code),unit_name:umap[e.org_unit_id]?.name_el||'',employee_name:emap[e.employee_id]?.full_name||''}});renderProductionKpis();renderProdWeee();renderProdPeople();renderProdRoster();prodPaintTabPanels();document.querySelectorAll('.productionTab').forEach(b=>b.classList.toggle('active',b.dataset.prodtab===prodState.tab));document.querySelectorAll('[data-prodperiod]').forEach(b=>b.classList.toggle('active',b.dataset.prodperiod===prodState.period));document.querySelectorAll('[data-prodgroup]').forEach(b=>b.classList.toggle('active',b.dataset.prodgroup===prodState.group));if(prodState.tab==='deltio')loadDeltio()}
@@ -10233,7 +10234,7 @@ const SF=(function(){
  const MONTHED=/^\/mat\/(tab-cards|labels|label-group)/;
  const mapi=(u,o)=>api(isPast()&&MONTHED.test(u)?u+(u.includes('?')?'&':'?')+'month='+mon:u,o);
  const pastBlock=()=>{if(!isPast())return false;note='Σε παλιότερο μήνα γίνεται μόνο αναδιάταξη (μετακίνηση, ετικέτες, σειρά)· δημιουργία/διαγραφή καρτελών και ομάδων γίνεται στον τρέχοντα μήνα.';paint();return true};
- let data=null,q='',dragTok=null,busy=false,note='',edit=null,newName='',newLbl='',grpSel='',openSet=new Set(),subName={};
+ let dragCopy=false,data=null,q='',dragTok=null,busy=false,note='',edit=null,newName='',newLbl='',grpSel='',openSet=new Set(),subName={};
  const norm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ς/g,'σ');
  async function load(){try{data=await mapi('/mat/tab-cards')}catch(e){data=null;note='Σφάλμα φόρτωσης: '+(e&&e.message||e)}paint()}
  function open(){host.classList.add('matTabsOn');view.classList.remove('hidden');q='';note='';edit=null;newName='';newLbl='';grpSel='';load()}
@@ -10253,7 +10254,7 @@ const SF=(function(){
  function cols(){
   if(!data)return [];
   let c=data.tabs.map(t=>({key:t.key,name:t.name,sys:t.is_system,items:items(t.key)}));
-  (data.extra||[]).forEach(x=>c.push({key:x.key,name:x.name,sys:true,extra:true,items:x.ids.map(id=>data.materials.find(m=>m.id===id)).filter(Boolean).map(r=>({t:'mat',row:r}))}));
+  (data.extra||[]).forEach(x=>c.push({key:x.key,name:x.name,sys:true,extra:true,items:x.ids.map(id=>data.materials.find(m=>m.id===id)).filter(Boolean).map(r=>({t:'mat',row:r,copy:(x.copies||[]).includes(r.id)}))}));
   c.push({key:null,name:'Χωρίς καρτέλα',sys:true,items:items(null)});
   return c;
  }
@@ -10267,9 +10268,9 @@ const SF=(function(){
   if(edit&&edit.code===c.key&&edit.mode==='del')return `<div class="mtColH"><div class="mtColT"><b>${esc(c.name)}</b>${n}</div><div class="mtColA mtConfirm"><span>Διαγραφή με ${cnt(c.items)} υλικά; Θα μεταφερθούν στα Αξιοποιήσιμα.</span><button type="button" class="btn warn" id="mtDelYes">Ναι</button><button type="button" class="btn alt" id="mtDelNo">Όχι</button></div></div>`;
   return `<div class="mtColH"><div class="mtColT">${gr}<b>${esc(c.name)}</b>${n}</div><div class="mtColA"><button type="button" class="btn alt" data-ren="${esc(c.key)}">Μετονομασία</button><button type="button" class="btn alt" data-del="${esc(c.key)}">Διαγραφή</button></div></div>`;
  }
- const rowHtml=(m,extra)=>m.card?`<div class="mtRow${m.active?'':' off'}${hitOf(m)?' hit':''}" data-id="${m.id}" data-card="${m.card}" draggable="true" title="Μόνο εμφάνιση: σύρεται για σειρά μέσα στην κάρτα"><span class="mtGrip">⋮⋮</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}</span></div>`:`<div class="mtRow${m.locked?' locked':''}${m.active?'':' off'}${hitOf(m)?' hit':''}${extra&&extra.mem?' mem':''}" data-id="${m.id}" ${m.locked?'':'draggable="true"'} title="${esc(m.locked||(m.mixed?'Οι ετικέτες του υλικού είναι σε περισσότερες από μία καρτέλες· μετακινούνται όλες μαζί':''))}"><span class="mtGrip">${m.locked?'🔒':'⋮⋮'}</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}${m.mixed?' ⚠':''}</span>${extra&&extra.rm?`<button type="button" class="btn alt mtOut" data-out="${esc(extra.rm)}" data-mid="${m.id}">Βγάλε</button>`:''}</div>`;
+ const rowHtml=(m,extra)=>(m.card||(extra&&extra.copy))?`<div class="mtRow${m.active?'':' off'}${hitOf(m)?' hit':''}" data-id="${m.id}" data-card="${m.card||'PRESS'}" ${extra&&extra.copy?'data-copy="1"':''} draggable="true" title="${extra&&extra.copy?'Αντίγραφο: το υλικό μένει και στη δική του κάρτα· σύρεται μόνο για σειρά':'Μόνο εμφάνιση: σύρεται για σειρά μέσα στην κάρτα'}"><span class="mtGrip">⋮⋮</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}</span></div>`:`<div class="mtRow${m.locked?' locked':''}${m.active?'':' off'}${hitOf(m)?' hit':''}${extra&&extra.mem?' mem':''}" data-id="${m.id}" ${m.locked?'':'draggable="true"'} title="${esc(m.locked||(m.mixed?'Οι ετικέτες του υλικού είναι σε περισσότερες από μία καρτέλες· μετακινούνται όλες μαζί':''))}"><span class="mtGrip">${m.locked?'🔒':'⋮⋮'}</span><b>${esc(m.erp||'—')}</b><span class="mtD">${esc(m.name)}${m.active?'':' · ανενεργό'}${m.mixed?' ⚠':''}</span>${extra&&extra.rm?`<button type="button" class="btn alt mtOut" data-out="${esc(extra.rm)}" data-mid="${m.id}">Βγάλε</button>`:''}</div>`;
  function itemHtml(it){
-  if(it.t==='mat')return `<div class="mtItem" data-tok="${it.row.id}" data-locked="${it.row.locked?1:''}">${rowHtml(it.row)}</div>`;
+  if(it.t==='mat')return `<div class="mtItem" data-tok="${it.row.id}" data-locked="${it.row.locked?1:''}">${rowHtml(it.row,it.copy?{copy:1}:null)}</div>`;
   if(it.t==='grp'){
    let m=it.row,key='G:'+m.id,isOpen=openSet.has(key)||(q&&(m.subs||[]).some(s=>norm(s.label).includes(norm(q)))),subs=m.subs||[],n=subs.filter(s=>s.active).length;
    return `<div class="mtItem mtGrp${m.locked?' locked':''}" data-tok="${m.id}" data-locked="${m.locked?1:''}"><div class="mtGrpH${hitOf(m)?' hit':''}" data-id="${m.id}" data-open="${key}" ${m.locked?'':'draggable="true"'}><span class="mtArr">${isOpen?'▾':'▸'}</span><span class="mtD"><b>${esc(m.erp||'—')}</b> ${esc(m.name)}</span><span class="mtKind">Ομάδα · ${n} υποπροϊόντα</span></div>${isOpen?`<div class="mtSubs">${subs.map(s=>`<div class="mtSub${s.active?'':' off'}"><span>${esc(s.label)}${s.active?'':' · ανενεργό'}</span>${s.active?`<button type="button" class="mtX" data-rmsub="${esc(s.label)}" data-mid="${m.id}" title="${s.has_history?'Έχει κινήσεις: απενεργοποιείται':'Αφαίρεση'}">✕</button>`:''}</div>`).join('')||'<div class="muted mtNone">Δεν έχει υποπροϊόντα</div>'}<div class="mtSubAdd"><input data-subname="${m.id}" maxlength="120" placeholder="Όνομα υποπροϊόντος" value="${esc(subName[m.id]||'')}" autocomplete="off"><button type="button" class="btn" data-addsub="${m.id}">+ Υποπροϊόν</button></div></div>`:''}</div>`;
@@ -10323,8 +10324,8 @@ const SF=(function(){
   view.querySelectorAll('[data-rmsub]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(pastBlock())return;api2('DELETE','/mat/groups/'+b.dataset.mid+'/subs?label='+encodeURIComponent(b.dataset.rmsub),null,null,r=>r&&r.mode==='deactivated'?'✓ Το υποπροϊόν έχει κινήσεις: απενεργοποιήθηκε (δεν σβήνεται)':'✓ Το υποπροϊόν αφαιρέθηκε')});
   // σύρσιμο: υλικό/ομάδα (id) ή ετικέτα (LG:όνομα)
   view.querySelectorAll('.mtRow[draggable],.mtGrpH[draggable],.mtLblH[draggable]').forEach(r=>{
-   r.ondragstart=e=>{e.stopPropagation();dragTok=r.dataset.lbl?('LG:'+r.dataset.lbl):r.dataset.id;r.classList.add('dragging');e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragTok)}catch(x){}};
-   r.ondragend=()=>{dragTok=null;clearMarks();r.classList.remove('dragging')};
+   r.ondragstart=e=>{e.stopPropagation();dragCopy=r.dataset.copy==='1';dragTok=r.dataset.lbl?('LG:'+r.dataset.lbl):r.dataset.id;r.classList.add('dragging');e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',dragTok)}catch(x){}};
+   r.ondragend=()=>{dragTok=null;dragCopy=false;clearMarks();r.classList.remove('dragging')};
   });
   // ΜΕΡΟΣ Δ: σύρσιμο ολόκληρης καρτέλας (λαβή ⋮⋮ στην κεφαλίδα)· η στήλη «Χωρίς καρτέλα» μένει τελευταία και δεν σύρεται
   let colDrag=null;
@@ -10393,14 +10394,15 @@ const SF=(function(){
  function addSub(id){if(pastBlock())return;let name=(subName[id]||'').trim();if(!name){note='Γράψε όνομα υποπροϊόντος';paint();return}subName[id]='';api2('POST','/mat/groups/'+id+'/subs',{name},'✓ Το υποπροϊόν προστέθηκε')}
  async function deleteLabel(){if(busy||!edit)return;let n=edit.lbl;edit=null;await api2('DELETE','/mat/labels/'+encodeURIComponent(n),null,'✓ Η ετικέτα διαγράφηκε· τα υλικά της έμειναν στην ίδια καρτέλα')}
  async function drop(tab,t){
-  if(busy)return;let tok=dragTok;dragTok=null;
+  if(busy)return;let tok=dragTok,cp=dragCopy;dragTok=null;dragCopy=false;
   if(t.mem){let ids=[...view.querySelectorAll('.mtLbl[data-tok="LG:'+CSS.escape(t.lblName)+'"] .mtRow.mem')].map(x=>x.dataset.id).filter(x=>x!==tok);let i=ids.indexOf(t.mem);ids.splice(t.after?i+1:i,0,tok);
    api2('PUT','/mat/label-group/'+encodeURIComponent(t.lblName)+'/order',{material_ids:ids},'✓ Αποθηκεύτηκε');return}
+  if(cp&&(t.lbl||t.grp)){note='Το αντίγραφο της Πρέσας σύρεται μόνο για σειρά μέσα στην κάρτα.';paint();return}
   if(t.grp){note='Μια ομάδα έχει έναν μόνο κωδικό ERP. Τα υποπροϊόντα προστίθενται με το + Υποπροϊόν.';paint();return}
   if(t.lbl){api2('PUT','/mat/labels/'+encodeURIComponent(t.lbl)+'/members',{material_id:tok},'✓ Μπήκε στην ετικέτα «'+t.lbl+'»');openSet.add('LG:'+t.lbl);return}
   {let ex=(data.extra||[]).find(x=>x.key===tab),rw=data.materials.find(m=>m.id===tok);
-   if(ex||(rw&&rw.card)){   // κάρτες Εμπορικά/Πρέσα: μόνο εμφάνιση· σύρσιμο μόνο για σειρά μέσα στην ίδια κάρτα
-    if(ex&&rw&&rw.card===tab&&t.its){let ids=[...view.querySelectorAll('.mtBody[data-tab="'+tab+'"] .mtRow')].map(x=>x.dataset.id).filter(x=>x!==tok),i=Math.min(t.i,ids.length);ids.splice(i,0,tok);api2('PUT','/mat/tab-cards/order-extra',{material_ids:ids},'✓ Αποθηκεύτηκε');return}
+   if(ex||cp||(rw&&rw.card)){   // κάρτες Εμπορικά/Πρέσα: μόνο εμφάνιση· σύρσιμο μόνο για σειρά μέσα στην ίδια κάρτα
+    if(ex&&rw&&(rw.card===tab||(cp&&tab==='PRESS'))&&t.its){let ids=[...view.querySelectorAll('.mtBody[data-tab="'+tab+'"] .mtRow')].map(x=>x.dataset.id).filter(x=>x!==tok),i=Math.min(t.i,ids.length);ids.splice(i,0,tok);api2('PUT','/mat/tab-cards/order-extra',{material_ids:ids},'✓ Αποθηκεύτηκε');return}
     note=ex?'Η κάρτα «'+ex.name+'» δείχνει μόνο τα δικά της υλικά (δεν αλλάζει ιδιότητα του υλικού).':'Τα υλικά «Εμπορικά» / «Πρέσα» μένουν στην κάρτα τους (σύρονται μόνο για σειρά).';paint();return}}
   if(!tab){note='Δεν μπορεί να μπει υλικό ή ετικέτα στη στήλη «Χωρίς καρτέλα»: η στήλη δείχνει μόνο ό,τι δεν έχει καρτέλα.';paint();return}
   let before=t.its.slice(0,t.i).map(x=>x.dataset.tok),all=[...view.querySelectorAll('.mtBody[data-tab="'+tab+'"] > .mtItem')].filter(x=>x.dataset.tok!==tok&&!x.dataset.locked).map(x=>x.dataset.tok);
