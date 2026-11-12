@@ -14,7 +14,7 @@ def ensure_real_production_2026_import(db:Session):
     rows=json.loads(path.read_text(encoding='utf-8'))
     marker=db.scalar(select(models.AppSetting).where(models.AppSetting.key=='data.production.import_revision'))
     existing=db.scalar(select(func.count(models.ProductionWorkEntry.id)).where(models.ProductionWorkEntry.source=='HISTORICAL_2026')) or 0
-    if marker and marker.value==REVISION and existing==len(rows): return False
+    if existing: return False   # Z1: δεν ξαναγράφεται ποτέ όταν υπάρχουν ήδη ιστορικά δεδομένα (το JSON είναι μόνο η αρχική φόρτωση)· οι διορθώσεις αρχείου περνούν από το script z1
     db.execute(delete(models.ProductionWorkEntry).where(models.ProductionWorkEntry.source=='HISTORICAL_2026'))
     unit=db.scalar(select(models.OrganizationalUnit).where(models.OrganizationalUnit.code=='HIST_PROD'))
     if not unit:
