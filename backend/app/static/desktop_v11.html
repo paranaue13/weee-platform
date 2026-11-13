@@ -13274,4 +13274,93 @@ body[data-theme="dark"] #metrics .card.homeKpi.k1{background:#173044!important}b
   new MutationObserver(restyle).observe(m,{childList:true});restyle();
 })();
 </script>
+<style id="b5Css">
+/* ===== B5: κάρτες, χρώματα, εικονίδια, λωρίδα ημερών, Παρουσιολόγιο ===== */
+/* χρώμα ανά έννοια: παραλαβές γαλάζιο · επεξεργασία/παραγωγή τιρκουάζ · απόθεμα μωβ · αποστολές πράσινο */
+.sortingKpiCard.k1,#metrics .card.homeKpi.k1{background:#e3eef8!important;border-color:transparent!important}
+.sortingKpiCard.k3,#metrics .card.homeKpi.k3{background:#dcf1ef!important;border-color:transparent!important}
+.sortingKpiCard.k4,#metrics .card.homeKpi.k4{background:#ece7f5!important;border-color:transparent!important}
+.sortingKpiCard.k2,#metrics .card.homeKpi.k2{background:#e3f3e8!important;border-color:transparent!important}
+.sortingKpiCard.k1.b5Strong{background:#c9defa!important}
+.sortingKpiCard.k3.b5Strong{background:#bfe6e1!important}
+.sortingKpiCard .sortingKpiIcon{background:#fff!important;border-radius:10px!important}
+.sortingKpiCard.k1 .sortingKpiIcon{color:#5b8fd0!important}.sortingKpiCard.k1.b5Strong .sortingKpiIcon{color:#2F5FC4!important}
+.sortingKpiCard.k3 .sortingKpiIcon{color:#2a9d8f!important}.sortingKpiCard.k3.b5Strong .sortingKpiIcon{color:#1a7a6e!important}
+.sortingKpiCard.k4 .sortingKpiIcon{color:#6b55a8!important}
+.sortingKpiCard.k2 .sortingKpiIcon{color:#2e8b57!important}
+.sortingKpiIcon svg.b5Ic{fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round}
+body[data-theme="dark"] .sortingKpiCard .sortingKpiIcon{background:#1d2633!important}
+#metrics .homeKpi.k1>.sortingKpiIcon{color:#5b8fd0!important}#metrics .homeKpi.k3>.sortingKpiIcon{color:#2a9d8f!important}#metrics .homeKpi.k2>.sortingKpiIcon{color:#2e8b57!important}#metrics .homeKpi.k4>.sortingKpiIcon{color:#6b55a8!important}
+/* Παραλαβές: 4 κάρτες σε μία γραμμή, πιο μικρές */
+#receipts #receiptStats.receiptCompactOverview{grid-template-columns:repeat(4,minmax(190px,1fr))!important;overflow-x:auto!important;gap:8px!important}
+#receipts #receiptStats .uK2{min-height:92px!important;padding:6px 9px!important;column-gap:8px!important}
+#receipts #receiptStats .uK2 .sortingKpiIcon{width:30px!important;height:30px!important}
+/* λωρίδα ημερών: επιλεγμένη ημέρα με το μπλε της εφαρμογής */
+#receiptDayStrip .receiptCalendarDay.selected,#receiptDayStrip .receiptCalendarDay.selected[class*="stg-"]{background:#2F5FC4!important;border:1px solid #2F5FC4!important;color:#fff!important;box-shadow:none!important;outline:none!important}
+#receiptDayStrip .receiptCalendarDay.selected small{color:#fff!important;opacity:.9}
+/* Παρουσιολόγιο: η Κατάσταση χωράει και τα 5 κουμπιά, ονόματα ολόκληρα, οριζόντιο scroll μέσα στο πλαίσιο */
+#presence .presTable th:nth-child(1){width:260px!important}
+#presence .presTable th:nth-child(3){width:460px!important}
+#presence .presTable{min-width:1614px!important}
+#presence .presTable td.presNm{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+#presence #presWrap{overflow:auto!important;max-width:100%}
+</style>
+<script id="b5Js">
+// ===== B5: εικονίδια/σειρά καρτών, Παρουσιολόγιο =====
+(function(){
+  const C48='<path d="M6 20L16 25L16 39L6 34Z"/><path d="M16 25L42 12L42 26L16 39Z"/><path d="M6 20L16 25L42 12L32 7Z"/><path d="M20 33.8V26.2M25.4 31.1V23.5M30.8 28.4V20.8M36.2 25.7V18.1M11 36.2V22.8"/>';
+  const I24={truck:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>',
+    pin:'<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>',
+    check:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+    cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+    factory:'<path d="M2 20V9l6 4V9l6 4V5h4l2 15z"/><path d="M2 20h20"/>',
+    feather:'<path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><path d="M16 8 2 22"/><path d="M17.5 15H9"/>',
+    sigma:'<path d="M18 7V4H6l6 8-6 8h12v-3"/>'};
+  window.B5IC={C48,I24};
+  const svg=k=>k==='container'?`<svg class="b5Ic" viewBox="0 0 48 48" stroke-width="3.6">${C48}</svg>`:`<svg class="b5Ic" viewBox="0 0 24 24" stroke-width="1.8">${I24[k]}</svg>`;
+  function setIcon(card,k,cls,strong){
+    const ic=card.querySelector('.sortingKpiIcon');if(!ic)return;
+    if(ic.dataset.b5!==k){ic.dataset.b5=k;ic.innerHTML=svg(k)}
+    if(cls){['k1','k2','k3','k4','k5'].forEach(x=>card.classList.toggle(x,x===cls));card.dataset.b3k=cls}
+    card.classList.toggle('b5Strong',!!strong);
+  }
+  const lab=c=>((c.querySelector('.sortingKpiText small')||{}).textContent||'').trim();
+  function run(){
+    tm=0;
+    // Παραλαβές
+    document.querySelectorAll('#receiptStats .sortingKpiCard').forEach(c=>{const t=c.dataset.type;
+      setIcon(c,t==='CONTAINER'?'container':t==='CURTAIN_TRAILER'?'truck':t==='SMALL_POINTS'?'pin':'check','k1',!t)});
+    // Παραγωγή: Ημέρες · Παραγωγή (πρώην Λοιποί προμηθευτές) · HERMES · Συνολική παραγωγή
+    const pk=document.getElementById('productionKpis');
+    if(pk){const cs=[...pk.querySelectorAll(':scope>.sortingKpiCard')];
+      const f=re=>cs.find(c=>re.test(lab(c)));
+      const days=f(/^Ημέρες/),oth=f(/^Λοιποί προμηθευτές|^Παραγωγή$/),her=f(/^HERMES/),tot=f(/^Συνολική παραγωγή/);
+      if(oth){const s=oth.querySelector('.sortingKpiText small');if(s&&s.textContent.trim()!=='Παραγωγή')s.textContent='Παραγωγή'}
+      if(days&&oth&&her&&tot){const want=[days,oth,her,tot];if(want.some((c,i)=>pk.children[i]!==c))want.forEach(c=>pk.appendChild(c))}
+      cs.forEach(c=>{const l=lab(c);
+        setIcon(c,/^Ημέρες/.test(l)?'cal':/^HERMES/.test(l)?'feather':/^Συνολική/.test(l)?'sigma':'factory','k3',/^Συνολική/.test(l))});
+    }
+    // Αποθήκη ΑΗΗΕ: Επεξεργασία (εργοστάσιο) / Επεξεργασία HERMES (φτερό) σε τιρκουάζ
+    document.querySelectorAll('#weeeKpis .sortingKpiCard').forEach(c=>{const l=lab(c);
+      if(/^Επεξεργασία HERMES|^Επεξ\. HERMES/.test(l)||c.textContent.includes('Επεξεργασία HERMES'))setIcon(c,'feather','k3');
+      else if(/^Επεξεργασία/.test(l))setIcon(c,'factory','k3');
+      else if(/^Παραλαβές/.test(l))setIcon(c,'container','k1')});
+    // Αρχική
+    document.querySelectorAll('#metrics .homeKpi').forEach((c,i)=>{const l=lab(c);
+      if(/Παραλαβ/.test(l))setIcon(c,'container','k1');else if(/Ταξινομ/.test(l))setIcon(c,'factory','k3');else if(/φορτώσ/i.test(l))setIcon(c,'truck','k2')});
+    fitPres();
+  }
+  // Παρουσιολόγιο: το πλαίσιο του πίνακα γεμίζει ως κάτω, ώστε η οριζόντια μπάρα να είναι πάντα ορατή
+  function fitPres(){
+    const w=document.getElementById('presWrap');if(!w||!w.offsetParent)return;
+    const zb=document.getElementById('zoomBar'),bh=zb&&zb.offsetParent?zb.offsetHeight:0,z=(window.pzOf?pzOf():1);
+    const h=Math.max(220,Math.floor((window.innerHeight-w.getBoundingClientRect().top-bh-8)/z));
+    if(w.style.maxHeight!==h+'px')w.style.maxHeight=h+'px';
+  }
+  let tm=0;const later=()=>{if(!tm)tm=setTimeout(run,120)};
+  new MutationObserver(ms=>{if(ms.some(m=>m.addedNodes.length))later()}).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',later);setInterval(fitPres,1500);later();
+  {const pv=document.getElementById('presence');if(pv&&window.ResizeObserver){const ro=new ResizeObserver(()=>fitPres());ro.observe(pv);ro.observe(document.querySelector('.content')||document.body);[...pv.children].forEach(c=>{if(c.id!=='presWrap')ro.observe(c)})}}
+})();
+</script>
 </body></html>

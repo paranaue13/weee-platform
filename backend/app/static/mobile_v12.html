@@ -1834,6 +1834,8 @@ button:focus,button:focus-visible,.btn:focus,.btn:focus-visible{outline:none!imp
 .topDark #appTitle{display:none!important}
 .topDark #who{grid-column:3;grid-row:1;order:0}
 .topDark #refreshBtn{grid-column:4;grid-row:1;order:0}
+.topDark #b4ModeBtn{grid-column:1/3;grid-row:2;justify-self:start;width:128px;height:34px;min-height:34px;margin:0;padding:0;border:0;border-radius:9px;background:#2F5FC4;color:#fff;font-size:13px;font-weight:700;letter-spacing:.04em;text-align:center}
+.topDark #b4ModeBtn:active{background:#284FA6}
 .topDark #b4Mode{grid-column:1/3;grid-row:2;display:grid;grid-template-columns:1fr 1fr;height:34px;border:1px solid rgba(255,255,255,.35);border-radius:9px;overflow:hidden;max-width:260px}
 .topDark #b4Mode button{height:34px;min-height:34px;margin:0;border:0;border-radius:0;background:transparent;color:#dfe6f2;font-size:12px;font-weight:600;letter-spacing:.03em;padding:0 6px}
 .topDark #b4Mode button+button{border-left:1px solid rgba(255,255,255,.35)}
@@ -1919,13 +1921,20 @@ body.b4Deltio #flowBar{display:none!important}
   })();
   // ---- 1. επάνω γραμμή: διακόπτης Πιρούνια/Πλάκες + ΕΡΓΑΖ. ----
   const td=document.querySelector('.topDark'),mf=$('modeForks'),mc=$('modeClamp');
-  if(td&&mf&&mc){const sw=document.createElement('div');sw.id='b4Mode';sw.setAttribute('role','group');sw.setAttribute('aria-label','Προφίλ');sw.append(mf,mc);td.appendChild(sw)}
-  if($('topDeltioBtn'))$('topDeltioBtn').textContent='ΕΡΓΑΖ.';
+  if(td&&mf&&mc){
+    // B5: ΕΝΑ κουμπί που δείχνει την τρέχουσα επιλογή και με κάθε πάτημα κάνει εναλλαγή (τα αρχικά κουμπιά μένουν κρυφά για τη λογική)
+    const hold=document.createElement('div');hold.id='b4ModeHold';hold.hidden=true;hold.append(mf,mc);td.appendChild(hold);
+    const mb=document.createElement('button');mb.type='button';mb.id='b4ModeBtn';td.appendChild(mb);
+    const paintM=()=>{const t=mc.classList.contains('on')?'ΠΛΑΚΕΣ':'ΠΙΡΟΥΝΙΑ';if(mb.textContent!==t)mb.textContent=t};
+    mb.onclick=()=>{(mc.classList.contains('on')?mf:mc).click();paintM()};
+    paintM();new MutationObserver(paintM).observe(mf,{attributes:true,attributeFilter:['class']});new MutationObserver(paintM).observe(mc,{attributes:true,attributeFilter:['class']});
+  }
+  if($('topDeltioBtn'))$('topDeltioBtn').textContent='ΕΡΓΑΖΟΜΕΝΟΙ';
   // ---- 4. γραμμή τίτλου με «‹ ΠΙΣΩ» (δεσμευμένη θέση) ----
   const top=document.querySelector('.top');
   if(top){top.insertAdjacentHTML('beforeend','<div id="b4Title"><button type="button" id="b4Back" disabled aria-label="Πίσω">‹ ΠΙΣΩ</button><span id="b4TitleTxt"></span></div>')}
   // ---- 1. κάτω μπάρα ----
-  const IC={receiving:'<path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  const IC={receiving:'<g transform="scale(.5)" stroke-width="3.6"><path d="M6 20L16 25L16 39L6 34Z"/><path d="M16 25L42 12L42 26L16 39Z"/><path d="M6 20L16 25L42 12L32 7Z"/><path d="M20 33.8V26.2M25.4 31.1V23.5M30.8 28.4V20.8M36.2 25.7V18.1M11 36.2V22.8"/></g>',
     production:'<path d="M2 20V9l6 4V9l6 4V5h4l2 15z"/><path d="M2 20h20"/>',
     materials:'<path d="m12 2 10 5-10 5L2 7l10-5z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/>',
     loading:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'};

@@ -147,7 +147,7 @@ def run(base='http://127.0.0.1:8000', quick=False, small=False):
 # Εντοπίζει: κομμένα στοιχεία, λευκή σελίδα, επικαλύψεις, πίνακες χωρίς scroll όταν δεν χωράνε, μισή γραμμή κάτω από sticky κεφαλίδα, τρεμόπαιγμα (αλλαγές πλάτους/διάταξης).
 # Χρήση: python check_split.py [http://127.0.0.1:8000] scan [γρήγορο]   — τυπώνει ΜΟΝΟ προβλήματα, αλλιώς «0 προβλήματα».
 SCAN_WIDTHS = [900, 1100, 1300, 1600, 1920]
-SCAN_VIEWS = ['dashboard', 'receipts', 'weee', 'production', 'ready', 'loading', 'inventory', 'galaxy', 'reports', 'master']
+SCAN_VIEWS = ['dashboard', 'receipts', 'weee', 'production', 'ready', 'loading', 'inventory', 'galaxy', 'reports', 'master', 'presence']
 SCAN_JS = """()=>{
  const out=[],iw=innerWidth,de=document.documentElement;
  const vis=e=>{const r=e.getBoundingClientRect();if(r.width<2||r.height<2)return false;const cs=getComputedStyle(e);return cs.visibility!=='hidden'&&cs.display!=='none'&&e.offsetParent!==null};
@@ -174,7 +174,7 @@ SCAN_JS = """()=>{
   const A=a.getBoundingClientRect(),B=b.getBoundingClientRect();const w=Math.min(A.right,B.right)-Math.max(A.left,B.left),h=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);
   if(w>3&&h>3&&!(a.closest('.pfCb')&&a.closest('.pfCb')===b.closest('.pfCb'))){const k=tx(a)+'|'+tx(b);if(!ov.has(k)){ov.add(k);out.push('επικάλυψη «'+tx(a)+'» ('+nm(a)+') με «'+tx(b)+'» ('+nm(b)+')')}}}
  // πίνακες/πλαίσια: περιεχόμενο που δεν χωράει πρέπει να έχει οριζόντιο scroll
- [...root.querySelectorAll('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.sectionTableWrap,.lmWrap,.mtGrid,.shipHistWrap,.mtBody')].filter(vis).forEach(w=>{
+ [...root.querySelectorAll('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.sectionTableWrap,.lmWrap,.mtGrid,.shipHistWrap,.mtBody,#presWrap')].filter(vis).forEach(w=>{
   if(w.classList.contains('mtBody'))return;
   const t=w.querySelector('table');const cw=w.clientWidth,sw=w.scrollWidth;
   const anc=(()=>{let q=w.parentElement;while(q&&q!==document.body){if(scrollable(q)&&q.scrollWidth>q.clientWidth+2)return true;q=q.parentElement}return false})();
@@ -185,6 +185,7 @@ SCAN_JS = """()=>{
    const first=[...t.tBodies[0].rows].find(r=>r.getBoundingClientRect().height>4&&getComputedStyle(r).display!=='none');
    if(first){const fr=first.getBoundingClientRect();if(fr.top<hb-2&&fr.bottom>hb+2)out.push('μισή γραμμή κάτω από sticky κεφαλίδα στον πίνακα '+nm(w)+' (γραμμή '+Math.round(fr.top)+'..'+Math.round(fr.bottom)+', κεφαλίδα τέλος '+Math.round(hb)+')')}}
  });
+ {const pw=document.getElementById('presWrap');if(pw&&pw.offsetParent&&pw.scrollWidth>pw.clientWidth+2){const r=pw.getBoundingClientRect(),zb=document.getElementById('zoomBar'),lim=innerHeight-(zb&&zb.offsetParent?zb.offsetHeight:0)+2;if(r.bottom>lim)out.push('Παρουσιολόγιο: η οριζόντια μπάρα του πίνακα είναι κάτω από την οθόνη ('+Math.round(r.bottom)+' > '+Math.round(lim)+')')}}
  return [...new Set(out)]}"""
 
 FLICKER_JS = """()=>new Promise(res=>{const s=[];let n=0;const t0=performance.now();
