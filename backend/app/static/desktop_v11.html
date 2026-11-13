@@ -1119,7 +1119,7 @@ body.sideAuto .side:hover .sideVersion{display:block}
 body.sideAuto #settingsMenu{position:fixed!important;left:64px!important;right:auto!important;bottom:12px!important;width:280px!important}
 body.sideAuto .side:hover #settingsMenu{left:208px!important}
 body.sideAuto .shell{grid-template-columns:56px minmax(0,1fr)!important}
-@media(max-width:980px){body.sideAuto .shell{grid-template-columns:1fr!important}}      /* σε στενό παράθυρο το μενού κρύβεται εντελώς· η σελίδα παίρνει όλο το πλάτος (πριν έμενε 56px) */
+/* B1-1: το μενού εικονιδίων μένει στενή στήλη 56px σε ΟΛΑ τα πλάτη (παλιότερα κάτω από 980px η σελίδα έπεφτε κάτω από το μενού: λευκή σελίδα / τρεμόπαιγμα στο όριο) */
 body.sideAuto .side{width:56px;overflow:hidden;padding-left:8px;padding-right:8px;transition:width .15s ease;z-index:60}
 body.sideAuto .side:hover{width:200px;margin-right:-144px;box-shadow:6px 0 24px rgba(0,0,0,.28)}
 #splitHost{display:none;height:calc(100vh - 58px);padding:8px;box-sizing:border-box;position:relative}
@@ -12179,6 +12179,37 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   };
 })();
 </script>
+<style id="rowSnapCss">
+/* B1-4: χωρίς μισή γραμμή κάτω από τη σταθερή κεφαλίδα — το κατακόρυφο scroll σταματά πάντα σε αρχή γραμμής, ακριβώς κάτω από την κεφαλίδα του πίνακα (--snapPad = θέση sticky + ύψος κεφαλίδας, ανά πίνακα) */
+.rowSnap{scroll-snap-type:y mandatory}
+.rowSnap>:first-child,.rowSnap .weeeSecHd{scroll-snap-align:start}
+.rowSnap table.snapT>tbody>tr>td:first-child{scroll-snap-align:start;scroll-margin-top:var(--snapPad,0px)}
+</style>
+<script id="rowSnap">
+(function(){
+  const SEL='.content :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.sectionTableWrap,#weeeBody)';
+  const scrollsY=w=>/auto|scroll/.test(getComputedStyle(w).overflowY)&&w.scrollHeight>w.clientHeight+4;
+  function run(){
+    document.querySelectorAll(SEL).forEach(w=>{
+      if(!w.offsetParent)return;
+      let any=false;
+      if(scrollsY(w))w.querySelectorAll('table').forEach(t=>{
+        let p=t.parentElement;while(p&&p!==w&&!scrollsY(p))p=p.parentElement;   // ο πίνακας ανήκει σε αυτό το scroll
+        const c0=t.tHead&&t.tHead.rows[0]&&t.tHead.rows[0].cells[0];
+        if(p!==w||!c0||getComputedStyle(c0).position!=='sticky'||!t.tBodies[0]){t.classList.remove('snapT');return}
+        const pad=Math.max(0,Math.round(parseFloat(getComputedStyle(c0).top)||0)+t.tHead.offsetHeight);
+        if(t.style.getPropertyValue('--snapPad')!==pad+'px')t.style.setProperty('--snapPad',pad+'px');
+        t.classList.add('snapT');any=true;
+      });
+      w.classList.toggle('rowSnap',any);
+    });
+  }
+  let tm=0;const later=()=>{if(!tm)tm=setTimeout(()=>{tm=0;run()},250)};
+  window.addEventListener('resize',later);window.addEventListener('tableLayoutChanged',later);
+  try{new MutationObserver(later).observe(document.querySelector('.content')||document.body,{childList:true,subtree:true})}catch(e){}
+  setTimeout(run,800);setInterval(()=>{if(!document.hidden)run()},1500);   // το ύψος του πλαισίου ορίζεται αργότερα (fitProdWraps) χωρίς αλλαγή DOM
+})();
+</script>
 <script id="viewZoom">
 /* ΑΛΛΑΓΗ ΚΖ: ποσοστό μεγέθους ανά καρτέλα (σελίδα + υποκαρτέλα), αποθηκευμένο στη συσκευή (localStorage 'viewZoom:<σελίδα>[:<υποκαρτέλα>]') */
 (function(){
@@ -12719,6 +12750,27 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 .cxOverlay{position:fixed;inset:0;background:rgba(15,30,54,.45);z-index:100000;display:grid;place-items:center;padding:16px}.cxDlg{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 20px 60px rgba(7,25,40,.35);max-width:min(620px,96vw)}.cxDlg h3{margin:0 0 14px}
 .cxBox{display:flex;flex-direction:column;gap:12px;min-width:min(520px,80vw)}.cxRo{display:grid;grid-template-columns:1fr 1fr;gap:10px}.cxRo label,.cxWhy{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}.cxRo input[readonly]{background:#f3f5f8;color:#44474f}.cxWhy textarea{font:inherit;padding:8px 10px;border:1px solid #c9d2da;border-radius:8px;resize:vertical}
 .cxNote{font-size:13px;color:#44474f;line-height:1.4}.cxMsg{color:#c62828;font-size:13px;min-height:1em}.cxBtns{display:flex;justify-content:flex-end;gap:10px}.cxBtns .btn{height:40px;padding:0 20px}
+
+/* B1: επάνω γραμμές καρτελών/κουμπιών — ύψος ανάλογα με το περιεχόμενο (wrap) ώστε να μην καλύπτονται οι από κάτω καρτέλες· προσωρινά, η τελική γραμμή έρχεται στο βήμα 2 */
+#receipts .receiptTopActions,#weee .weeeTop,#production .productionTop,#loadingTabsRow,#reports .receiptTopActions{height:auto!important;flex-wrap:wrap!important;row-gap:8px!important}
+:is(.productionTop,.weeeTop,.receiptTopActions)>:is(.productionTabs,.readyGroupTabsRow,.weeeTabs,.receiptViewTabs){flex-wrap:wrap!important}
+:is(.productionTop,.weeeTop,.receiptTopActions)>:is(.productionPeriod,.topRight,.receiptActionButtons){flex:0 1 auto;max-width:100%;min-width:0;flex-wrap:wrap!important;row-gap:8px}
+#receiptDailyTable{overflow-x:auto!important}
+/* B1: χωρίς μαύρο πλαίσιο focus μετά από κλικ με το ποντίκι· το πλαίσιο μένει ΜΟΝΟ για πληκτρολόγιο (focus-visible) */
+:is(button,.btn,[role=tab],a,summary,select,.readyGroupTab,.productionTab,.weeeTabBtn,.receiptMode,.mtab,.periodPickerBtn,.uniSub):focus:not(:focus-visible){outline:none!important}
+#production .productionTools{flex-wrap:wrap;row-gap:8px}
+#production .productionFilter{flex-wrap:wrap}
+#production .productionFilter>div{flex-wrap:wrap}
+#production .productionFilter .prodSegment{flex:0 0 auto;max-width:none;overflow:visible}
+#production .productionSearch{flex-wrap:wrap;min-width:0;max-width:100%}
+#production .productionSearch input{min-width:140px;flex:1 1 140px}
+#production .productionSearch .btn{flex:0 0 auto;white-space:nowrap}
+/* B1-7: το ποσοστό «Μέγεθος» ισχύει και στο ταμπλό «Καρτέλες Υλικών» */
+#matTabsView .mtGrid{zoom:var(--vz,1)}
+/* B1-4: Απογραφή › Ανάλυση — η σταθερή στήλη «Ομάδα» δεν στενεύει κάτω από μία λέξη (αλλιώς σε στενό παράθυρο σπάει «Μέ-ταλ-λα» και σκεπάζει το Reptool) */
+#invCountTable th:first-child,#invCountTable td.invGroupCell{min-width:96px;word-break:normal;overflow-wrap:normal}
+/* B1-8: Μητρώα — ίδιο ύψος γραμμής με τους υπόλοιπους πίνακες (34px) */
+#master .registryTable tbody td{padding-top:6px!important;padding-bottom:6px!important;height:34px;box-sizing:border-box}
 
 /* Y: Καρτέλες Υλικών — επάνω γραμμή (Πίσω, τίτλος, μήνας + 3 πεδία σε μία σειρά όταν χωράνε· αλλιώς 2η γραμμή), οριζόντιο scroll στις κάρτες */
 #materialsM,#matTabsView{min-width:0;max-width:100%}

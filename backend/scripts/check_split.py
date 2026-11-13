@@ -143,6 +143,113 @@ def run(base='http://127.0.0.1:8000', quick=False, small=False):
     return total
 
 
+# ======================= ΣΑΡΩΣΗ ΠΛΑΤΩΝ (B1): όλες οι σελίδες/υποκαρτέλες × πολλά πλάτη × μενού ανοιχτό / εικονίδια =======================
+# Εντοπίζει: κομμένα στοιχεία, λευκή σελίδα, επικαλύψεις, πίνακες χωρίς scroll όταν δεν χωράνε, μισή γραμμή κάτω από sticky κεφαλίδα, τρεμόπαιγμα (αλλαγές πλάτους/διάταξης).
+# Χρήση: python check_split.py [http://127.0.0.1:8000] scan [γρήγορο]   — τυπώνει ΜΟΝΟ προβλήματα, αλλιώς «0 προβλήματα».
+SCAN_WIDTHS = [900, 1100, 1300, 1600, 1920]
+SCAN_VIEWS = ['dashboard', 'receipts', 'weee', 'production', 'ready', 'loading', 'inventory', 'galaxy', 'reports', 'master']
+SCAN_JS = """()=>{
+ const out=[],iw=innerWidth,de=document.documentElement;
+ const vis=e=>{const r=e.getBoundingClientRect();if(r.width<2||r.height<2)return false;const cs=getComputedStyle(e);return cs.visibility!=='hidden'&&cs.display!=='none'&&e.offsetParent!==null};
+ const nm=e=>((e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className?'.'+e.className.trim().split(/ +/).slice(0,2).join('.'):''))||e.tagName;
+ const tx=e=>(e.innerText||e.value||e.placeholder||e.getAttribute('aria-label')||e.title||'').trim().replace(/\\s+/g,' ').slice(0,24);
+ const main=document.querySelector('.content');
+ if(!main||main.getBoundingClientRect().height<60||!((main.innerText||'').trim()))out.push('λευκή σελίδα (κενό περιεχόμενο)');
+ else if(main.getBoundingClientRect().top>innerHeight*0.6||main.getBoundingClientRect().right<60)out.push('λευκή σελίδα (το περιεχόμενο ξεκινά εκτός οθόνης: '+Math.round(main.getBoundingClientRect().left)+','+Math.round(main.getBoundingClientRect().top)+')');
+ if(de.scrollWidth>iw+1)out.push('οριζόντιο scroll όλης της σελίδας ('+de.scrollWidth+' > '+iw+')');
+ const scrollable=e=>/auto|scroll/.test(getComputedStyle(e).overflowX);
+ const clipper=e=>/hidden|clip/.test(getComputedStyle(e).overflowX);
+ const root=main||document.body;
+ const items=[...root.querySelectorAll('button,.btn,input:not([type=checkbox]):not([type=radio]),select,.readyGroupTab,.productionTab,.mtab,.weeeTabBtn,.receiptMode')].filter(e=>vis(e)&&!e.closest('table,.hidden,.popover,.autoCloseMenu,.periodPickerDropdown,#floatingEditor,.floatPanel,.cxOverlay,[role=listbox],[aria-hidden=true]'));
+ // κομμένα στοιχεία: εκτός οθόνης ή κομμένα από πρόγονο με overflow:hidden (χωρίς scroll)
+ items.forEach(e=>{const r=e.getBoundingClientRect();let p=e.parentElement,inScroll=false,cut=null;
+  while(p&&p!==document.body){if(scrollable(p)&&p.scrollWidth>p.clientWidth+2){inScroll=true;break}
+   if(clipper(p)&&!scrollable(p)){const q=p.getBoundingClientRect();if(q.width>2&&(r.right>q.right+2||r.left<q.left-2)){cut=p;break}}
+   p=p.parentElement}
+  if(cut)out.push('κομμένο στοιχείο «'+tx(e)+'» ('+nm(e)+') από '+nm(cut));
+  else if(!inScroll&&(r.right>iw+1||r.left<-1))out.push('στοιχείο «'+tx(e)+'» ('+nm(e)+') εκτός οθόνης ('+Math.round(r.left)+'..'+Math.round(r.right)+' από '+iw+')')});
+ // επικαλύψεις διαδραστικών στοιχείων
+ const ov=new Set();
+ for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){const a=items[i],b=items[j];if(a.contains(b)||b.contains(a))continue;
+  const A=a.getBoundingClientRect(),B=b.getBoundingClientRect();const w=Math.min(A.right,B.right)-Math.max(A.left,B.left),h=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);
+  if(w>3&&h>3&&!(a.closest('.pfCb')&&a.closest('.pfCb')===b.closest('.pfCb'))){const k=tx(a)+'|'+tx(b);if(!ov.has(k)){ov.add(k);out.push('επικάλυψη «'+tx(a)+'» ('+nm(a)+') με «'+tx(b)+'» ('+nm(b)+')')}}}
+ // πίνακες/πλαίσια: περιεχόμενο που δεν χωράει πρέπει να έχει οριζόντιο scroll
+ [...root.querySelectorAll('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.sectionTableWrap,.lmWrap,.mtGrid,.shipHistWrap,.mtBody')].filter(vis).forEach(w=>{
+  if(w.classList.contains('mtBody'))return;
+  const t=w.querySelector('table');const cw=w.clientWidth,sw=w.scrollWidth;
+  const anc=(()=>{let q=w.parentElement;while(q&&q!==document.body){if(scrollable(q)&&q.scrollWidth>q.clientWidth+2)return true;q=q.parentElement}return false})();
+  if(sw>cw+2&&!scrollable(w)&&!anc)out.push('πίνακας '+nm(w)+' δεν χωράει ('+sw+' > '+cw+') και δεν έχει οριζόντιο scroll');
+  if(t&&scrollable(w)){const tr=t.getBoundingClientRect(),wr=w.getBoundingClientRect();if(tr.width<wr.width-3&&getComputedStyle(t).tableLayout!=='fixed'&&t.rows.length>1&&!w.classList.contains('mtGrid')&&!t.closest('[data-nofill]'))out.push('πίνακας '+nm(w)+' δεν γεμίζει το πλάτος του πλαισίου ('+Math.round(tr.width)+' < '+Math.round(wr.width)+')')}
+  // μισή γραμμή κάτω από sticky κεφαλίδα: στο scroll 0 η πρώτη γραμμή δεν πρέπει να χώνεται κάτω από τη κεφαλίδα
+  if(t&&t.tHead&&t.tHead.rows[0]&&t.tHead.rows[0].cells[0]&&t.tBodies[0]&&getComputedStyle(t.tHead.rows[0].cells[0]).position==='sticky'){w.scrollTop=0;const hb=Math.max(...[...t.tHead.rows].map(r=>r.getBoundingClientRect().bottom));
+   const first=[...t.tBodies[0].rows].find(r=>r.getBoundingClientRect().height>4&&getComputedStyle(r).display!=='none');
+   if(first){const fr=first.getBoundingClientRect();if(fr.top<hb-2&&fr.bottom>hb+2)out.push('μισή γραμμή κάτω από sticky κεφαλίδα στον πίνακα '+nm(w)+' (γραμμή '+Math.round(fr.top)+'..'+Math.round(fr.bottom)+', κεφαλίδα τέλος '+Math.round(hb)+')')}}
+ });
+ return [...new Set(out)]}"""
+
+FLICKER_JS = """()=>new Promise(res=>{const s=[];let n=0;const t0=performance.now();
+ const grab=()=>{const m=document.querySelector('.content'),sh=document.querySelector('.shell');s.push([de().clientWidth,m?Math.round(m.getBoundingClientRect().width):0,sh?getComputedStyle(sh).gridTemplateColumns:'',m&&(m.innerText||'').trim().length>0?1:0,document.body.scrollHeight])};
+ const de=()=>document.documentElement;
+ const iv=setInterval(()=>{grab();if(performance.now()-t0>1400){clearInterval(iv);
+   let ch=0;for(let i=1;i<s.length;i++)if(s[i][0]!==s[i-1][0]||s[i][1]!==s[i-1][1]||s[i][2]!==s[i-1][2])ch++;
+   const white=s.filter(x=>!x[3]).length;
+   res({changes:ch,white,n:s.length,widths:[...new Set(s.map(x=>x[0]+'/'+x[1]))].slice(0,4)})}},40)})"""
+
+
+def _enable_icons(pg, on):
+    pg.evaluate("on=>{document.body.classList.toggle('sideAuto',!!on)}", on)
+
+
+def scan(base='http://127.0.0.1:8000', quick=False):
+    total = 0
+    widths = [1100, 1600] if quick else SCAN_WIDTHS
+    with sync_playwright() as p:
+        b = launch(p)
+        try:
+            for W in widths:
+                for icons in (False, True):
+                    ctx = b.new_context(viewport={'width': W, 'height': 800}); pg = ctx.new_page()
+                    try:
+                        pg.goto(base + '/', wait_until='networkidle', timeout=60000); pg.wait_for_selector('#loginBtn', state='visible', timeout=40000)
+                        pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=60000)
+                    except Exception as e:
+                        total += 1; print(f'[{W}px] ΣΦΑΛΜΑ σύνδεσης: {str(e)[:80]}'); ctx.close(); continue
+                    _enable_icons(pg, icons); pg.wait_for_timeout(300)
+                    tag = f'{W}px · {"μενού εικονίδια" if icons else "μενού ανοιχτό"}'
+                    for v in SCAN_VIEWS:
+                        try:
+                            pg.evaluate(f"show('{v}')"); pg.wait_for_timeout(1400)
+                            n = max(pg.evaluate("([v,sel])=>{const s=document.getElementById(v);if(!s)return 0;return [...s.querySelectorAll(sel)].filter(b=>b.offsetParent&&!b.closest('table')&&!b.closest('.hidden')).length}", [v, GEN]), 1)
+                            for i in range(min(n, 12)):
+                                if n > 1:
+                                    pg.evaluate("([v,sel,i])=>{const s=document.getElementById(v);const l=[...s.querySelectorAll(sel)].filter(b=>b.offsetParent&&!b.closest('table')&&!b.closest('.hidden'));if(l[i])l[i].click()}", [v, GEN, i]); pg.wait_for_timeout(1100)
+                                for m in pg.evaluate(SCAN_JS):
+                                    total += 1; print(f'[{tag} · {v} / καρτέλα {i}] {m}')
+                        except Exception as e:
+                            total += 1; print(f'[{tag} · {v}] ΣΦΑΛΜΑ ελέγχου: {str(e)[:100]}')
+                    ctx.close()
+            # τρεμόπαιγμα: πλάτη γύρω από τα όρια διάταξης (980/1050/1100...), μενού εικονίδια, σελίδες Παραγωγή/Αρχική/Αποθήκη ΑΗΗΕ/Φορτώσεις
+            flick_w = [960, 975, 985, 1000, 1045, 1055, 1095, 1105, 1195, 1205] if not quick else [975, 985]
+            ctx = b.new_context(viewport={'width': 1300, 'height': 800}); pg = ctx.new_page()
+            pg.goto(base + '/', wait_until='networkidle'); pg.wait_for_selector('#loginBtn', state='visible', timeout=20000)
+            pg.click('#loginBtn'); pg.wait_for_selector('#metrics .card', timeout=20000)
+            for icons in (True, False):
+                _enable_icons(pg, icons)
+                for v in ('dashboard', 'production', 'weee', 'loading'):
+                    pg.evaluate(f"show('{v}')"); pg.wait_for_timeout(1200)
+                    for W in flick_w:
+                        pg.set_viewport_size({'width': W, 'height': 800}); r = pg.evaluate(FLICKER_JS)
+                        if r['changes'] > 1 or r['white']:
+                            total += 1; print(f'[τρεμόπαιγμα · {W}px · {"εικονίδια" if icons else "ανοιχτό"} · {v}] αλλαγές διάταξης {r["changes"]} σε 1,4s, λευκά δείγματα {r["white"]}, πλάτη {r["widths"]}')
+            ctx.close()
+        finally:
+            b.close()
+    print(f'{total} προβλήματα' if total else '0 προβλήματα')
+    return total
+
+
 if __name__ == '__main__':
     base = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1].startswith('http') else 'http://127.0.0.1:8000'
+    if 'scan' in sys.argv:
+        sys.exit(1 if scan(base, 'γρήγορο' in sys.argv) else 0)
     print('ΠΡΟΒΛΗΜΑΤΑ ΠΟΛΛΑΠΛΗΣ ΟΘΟΝΗΣ:', run(base, 'γρήγορο' in sys.argv or 'μικρό' in sys.argv, 'μικρό' in sys.argv))
