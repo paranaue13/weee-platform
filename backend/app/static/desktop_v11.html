@@ -13162,4 +13162,116 @@ body[data-theme="dark"] .daF input:disabled,body[data-theme="dark"] .daF textare
   later();
 })();
 </script>
+<style id="b3Css">
+/* ===== B3: ΕΝΙΑΙΑ ΣΤΥΛ (τελευταίο στρώμα — υπερισχύει) ===== */
+:root{--b3-pri:#2F5FC4;--b3-pri-h:#284FA6;--b3-red:#B42318;--b3-red-h:#981C13;--b3-line:#AEB7C9}
+/* 1. Κουμπιά: κύριο (μπλε) · δευτερεύον (λευκό με περίγραμμα) · ακύρωση/διαγραφή (κόκκινο). Ίδια γραμματοσειρά/μέγεθος */
+.btn{font-family:inherit!important;font-size:14px!important;font-weight:600!important;border-radius:var(--r-btn,8px)!important;border:1px solid var(--b3-pri)!important;background:var(--b3-pri)!important;color:#fff!important;box-shadow:none!important}
+.btn:hover:not(:disabled){background:var(--b3-pri-h)!important;border-color:var(--b3-pri-h)!important}
+.btn.alt{background:var(--surface,#fff)!important;color:var(--fg,#1a1b20)!important;border-color:var(--line-strong,#b9bdc9)!important}
+.btn.alt:hover:not(:disabled){background:var(--hover,#eaf0fd)!important;border-color:var(--line-strong,#b9bdc9)!important}
+.btn.danger,.btn.warn,.btn.cancelRcpt{background:var(--b3-red)!important;border-color:var(--b3-red)!important;color:#fff!important}
+.btn.danger:hover:not(:disabled),.btn.warn:hover:not(:disabled),.btn.cancelRcpt:hover:not(:disabled){background:var(--b3-red-h)!important;border-color:var(--b3-red-h)!important}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{stroke:currentColor}
+/* υπο-καρτέλες / κουμπιά περιόδου: ξεχωριστά κουμπιά, όχι κολλημένα */
+.prodSegment,.presSeg,.dcSeg{display:inline-flex!important;gap:6px!important;border:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important;padding:0!important;border-radius:0!important}
+:is(.prodSegment,.presSeg,.dcSeg)>button{border:1px solid var(--line-strong,#b9bdc9)!important;border-radius:var(--r-btn,8px)!important;background:var(--surface,#fff)!important;color:var(--fg,#1a1b20)!important;font-family:inherit!important;font-size:14px!important;font-weight:600!important;box-shadow:none!important;margin:0!important}
+:is(.prodSegment,.presSeg,.dcSeg)>button:hover:not(.active):not(:disabled){background:var(--hover,#eaf0fd)!important}
+:is(.prodSegment,.presSeg,.dcSeg)>button.active{background:var(--b3-pri)!important;border-color:var(--b3-pri)!important;color:#fff!important}
+/* 3. Μητρώα: μη ενεργές γραμμές γκρι + κόκκινο «χάπι» «Μη ενεργό» */
+#master .registryTable tbody tr.inactiveMaster td,#master .inactiveMaster td,.masterResult.inactiveMaster{background:#EEF0F3!important;color:#6B7280!important}
+#master .registryTable tbody tr.inactiveMaster:hover td{background:#E6E9EE!important}
+body[data-theme="dark"] #master .registryTable tbody tr.inactiveMaster td,body[data-theme="dark"] #master .inactiveMaster td,body[data-theme="dark"] .masterResult.inactiveMaster{background:#262c35!important;color:#9aa3af!important}
+.inactiveBadge{background:var(--neg-bg,#fde5e5)!important;color:var(--neg,#9b2222)!important;font-weight:700}
+.b3Neg{white-space:nowrap}
+/* 4. Αρχική: ίδιο στυλ καρτών (χρώμα ανά έννοια + εικονίδιο) */
+#metrics .homeKpi{cursor:pointer;min-height:86px;padding:14px 18px;gap:14px;box-sizing:border-box;border:0}
+#metrics .homeKpi .sortingKpiIcon{width:44px;height:44px}
+#metrics .homeKpi .sortingKpiIcon svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#metrics .homeKpi .sortingKpiText small{font-size:15px;color:var(--fg,#1a1b20);white-space:normal}
+#metrics .homeKpi .sortingKpiText b{font-size:26px;font-weight:500;overflow:visible}
+#metrics .homeKpi:focus-visible{outline:2px solid var(--b3-pri);outline-offset:2px}
+#metrics .homeKpi>.sortingKpiIcon{display:grid!important;font-size:inherit!important}
+#metrics .homeKpi>.sortingKpiText{display:flex!important;font-size:inherit!important}
+#metrics .homeKpi.k1>.sortingKpiIcon{color:#1f6fa8!important}#metrics .homeKpi.k2>.sortingKpiIcon{color:#1f7a52!important}#metrics .homeKpi.k3>.sortingKpiIcon{color:#93650f!important}#metrics .homeKpi.k4>.sortingKpiIcon{color:#5b4a92!important}
+#metrics .card.homeKpi.k1{background:#e5f1f7!important}#metrics .card.homeKpi.k2{background:#e8f4ee!important}#metrics .card.homeKpi.k3{background:#f4efe2!important}#metrics .card.homeKpi.k4{background:#eeeaf6!important}
+body[data-theme="dark"] #metrics .card.homeKpi.k1{background:#173044!important}body[data-theme="dark"] #metrics .card.homeKpi.k2{background:#153428!important}body[data-theme="dark"] #metrics .card.homeKpi.k3{background:#332a17!important}
+</style>
+<script id="b3Js">
+// ===== B3-2: ημερομηνία 13/11/2026 · ώρα 24ωρη 09:08 · τίτλοι «Παρασκευή 13 Νοεμβρίου 2026» =====
+(function(){
+  const P=Date.prototype;if(P._b3)return;P._b3=1;
+  const oS=P.toLocaleString,oT=P.toLocaleTimeString,oD=P.toLocaleDateString;
+  const isEl=l=>l==null||l==='el-GR'||l==='el'||(Array.isArray(l)&&/^el/.test(l[0]||''));
+  const h23=o=>{o=Object.assign({},o);delete o.hour12;o.hourCycle='h23';return o};
+  const noComma=(s,o)=>o&&o.weekday==='long'&&o.month==='long'?s.replace(/^([^,\s]+),\s/,'$1 '):s;
+  P.toLocaleTimeString=function(l,o){if(!isEl(l))return oT.call(this,l,o);o=o&&(o.hour||o.minute||o.second)?h23(o):{hour:'2-digit',minute:'2-digit',hourCycle:'h23'};return oT.call(this,'el-GR',o)};
+  P.toLocaleDateString=function(l,o){if(!isEl(l))return oD.call(this,l,o);if(!o||!Object.keys(o).length)o={day:'2-digit',month:'2-digit',year:'numeric'};return noComma(oD.call(this,'el-GR',o),o)};
+  P.toLocaleString=function(l,o){if(!isEl(l))return oS.call(this,l,o);
+    if(!o||!Object.keys(o).length)o={day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hourCycle:'h23'};
+    else if(o.hour||o.minute)o=h23(o);
+    return noComma(oS.call(this,'el-GR',o),o).replace(/(\d{4}),\s(\d{2}:\d{2})/,'$1 $2')};
+  // Αρχική: τίτλος ημέρας πλήρης
+  if(typeof paintHomeDate==='function')paintHomeDate=function(){const e=document.getElementById('homeDate');if(e)e.textContent=new Date().toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})};
+})();
+
+// ===== B3-3/4: πίνακες (αρνητικά σε κόκκινο «χάπι», ημερομηνίες, γραμμή κεφαλίδας) και κάρτες (χρώμα ανά έννοια) =====
+(function(){
+  const NEG=/^[−\-–]\s?\d[\d., \s]*\s?(kg|%|τεμ\.?)?$/,ISO=/^(\d{4})-(\d{2})-(\d{2})$/;
+  const LINE='linear-gradient(to top,var(--b3-line,#AEB7C9) 2px,transparent 2px)';
+  function cells(t){
+    [...t.tBodies,t.tFoot].filter(Boolean).forEach(sec=>[...sec.rows].forEach(r=>[...r.cells].forEach(td=>{
+      if(td.isContentEditable||td.querySelector('input,select,textarea,.negKgCell,.pill'))return;
+      // το μοναδικό μη κενό κείμενο του κελιού (και μέσα σε <b>/<span> χωρίς κλάση)
+      const w=document.createTreeWalker(td,NodeFilter.SHOW_TEXT);let n,txt=null,cnt=0;
+      while((n=w.nextNode())){if(n.data.trim()){cnt++;txt=n}}
+      if(cnt!==1)return;
+      const s=txt.data.trim();
+      if(ISO.test(s)){const m=s.match(ISO);txt.data=txt.data.replace(s,m[3]+'/'+m[2]+'/'+m[1]);return}
+      if(NEG.test(s)){const sp=document.createElement('span');sp.className='negKgCell b3Neg';sp.textContent=s;txt.parentNode.replaceChild(sp,txt)}
+    })));
+  }
+  function head(t){
+    const rows=t.tHead?[...t.tHead.rows]:[];if(!rows.length)return;
+    const occ=[];
+    rows.forEach((r,ri)=>{let col=0;[...r.cells].forEach(c=>{while(occ[col]>ri)col++;const rs=c.rowSpan||1;for(let k=0;k<(c.colSpan||1);k++)occ[col+k]=ri+rs;col+=c.colSpan||1;
+      const last=ri+rs>=rows.length;
+      if(last&&!c._b3h){c._b3h=1;c.style.setProperty('background-image',LINE,'important');c.style.setProperty('border-bottom-color','transparent','important');
+        if(/^rgb[a]?\([^)]*\) 0px 1px 0px 0px$/.test(getComputedStyle(c).boxShadow))c.style.setProperty('box-shadow','none','important')}})});
+  }
+  // κάρτες: απόθεμα μωβ (k4) · παραλαβές γαλάζιο (k1) · επεξεργασία μπεζ (k3) · αποστολές/φορτώσεις πράσινο (k2)
+  const RULES=[[/απόθεμα|υπόλοιπο|προς αποστολή|προς επεξεργασία/i,'k4'],[/αποστολ|φόρτωσ|φορτώσ|πωλήσ|πώλησ/i,'k2'],[/παραλαβ|container|καρότσα|μικρά σημεία|εντολ/i,'k1'],[/επεξεργασ|παραγωγ|hermes|λοιποί|τμήμα|άτομα|εργαζ|ημέρες|ώρες|απόδοση|ταξινομ/i,'k3']];
+  const PAGE={receipts:'k1',sortingReview:'k1',production:'k3',loading:'k2',weee:'k4',ready:'k4',inventory:'k4',dashboard:''};
+  function card(c){
+    const lab=(c.querySelector('.sortingKpiText small,small')||c).textContent||'';
+    let k='';for(const [re,v] of RULES)if(re.test(lab)){k=v;break}
+    if(!k){const v=c.closest('.view');k=v&&PAGE[v.id]||''}
+    if(!k||c.classList.contains(k)&&c.dataset.b3k===k)return;
+    ['k1','k2','k3','k4','k5'].forEach(x=>c.classList.toggle(x,x===k));c.dataset.b3k=k;
+  }
+  function run(){
+    tm=0;
+    document.querySelectorAll('.content table, .floatPanel table, #floatPanel table').forEach(t=>{if(!t.offsetParent)return;try{cells(t)}catch(e){}try{head(t)}catch(e){}});
+    document.querySelectorAll('.sortingKpiCard').forEach(c=>{try{card(c)}catch(e){}});
+  }
+  let tm=0;const later=()=>{if(!tm)tm=setTimeout(run,200)};
+  new MutationObserver(ms=>{if(ms.some(m=>m.addedNodes.length||m.type==='characterData'))later()}).observe(document.body,{childList:true,subtree:true,characterData:true});
+  later();
+})();
+
+// ===== B3-4: Αρχική — κάρτες στο ίδιο στυλ με τις υπόλοιπες σελίδες =====
+(function(){
+  const m=document.getElementById('metrics');if(!m)return;
+  const IC={rec:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+    proc:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',ship:'<path d="M1 3h15v13H1z"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'};
+  const MAP=[['k1',IC.rec],['k3',IC.proc],['k2',IC.ship]];
+  function restyle(){
+    const cs=[...m.querySelectorAll(':scope>.card.metric')];if(!cs.length)return;
+    cs.forEach((c,i)=>{const lab=c.querySelector('span'),val=c.querySelector('b');if(!lab||!val)return;const [k,ic]=MAP[i]||MAP[0];
+      c.className='card metric sortingKpiCard homeKpi '+k;c.innerHTML=`<span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${ic}</svg></span><span class="sortingKpiText"><small>${lab.innerHTML}</small><b>${val.innerHTML}</b></span>`});
+  }
+  new MutationObserver(restyle).observe(m,{childList:true});restyle();
+})();
+</script>
 </body></html>
