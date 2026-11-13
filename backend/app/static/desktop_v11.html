@@ -1530,8 +1530,8 @@ body[data-theme="dark"]{--th-group-bg:#23365E;--th-group-line:#34476f;--th-group
 .main{display:flex;flex-direction:column;min-height:100vh}
 .main>.content{flex:1 1 auto;padding-bottom:0!important}
 /* ΖΟΥΜ ΜΟΝΟ ΣΤΟΥΣ ΠΙΝΑΚΕΣ: η οθόνη (μενού, τίτλοι, καρτέλες, κάρτες, κουμπιά, ειδοποιήσεις, ενδιάμεσοι τίτλοι) ΔΕΝ μεγεθύνεται· ζουμάρει το πλαίσιο κάθε πίνακα (κεφαλίδα, σταθερές γραμμές, σύνολα μέσα του). Οριζόντιο scroll μένει ΜΕΣΑ στο πλαίσιο του πίνακα. */
-.content>.view{--vzi:1}
-.content>.view :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap):not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap)){zoom:var(--vz);--vzi:var(--vz)}
+.content>.view{--vzi:var(--pz,1);zoom:var(--pz,1)}
+.content>.view :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap):not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap)){zoom:var(--vz);--vzi:calc(var(--vz) * var(--pz,1))}
 .content>.view table:not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) table){zoom:var(--vz)}
 #zoomBar{position:sticky;bottom:0;z-index:40;flex:none;height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:0 20px;background:#fff;border-top:1px solid #dfe4ee;color:#6a7488;font-size:15px;user-select:none}
 body[data-theme="dark"] #zoomBar{background:var(--surface,#17232d);border-top-color:var(--line,#2b3b48);color:var(--fg-3,#9fb0bd)}
@@ -2775,9 +2775,9 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <div id="floatingEditor" class="floatPanel hidden"><div class="floatPanelHeader" id="floatingEditorHandle"><h3 id="floatingEditorTitle">Επεξεργασία</h3><div style="display:flex;gap:7px"><button type="button" class="winCtl" id="floatingEditorMin" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" id="floatingEditorMax" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="floatingEditorClose" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div id="floatingEditorBody"></div></div>
 <section id="visitorLog" class="view hidden"><div class="toolbar" style="margin-bottom:10px"><button type="button" class="btn alt" id="visitBack"><span class="icoL"></span>Αρχική</button></div><div class="card"><h3>Βιβλίο Επισκεπτών</h3><div class="formgrid"><label>Ημερομηνία<input id="visitDate" type="date"></label><label>Ονοματεπώνυμο<input id="visitName" placeholder="Ονοματεπώνυμο"></label><label>Προσέλευση<input id="visitArrival" type="time"></label><label>Αποχώρηση<input id="visitDeparture" type="time"></label><label class="span2">Λόγος επίσκεψης<input id="visitReason" placeholder="π.χ. Συνάντηση / Συνεργάτης"></label></div><div class="toolbar"><button class="btn" id="addVisitor">+ ΕΓΓΡΑΦΗ</button></div><div id="visitorMsg"></div></div><div class="tablewrap"><table><thead><tr><th>Ημερομηνία</th><th>Ονοματεπώνυμο</th><th>Προσέλευση</th><th>Αποχώρηση</th><th>Λόγος επίσκεψης</th></tr></thead><tbody id="visitorRows"></tbody></table></div></section>
 <section id="galaxy" class="view hidden"><div class="grid" id="galaxyMetrics"></div><div class="card"><h3>Galaxy Sync Queue</h3><div id="galaxyNote" class="notice"></div><div id="galaxyRows"></div></div></section>
-</div><div id="zoomBar"><span>Μέγεθος</span><button type="button" class="zmStep" id="zmMinus" title="Μείωση 10%">−</button><div id="zmTrack"><i id="zmFill"></i><b id="zmKnob"></b></div><button type="button" class="zmStep" id="zmPlus" title="Αύξηση 10%">+</button><button type="button" id="zmPct">100% ▴</button><div id="zmMenu" class="hidden"></div></div></main></div>
+</div><div id="zoomBar"><button type="button" class="zmMode" id="zmModeT" data-zm="table" title="Πίνακας: ζουμ μόνο στον πίνακα" aria-label="Ζουμ πίνακα"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 9v11M15 9v11"/></svg></button><button type="button" class="zmMode" id="zmModeP" data-zm="page" title="Όλη η οθόνη: αναλογικό ζουμ όλης της σελίδας" aria-label="Ζουμ όλης της οθόνης"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4M7 9v4M17 15h-4M17 15v-4"/></svg></button><span class="zmSep"></span><button type="button" class="zmStep" id="zmMinus" title="Μείωση 10%">−</button><div id="zmTrack"><i id="zmFill"></i><b id="zmKnob"></b></div><button type="button" class="zmStep" id="zmPlus" title="Αύξηση 10%">+</button><button type="button" id="zmPct">100% ▴</button><div id="zmMenu" class="hidden"></div></div></main></div>
 <script src="/common/search-norm.js"></script>
-<script id="vzCore">if(!window.searchNorm){window.searchNorm=function(x){return String(x==null?'':x).toLowerCase()};Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true})};window.vzOf=function(el){return el&&el.closest&&el.closest('.content>.view')&&(el.closest('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap')||el.closest('table'))?(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1):1};</script>
+<script id="vzCore">if(!window.searchNorm){window.searchNorm=function(x){return String(x==null?'':x).toLowerCase()};Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true})};window.vzOf=function(el){if(!el||!el.closest||!el.closest('.content>.view'))return 1;const cs=getComputedStyle(document.documentElement),pz=parseFloat(cs.getPropertyValue('--pz'))||1;return pz*((el.closest('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap')||el.closest('table'))?(parseFloat(cs.getPropertyValue('--vz'))||1):1)};window.pzOf=function(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pz'))||1};</script>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}/* ===== ΟΥΡΑ ΕΓΓΡΑΦΩΝ (outbox): κάθε εγγραφή μπαίνει σε ουρά με μοναδικό κωδικό, στέλνεται με τη σειρά, ξαναστέλνεται αυτόματα με τον ΙΔΙΟ κωδικό
@@ -4270,9 +4270,9 @@ function stickyStackFooter(tfootId){
 }
 // Κάθε .prodTableWrap γεμίζει ακριβώς τον διαθέσιμο χώρο μέχρι το κάτω μέρος του παραθύρου (χωρίς κενό και χωρίς δεύτερο scroll)
 // Πίνακες Μητρώων (εκτός Μεταφορέων που έχουν ένα scroll σελίδας): το πλαίσιο παίρνει όλο το διαθέσιμο ύψος, ώστε η οριζόντια μπάρα scroll να φαίνεται πάντα μέσα στο παράθυρο
-function fitRegistry(){let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;
+function fitRegistry(){let rz=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1)*pzOf(),zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;
   document.querySelectorAll('#master .mpanel:not(#carriers) .registryTableWrap').forEach(w=>{if(!w.offsetParent)return;let top=w.getBoundingClientRect().top,h=Math.floor((window.innerHeight-top-bh-6)/rz);w.style.maxHeight=Math.max(200,h)+'px'})}
-function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)return;let rzT=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,rz=1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,hh=Math.floor((window.innerHeight-v.getBoundingClientRect().top-bh)/rz);
+function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)return;let rz=pzOf(),rzT=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1)*rz,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,hh=Math.floor((window.innerHeight-v.getBoundingClientRect().top-bh)/rz);
   if(hh>=260)v.style.height=hh+'px';else v.style.removeProperty('height');
   const H=e=>e?e.getBoundingClientRect().height/rz:0;      // ακριβές (δεκαδικό) ύψος σε τοπικά px (όχι στρογγυλεμένο offsetHeight)
   let sc=document.getElementById('weeeBody'),st=document.getElementById('weeeStick'),o1=H(st);v.style.setProperty('--o1',(sc&&!v.classList.contains('weeeNoStick')?0:o1).toFixed(2)+'px');
@@ -4286,7 +4286,7 @@ function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)
   v.querySelectorAll('.stockTable').forEach(t=>{let c=t.tHead&&t.tHead.rows[0]&&t.tHead.rows[0].cells[0];if(c)t.style.setProperty('--c1w',(c.getBoundingClientRect().width/rzT).toFixed(2)+'px')});
   if(!v._ro&&window.ResizeObserver){v._ro=new ResizeObserver(()=>fitWeee());v._ro.observe(v);if(sc)v._ro.observe(sc);if(st)v._ro.observe(st);v.querySelectorAll('.weeeSecHd,.stockTable').forEach(h=>v._ro.observe(h))}
   else if(v._ro){v.querySelectorAll('.weeeSecHd,.stockTable').forEach(h=>{if(!h._wo){h._wo=1;v._ro.observe(h)}})}}
-function fitProdWraps(){fitRegistry();let rz=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1,zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;fitWeee();document.querySelectorAll('.prodTableWrap,.shipHistWrap,.sectionTableWrap').forEach(w=>{if(!w.offsetParent||w.closest('#weee'))return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');
+function fitProdWraps(){fitRegistry();let rz=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1)*pzOf(),zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;fitWeee();document.querySelectorAll('.prodTableWrap,.shipHistWrap,.sectionTableWrap').forEach(w=>{if(!w.offsetParent||w.closest('#weee'))return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');
   if(w.classList.contains('sectionTableWrap')){let hh=Math.floor((window.innerHeight-top-bh)/z);if(hh>=220)w.style.maxHeight=hh+'px';else w.style.removeProperty('max-height');return}   /* πίνακες Αποθήκης ΑΗΗΕ: το οριζόντιο scroll μένει ορατό κάτω από τον πίνακα */let tb=w.querySelector('table'),need=(tb&&tb.tFoot&&tb.tFoot.rows.length)?Math.ceil((tb.tHead?tb.tHead.offsetHeight:0)+tb.tFoot.offsetHeight+38):0;      /* ΑΛΛΑΓΗ ΚΗ-2: το πλαίσιο δεν γίνεται μικρότερο από κεφαλίδα + ΟΛΟ το κάτω μπλοκ (σε πολύ μικρό παράθυρο/μεγάλο ποσοστό κάνει scroll η σελίδα, το μπλοκ δεν κόβεται) */
   let h=Math.floor(Math.max(hist?320:(need?0:220),need,(window.innerHeight-top-bh)/z));w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
 (function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
@@ -10834,7 +10834,7 @@ const SF=(function(){
     let mn=document.querySelector('.main'),W=mn?mn.getBoundingClientRect().width-16:1e9;
     [[qV,'v'],[qH,'h'],[qC3,'c3'],[qQ,'q']].forEach(([b,k])=>{let fits=W>=LAYCOLS[k]*(LAYMIN[k]+6);
       if(b._lbl===undefined)b._lbl=b.title;
-      b.disabled=!fits&&prefs.split!==k;b.title=(!fits&&prefs.split!==k)?'Δεν χωράει σε αυτή την οθόνη':b._lbl});
+      b.disabled=!fits&&prefs.split!==k;b.title=(!fits&&prefs.split!==k)?'Χρειάζεται πλατύτερο παράθυρο':b._lbl});
   }
   window.addEventListener('resize',()=>paintBtns());
   if(window.ResizeObserver){let mn0=document.querySelector('.main');if(mn0)new ResizeObserver(()=>paintBtns()).observe(mn0)}
@@ -12210,14 +12210,146 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   setTimeout(run,800);setInterval(()=>{if(!document.hidden)run()},1500);   // το ύψος του πλαισίου ορίζεται αργότερα (fitProdWraps) χωρίς αλλαγή DOM
 })();
 </script>
+<style id="b2Css">
+/* ===== B2-1: ΚΟΙΝΗ ΕΠΑΝΩ ΓΡΑΜΜΗ (όλες οι σελίδες με καρτέλες) =====
+   αριστερά οι καρτέλες · δεξιά περίοδος, επιλογέας, Αναφορά, κύριο κουμπί.
+   Όταν δεν χωράει: αναλογική σμίκρυνση (zoom) έως 80%· μετά το δεξί μέρος σε 2η σειρά (κάθε πεδίο μαζί με το κουμπί του). */
+.tfBar{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;column-gap:12px!important;height:auto!important;grid-template-columns:none!important}
+.tfBar>.tfL{flex:0 0 auto!important;min-width:0!important;width:auto!important;max-width:none!important;flex-wrap:nowrap!important}
+.tfBar>.tfR{flex:0 0 auto!important;min-width:0!important;width:auto!important;max-width:none!important;flex-wrap:nowrap!important;margin-left:0!important}
+.tfBar>.tfR.tfFirst{margin-left:auto!important}
+.tfBar>.tfR>*{flex:0 0 auto}
+.tfMeasure>*{flex:none!important;width:max-content!important;max-width:none!important}
+.tfMeasure>.tfR,.tfMeasure>.tfR>*,.tfMeasure>.tfL{flex-wrap:nowrap!important}
+.tfBar.tf2{flex-wrap:wrap!important;row-gap:8px!important;padding-bottom:8px!important;border-bottom-color:transparent!important}
+.tfBar.tf2>.tfL{flex:0 0 100%!important;max-width:100%!important;overflow-x:auto;overflow-y:hidden;box-shadow:inset 0 -1px 0 var(--line,#e3e5ec);scrollbar-width:thin}
+.tfBar.tf2>.tfR{flex-wrap:wrap!important;row-gap:8px;justify-content:flex-end}
+.tfBar.tf2>.tfR.tfFirst{margin-left:auto!important}
+.tfBar.tfWrapTabs>.tfL{flex-wrap:wrap!important;row-gap:2px;overflow:visible}
+
+/* ===== B2-4: ΠΑΡΑΛΑΒΕΣ — λωρίδα ημερών, επιλογέας μήνα στην επάνω γραμμή, κάρτες 2×2 ===== */
+#receipts .receiptCalendarPane{display:none!important}
+#receipts .receiptWorkspace{grid-template-columns:minmax(0,1fr)!important}
+#recDayNav.hidden,#receiptDayStrip.hidden{display:none!important}
+#receiptDayStrip{display:grid;grid-template-columns:repeat(var(--rdsN,31),minmax(22px,1fr));gap:3px;margin:0 0 10px;overflow-x:auto;padding-bottom:2px}
+#receiptDayStrip .receiptCalendarDay{aspect-ratio:auto;height:40px;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:13px;line-height:1}
+#receiptDayStrip .receiptCalendarDay small{font-size:9.5px;font-weight:500;opacity:.75}
+#receipts #receiptStats.receiptCompactOverview{grid-template-columns:repeat(2,minmax(0,1fr))!important;overflow:visible!important}
+#receipts #receiptStats .uK2 .uKl{white-space:nowrap}
+#readyStockOnlyWrap{justify-content:flex-start!important}   /* το «+ Εξαγωγή υλικών» πήγε στην επάνω γραμμή */
+/* ===== B2-2: «Μέγεθος» — δύο τετράγωνα εικονίδια: Πίνακας / Όλη η οθόνη ===== */
+#zoomBar .zmMode{width:30px;height:30px;padding:0;display:inline-grid;place-items:center;border:1px solid transparent;border-radius:6px}
+#zoomBar .zmMode svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#zoomBar .zmMode:hover:not(:disabled){background:rgba(47,91,214,.08)}
+#zoomBar .zmMode.on{color:#2f5bd6;border-color:#c9d6f5;background:#eef3fd}
+body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;background:#1d2a44}
+#zoomBar .zmMode:disabled{opacity:.35;cursor:not-allowed}
+#zoomBar .zmSep{width:1px;height:20px;background:currentColor;opacity:.25;margin:0 4px}
+</style>
+<script id="b2Js">
+// ===== B2-1: κοινή επάνω γραμμή =====
+(function(){
+  const TOPS='.content>.view :is(.receiptTopActions,.weeeTop,.productionTop),#master .masterSticky';
+  const TABS=':scope>:is(.productionTabs,.readyGroupTabsRow,.weeeTabs,.receiptViewTabs,.tabs)';
+  const shown=x=>!x.classList.contains('hidden')&&getComputedStyle(x).display!=='none';
+  function fit(c,force){
+    if(!c.offsetParent)return;
+    const L=c.querySelector(TABS);if(!L)return;
+    if(!c.classList.contains('tfBar'))c.classList.add('tfBar');if(!L.classList.contains('tfL'))L.classList.add('tfL');
+    if(L.style.getPropertyValue('width')!=='auto'){L.style.setProperty('width','auto','important');L.style.setProperty('max-width','none','important');L.style.setProperty('flex-grow','0','important')}
+    const kids=[...c.children].filter(x=>x!==L);
+    kids.forEach(x=>{if(!x.classList.contains('tfR'))x.classList.add('tfR')});
+    const R=kids.filter(shown);
+    // ξαναμέτρηση ΜΟΝΟ όταν αλλάζει πλάτος/περιεχόμενο (αλλιώς οι δικές μας αλλαγές κλάσεων ξαναπυροδοτούν τον έλεγχο συνεχώς)
+    const sig=[c.parentElement?c.parentElement.clientWidth:0,R.map(x=>x.id||x.className).join(','),[...L.children].reduce((a,k)=>a+k.offsetWidth,0),R.reduce((a,x)=>a+[...x.children].reduce((b,k)=>b+k.offsetWidth,0),0),(c.textContent||'').length,getComputedStyle(document.documentElement).getPropertyValue('--pz')].join('|');
+    if(c._tfSig===sig&&!force)return;c._tfSig=sig;
+    kids.forEach(x=>x.classList.toggle('tfFirst',x===R[0]));
+    const z0=c.style.zoom,c20=c.classList.contains('tf2');
+    c.style.zoom='';c.classList.remove('tf2','tfWrapTabs');L.style.setProperty('width','auto','important');L.style.setProperty('flex-basis','auto','important');c.style.setProperty('flex-wrap','nowrap','important');c.style.setProperty('display','flex','important');c.classList.add('tfMeasure');
+    const cs=getComputedStyle(c),gap=parseFloat(cs.columnGap)||0;
+    const avail=c.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);
+    // πλάτος = πραγματικό περιεχόμενο (κάποιες λίστες καρτελών έχουν δικό τους πλάτος 100%)
+    const kz=(c.getBoundingClientRect().width/(c.offsetWidth||1))||1;
+    const cw=x=>{const v=[...x.children].filter(k=>k.offsetParent&&k.getBoundingClientRect().width>0);if(!v.length)return x.offsetWidth;
+      const l=Math.min(...v.map(k=>k.getBoundingClientRect().left)),r=Math.max(...v.map(k=>k.getBoundingClientRect().right)),xs=getComputedStyle(x);
+      return Math.min(x.offsetWidth,Math.ceil((r-l)/kz+(parseFloat(xs.paddingLeft)||0)+(parseFloat(xs.paddingRight)||0)))};
+    const wL=cw(L),wR=R.reduce((a,x)=>a+cw(x),0)+gap*Math.max(0,R.length-1);
+    c.classList.remove('tfMeasure');
+    const need=wL+(R.length?gap+wR:0);
+    let z='',two=false,scroll=false;
+    if(avail>0&&need>avail+1){
+      const r=avail/need;
+      if(r>=0.8)z=String(Math.floor(r*1000)/1000);
+      else{two=true;const row=Math.max(wL,R.length?Math.max(...R.map(cw)):0);
+        if(row>avail+1){const r2=avail/row;z=String(Math.max(0.8,Math.floor(r2*1000)/1000));if(wL*Math.max(0.8,r2)>avail+1)scroll=true}}
+    }
+    c.classList.toggle('tf2',two);c.classList.toggle('tfWrapTabs',scroll);c.style.zoom=z;
+    const S=(k,v)=>c.style.setProperty(k,v,'important');S('display','flex');S('flex-wrap',two?'wrap':'nowrap');S('align-items','center');S('height','auto');L.style.setProperty('width',two?'100%':'auto','important');L.style.setProperty('flex-basis',two?'100%':'auto','important');
+    if(z!==z0||two!==c20)window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
+  }
+  let raf=0;
+  const runAll=force=>{raf=0;document.querySelectorAll(TOPS).forEach(c=>{try{fit(c,force===true)}catch(e){}})};
+  const later=()=>{if(!raf)raf=requestAnimationFrame(runAll)};
+  window.fitTopBars=()=>runAll(true);
+  const ro=window.ResizeObserver?new ResizeObserver(later):null;
+  const watch=()=>{if(!ro)return;document.querySelectorAll(TOPS).forEach(c=>{if(!c._tfo){c._tfo=1;ro.observe(c)}})};
+  window.addEventListener('resize',later);
+  const ct=document.querySelector('.content');
+  if(ct)new MutationObserver(ms=>{if(ms.some(m=>m.target.closest&&m.target.closest(TOPS)||m.target.classList&&m.target.classList.contains('view')))later()}).observe(ct,{subtree:true,attributes:true,attributeFilter:['class','style'],childList:true});
+  setInterval(()=>{if(!document.hidden){watch();later()}},1500);
+  // κύρια κουμπιά σελίδων τελευταία στην επάνω γραμμή
+  {const t=document.querySelector('#ready .productionTop'),b=document.getElementById('readyExportBtn');if(t&&b)t.appendChild(b)}
+  {const t=document.querySelector('#inventory .productionTop'),b=document.getElementById('invReportBtn');
+   if(t&&b&&typeof invShowTab==='function'){t.appendChild(b);const _s=invShowTab;invShowTab=function(x){const r=_s.apply(this,arguments);b.classList.toggle('hidden',x!=='analysis');return r};b.classList.toggle('hidden',typeof invTab!=='undefined'&&invTab!=='analysis')}}
+  watch();later();
+})();
+
+// ===== B2-4: Παραλαβές — λωρίδα ημερών 1–31 + επιλογέας μήνα στην επάνω γραμμή =====
+(function(){
+  const $=id=>document.getElementById(id);
+  const bar=document.querySelector('#receipts .receiptTopActions'),acts=bar&&bar.querySelector('.receiptActionButtons');
+  if(!bar||!acts||$('recDayNav'))return;
+  // σειρά δεξιά: περίοδος → … → Αναφορά → κύριο κουμπί τελευταίο
+  const nb=$('newReceipt');if(nb)acts.appendChild(nb);
+  acts.insertAdjacentHTML('beforebegin','<div class="prodPeriodNav" id="recDayNav"><button type="button" id="recDayPrev" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="periodPickerBtn" id="recDayPick"><b id="recDayTitle"></b></button><button type="button" id="recDayNext" aria-label="Επόμενος μήνας">›</button></div>');
+  bar.insertAdjacentHTML('afterend','<div id="receiptDayStrip" role="group" aria-label="Ημέρες μήνα"></div>');
+  const WD=['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'];
+  const cur=()=>receiptCalCursor||new Date();
+  const go=d=>{receiptCalCursor=new Date(d.getFullYear(),d.getMonth(),1);paintStrip(receiptRowsAll||[])};
+  function paintStrip(all){
+    const st=$('receiptDayStrip');if(!st)return;
+    const c=cur(),y=c.getFullYear(),m=c.getMonth(),n=new Date(y,m+1,0).getDate(),today=localISODate(new Date());
+    $('recDayTitle').textContent=new Intl.DateTimeFormat('el-GR',{month:'long',year:'numeric'}).format(new Date(y,m,1));
+    let h='';
+    for(let i=1;i<=n;i++){const dt=new Date(y,m,i),iso=localISODate(dt),has=(all||[]).some(r=>(r.receipt_date||'').startsWith(iso));
+      h+=`<button type="button" class="receiptCalendarDay ${has?'hasData':''} ${receiptDayStatusClass(iso,all||[])} ${iso===today?'today':''} ${receiptNav.day===iso?'selected':''}" data-date="${iso}" title="${dt.toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}">${i}<small>${WD[dt.getDay()]}</small></button>`}
+    st.style.setProperty('--rdsN',n);st.innerHTML=h;
+    st.querySelectorAll('.receiptCalendarDay').forEach(b=>b.onclick=()=>{receiptNav.day=b.dataset.date;let d=new Date(receiptNav.day+'T12:00:00');receiptNav.year=d.getFullYear();receiptNav.month=d.getMonth()+1;receiptCalCursor=new Date(d.getFullYear(),d.getMonth(),1);loadReceiptsV2()});
+  }
+  $('recDayPrev').onclick=()=>{let c=cur();go(new Date(c.getFullYear(),c.getMonth()-1,1))};
+  $('recDayNext').onclick=()=>{let c=cur();go(new Date(c.getFullYear(),c.getMonth()+1,1))};
+  $('recDayPick').onclick=e=>{e.stopPropagation();const pb=$('recDayPick');if(window.PeriodPop)PeriodPop.open(pb,{mode:'month',date:cur(),onPick:d=>go(new Date(d))})};
+  const _rc=renderReceiptCalendar;
+  renderReceiptCalendar=function(all){let r;try{r=_rc.apply(this,arguments)}catch(e){}paintStrip(all);return r};
+  const vis=mode=>{const days=mode==='days';$('recDayNav').classList.toggle('hidden',!days);$('receiptDayStrip').classList.toggle('hidden',!days)};
+  const _sm=setReceiptMode;
+  setReceiptMode=function(mode){const r=_sm.apply(this,arguments);vis(mode);return r};
+  vis(typeof receiptMode!=='undefined'?receiptMode:'days');
+  paintStrip(typeof receiptRowsAll!=='undefined'?receiptRowsAll:[]);
+})();
+</script>
 <script id="viewZoom">
 /* ΑΛΛΑΓΗ ΚΖ: ποσοστό μεγέθους ανά καρτέλα (σελίδα + υποκαρτέλα), αποθηκευμένο στη συσκευή (localStorage 'viewZoom:<σελίδα>[:<υποκαρτέλα>]') */
 (function(){
   const bar=document.getElementById('zoomBar');if(!bar)return;
   try{localStorage.removeItem('invZoomPct');localStorage.removeItem('dyZoomPct')}catch(e){}
-  const MIN=50,MAX=200,STEP=10,PRE=[70,80,90,100,110,125,150],SK='viewZoom:',TABK=['weeetab','prodtab','readygroup','lsub','reptab','mtab'];
+  const MIN=60,MAX=140,STEP=10,PRE=[60,70,80,90,100,110,125,140],SKT='viewZoom:',SKP='viewZoomP:',MK='viewZoomMode',TABK=['weeetab','prodtab','readygroup','lsub','reptab','mtab'];
   const $z=id=>document.getElementById(id);
-  let pct=100,key='';
+  let pct=100,key='',mode='table',eff='table',hasT=true;
+  try{if(localStorage.getItem(MK)==='page')mode='page'}catch(e){}
+  const SK=()=>eff==='page'?SKP:SKT;
+  const TBL='.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap,table';
+  const viewHasTable=v=>!!v&&[...v.querySelectorAll(TBL)].some(e=>e.offsetParent&&e.getBoundingClientRect().height>20);
   const curView=()=>document.querySelector('.content>.view:not(.hidden)');
   function tabKey(v){
     if(!v)return '';
@@ -12226,20 +12358,26 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     if(!parts.length){let m=v.querySelector('.receiptMode.active[id]');if(m)parts.push(m.id)}
     return v.id+(parts.length?':'+parts.join('+'):'');
   }
-  function load(k){try{let v=parseInt(localStorage.getItem(SK+k),10);if(v>=MIN&&v<=MAX)return v}catch(e){}return 100}
-  function save(k,p){try{if(p===100)localStorage.removeItem(SK+k);else localStorage.setItem(SK+k,String(p))}catch(e){}}
+  function load(k){try{let v=parseInt(localStorage.getItem(SK()+k),10);if(v>=MIN&&v<=MAX)return v}catch(e){}return 100}
+  function save(k,p){try{if(p===100)localStorage.removeItem(SK()+k);else localStorage.setItem(SK()+k,String(p))}catch(e){}}
   function paint(){
     let r=(pct-MIN)/(MAX-MIN)*100;
     $z('zmFill').style.width=r+'%';$z('zmKnob').style.left=r+'%';$z('zmPct').textContent=pct+'% ▴';
     $z('zmMenu').querySelectorAll('button[data-p]').forEach(b=>b.classList.toggle('on',Number(b.dataset.p)===pct));
+    const mt=$z('zmModeT'),mp=$z('zmModeP');
+    if(mt){mt.classList.toggle('on',eff==='table');mt.disabled=!hasT;mt.title=hasT?'Πίνακας: ζουμ μόνο στον πίνακα':'Πίνακας: δεν υπάρχει πίνακας σε αυτή τη σελίδα';mt.setAttribute('aria-pressed',String(eff==='table'))}
+    if(mp){mp.classList.toggle('on',eff==='page');mp.setAttribute('aria-pressed',String(eff==='page'))}
   }
   function apply(p){
-    pct=p;document.documentElement.style.setProperty('--vz',String(p/100));paint();
+    pct=p;const de=document.documentElement;de.style.setProperty('--vz',String(eff==='table'?p/100:1));de.style.setProperty('--pz',String(eff==='page'?p/100:1));paint();
     requestAnimationFrame(()=>{try{if(window.fitProdWraps)fitProdWraps()}catch(e){}window.dispatchEvent(new Event('resize'));window.dispatchEvent(new CustomEvent('tableLayoutChanged'))});
   }
   function setP(p){p=Math.max(MIN,Math.min(MAX,Math.round(p)));if(p===pct)return;apply(p);if(key)save(key,p)}
   window.setViewZoom=setP;
-  function sync(){let k=tabKey(curView());if(k&&k!==key){key=k;apply(load(k))}}
+  function sync(force){let v=curView(),k=tabKey(v),ht=viewHasTable(v),e=(mode==='table'&&ht)?'table':'page';if(k&&(k!==key||e!==eff||ht!==hasT||force)){key=k;hasT=ht;eff=e;apply(load(k))}else if(ht!==hasT){hasT=ht;paint()}}
+  // επιλογή λειτουργίας: «Πίνακας» / «Όλη η οθόνη» (αποθηκεύεται στη συσκευή· κάθε λειτουργία έχει το δικό της ποσοστό)
+  [['zmModeT','table'],['zmModeP','page']].forEach(([id,m])=>{let b=$z(id);if(b)b.onclick=()=>{if(b.disabled)return;mode=m;try{localStorage.setItem(MK,m)}catch(e){}sync(true)}});
+  setInterval(()=>{if(!document.hidden)sync()},1200);   // οι πίνακες φορτώνουν ασύγχρονα: ελέγχεται αν η σελίδα έχει πίνακα
   // κουμπιά − / +
   $z('zmMinus').onclick=()=>setP(pct-STEP);$z('zmPlus').onclick=()=>setP(pct+STEP);
   // slider
@@ -12752,9 +12890,6 @@ body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick{gap:4px}   /* τα
 .cxNote{font-size:13px;color:#44474f;line-height:1.4}.cxMsg{color:#c62828;font-size:13px;min-height:1em}.cxBtns{display:flex;justify-content:flex-end;gap:10px}.cxBtns .btn{height:40px;padding:0 20px}
 
 /* B1: επάνω γραμμές καρτελών/κουμπιών — ύψος ανάλογα με το περιεχόμενο (wrap) ώστε να μην καλύπτονται οι από κάτω καρτέλες· προσωρινά, η τελική γραμμή έρχεται στο βήμα 2 */
-#receipts .receiptTopActions,#weee .weeeTop,#production .productionTop,#loadingTabsRow,#reports .receiptTopActions{height:auto!important;flex-wrap:wrap!important;row-gap:8px!important}
-:is(.productionTop,.weeeTop,.receiptTopActions)>:is(.productionTabs,.readyGroupTabsRow,.weeeTabs,.receiptViewTabs){flex-wrap:wrap!important}
-:is(.productionTop,.weeeTop,.receiptTopActions)>:is(.productionPeriod,.topRight,.receiptActionButtons){flex:0 1 auto;max-width:100%;min-width:0;flex-wrap:wrap!important;row-gap:8px}
 #receiptDailyTable{overflow-x:auto!important}
 /* B1: χωρίς μαύρο πλαίσιο focus μετά από κλικ με το ποντίκι· το πλαίσιο μένει ΜΟΝΟ για πληκτρολόγιο (focus-visible) */
 :is(button,.btn,[role=tab],a,summary,select,.readyGroupTab,.productionTab,.weeeTabBtn,.receiptMode,.mtab,.periodPickerBtn,.uniSub):focus:not(:focus-visible){outline:none!important}
