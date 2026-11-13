@@ -13304,6 +13304,8 @@ body[data-theme="dark"] .sortingKpiCard .sortingKpiIcon{background:#1d2633!impor
 #presence .presTable{min-width:1614px!important}
 #presence .presTable td.presNm{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
 #presence #presWrap{overflow:auto!important;max-width:100%}
+/* B6: γραμμή-μήνυμα («Φόρτωση…», «Δεν υπάρχουν υλικά») που πιάνει όλο το πλάτος: δεν κολλά αριστερά σαν πρώτη στήλη */
+#weee :is(#weeeMediaTable,#weeeNonTable) tbody td[colspan]{position:static!important;left:auto!important}
 </style>
 <script id="b5Js">
 // ===== B5: εικονίδια/σειρά καρτών, Παρουσιολόγιο =====
