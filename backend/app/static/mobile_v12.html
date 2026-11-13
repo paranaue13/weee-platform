@@ -2130,6 +2130,15 @@ body.b4Deltio #flowBar{display:none!important}
 .b6Open .p .b6Bar{background:#E6E9EF;flex:1}
 .b6Open .p em{font-style:normal;font-size:12px;font-weight:700;color:#3d4657;min-width:44px;text-align:right}
 .b6Open.sel{border-color:#2F5FC4;box-shadow:inset 0 0 0 1px #2F5FC4}
+/* B7: χρώμα ημέρας = ίδια χρώματα/κανόνες με το ημερολόγιο Παραλαβών των Windows (stg-*): λευκή χωρίς παραλαβή · γκρι Έτοιμη · μπλε Ταξινομείται · κίτρινη Προς Έλεγχο · κόκκινη Προς Διόρθωση · πράσινη Ολοκληρώθηκε */
+.b6Strip button,:is(#b6Cal) .cG.st button{--sb:#fff;--sf:#1A1B20}
+:is(.b6Strip,#b6Cal .cG) button.stg-ready{--sb:#E6E8EE;--sf:#3B4150}:is(.b6Strip,#b6Cal .cG) button.stg-sorting{--sb:#D8E4FF;--sf:#001A41}:is(.b6Strip,#b6Cal .cG) button.stg-review{--sb:#FFE3B8;--sf:#5A3600}:is(.b6Strip,#b6Cal .cG) button.stg-correct{--sb:#FCEBEB;--sf:#A32D2D}:is(.b6Strip,#b6Cal .cG) button.stg-done{--sb:#D7EFE0;--sf:#12532E}
+.b6Strip button,.b6Strip button.sel,#b6Cal .cG.st button,#b6Cal .cG.st button.sel{background:var(--sb)!important;color:var(--sf)!important}
+.b6Strip button small,.b6Strip button.sel small{color:var(--sf)!important;opacity:.8}
+#b6Cal .cG.st button{border-color:#D0D4E0}
+#b6Cal .cG.st button[class*="stg-"],.b6Strip button[class*="stg-"]{border-color:transparent}
+.b6Strip button.td,#b6Cal .cG.st button.td{border-color:#2F5FC4}
+.b6Strip button.sel,#b6Cal .cG.st button.sel{border:2px solid var(--sf)!important;box-shadow:inset 0 0 0 2px #fff;font-weight:800}
 /* ---- Παραγωγή ---- */
 #flowBar>button{flex-direction:column!important;gap:2px;height:56px!important;min-height:56px!important}
 #flowBar>button b{font-size:12px;font-weight:700;letter-spacing:.03em}
@@ -2181,59 +2190,56 @@ body.b4Deltio #flowBar{display:none!important}
   const TYPES=[['CONTAINER','Container'],['CURTAIN_TRAILER','Καρότσα'],['SMALL_POINTS','Μικρά σημεία']];
 
   // ================= Παραλαβές =================
-  const R={month:null,day:iso(new Date()),rows:[],rec:null,recAt:0,ov:{},ovKey:'',busy:false};
+  // B7: ο server στέλνει μόνο σύνοψη ανά ημέρα του μήνα (/sorting/day-summary)· οι αναλυτικές ανοιχτές παραλαβές κατεβαίνουν μόνο για την ημέρα που πατήθηκε.
+  const R={month:null,day:iso(new Date()),rows:[],sum:{},sumAt:{},open:[]};
   window.b6R=R;
-  const dayOf=x=>localISODate(new Date(x.receipt_date));
+  async function month(mo,force){
+    if(force||!R.sum[mo]||Date.now()-(R.sumAt[mo]||0)>30000){const s=await api('/sorting/day-summary?month='+mo);R.sum[mo]=s.days||{};R.sumAt[mo]=Date.now();R.open=s.open||[]}
+    return R.sum[mo];
+  }
   async function data(force){
     if(!R.month)R.month=R.day.slice(0,7);
-    R.rows=await api('/sorting/available');
-    if(force||!R.recAt||Date.now()-R.recAt>60000){try{R.rec=await api('/receipts')}catch(e){R.rec=null}R.recAt=Date.now()}
-    // κιλά ταξινόμησης ανά φορτίο (μόνο ανάγνωση· αν ο χρήστης δεν έχει δικαίωμα, το % δεν εμφανίζεται)
-    const ds=R.rows.map(dayOf).concat([R.day,R.month+'-01']).filter(Boolean).sort(),st=ds[0],en=[ds[ds.length-1],iso(new Date())].sort().pop(),k=st+'|'+en;
-    if(force||k!==R.ovKey||Date.now()-(R.ovAt||0)>60000){try{const o=await api(`/sorting/overview?start=${st}&end=${en}`);R.ov={};Object.entries(o.loads||{}).forEach(([id,c])=>R.ov[id]=Object.values(c).reduce((a,v)=>a+Number(v||0),0));R.ovOK=true}catch(e){R.ovOK=false;R.ov={}}R.ovKey=k;R.ovAt=Date.now()}
+    await month(R.month,force);
+    if(R.day.slice(0,7)!==R.month)await month(R.day.slice(0,7),force);
+    R.rows=loadDay?await api('/sorting/available?day='+loadDay):[];
   }
-  const sortedOf=id=>R.ov[id]||0;
-  function dayLoads(d){
-    if(R.rec)return R.rec.filter(r=>localISODate(new Date(r.receipt_date))===d&&!r.cancelled_at).flatMap(r=>(r.loads||[]).map(l=>({t:r.receipt_type,id:l.id,kg:Number(l.net_weight)||0})));
-    return R.rows.filter(x=>dayOf(x)===d).map(x=>({t:x.receipt_type,id:x.load_id,kg:Number(x.net_weight)||0}));
-  }
+  const dayInfo=d=>(R.sum[d.slice(0,7)]||{})[d]||null;
   function cardsHtml(d){
-    const ls=dayLoads(d);
-    const one=(t,name,list,tot)=>{const kg=list.reduce((a,x)=>a+x.kg,0),sk=list.reduce((a,x)=>a+sortedOf(x.id),0),p=kg>0?Math.min(100,sk/kg*100):0;
-      return `<div class="b6Card${tot?' tot':''}"><span class="ic">${ICN[t]}</span><b>${name}</b><span>${list.length} · ${kgS(kg)} kg</span>${R.ovOK?`<div class="b6Bar"><i style="width:${p}%"></i></div><small>Ταξ. ${pctS(p)}</small>`:''}</div>`};
-    return '<div class="b6Cards">'+TYPES.map(([t,n])=>one(t,n,ls.filter(x=>x.t===t))).join('')+one('TOT','Σύνολο ημέρας',ls,true)+'</div>';
+    const x=dayInfo(d),T=x?x.types:{};
+    const one=(t,name,v,tot)=>{const p=v.kg>0?v.sk/v.kg*100:0;
+      return `<div class="b6Card${tot?' tot':''}"><span class="ic">${ICN[t]}</span><b>${name}</b><span>${v.n} · ${kgS(v.kg)} kg</span><div class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></div><small>Ταξ. ${pctS(p)}</small></div>`};
+    const vs=TYPES.map(([t])=>T[t]||{n:0,kg:0,sk:0}),tot=vs.reduce((a,v)=>({n:a.n+v.n,kg:a.kg+v.kg,sk:a.sk+v.sk}),{n:0,kg:0,sk:0});
+    return '<div class="b6Cards">'+TYPES.map(([t,n],i)=>one(t,n,vs[i])).join('')+one('TOT','Σύνολο ημέρας',tot,true)+'</div>';
   }
   function dayTitle(d){const x=new Date(d+'T12:00:00');return x.toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
   function render(){
     const box=$('loadList');if(!box)return;
     if(!R.month)R.month=R.day.slice(0,7);
     const [y,m]=R.month.split('-').map(Number),n=new Date(y,m,0).getDate(),today=iso(new Date());
-    const open={};R.rows.forEach(x=>{const k=dayOf(x);(open[k]=open[k]||{n:0,kg:0,sk:0,ids:[]});open[k].n++;open[k].kg+=Number(x.net_weight)||0;open[k].sk+=sortedOf(x.load_id);open[k].ids.push(x.load_id)});
-    const rcvDays=new Set((R.rec||[]).map(r=>localISODate(new Date(r.receipt_date))));
+    const open={};R.open.forEach(o=>open[o.day]=o);
     let h=`<div class="b6Mon"><button type="button" data-mon="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="b6MonL" data-cal="1">${MN[m-1]} ${y}</button><button type="button" data-mon="1" aria-label="Επόμενος μήνας">›</button></div><div class="b6Strip" id="b6Strip">`;
-    for(let i=1;i<=n;i++){const d=`${R.month}-${String(i).padStart(2,'0')}`,dt=new Date(y,m-1,i);
-      h+=`<button type="button" data-d="${d}" class="${rcvDays.has(d)?'rcv ':''}${open[d]?'open ':''}${d===today?'td ':''}${d===R.day?'sel':''}">${i}<small>${WD[dt.getDay()]}</small></button>`}
+    for(let i=1;i<=n;i++){const d=`${R.month}-${String(i).padStart(2,'0')}`,dt=new Date(y,m-1,i),x=dayInfo(d);
+      h+=`<button type="button" data-d="${d}" class="${x&&x.cls?x.cls+' ':''}${open[d]?'open ':''}${d===today?'td ':''}${d===R.day?'sel':''}">${i}<small>${WD[dt.getDay()]}</small></button>`}
     h+='</div>'+`<div class="b6DayT">${esc(dayTitle(R.day))}</div>`+cardsHtml(R.day);
     if(loadDay){
-      const rows=R.rows.filter(x=>dayOf(x)===loadDay),groups=[['CONTAINER','CONTAINER'],['CURTAIN_TRAILER','ΚΑΡΟΤΣΑ'],['SMALL_POINTS','ΜΙΚΡΑ ΣΗΜΕΙΑ']];
+      const rows=R.rows.filter(x=>localISODate(new Date(x.receipt_date))===loadDay),groups=[['CONTAINER','CONTAINER'],['CURTAIN_TRAILER','ΚΑΡΟΤΣΑ'],['SMALL_POINTS','ΜΙΚΡΑ ΣΗΜΕΙΑ']];
       const tile=x=>`<button class="btn tile listCard" style="width:100%;margin:7px 0" data-id="${x.load_id}">${loadCardHtml(x)}</button>`;
       h+=`<div class="b6ListT">Ανοιχτές παραλαβές της ημέρας</div>`+(groups.map(([t,title])=>{let g=rows.filter(x=>x.receipt_type===t);return g.length?`<div class="groupHead">${title} (${g.length})</div>`+g.map(tile).join(''):''}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
     }else{
-      const ks=Object.keys(open).sort().reverse();
       if(!open[R.day])h+='<div class="muted" style="margin:0 0 10px">Καμία ανοιχτή παραλαβή την επιλεγμένη ημέρα.</div>';
-      h+=`<div class="b6ListT">Ημέρες με ανοιχτές παραλαβές (${ks.length})</div>`+(ks.map(k=>{const o=open[k],p=o.kg>0?Math.min(100,o.sk/o.kg*100):0;
-        return `<button type="button" class="b6Open" data-open="${k}"><span class="t">${esc(loadDayLabel(k))}</span><span class="k">${kgS(o.kg)} kg</span><span class="n">${o.n} ${o.n===1?'παραλαβή':'παραλαβές'}</span><span></span>${R.ovOK?`<span class="p"><span class="b6Bar"><i style="width:${p}%"></i></span><em>${pctS(p)}</em></span>`:''}</button>`}).join('')||'<div class="muted">Δεν υπάρχουν ανοιχτές παραλαβές.</div>');
+      h+=`<div class="b6ListT">Ημέρες με ανοιχτές παραλαβές (${R.open.length})</div>`+(R.open.map(o=>{const p=o.kg>0?o.sk/o.kg*100:0;
+        return `<button type="button" class="b6Open" data-open="${o.day}"><span class="t">${esc(loadDayLabel(o.day))}</span><span class="k">${kgS(o.kg)} kg</span><span class="n">${o.n} ${o.n===1?'παραλαβή':'παραλαβές'}</span><span></span><span class="p"><span class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></span><em>${pctS(p)}</em></span></button>`}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
     }
     box.innerHTML=h;
     const sel=box.querySelector('#b6Strip .sel');if(sel){const s=$('b6Strip');s.scrollLeft=Math.max(0,sel.offsetLeft-s.clientWidth/2+21)}
   }
   window.b6RcvRender=render;
-  loadLoads=async function(force){try{await data(force===true)}catch(e){const b=$('loadList');if(b&&!R.rows.length)b.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}render()};
-  const pickDay=d=>{R.day=d;R.month=d.slice(0,7);loadDay=R.rows.some(x=>dayOf(x)===d)?d:null;render();window.scrollTo(0,0)};
+  loadLoads=async function(force){try{await data(force===true)}catch(e){const b=$('loadList');if(b&&!Object.keys(R.sum).length)b.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}render()};
+  const pickDay=d=>{R.day=d;R.month=d.slice(0,7);loadDay=R.open.some(o=>o.day===d)?d:null;R.rows=[];render();window.scrollTo(0,0);loadLoads()};
   $('loadList').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.mon){const [y,m]=R.month.split('-').map(Number),d=new Date(y,m-1+Number(b.dataset.mon),1);R.month=iso(d).slice(0,7);loadLoads();return}
-    if(b.dataset.cal){b6Cal(R.day,d=>pickDay(d),new Set(R.rows.map(dayOf)));return}
+    if(b.dataset.cal){b6Cal(R.day,d=>pickDay(d),async mo=>{const x=await month(mo);const o={};Object.entries(x).forEach(([d,v])=>{if(v.cls)o[d]=v.cls});return o});return}
     if(b.dataset.d){pickDay(b.dataset.d);return}
     if(b.dataset.open){pickDay(b.dataset.open);return}
     if(b.dataset.id){const x=R.rows.find(r=>r.load_id===b.dataset.id);openLoad(b.dataset.id,x);return}
@@ -2242,11 +2248,13 @@ body.b4Deltio #flowBar{display:none!important}
   window.b6Cal=function(start,onOk,marks){
     let cal=$('b6Cal');if(!cal){cal=document.createElement('div');cal.id='b6Cal';cal.className='hidden';document.body.appendChild(cal)}
     let pick=start||iso(new Date()),p=pick.split('-'),cur=new Date(+p[0],+p[1]-1,1);
-    const paint=()=>{const y=cur.getFullYear(),m=cur.getMonth(),st=(new Date(y,m,1).getDay()+6)%7,td=iso(new Date());
+    const MK={},want=new Set();const stc=typeof marks==='function';
+    const paint=()=>{const y=cur.getFullYear(),m=cur.getMonth(),st=(new Date(y,m,1).getDay()+6)%7,td=iso(new Date()),ym=iso(cur).slice(0,7);
+      if(stc&&!want.has(ym)){want.add(ym);marks(ym).then(o=>{Object.assign(MK,o);if(!cal.classList.contains('hidden'))paint()}).catch(()=>{})}
       let g=['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'].map(x=>`<small>${x}</small>`).join('');
-      for(let i=0;i<42;i++){const d=new Date(y,m,1-st+i),s=iso(d);g+=`<button type="button" data-d="${s}" class="${d.getMonth()!==m?'oth ':''}${s===td?'td ':''}${s===pick?'sel ':''}${marks&&marks.has(s)?'mk':''}">${d.getDate()}</button>`}
+      for(let i=0;i<42;i++){const d=new Date(y,m,1-st+i),s=iso(d);g+=`<button type="button" data-d="${s}" class="${d.getMonth()!==m?'oth ':''}${s===td?'td ':''}${s===pick?'sel ':''}${stc?(MK[s]||''):marks&&marks.has(s)?'mk':''}">${d.getDate()}</button>`}
       const f=pick?pick.slice(8,10)+'/'+pick.slice(5,7)+'/'+pick.slice(0,4):'Καμία ημερομηνία';
-      cal.innerHTML=`<div class="cP" role="dialog" aria-label="Ημερολόγιο"><div class="cH"><button type="button" data-n="-1" aria-label="Προηγούμενος μήνας">‹</button><b>${MN[m]} ${y}</b><button type="button" data-n="1" aria-label="Επόμενος μήνας">›</button></div><div class="cSel">${f}</div><div class="cG">${g}</div><div class="cB"><button type="button" data-a="clear">ΚΑΘΑΡΙΣΜΟΣ</button><button type="button" data-a="cancel">ΑΚΥΡΟ</button><button type="button" data-a="ok" class="ok">ΟΚ</button></div></div>`};
+      cal.innerHTML=`<div class="cP" role="dialog" aria-label="Ημερολόγιο"><div class="cH"><button type="button" data-n="-1" aria-label="Προηγούμενος μήνας">‹</button><b>${MN[m]} ${y}</b><button type="button" data-n="1" aria-label="Επόμενος μήνας">›</button></div><div class="cSel">${f}</div><div class="cG${stc?' st':''}">${g}</div><div class="cB"><button type="button" data-a="clear">ΚΑΘΑΡΙΣΜΟΣ</button><button type="button" data-a="cancel">ΑΚΥΡΟ</button><button type="button" data-a="ok" class="ok">ΟΚ</button></div></div>`};
     cal.onclick=e=>{if(e.target===cal){cal.classList.add('hidden');return}const b=e.target.closest('button');if(!b)return;
       if(b.dataset.n){cur=new Date(cur.getFullYear(),cur.getMonth()+Number(b.dataset.n),1);paint();return}
       if(b.dataset.d){pick=b.dataset.d;const q=pick.split('-');if(+q[1]-1!==cur.getMonth())cur=new Date(+q[0],+q[1]-1,1);paint();return}

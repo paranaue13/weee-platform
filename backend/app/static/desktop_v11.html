@@ -3772,6 +3772,7 @@ let weeeMonth=`${_startupNow.getFullYear()}-${String(_startupNow.getMonth()+1).p
    bad.forEach(key=>{let th=table.querySelector(`th[data-negcol="${key}"]`);if(th)th.insertAdjacentHTML('beforeend','<span class="negativeHeaderDot" title="Υπάρχει αρνητική τιμή σε αυτή τη στήλη"></span>')});
  };
  render(d.to_process,'weeeProcessRows','weeeProcessTable');render(d.to_ship,'weeeShipRows','weeeShipTable');
+ if(window.applyStoredColWidths)requestAnimationFrame(()=>{let t=$('weeeProcessTable');if(t&&t.offsetParent)applyStoredColWidths(t)});
  document.querySelectorAll('.materialRow').forEach(r=>r.onclick=()=>openStockInfo(r.dataset.cat,r.dataset.code,r.dataset.desc))
 }
 async function openStockInfo(id,code,desc){$('stockModalTitle').textContent=`${code} · ${desc}`;$('stockModalBody').innerHTML='<div class="muted">Φόρτωση...</div>';$('stockModal').classList.remove('hidden');let d=await api('/inventory/weee/category/'+id+'/positions');if(!d.positions.length){$('stockModalBody').innerHTML='<div class="notice">Δεν υπάρχει αυτή τη στιγμή καταχωρημένο απόθεμα σε μέσο συλλογής.</div>';return}$('stockModalBody').innerHTML=`<div class="notice"><b>Συνολικό τρέχον απόθεμα: ${kg(d.total_weight)}</b></div>`+d.positions.map((m,i)=>`<div class="mediumInfo"><div class="mediumHead" data-mid="${i}"><span><b>${esc(m.medium_type)}</b> · ${esc(m.medium_code)}</span><b>${kg(m.net_weight)}</b></div><div class="lotRows hidden" id="lot-${i}"><table><thead><tr><th>Καθαρά kg</th><th>Μεταφορέας</th><th>Προμηθευτής</th><th>Παραλαβή</th><th>Ταξινόμηση</th><th>Εντολή</th></tr></thead><tbody>${m.lots.map(l=>`<tr><td><b>${kg(l.weight)}</b></td><td>${esc(l.carrier||'—')}</td><td>${esc(l.supplier||'—')}</td><td>${l.receipt_date?new Date(l.receipt_date).toLocaleDateString('el-GR'):'—'}</td><td>${l.sorting_date?new Date(l.sorting_date).toLocaleDateString('el-GR'):'—'}</td><td>${esc(l.order_number||'—')}</td></tr>`).join('')}</tbody></table></div></div>`).join('');document.querySelectorAll('.mediumHead').forEach(h=>h.onclick=()=>{let e=$('lot-'+h.dataset.mid);e.classList.toggle('hidden')})}
@@ -7071,7 +7072,7 @@ function blankKg(v){let n=Math.round(Number(v||0));if(!n)return'';let s=n.toLoca
 let weeeLoadSeq=0,weeeSwTot=false,weeeSwSub=false;   // διακόπτες «Σύνολα κατηγοριών» / «Υποκατηγορίες»: δεν αποθηκεύονται, σε κάθε άνοιγμα της σελίδας ξεκινούν κλειστοί
 let weeeTab='stock',weeeLastProcessRows=[],weeeLastNonRows=[],weeeLastMedia=null;
 document.querySelectorAll('[data-weeetab]').forEach(b=>b.onclick=()=>{weeeTab=b.dataset.weeetab;document.querySelectorAll('[data-weeetab]').forEach(x=>x.classList.toggle('active',x===b));$('weeeStockPane').classList.toggle('hidden',weeeTab!=='stock');$('weeeMediaPane').classList.toggle('hidden',weeeTab!=='media');$('weeeNonPane').classList.toggle('hidden',weeeTab!=='nonweee');if(weeeTab==='media')renderWeeeMedia();if(weeeTab==='nonweee')renderWeeeNon()});
-async function renderWeeeMedia(){let rows=weeeLastProcessRows||[],s=weeeLastMedia;if(!s){$('weeeMediaHead').innerHTML='';$('weeeMediaRows').innerHTML='<tr><td class="muted">Φόρτωση…</td></tr>';return}
+async function renderWeeeMedia(){let rows=weeeLastProcessRows||[],s=weeeLastMedia;if(!s){$('weeeMediaHead').innerHTML='';$('weeeMediaRows').innerHTML='<tr><td class="muted" colspan="99">Φόρτωση…</td></tr>';return}
  // Επιμερισμός του «Αποθέματος προς επεξεργασία» στα μέσα συλλογής ΓΙΑ ΤΗΝ ΕΠΙΛΕΓΜΕΝΗ ΠΕΡΙΟΔΟ (υπολογίζεται στον server)· Χύμα = απόθεμα − Σ(μέσα), άρα το άθροισμα ισούται πάντα με το απόθεμα
  let types=s.types||[],by=s.by_code||{};
  if($('weeeMediaStockOnly')&&$('weeeMediaStockOnly').checked)types=types.filter(t=>rows.some(x=>Number((by[x.official_code]||{})[t.key])>0));   // «Μόνο με διαθέσιμο απόθεμα»: κρύβονται οι στήλες μέσων χωρίς απόθεμα στην επιλεγμένη περίοδο· Κωδικός/Περιγραφή/Απόθεμα/Χύμα μένουν πάντα
@@ -7433,28 +7434,41 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   // στο localStorage. Η τελευταία στήλη (stock) απορροφά το υπόλοιπο πλάτος και δεν σέρνεται.
   const STOCK_DEFAULT_W={code:84,desc:330,open:120,rcv:120,todo:130,done:110,herm:120};
   // άθροισμα πλατών των ορατών στηλών (εκτός της ελαστικής τελευταίας): οι κρυμμένες στήλες (display:none) δεν μετρούν
-  function stockColsSum(table){
-    let sum=0;
-    table.querySelectorAll('thead tr:first-child th').forEach(th=>{
-      let k=th.dataset.wcol;if(k==='stock'||getComputedStyle(th).display==='none')return;
-      let s=localStorage.getItem(colKey(th));sum+=(s?Number(s):(STOCK_DEFAULT_W[k]||120));
-    });
-    return sum;
+  // B7: και η τελευταία στήλη έχει δικό της πλάτος (ελάχιστο 170px), ώστε το περίσσιο πλάτος σε φαρδιά οθόνη να μοιράζεται σε ΟΛΕΣ τις στήλες
+  const stockBase=th=>{let k=th.dataset.wcol,s=localStorage.getItem(colKey(th));return s?Number(s):(k==='stock'?170:(STOCK_DEFAULT_W[k]||120))};
+  // ελάχιστο πλάτος ανά στήλη ώστε να μη κόβεται περιεχόμενο (μετριέται στην οθόνη, δεν αποθηκεύεται)
+  const stockNeed={};
+  const stockVis=t=>[...t.querySelectorAll('thead tr:first-child th')].filter(th=>getComputedStyle(th).display!=='none');
+  const stockW=th=>Math.max(stockBase(th),stockNeed[th.dataset.wcol]||0);
+  function stockColsSum(table){return stockVis(table).reduce((a,th)=>a+stockW(th),0)}
+  const stockScale=el=>{let r=el.getBoundingClientRect().width;return el.offsetWidth>0&&r>0?r/el.offsetWidth:1};
+  // ζωγραφίζει τις στήλες με κοινό συντελεστή f· ο πίνακας με λιγότερες στήλες δίνει τη διαφορά στην τελευταία του, ώστε οι δύο πίνακες να τελειώνουν μαζί
+  function stockPaint(table,f,target){
+    let ths=stockVis(table),tot=0;
+    ths.forEach((th,i)=>{let w=i===ths.length-1?Math.max(70,target-tot):Math.floor(stockW(th)*f);th.style.width=w+'px';tot+=w});
+    table.style.setProperty('width',tot+'px','important');table.style.setProperty('min-width',tot+'px','important');table.style.setProperty('max-width','none','important');
   }
-  function applyStockSharedWidths(table){
-    table.style.tableLayout='fixed';
-    table.querySelectorAll('thead tr:first-child th').forEach(th=>{
-      let k=th.dataset.wcol;
-      if(k==='stock'){th.style.width='';return}
-      let s=localStorage.getItem(colKey(th));
-      th.style.width=(s?Number(s):(STOCK_DEFAULT_W[k]||120))+'px';
+  function stockMeasure(table){
+    let grew=false,rows=[...table.rows].filter(tr=>![...tr.cells].some(c=>c.colSpan>1));
+    [...table.querySelectorAll('thead tr:first-child th')].forEach((th,i)=>{
+      if(getComputedStyle(th).display==='none')return;
+      let cw=parseFloat(th.style.width)||0,r=1;
+      rows.forEach(tr=>{let c=tr.cells[i];if(c&&c.clientWidth>0&&c.scrollWidth>c.clientWidth+1)r=Math.max(r,c.scrollWidth/c.clientWidth)});
+      if(r>1&&cw){let n=Math.ceil(cw*r)+6,k=th.dataset.wcol;if(n>(stockNeed[k]||0)){stockNeed[k]=n;grew=true}}
     });
-    // η ελαστική τελευταία στήλη δεν πρέπει ποτέ να στενέψει κάτω από 170px όταν μεγαλώνουν οι άλλες
-    let w=stockColsSum(table)+170;
-    // Αποθήκη ΑΗΗΕ: οι δύο πίνακες (επεξεργασία / αποστολή) έχουν ΠΑΝΤΑ το ίδιο συνολικό πλάτος (το μεγαλύτερο από τα δύο), ώστε στο οριζόντιο scroll να φτάνουν μαζί στο τέλος
+    return grew;
+  }
+  // Αποθήκη ΑΗΗΕ: οι δύο πίνακες (επεξεργασία / αποστολή) έχουν ΠΑΝΤΑ το ίδιο συνολικό πλάτος και ευθυγραμμισμένες στήλες. Το περίσσιο πλάτος του πλαισίου
+  // μοιράζεται αναλογικά σε ΟΛΕΣ τις στήλες· αν δεν χωρούν (ή κάποιο κελί θα κοβόταν), μεγαλώνουν και εμφανίζεται οριζόντιο scroll.
+  function applyStockSharedWidths(table,again){
     let sib=table.id==='weeeProcessTable'?document.getElementById('weeeShipTable'):table.id==='weeeShipTable'?document.getElementById('weeeProcessTable'):null;
-    if(sib){w=Math.max(w,stockColsSum(sib)+170);sib.style.setProperty('min-width',w+'px','important')}
-    table.style.setProperty('min-width',w+'px','important');
+    let pair=[table,sib].filter(Boolean);
+    pair.forEach(t=>t.style.tableLayout='fixed');
+    let S=Math.max(...pair.map(stockColsSum)),wrap=table.parentElement,avail=0;
+    if(wrap&&table.offsetParent)avail=wrap.clientWidth*stockScale(wrap)/stockScale(table);
+    let f=avail>S?avail/S:1,target=Math.floor(S*f);
+    pair.forEach(t=>stockPaint(t,f,target));
+    if(!again&&table.offsetParent&&pair.map(stockMeasure).some(Boolean))applyStockSharedWidths(table,true);
   }
   // ---- Πλέγμα στηλών (σωστό και για πίνακες με colspan/rowspan στις επικεφαλίδες) ----
   const MIN_W=COL_RESIZE_MIN_PX;
@@ -7646,7 +7660,6 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let cand=null;
     if(r.right-e.clientX>=0&&r.right-e.clientX<=STRIP_IN)cand=th;
     else if(e.clientX-r.left<=STRIP_OUT){let p=th.previousElementSibling;if(p&&p.tagName==='TH')cand=p}
-    if(cand&&cand.dataset.wcol==='stock')return null;
     return cand;
   }
   function setHoverCursor(th){
@@ -7690,8 +7703,9 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let table=th.closest('table');
     if(!table)return;
     if(isStock(table)){
-      table.querySelectorAll('thead tr:first-child th').forEach(sib=>{if(!sib.style.width&&sib.dataset.wcol!=='stock')sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px'});
-      state={stock:true,th,table,startX:e.clientX,startW:th.getBoundingClientRect().width};
+      let sw=th.getBoundingClientRect().width;
+      table.querySelectorAll('thead tr:first-child th').forEach(sib=>{sib.style.width=Math.round(sib.getBoundingClientRect().width)+'px'});
+      state={stock:true,th,table,startX:e.clientX,startW:sw,f:sw/stockW(th)||1};
     }else{
       let g=gridMap(tableRows(table)),p=g.map.get(th);
       if(!p)return;
@@ -7708,7 +7722,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   document.addEventListener('mouseup',()=>{
     if(state){
       if(state.stock){
-        localStorage.setItem(colKey(state.th),Math.round(parseFloat(state.th.style.width)));
+        localStorage.setItem(colKey(state.th),Math.max(minW(state.table),Math.round(parseFloat(state.th.style.width)/state.f)));
         ['weeeProcessTable','weeeShipTable'].forEach(id=>applyStockSharedWidths(document.getElementById(id)));
       }else{
         let c=state.leaf||state.th;
@@ -7741,7 +7755,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   });
   colWidthObserver.observe(document.body,{childList:true,subtree:true});
   // αλλαγή μεγέθους παραθύρου / διάταξης: ξαναϋπολογισμός ώστε ο πίνακας να γεμίζει πάντα το πλαίσιό του
-  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]:not(#sfTable)').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
+  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]:not(#sfTable),#weeeProcessTable,#weeeShipTable').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
   window.addEventListener('resize',rzFill);window.addEventListener('tableLayoutChanged',rzFill);
   ['weeeProcessTable','weeeShipTable'].forEach(id=>{let t=document.getElementById(id);if(t)applyStoredColWidths(t)});
 })();

@@ -3066,7 +3066,7 @@ def weee_media_content(db:Session=Depends(get_db), user=Depends(require_permissi
     return out
 
 @app.get('/sorting/available')
-def sorting_available(db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
+def sorting_available(day:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
     rows=db.scalars(select(InboundLoad).where(InboundLoad.status.in_(['READY_FOR_SORTING','SORTING_IN_PROGRESS'])).order_by(InboundLoad.ready_for_sorting_at)).all()
     out=[]
     for l in rows:
@@ -3077,6 +3077,7 @@ def sorting_available(db:Session=Depends(get_db), user=Depends(require_permissio
             continue
         trip=db.get(InboundTrip,l.trip_id); sup=db.get(Organization,l.supplier_id)
         if trip.deleted_at is not None: continue  # deleted receipts must not be offered for sorting
+        if day and trip.receipt_date.date().isoformat()!=day: continue
         out.append({'load_id':l.id,'receipt_id':trip.id,'receipt_number':trip.receipt_number,'receipt_type':trip.receipt_type,
           'receipt_date':trip.receipt_date.isoformat(),'supplier':sup.trade_name or sup.legal_name,'carrier_id':trip.carrier_id,'carrier':((lambda c:(c.trade_name or c.legal_name) if c else '')(db.get(Organization,trip.carrier_id) if trip.carrier_id else None)),
           'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,'net_weight':float(l.net_weight or 0),'status':l.status})
@@ -3197,6 +3198,67 @@ def sorting_overview(start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Qu
         w=float(e.approved_weight if e.approved_weight is not None else (e.raw_weight or 0))
         d=out.setdefault(lid,{}); d[code]=d.get(code,0)+w
     return {'loads':out}
+
+_DS_PRI=['CORRECTION','LOGISTICS_REVIEW','SORTING_IN_PROGRESS','READY_FOR_SORTING','CLOSED']
+_DS_CLS={'CORRECTION':'stg-correct','LOGISTICS_REVIEW':'stg-review','SORTING_IN_PROGRESS':'stg-sorting','READY_FOR_SORTING':'stg-ready','CLOSED':'stg-done'}
+def _ds_stage(raw):
+    """Ίδιος κανόνας με το stageStatus() των Windows (desktop_v11.html)."""
+    x=str(raw or '').upper()
+    if x=='CORRECTION': return 'CORRECTION'
+    if x in ('SORTING_CONFIRMED','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): return 'LOGISTICS_REVIEW'
+    if x in ('SORTING','SORTING_IN_PROGRESS','IN_PROGRESS'): return 'SORTING_IN_PROGRESS'
+    if x in ('CLOSED','COMPLETED'): return 'CLOSED'
+    return 'READY_FOR_SORTING'
+def _ds_top(lst):
+    st=[_ds_stage(x) for x in lst]
+    return next((p for p in _DS_PRI if p in st),'')
+
+@app.get('/sorting/day-summary')
+def sorting_day_summary(month:str=Query(pattern=r'^\d{4}-\d{2}$'), db:Session=Depends(get_db), user:User=Depends(current_user)):
+    """Μικρή σύνοψη για το κινητό (μόνο ανάγνωση): ανά ημέρα του μήνα πλήθος/kg/kg ταξινόμησης ανά τύπο και κατάσταση ημέρας
+    (ίδιοι κανόνες με το ημερολόγιο Παραλαβών των Windows), και οι ημέρες με ανοιχτές παραλαβές (όπως το /sorting/available)."""
+    y,m=map(int,month.split('-')); d0=datetime(y,m,1); d1=datetime(y+1,1,1) if m==12 else datetime(y,m+1,1)
+    # kg ταξινόμησης και πλήθος καταχωρήσεων ανά συνεδρία (όπως /sorting/overview και /sorting/review-queue)
+    w=func.coalesce(SortingEntry.approved_weight,SortingEntry.raw_weight,0)
+    agg={sid:(float(kg or 0),int(n or 0)) for sid,kg,n in db.execute(select(SortingEntry.session_id,func.sum(w),func.count(SortingEntry.id)).group_by(SortingEntry.session_id)).all()}
+    def eff(load,trip,ses):
+        st=(ses.status if ses else load.status) or trip.status or 'DRAFT'
+        if st=='IN_PROGRESS': st='SORTING_IN_PROGRESS'
+        if st=='SORTING_IN_PROGRESS' and not (ses and agg.get(ses.id,(0,0))[1]): st='READY_FOR_SORTING'
+        if ses and ses.correction and st in ('LOGISTICS_REVIEW','MANAGEMENT_REVIEW','SORTING_CONFIRMED'): st='CORRECTION'
+        return st
+    rows=db.execute(select(InboundTrip,InboundLoad,SortingSession)
+        .outerjoin(InboundLoad,InboundLoad.trip_id==InboundTrip.id)
+        .outerjoin(SortingSession,SortingSession.inbound_load_id==InboundLoad.id)
+        .where(InboundTrip.deleted_at.is_(None),InboundTrip.receipt_date>=d0,InboundTrip.receipt_date<d1)).all()
+    trips={}
+    for trip,load,ses in rows:
+        t=trips.setdefault(trip.id,{'trip':trip,'loads':[]})
+        if load is not None: t['loads'].append((load,ses))
+    days={}
+    for t in trips.values():
+        trip=t['trip']; day=trip.receipt_date.date().isoformat()
+        d=days.setdefault(day,{'stages':[],'types':{}})
+        d['stages'].append(_ds_top([eff(l,trip,s) for l,s in t['loads']]) or _ds_stage(trip.status))
+        ty=d['types'].setdefault(trip.receipt_type or '',{'n':0,'kg':0.0,'sk':0.0})
+        ty['n']+=len(t['loads']) or 1
+        for l,s in t['loads']:
+            ty['kg']+=float(l.net_weight or 0); ty['sk']+=agg.get(s.id,(0,0))[0] if s else 0
+    out={}
+    for day,d in days.items():
+        types={k:{'n':v['n'],'kg':round(v['kg'],3),'sk':round(v['sk'],3)} for k,v in d['types'].items()}
+        out[day]={'cls':_DS_CLS.get(_ds_top(d['stages']),''),'types':types}
+    # ανοιχτές παραλαβές (ίδιος ορισμός με /sorting/available), όλες οι ημέρες
+    op=db.execute(select(InboundTrip.receipt_date,InboundLoad.net_weight,SortingSession.id,SortingSession.status)
+        .join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
+        .outerjoin(SortingSession,SortingSession.inbound_load_id==InboundLoad.id)
+        .where(InboundLoad.status.in_(['READY_FOR_SORTING','SORTING_IN_PROGRESS']),InboundTrip.deleted_at.is_(None))).all()
+    od={}
+    for rd,nw,sid,sst in op:
+        if sid is not None and sst!='IN_PROGRESS': continue
+        k=rd.date().isoformat(); o=od.setdefault(k,{'day':k,'n':0,'kg':0.0,'sk':0.0})
+        o['n']+=1; o['kg']+=float(nw or 0); o['sk']+=agg.get(sid,(0,0))[0] if sid else 0
+    return {'month':month,'days':out,'open':sorted(od.values(),key=lambda x:x['day'],reverse=True)}
 
 @app.get('/sorting/{load_id}/detail')
 def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
