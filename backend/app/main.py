@@ -4696,13 +4696,91 @@ def weee_category_history(official_code:str, db:Session=Depends(get_db), user=De
             unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
             at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
             events.append({'at':at.isoformat(),'label':labels.get(mv.movement_type,mv.movement_type),'weight':_mv_sign(mv.movement_type)*float(mv.weight or 0),
-              'pieces':lot.piece_count if mv.movement_type=='SORTING_IN' else None,'supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
+              'pieces':lot.piece_count if mv.movement_type=='SORTING_IN' else None,'supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,'load_id':load.id if load else None,'receipt_id':load.trip_id if load else None,
               'unit':unit.name_el if unit else None,'reason':mv.reason})
     for pe in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.weee_category_id.in_(ids),ProductionWorkEntry.active==True)).all():
         unit=db.get(OrganizationalUnit,pe.org_unit_id) if pe.org_unit_id else None
         events.append({'at':pe.work_date.isoformat(),'label':'Επεξεργασία (Παραγωγή)','weight':-float(pe.weight_kg or 0),'pieces':None,'supplier':'','order_number':None,'unit':unit.name_el if unit else None,'reason':pe.notes})
     events.sort(key=lambda x:x['at'],reverse=True)
     return {'category':{'code':cat.code,'description':cat.description_el},'pieces_stock':pieces_stock,'events':events}
+
+@app.get('/inventory/weee/period-moves')
+def weee_period_moves(official_code:str, start:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                      col:str=Query(default='all',pattern='^(receipts|processed|hermes|shipped|all)$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """B9: οι κινήσεις ΜΙΑΣ στήλης της Αποθήκης ΑΗΗΕ για την επιλεγμένη περίοδο [start, end] (μόνο ανάγνωση), με ΙΔΙΟ υπολογισμό με το
+    /inventory/weee-dashboard, ώστε το άθροισμα να ισούται με το κελί. Η γραμμή του πίνακα είναι η οικογένεια του επίσημου κωδικού
+    (επίσημος + δικές μας υποκατηγορίες). receipts = καταχωρήσεις ταξινόμησης με ημερομηνία παραλαβής στην περίοδο· processed = Παραγωγή
+    (+ διορθώσεις Παραγωγής)· hermes = Παραγωγή HERMES· shipped = έξοδοι (αποστολές κ.λπ.)· all = όλα. Κάθε γραμμή έχει την εντολή όταν
+    είναι γνωστή (από την παρτίδα ή από τη μεταφορά προς παραγωγή)."""
+    s0=datetime.fromisoformat(start); e0=datetime.fromisoformat(end)
+    s0=datetime(s0.year,s0.month,s0.day); e1=datetime(e0.year,e0.month,e0.day)+timedelta(days=1)
+    cats=db.scalars(select(WEEECategory).where(WEEECategory.active==True)).all()
+    fam=lambda c:(c.parent_code if c.is_internal_subcategory and c.parent_code else c.code)
+    ids={c.id for c in cats if fam(c)==official_code}
+    if not ids: raise HTTPException(404,'Άγνωστη κατηγορία')
+    code_of={c.id:c.code for c in cats}
+    orgs={}
+    def org(oid):
+        if not oid: return ''
+        if oid not in orgs:
+            o=db.get(Organization,oid); orgs[oid]=(o.trade_name or o.legal_name) if o else ''
+        return orgs[oid]
+    rows=[]
+    def add(at,kind,kg,load=None,unit=None,note=None,cid=None):
+        rows.append({'at':at.isoformat(),'kind':kind,'kg':round(float(kg),3),'order_number':(load.order_number if load else None),'load_id':(load.id if load else None),'receipt_id':(load.trip_id if load else None),
+                     'supplier':(org(load.supplier_id) if load else ''),'unit':unit,'note':note,'code':code_of.get(cid,'')})
+    if col in ('receipts','all'):
+        q=(select(models.SortingEntry,InboundLoad,InboundTrip).join(SortingSession,models.SortingEntry.session_id==SortingSession.id)
+           .join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
+           .where(InboundTrip.receipt_date>=s0,InboundTrip.receipt_date<e1,InboundTrip.deleted_at.is_(None),models.SortingEntry.weee_category_id.in_(ids)))
+        agg={}
+        for en,load,trip in db.execute(q).all():
+            w=float(en.approved_weight if en.approved_weight is not None else (en.raw_weight or 0)); k=(load.id,en.weee_category_id)
+            if k not in agg: agg[k]=[trip.receipt_date,load,0.0,en.weee_category_id]
+            agg[k][2]+=w
+        for at,load,w,cid in agg.values(): add(at,'receipts',w,load,cid=cid)
+    if col in ('processed','hermes','all'):
+        units={}
+        def uname(uid):
+            if uid and uid not in units:
+                u=db.get(OrganizationalUnit,uid); units[uid]=u.name_el if u else ''
+            return units.get(uid) if uid else None
+        q=select(ProductionWorkEntry).where(ProductionWorkEntry.active==True,ProductionWorkEntry.work_date>=s0,ProductionWorkEntry.work_date<e1,ProductionWorkEntry.weee_category_id.in_(ids))
+        if col=='hermes': q=q.where(ProductionWorkEntry.supplier_group=='HERMES')
+        for pe in db.scalars(q).all():
+            loads=[]
+            if pe.transfer_id:
+                for mv,lot in db.execute(select(StockMovement,WEEEStockLot).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).where(StockMovement.transfer_id==pe.transfer_id,StockMovement.movement_type.in_(('TO_PRODUCTION','DIRECT_TO_PRODUCTION')))).all():
+                    ld=db.get(InboundLoad,lot.inbound_load_id)
+                    if ld and ld not in loads: loads.append(ld)
+            note=('HERMES' if pe.supplier_group=='HERMES' else None)
+            if len(loads)>1: note=', '.join([x for x in [note,'εντολές: '+', '.join(str(l.order_number or '—') for l in loads)] if x])
+            add(pe.work_date,'processed',pe.weight_kg or 0,loads[0] if loads else None,uname(pe.org_unit_id),note,pe.weee_category_id)
+        if col in ('processed','all'):
+            for ce in db.scalars(select(models.MaterialCorrectionEntry).where(models.MaterialCorrectionEntry.material_label.like('ΠΑΡΑΓΩΓΗ:%'),models.MaterialCorrectionEntry.work_date>=s0,models.MaterialCorrectionEntry.work_date<e1)).all():
+                cid=ce.material_label.split(':',1)[1]
+                if cid in ids: add(ce.work_date,'processed',ce.weight_kg_delta or 0,None,None,'Διόρθωση Παραγωγής'+(' · '+ce.notes if getattr(ce,'notes',None) else ''),cid)
+    if col in ('shipped','all'):
+        _dup_tr=set(db.scalars(select(ProductionWorkEntry.transfer_id).where(ProductionWorkEntry.transfer_id.is_not(None)).distinct()).all())
+        labels={'TO_PRODUCTION':'Προς παραγωγή','DIRECT_TO_PRODUCTION':'Απευθείας προς παραγωγή','DISPATCH':'Αποστολή','PRODUCTION_OUT':'Έξοδος από παραγωγή','DIRECT_PRODUCTION_OUT':'Απευθείας έξοδος από παραγωγή','CANCEL_TO_PRODUCTION':'Ακύρωση μεταφοράς προς παραγωγή'}
+        q=(select(StockMovement,WEEEStockLot,InboundLoad,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id)
+           .join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',InboundTrip.deleted_at.is_(None),WEEEStockLot.weee_category_id.in_(ids),StockMovement.created_at>=s0,StockMovement.created_at<e1))
+        for mv,lot,load,trip in db.execute(q).all():
+            if mv.movement_type in ('TO_PRODUCTION','CANCEL_TO_PRODUCTION') and mv.transfer_id is not None and mv.transfer_id in _dup_tr: continue
+            if mv.movement_type=='SORTING_IN': continue
+            sign=_mv_sign(mv.movement_type); w=float(mv.weight or 0)
+            if sign<0: kg=abs(sign*w)
+            elif mv.movement_type=='CANCEL_TO_PRODUCTION': kg=-w
+            else: continue
+            add(mv.created_at,'shipped',kg,load,None,mv.reason or None,lot.weee_category_id)
+        has_lot=set(db.scalars(select(WEEEStockLot.weee_category_id).distinct()).all()); doc=_load_opening_stock_2025()
+        for h in db.scalars(select(models.ShipmentHistoryEntry).where(models.ShipmentHistoryEntry.active==True,models.ShipmentHistoryEntry.description.like('ΚΑΤΗΓΟΡΙΑ %'))).all():
+            c=next((x for x in cats if x.code==(h.description or '')[len('ΚΑΤΗΓΟΡΙΑ '):].strip()),None)
+            if not c or c.id not in ids or c.id in has_lot or not (doc.get(c.code,0.0)>0): continue
+            wd=h.work_date.replace(tzinfo=None) if getattr(h.work_date,'tzinfo',None) else h.work_date
+            if s0<=wd<e1: add(wd,'shipped',h.weight_kg or 0,None,None,'Ιστορικό Δ.Α.',c.id)
+    rows.sort(key=lambda r:(r['at'],r['order_number'] or ''))
+    return {'official_code':official_code,'start':start,'end':end,'col':col,'total':round(sum(r['kg'] for r in rows),3),'rows':rows}
 
 @app.get('/inventory/weee/medium/{medium_id}/history')
 def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
@@ -4720,7 +4798,7 @@ def weee_medium_history(medium_id:str, db:Session=Depends(get_db), user=Depends(
             unit=db.get(OrganizationalUnit,mv.org_unit_id) if mv.org_unit_id else None
             at=trip.receipt_date if (mv.movement_type=='SORTING_IN' and trip) else mv.created_at
             events.append({'at':at.isoformat(),'type':mv.movement_type,'label':labels.get(mv.movement_type,mv.movement_type),'weight':_mv_sign(mv.movement_type)*float(mv.weight or 0),
-              'category':cat.code if cat else '','description':cat.description_el if cat else '','supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,
+              'category':cat.code if cat else '','description':cat.description_el if cat else '','supplier':((sup.trade_name or sup.legal_name) if sup else ''),'order_number':load.order_number if load else None,'load_id':load.id if load else None,'receipt_id':load.trip_id if load else None,
               'unit':unit.name_el if unit else None,'reason':mv.reason})
     events.sort(key=lambda e:e['at'],reverse=True)
     return {'medium':{'id':med.id,'code':med.code,'type':mt.name_el if mt else '','tare_weight':float(med.tare_weight) if med.tare_weight is not None else None},'current_weight':round(current,3),'events':events}

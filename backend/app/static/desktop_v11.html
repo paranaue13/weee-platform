@@ -7089,14 +7089,17 @@ async function openMediaKg(code,desc,typeKey,typeName){openFloat(`${code} · ${d
 async function openMediumHistory(id,back){$('floatingEditorBody').innerHTML='<div class="muted">Φόρτωση...</div>';
  try{let h=await api('/inventory/weee/medium/'+encodeURIComponent(id)+'/history');$('floatingEditorTitle').textContent=`Ιστορικό · ${h.medium.type} ${h.medium.code}`;
   let fdt=iso=>{let d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('el-GR')};
-  $('floatingEditorBody').innerHTML=`<div class="toolbar" style="margin-bottom:8px"><button class="btn alt" id="mediumHistBack">← Πίσω</button></div><div class="notice"><b>Τρέχον περιεχόμενο: ${kg(h.current_weight)}</b>${h.medium.tare_weight!=null?` · απόβαρο ${kg(h.medium.tare_weight)}`:''}</div><div class="tablewrap"><table style="min-width:0;width:100%"><thead><tr><th>Ημερομηνία</th><th>Κίνηση</th><th>Υλικό</th><th style="text-align:right">Κιλά</th><th>Εντολή / Προμηθευτής</th><th>Παρατηρήσεις</th></tr></thead><tbody>${h.events.map(e=>`<tr><td>${fdt(e.at)}</td><td>${esc(e.label)}${e.unit?` · ${esc(e.unit)}`:''}</td><td><b>${esc(e.category)}</b> ${esc(e.description)}</td><td style="text-align:right">${e.weight>0?'+':''}${kg(e.weight)}</td><td>${esc([e.order_number,e.supplier].filter(Boolean).join(' · '))}</td><td>${esc(e.reason||'')}</td></tr>`).join('')||'<tr><td colspan="6" class="muted">Δεν υπάρχουν κινήσεις.</td></tr>'}</tbody></table></div>`;
+  let ev=weeeInPeriod(h.events);
+  $('floatingEditorBody').innerHTML=`<div class="toolbar" style="margin-bottom:8px"><button class="btn alt" id="mediumHistBack">← Πίσω</button></div><div class="notice"><b>Τρέχον περιεχόμενο: ${kg(h.current_weight)}</b>${h.medium.tare_weight!=null?` · απόβαρο ${kg(h.medium.tare_weight)}`:''} · Κινήσεις ${esc(weeePW())}: <b>${kg(ev.reduce((a,e)=>a+Number(e.weight||0),0))}</b></div>`+weeeMovesTable(ev.map(e=>({at:e.at,order_number:e.order_number,load_id:e.load_id,receipt_id:e.receipt_id,supplier:e.supplier,kg:e.weight,mat:`<b>${esc(e.category)}</b> ${esc(e.description)}`,note:[e.unit,e.reason].filter(Boolean).join(' · ')})),{mat:true,signed:true});
   $('mediumHistBack').onclick=back}catch(e){$('floatingEditorBody').innerHTML=`<div class="error">${esc(e.message)}</div>`}}
 async function renderWeeeNon(){let rows=weeeLastNonRows||[],wr=weeeRange(),pc={};
  try{pc=await api('/inventory/weee/non-weee-summary?start='+wr.startISO+'&end='+wr.endISO)}catch{}
  $('weeeNonHead').innerHTML='<tr><th>Κωδικός</th><th>Τύπος</th><th class="weeeDescHeader">Περιγραφή</th><th>Απόθεμα έναρξης</th><th>Παραλαβές '+weeePW()+'</th><th>Τεμάχια '+weeePW()+'</th><th>Απόθεμα</th><th>Τεμάχια αποθέματος</th></tr>';bindWeeeDescHeader('weeeNonHead');
  let n=v=>{v=Math.round(Number(v||0));return v?v.toLocaleString('el-GR'):''};
  $('weeeNonRows').innerHTML=rows.map(x=>{let a=String(x.official_code).startsWith('10'),p=pc[x.official_code]||{};return `<tr class="materialRow mediaRow" data-code="${esc(x.official_code)}" data-desc="${esc(x.description)}"><td><b>${esc(x.official_code)}</b></td><td>${a?'Τύπου Α':'Τύπου Β'}</td><td class="weeeDescCell" data-official="${esc(x.description)}" data-her="${esc(x.herDescription||'')}">${esc((typeof weeeDescModeFor==='function'&&weeeDescModeFor('weee')==='her'&&x.herDescription)?x.herDescription:x.description)}</td><td>${blankKg(x.opening)}</td><td>${blankKg(x.receipts)}</td><td>${a?n(p.pieces_period):''}</td><td>${blankKg(x.stock_process)}</td><td>${a?n(p.pieces_stock):''}</td></tr>`}).join('')||'<tr><td colspan="8" class="muted">Δεν υπάρχουν υλικά ΜΗ ΑΗΗΕ.</td></tr>';
- document.querySelectorAll('#weeeNonRows tr[data-code]').forEach(tr=>tr.onclick=()=>openNonWeeeHistory(tr.dataset.code,tr.dataset.desc))}
+ document.querySelectorAll('#weeeNonRows tr[data-code]').forEach(tr=>tr.onclick=e=>{const td=e.target.closest('td'),i=td?[...tr.cells].indexOf(td):-1;
+   if(i===4&&td.textContent.trim())openWeeeMoves(tr.dataset.code,tr.dataset.desc,'receipts',$('weeeNonHead').querySelectorAll('th')[4].textContent);
+   else openWeeeMoves(tr.dataset.code,tr.dataset.desc,'all','Κινήσεις '+weeePW())})}
 async function openNonWeeeHistory(code,desc){openFloat(`${code} · ${desc} — Ιστορικό`,'<div class="muted">Φόρτωση...</div>');
  try{let h=await api('/inventory/weee/category-history?official_code='+encodeURIComponent(code)),a=String(code).startsWith('10');
   let fdt=iso=>{let d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('el-GR')};
@@ -13539,6 +13542,73 @@ body[data-theme="dark"] #grCal .gG button,body[data-theme="dark"] #grCal .gH but
   const scan=root=>{(root.querySelectorAll?root:document).querySelectorAll('input[type="date"],input[type="datetime-local"],input[type="time"]').forEach(up);if(root.matches&&root.matches('input'))up(root)};
   scan(document);
   new MutationObserver(ms=>{for(const m of ms){if(m.type==='attributes'){if(m.target.tagName==='INPUT')up(m.target);continue}m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)})}}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['type']});
+})();
+</script>
+<style id="b9MovesCss">
+/* B9: παράθυρο κινήσεων περιόδου (Αποθήκη ΑΗΗΕ) — ο πίνακας γεμίζει το πλάτος του παραθύρου, ο αριθμός εντολής πατιέται */
+.b9Moves{width:100%;table-layout:auto;min-width:0}
+.b9Moves td.n,.b9Moves th.n{text-align:right;white-space:nowrap}
+.b9Moves td.d{white-space:nowrap}
+.b9Moves .b9Ord{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--link,#1f5fbf);text-decoration:underline;cursor:pointer}
+.b9Moves .b9Ord:hover{color:#0f3f8f}
+#weee :is(#weeeProcessRows,#weeeShipRows) tr.materialRow:not(.weeeSubRow):not(.weeeCatTot) td.b9Cell{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+/* B9: κεφαλίδα «Εντολή …» (Παραλαβή / Ταξινόμηση): όταν δεν χωράει σε μία γραμμή αναδιπλώνεται -- κανένα πεδίο δεν κόβεται ή κρύβεται */
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap>.uHdr{height:auto!important;min-height:48px!important;align-items:flex-start!important}
+#sortingDetail:not(.popupMin) .uHdrWrap .uHdr>.sortingPopupTopRow:last-child:has(.winCtl){height:auto!important;min-height:48px!important;align-items:flex-start!important;align-self:stretch!important;margin:0!important}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap :is(.uHdr,.sortingPopupTopRow)>div:last-child:has(.winCtl){align-self:flex-start!important}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap .uHdMain{align-self:flex-start!important}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap .uHdMain{flex-wrap:wrap!important;height:auto!important;min-height:48px;row-gap:4px;column-gap:16px;align-content:center;padding:4px 0!important}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap .uHdMain .uHdT{max-width:none!important;flex:0 1 auto;min-width:0;height:auto}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uHdrWrap .uHdMain .uHdT h3{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uInfo{flex-wrap:wrap;overflow:visible;row-gap:4px;flex:1 1 auto}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uInfo span{white-space:normal}
+:is(#receiptForm,#sortingDetail):not(.popupMin) .uInfo :is(small,b){overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+:is(#receiptForm,#sortingDetail).uW800 .uInfo span:nth-child(3),:is(#receiptForm,#sortingDetail).uW640 .uInfo span:nth-child(2){display:flex!important}
+/* B9: οι γραμμές πινάκων στο hover ΔΕΝ «σηκώνονται» (σκιά + z-index): αλλιώς η γραμμή κάτω από το ποντίκι ζωγραφιζόταν πάνω από τη σταθερή κεφαλίδα και φαινόταν κομμένη γραμμή ανάμεσα σε κεφαλίδα και σώμα. Το χρώμα hover μένει ίδιο. */
+@media (hover:hover) and (pointer:fine){table tr:is(.materialRow,.selectableRow,[data-clickable="1"]):hover{box-shadow:none!important;position:static!important;z-index:auto!important}}
+/* B9: καμία μαύρη γραμμή εστίασης γύρω από καρτέλες μετά από κλικ */
+:is(.uTab,.weeeTabBtn,.receiptMode,.readyGroupTab,.productionTab,.mtab,.tab,.profileTabBtn,.uniSub,[data-weeetab]):focus{outline:none!important;box-shadow:none}
+</style>
+<script id="b9MovesJs">
+(function(){
+  const $=id=>document.getElementById(id);
+  const fdt=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleDateString('el-GR')};
+  // κινήσεις μέσα στην επιλεγμένη περίοδο της σελίδας (Μήνας / Τρίμηνο / Έτος / διάστημα)
+  window.weeeInPeriod=function(evs){const r=weeeRange();return (evs||[]).filter(e=>{const d=String(e.at||'').slice(0,10);return d>=r.startISO&&d<=r.endISO})};
+  window.weeeMovesTable=function(rows,o){o=o||{};
+    const ord=r=>r.order_number?(r.receipt_id&&r.load_id?`<button type="button" class="b9Ord" data-rid="${esc(r.receipt_id)}" data-lid="${esc(r.load_id)}" title="Άνοιγμα εντολής">${esc(r.order_number)}</button>`:esc(r.order_number)):'—';
+    const kgS=v=>(o.signed&&v>0?'+':'')+kg(v);
+    return `<div class="tablewrap"><table class="b9Moves"><thead><tr><th>Ημερομηνία</th><th>Αριθμός εντολής</th><th>Προμηθευτής</th>${o.mat?'<th>Υλικό</th>':''}<th class="n">Κιλά</th><th>Παρατηρήσεις</th></tr></thead><tbody>${
+      rows.map(r=>`<tr><td class="d">${fdt(r.at)}</td><td>${ord(r)}</td><td>${esc(r.supplier||'')}</td>${o.mat?`<td>${r.mat||''}</td>`:''}<td class="n">${kgS(Number(r.kg||0))}</td><td>${esc(r.note||'')}</td></tr>`).join('')||`<tr><td colspan="${o.mat?6:5}" class="muted">Δεν υπάρχουν κινήσεις στην περίοδο.</td></tr>`}</tbody></table></div>`};
+  // αριθμός εντολής → το υπάρχον παράθυρο «Εντολή …»
+  // το παράθυρο «Εντολή …» (με τις καρτέλες Παραλαβή | Ταξινόμηση) χρειάζεται την παραλαβή στη λίστα παραλαβών· αν δεν έχει φορτωθεί (π.χ. από την Αποθήκη ΑΗΗΕ), φέρνουμε μόνο αυτήν
+  window.b9OpenOrder=async function(rid,lid){try{if(!(receiptRowsAll||[]).some(x=>x.id===rid)){const r=await api('/receipts/'+rid);receiptRowsAll=(receiptRowsAll||[]).concat([r])}}catch(e){}openReceiptPopup(rid,lid,true)};
+  document.addEventListener('click',e=>{const b=e.target.closest('.b9Moves .b9Ord');if(!b)return;e.preventDefault();e.stopPropagation();b9OpenOrder(b.dataset.rid,b.dataset.lid)});
+  window.openWeeeMoves=async function(code,desc,col,colTitle){
+    const r=weeeRange();openFloat(`${code} · ${desc} — ${colTitle}`,'<div class="muted">Φόρτωση...</div>');
+    try{const d=await api(`/inventory/weee/period-moves?official_code=${encodeURIComponent(code)}&start=${r.startISO}&end=${r.endISO}&col=${col}`);
+      const rows=d.rows.map(x=>({...x,note:[x.unit,x.note].filter(Boolean).join(' · ')}));
+      $('floatingEditorBody').innerHTML=`<div class="notice"><b>Σύνολο: ${kg(d.total)}</b> · ${rows.length} ${rows.length===1?'κίνηση':'κινήσεις'}</div>`+weeeMovesTable(rows,{signed:col==='all'});
+    }catch(err){$('floatingEditorBody').innerHTML=`<div class="error">${esc(err.message)}</div>`}};
+  // Αποθήκη: κλικ στα κιλά μιας στήλης περιόδου → κινήσεις μόνο αυτής της στήλης και της περιόδου (το κλικ στην υπόλοιπη γραμμή μένει ως είχε)
+  const COLS={weeeProcessTable:{rcv:'receipts',done:'processed',herm:'hermes'},weeeShipTable:{rcv:'receipts',done:'shipped'}};
+  function bind(tbodyId,tableId){
+    const tb=$(tbodyId);if(!tb||tb._b9)return;tb._b9=1;
+    const colOf=td=>{const tr=td.parentElement,th=$(tableId).querySelectorAll('thead tr:first-child th')[[...tr.cells].indexOf(td)];return th?[th,COLS[tableId][th.dataset.wcol]]:[null,null]};
+    // επίσημος κωδικός της γραμμής (οι γραμμές υποκατηγορίας ανήκουν στον κωδικό της γραμμής πάνω τους)
+    const mainOf=tr=>{let r=tr;while(r&&(r.classList.contains('weeeSubRow')||!r.classList.contains('materialRow')))r=r.previousElementSibling;return r};
+    tb.addEventListener('click',e=>{const td=e.target.closest('td');if(!td)return;const tr=td.parentElement;
+      if(!tr.classList.contains('materialRow')||tr.classList.contains('weeeCatTot'))return;
+      const [th,col]=colOf(td);
+      if(col&&td.textContent.trim()&&!tr.classList.contains('weeeSubRow')){e.stopPropagation();openWeeeMoves(tr.dataset.code,tr.dataset.desc,col,th.textContent.trim());return}
+      // κλικ στην υπόλοιπη γραμμή: όλες οι κινήσεις της περιόδου (το παλιό παράθυρο «θέσεις αποθέματος» δεν υπάρχει πια στη σελίδα και έβγαζε σφάλμα)
+      const m=mainOf(tr);if(!m)return;e.stopPropagation();openWeeeMoves(m.dataset.code,m.dataset.desc,'all','Κινήσεις '+weeePW())},true);
+    const mark=()=>tb.querySelectorAll('tr.materialRow:not(.weeeSubRow):not(.weeeCatTot)>td').forEach(td=>{const [,col]=colOf(td);td.classList.toggle('b9Cell',!!col&&!!td.textContent.trim());if(col&&td.textContent.trim())td.title='Κινήσεις περιόδου'});
+    new MutationObserver(mark).observe(tb,{childList:true});mark();
+  }
+  bind('weeeProcessRows','weeeProcessTable');bind('weeeShipRows','weeeShipTable');
+  // κάθε τίτλος παραθύρου που κόβεται με «…» φαίνεται ολόκληρος ως tooltip
+  if(typeof openFloat==='function'){const _of=openFloat;openFloat=function(title){const r=_of.apply(this,arguments);try{const t=$('floatingEditorTitle');if(t)t.title=t.textContent}catch(e){}return r}}
 })();
 </script>
 </body></html>
