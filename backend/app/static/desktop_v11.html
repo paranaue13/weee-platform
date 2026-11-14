@@ -634,7 +634,7 @@ body[data-theme="dark"] #invCountTable tbody tr:hover,body[data-theme="dark"] #i
 #readyMatBody td.rmGR::after,#readyMatFoot td.rmGR::after{border-right-width:2px}
 #readyMatFoot tr:last-child td.rmG::after{border-bottom-width:2px}
 #readyMatHead [data-rmtoggle]{cursor:pointer}
-#floatingEditor .mpWrap{width:min(860px,calc(100vw - 80px));display:flex;flex-direction:column;gap:12px}
+#floatingEditor .mpWrap{width:100%;min-width:min(860px,calc(100vw - 80px));display:flex;flex-direction:column;gap:12px}
 #floatingEditor .mpTop{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #floatingEditor .mpPill{border-radius:10px;padding:3px 12px;font-weight:700;font-size:11px}
 #floatingEditor .mpPill.ok{background:#d6f0dc;color:#1d5c2e}#floatingEditor .mpPill.am{background:#fdf0cf;color:#7a4b00}
@@ -2653,7 +2653,8 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div></div><div id="weeeMediaPane" class="hidden"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="toggleRow" id="weeeMediaOnlyWrap" style="margin-bottom:12px"><label class="toggleSwitch"><input type="checkbox" id="weeeMediaStockOnly"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span></div><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable" data-stk-skip><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable" data-stk-skip><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div></div>
 </section>
 <section id="production" class="view hidden">
-<div class="productionTop"><div class="productionTabs"><button class="productionTab active" data-prodtab="weee">Παραγωγή ανά ΑΗΗΕ</button><button class="productionTab" data-prodtab="people">Παραγωγή ανά Τμήμα / Άτομο</button><button class="productionTab" data-prodtab="deltio">Δελτίο Παραγωγής</button></div><div class="productionPeriod" id="productionPeriodBox"><div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-prodperiod="month" class="active">Μήνας</button><button data-prodperiod="quarter">Τρίμηνο</button><button data-prodperiod="year">Έτος</button><button type="button" id="prodRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div></div><div class="prodPeriodNav"><button id="prodPrev">‹</button><button type="button" class="periodPickerBtn" id="prodPeriodPickerBtn"><b id="prodPeriodTitle"></b></button><button id="prodNext">›</button></div></div></div>
+<div class="productionTop"><div class="productionTabs"><button class="productionTab active" data-prodtab="weee">Παραγωγή ανά ΑΗΗΕ</button><button class="productionTab" data-prodtab="people">Παραγωγή ανά Τμήμα / Άτομο</button><button class="productionTab" data-prodtab="deltio">Δελτίο Παραγωγής</button></div><div class="productionPeriod" id="productionPeriodBox"><div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-prodperiod="month" class="active">Μήνας</button><button data-prodperiod="quarter">Τρίμηνο</button><button data-prodperiod="year">Έτος</button><button type="button" id="prodRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div></div><div class="prodPeriodNav"><button id="prodPrev">‹</button><button type="button" class="periodPickerBtn" id="prodPeriodPickerBtn"><b id="prodPeriodTitle"></b></button><button id="prodNext">›</button></div></div><div class="productionPeriod hidden" id="deltioPeriodBox"><label class="dlOnly"><span class="toggleSwitch"><input type="checkbox" id="deltioOnly"><span class="slider"></span></span>Μόνο ενεργά</label><div class="prodPeriodNav"><button type="button" id="deltioPrev">‹</button><button type="button" class="periodPickerBtn" id="deltioPeriodPickerBtn"><b id="deltioPeriodTitle"></b></button><button type="button" id="deltioNext">›</button></div></div></div>
+<div class="periodPickerDropdown hidden" id="deltioPeriodDropdown"><div class="periodPickerYears" id="deltioPeriodYears"></div><div class="periodPickerGrid" id="deltioPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="deltioPeriodQuarters"></div></div>
 <div class="periodPickerDropdown hidden" id="prodPeriodDropdown"><div class="periodPickerYears" id="prodPeriodYears"></div><div class="periodPickerGrid" id="prodPeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="prodPeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div>
 <div id="productionActions" class="pageActions"><button class="btn alt" id="productionExcel">Εξαγωγή Excel</button></div>
 <div id="productionKpis" class="productionKpis"></div>
@@ -2661,7 +2662,7 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <div id="productionWeeePanel"><div class="prodTableWrap"><table class="prodTable" data-datefill><thead id="prodWeeeHead"></thead><tbody id="prodWeeeBody"></tbody><tfoot id="prodWeeeFoot"></tfoot></table></div></div>
 <div id="productionPeoplePanel" class="hidden"><div class="prodTableWrap" style="margin-bottom:18px"><h3 style="margin:0 0 8px">Τρέχουσα τοποθέτηση εργαζομένων ανά τμήμα</h3><table class="prodTable"><thead><tr><th>Τμήμα / Εργαζόμενος</th><th>Τοποθέτηση σε τμήμα</th><th></th></tr></thead><tbody id="prodRosterBody"></tbody></table></div><div class="prodTableWrap"><table class="prodTable"><thead id="prodPeopleHead"></thead><tbody id="prodPeopleBody"></tbody><tfoot id="prodPeopleFoot"></tfoot></table></div></div>
 <div id="productionDeltioPanel" class="hidden">
-<div class="toolbar dlBar"><label class="dlOnly"><span class="toggleSwitch"><input type="checkbox" id="deltioOnly"><span class="slider"></span></span>Μόνο ενεργά</label><span class="dlBarR"><label style="margin:0">Ημερομηνία</label><input type="date" id="deltioDate"><span id="deltioExistingNote" class="muted hidden">Υπάρχει ήδη δελτίο για αυτή την ημέρα.</span></span></div>
+<input type="hidden" id="deltioDate"><div id="deltioDayStrip" role="group" aria-label="Ημέρες μήνα"></div>
 <div class="deltioLayout">
 <div class="deltioDepts" id="deltioDepts"></div>
 <div class="dcReturns" id="deltioReturns"></div>
@@ -4786,7 +4787,7 @@ async function prodLoadCorr(){let r=prodRange(),s=new Date(r.startISO+'T12:00:00
     if(window.__prodLiveSkip&&sig===prodState._sig&&$('prodWeeeBody')&&$('prodWeeeBody').children.length)return;
     prodState._sig=sig}catch(e){prodState._sig=null}
   return _lp.apply(this,arguments)}})();
-function prodPaintTabPanels(){$('productionWeeePanel').classList.toggle('hidden',prodState.tab!=='weee');$('productionPeoplePanel').classList.toggle('hidden',prodState.tab!=='people');$('productionDeltioPanel').classList.toggle('hidden',prodState.tab!=='deltio');$('productionPeriodBox').classList.toggle('hidden',prodState.tab==='deltio');$('productionKpis').classList.toggle('hidden',prodState.tab==='deltio');document.querySelector('.productionTools').classList.toggle('hidden',prodState.tab==='deltio')}
+function prodPaintTabPanels(){$('productionWeeePanel').classList.toggle('hidden',prodState.tab!=='weee');$('productionPeoplePanel').classList.toggle('hidden',prodState.tab!=='people');$('productionDeltioPanel').classList.toggle('hidden',prodState.tab!=='deltio');$('productionPeriodBox').classList.toggle('hidden',prodState.tab==='deltio');$('deltioPeriodBox').classList.toggle('hidden',prodState.tab!=='deltio');$('productionKpis').classList.toggle('hidden',prodState.tab==='deltio');document.querySelector('.productionTools').classList.toggle('hidden',prodState.tab==='deltio')}
 let deltioState={date:'',attendance:[],entries:[]};
 function deltioTimeStr(iso){return iso?new Date(/[zZ]$|[+-]\d\d:?\d\d$/.test(iso)?iso:iso+'Z').toTimeString().slice(0,5):''}
 function deltioNowIsoOnDate(dateStr,timeStr){let [h,m]=(timeStr||deltioTimeStr(new Date().toISOString())).split(':');let d=new Date(dateStr+'T00:00:00');d.setHours(Number(h||0),Number(m||0),0,0);return d.toISOString()}
@@ -4797,8 +4798,8 @@ async function loadDeltio(){
   deltioState.attendance=att;deltioState.entries=entries.filter(e=>e.active!==false);deltioState.intervals=intervals;deltioState.devices=devs;
   try{deltioState.returns=await api('/production/returns?date='+date)}catch(err){deltioState.returns=[]}
   try{let [md,ty]=await Promise.all([api('/master/media?include_inactive=true'),api('/master/medium-types')]);let tn=Object.fromEntries(ty.map(t=>[t.id,t.name_el]));deltioState.mediaMap=Object.fromEntries(md.map(m=>[m.id,{code:m.code,type:tn[m.type_id]||''}]))}catch(err){}
-  $('deltioExistingNote').classList.toggle('hidden',!(att.length||deltioState.entries.length));
   renderDeltio();
+  if(window.dlStripPaint)dlStripPaint();
 }
 function deltioAttByEmp(empId){return deltioState.attendance.find(a=>a.employee_id===empId)}
 async function deltioSetAttendance(empId,patch){
@@ -8277,7 +8278,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
    <div class="mpTop"><span class="mpPill ${st[1]}" id="mpPill">${st[0]}</span><div class="mpWarn hidden" id="mpWarn"></div></div>
    <div class="mpSec"><h4>Ταυτότητα</h4>
     <div class="mpG g2"><label class="mpF">Κωδικός ERP (Galaxy)<input id="fpMatGalaxy" type="text" value="${esc(obj?.galaxy_code||'')}" autocomplete="off"></label><label class="mpF">Γένος<input id="fpMatGenre" type="text" value="${esc(obj?.genre||'')}" autocomplete="off"></label></div>
-    <div class="mpG g3"><label class="mpF">Επίσημη περιγραφή<textarea id="fpMatOfficial" rows="2">${esc(obj?.official_description||obj?.galaxy_description||obj?.internal_name||'')}</textarea></label><label class="mpF">Σύντομη περιγραφή ${Q('Προαιρετικό. Αν μείνει κενή, εμφανίζεται η επίσημη περιγραφή.')}<textarea id="fpMatShort" rows="2" placeholder="κενό → επίσημη">${esc(obj?.short_description||'')}</textarea></label><label class="mpF">Περιγραφή HER<textarea id="fpMatHer" rows="2">${esc(obj?.her_description||'')}</textarea></label></div>
+    <div class="mpG g3"><label class="mpF">Επίσημη περιγραφή<textarea id="fpMatOfficial" rows="2">${esc(obj?.official_description||obj?.galaxy_description||obj?.internal_name||'')}</textarea></label><label class="mpF">Σύντομη περιγραφή ${Q('Προαιρετικό. Αν μείνει κενή, εμφανίζεται η επίσημη περιγραφή.')}<textarea id="fpMatShort" rows="2">${esc(obj?.short_description||'')}</textarea></label><label class="mpF">Περιγραφή HER<textarea id="fpMatHer" rows="2">${esc(obj?.her_description||'')}</textarea></label></div>
    </div>
    <div class="mpSec"><h4>Ιδιότητες</h4>
     <div class="mpG g2">
@@ -13377,6 +13378,167 @@ body[data-theme="dark"] .sortingKpiCard .sortingKpiIcon{background:#1d2633!impor
   new MutationObserver(ms=>{if(ms.some(m=>m.addedNodes.length))later()}).observe(document.body,{childList:true,subtree:true});
   window.addEventListener('resize',later);setInterval(fitPres,1500);later();
   {const pv=document.getElementById('presence');if(pv&&window.ResizeObserver){const ro=new ResizeObserver(()=>fitPres());ro.observe(pv);ro.observe(document.querySelector('.content')||document.body);[...pv.children].forEach(c=>{if(c.id!=='presWrap')ro.observe(c)})}}
+})();
+</script>
+<style id="b8DlCss">
+/* B8: Δελτίο Παραγωγής — μήνας δεξιά στη γραμμή καρτελών, λωρίδα ημερών όπως στις Παραλαβές */
+/* B8: γραμμή καρτελών συνεχής σε όλο το πλάτος και κάτω από τα κουμπιά της ίδιας σειράς (ίδιος κανόνας με Παραλαβές/Αποθήκη ΑΗΗΕ/Παραγωγή/Φορτώσεις) */
+#ready .productionTop,#inventory .productionTop{box-sizing:border-box;min-height:54px;border-bottom:1px solid var(--line,#e3e5ec);align-items:center!important}
+#ready .productionTop:not(.topWrapped){height:54px}
+#master>.masterSticky.tfBar{padding-bottom:0!important;margin-bottom:12px!important;box-shadow:inset 0 -1px 0 var(--line,#e3e5ec)!important}
+#master>.masterSticky.tfBar>.tabs{border-bottom:0!important}
+/* B8: Ανάλυση παραλαβών — ο κωδικός δεν σπάει γράμμα-γράμμα σε στενό πλαίσιο (οριζόντιο scroll αντί για κομμένο κείμενο) */
+#recAnalysis #raLeftTbl :is(th,td):first-child{white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important}
+/* B8: Φόρμα Ταξινόμησης — η γραμμή κουμπιών δεν ακουμπά τη δεξιά άκρη του παραθύρου (ευθυγράμμιση με τα πλαίσια από κάτω) */
+#sortingDetail .sortingPopupHeader>.sortingPopupActions{padding-right:16px!important;box-sizing:border-box}
+/* B8: Προφίλ χρήστη — ετικέτα και τιμή σε δύο στήλες (πριν ήταν κολλημένες: «Όνομα χρήστηadmin») */
+.profileInfoRow{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line,#e3e5ec)}
+.profileInfoRow small{color:var(--fg-2,#5b6475);font-size:13px}
+.profileInfoRow b{font-size:14px;overflow-wrap:anywhere}
+#ready .productionTop>.readyGroupTabsRow,#inventory .productionTop>.readyGroupTabsRow{border-bottom:0!important;align-self:flex-end!important;height:auto!important}
+#ready .productionTop>.topRight,#inventory .productionTop>:not(.readyGroupTabsRow){align-self:center!important;border-bottom:0!important}
+#deltioPeriodBox{display:flex;align-items:center;gap:16px;align-self:center}
+#deltioPeriodBox.hidden{display:none!important}
+#production #deltioPeriodBox label.dlOnly{display:flex!important;white-space:nowrap;font-size:13px}
+#deltioDayStrip{display:grid;grid-template-columns:repeat(var(--dlN,31),minmax(30px,1fr));gap:3px;margin:0 0 12px;overflow-x:auto;padding:2px 0}
+#deltioDayStrip .receiptCalendarDay{aspect-ratio:auto;height:40px;min-width:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:13px;line-height:1;position:relative;border:1px solid var(--line,#e3e5ec)!important;background:var(--surface,#fff)!important;color:var(--fg,#1A1B20)!important}
+#deltioDayStrip .receiptCalendarDay small{font-size:9.5px;font-weight:500;opacity:.75}
+#deltioDayStrip .receiptCalendarDay.today{border-color:#2F5FC4!important}
+#deltioDayStrip .receiptCalendarDay.selected{background:#2F5FC4!important;border-color:#2F5FC4!important;color:#fff!important;box-shadow:none!important}
+#deltioDayStrip .receiptCalendarDay.selected small{color:#fff;opacity:.9}
+#deltioDayStrip .receiptCalendarDay.has::after{content:"";position:absolute;top:3px;right:3px;width:7px;height:7px;border-radius:50%;background:#2a9d8f;box-shadow:0 0 0 1.5px #fff}
+</style>
+<script id="b8DlJs">
+(function(){
+  const $=id=>document.getElementById(id);
+  if(!$('deltioDayStrip'))return;
+  const WD=['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'];
+  const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const marks={},busy={};
+  let cur=null;   // 1η ημέρα του μήνα που φαίνεται στη λωρίδα
+  const day=()=>$('deltioDate').value||deltioState.date||iso(new Date());
+  // ημέρες με δελτίο = ημέρες με καταγεγραμμένη παρουσία ή καταχωρήσεις παραγωγής (μόνο ανάγνωση)
+  async function loadMarks(ym,force){
+    if(busy[ym]||(marks[ym]&&!force))return;busy[ym]=1;
+    const [y,m]=ym.split('-').map(Number),st=ym+'-01',en=iso(new Date(y,m,0));
+    try{const [att,ent]=await Promise.all([api(`/production/attendance/range?start=${st}&end=${en}`).catch(()=>[]),api(`/production/work-entries?start=${st}&end=${en}`).catch(()=>[])]);
+      const set=new Set();(att||[]).forEach(a=>set.add(String(a.work_date||'').slice(0,10)));(ent||[]).filter(e=>e.active!==false).forEach(e=>set.add(String(e.work_date||'').slice(0,10)));
+      marks[ym]=set}finally{busy[ym]=0}
+    paint();
+  }
+  function paint(){
+    const st=$('deltioDayStrip');if(!st)return;
+    if(!cur){const d=new Date(day()+'T12:00:00');cur=new Date(d.getFullYear(),d.getMonth(),1)}
+    const y=cur.getFullYear(),m=cur.getMonth(),n=new Date(y,m+1,0).getDate(),ym=iso(cur).slice(0,7),sel=day(),td=iso(new Date()),mk=marks[ym]||new Set();
+    const t=$('deltioPeriodTitle');if(t)t.textContent=cur.toLocaleDateString('el-GR',{month:'long',year:'numeric'});
+    st.style.setProperty('--dlN',n);
+    let h='';for(let i=1;i<=n;i++){const dt=new Date(y,m,i),s=iso(dt);
+      h+=`<button type="button" class="receiptCalendarDay${mk.has(s)?' has':''}${s===td?' today':''}${s===sel?' selected':''}" data-date="${s}" title="${dt.toLocaleDateString('el-GR',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${mk.has(s)?' · υπάρχει δελτίο':''}">${i}<small>${WD[dt.getDay()]}</small></button>`}
+    st.innerHTML=h;
+    if(!marks[ym])loadMarks(ym);
+  }
+  window.dlStripPaint=()=>{const ym=day().slice(0,7);if(cur&&iso(cur).slice(0,7)!==ym)cur=null;loadMarks(ym,true);paint()};
+  $('deltioDayStrip').addEventListener('click',e=>{const b=e.target.closest('[data-date]');if(!b)return;$('deltioDate').value=b.dataset.date;deltioState.date=b.dataset.date;paint();loadDeltio()});
+  // μήνας: τα βελάκια πάνε στον προηγούμενο/επόμενο μήνα και η λωρίδα αλλάζει μαζί (επιλέγεται η σημερινή αν είναι ο τρέχων μήνας, αλλιώς η 1η)
+  function goMonth(d){cur=new Date(d.getFullYear(),d.getMonth(),1);const td=new Date(),pick=(td.getFullYear()===cur.getFullYear()&&td.getMonth()===cur.getMonth())?iso(td):iso(cur);$('deltioDate').value=pick;deltioState.date=pick;paint();loadDeltio()}
+  $('deltioPrev').onclick=()=>{if(!cur)paint();goMonth(new Date(cur.getFullYear(),cur.getMonth()-1,1))};
+  $('deltioNext').onclick=()=>{if(!cur)paint();goMonth(new Date(cur.getFullYear(),cur.getMonth()+1,1))};
+  if(typeof wirePeriodPicker==='function')wirePeriodPicker({btn:$('deltioPeriodPickerBtn'),dropdown:$('deltioPeriodDropdown'),yearsEl:$('deltioPeriodYears'),monthsEl:$('deltioPeriodMonths'),quartersEl:$('deltioPeriodQuarters'),
+    getCursor:()=>{if(!cur)paint();return cur},getPeriod:()=>'month',jumpMonth:(y,m)=>goMonth(new Date(y,m-1,1)),jumpQuarter:(y,q)=>goMonth(new Date(y,(q-1)*3,1)),jumpYear:y=>goMonth(new Date(y,0,1))});
+  {const tr=document.querySelector('#production .productionTop>.topRight');if(tr)tr.insertBefore($('deltioPeriodBox'),tr.firstChild)}
+  paint();
+})();
+</script>
+<style id="grDateCss">
+/* B8: κοινό πεδίο ημερομηνίας/ώρας σε ελληνική μορφή (13/11/2026, 24ωρη ώρα), ανεξάρτητα από τη γλώσσα του browser */
+input[data-gr-date]{font-family:inherit;font-variant-numeric:tabular-nums;cursor:pointer}
+input[data-gr-date].grBad{box-shadow:inset 0 0 0 1.5px #B42318!important}
+#grCal{position:fixed;z-index:2147483000;background:#fff;border:1px solid #D0D4E0;border-radius:10px;box-shadow:0 10px 28px rgba(20,30,50,.22);padding:10px;width:268px;font-size:13px;color:#1A1B20}
+#grCal.hidden{display:none}
+#grCal .gH{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}
+#grCal .gH b{font-size:14px}
+#grCal .gH button{width:30px;height:30px;border:1px solid #D0D4E0;border-radius:8px;background:#fff;cursor:pointer;font-size:16px;line-height:1;padding:0;color:#1A1B20}
+#grCal .gG{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+#grCal .gG small{font-size:11px;color:#6b7280;font-weight:600;padding:3px 0}
+#grCal .gG button{height:30px;border:1px solid transparent;border-radius:7px;background:#F3F5F9;cursor:pointer;font-size:13px;padding:0;color:#1A1B20}
+#grCal .gG button.o{opacity:.4}
+#grCal .gG button.t{border-color:#2F5FC4}
+#grCal .gG button.s{background:#2F5FC4;color:#fff}
+#grCal .gG button:disabled{opacity:.25;cursor:default}
+#grCal .gB{display:flex;justify-content:space-between;gap:6px;margin-top:8px}
+#grCal .gB button{flex:1;height:32px;border:1px solid #B9BDC9;border-radius:8px;background:#fff;cursor:pointer;font-size:12.5px;font-weight:600;color:#1A1B20}
+body[data-theme="dark"] #grCal{background:#17232d;color:#edf4f8;border-color:#2b3b48}
+body[data-theme="dark"] #grCal .gG button,body[data-theme="dark"] #grCal .gH button,body[data-theme="dark"] #grCal .gB button{background:#1c2a35;color:#e9f1f6;border-color:#344957}
+</style>
+<script id="grDateJs">
+// B8: κάθε input type=date / datetime-local / time γίνεται πεδίο κειμένου που ΔΕΙΧΝΕΙ ελληνική μορφή (ηη/μμ/εεεε, 24ωρη ώρα),
+// ενώ το .value που διαβάζει/γράφει ο κώδικας μένει ΙΔΙΟ με πριν (εεεε-μμ-ηη, εεεε-μμ-ηηTωω:λλ, ωω:λλ). Κλικ = ελληνικό ημερολόγιο (Δευτέρα πρώτη).
+(function(){
+  if(window._grDate)return;window._grDate=1;
+  const D=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  const p2=n=>String(n).padStart(2,'0');
+  const MN=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+  const isoD=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+  const okDate=(y,m,d)=>{const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d};
+  const K={
+    date:{show:v=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})\s*$/.exec(t||'');if(!m||!okDate(+m[3],+m[2],+m[1]))return '';return `${m[3]}-${p2(m[2])}-${p2(m[1])}`},ph:'ηη/μμ/εεεε'},
+    'datetime-local':{show:v=>{const m=/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?\s*$/.exec(t||'');if(!m||!okDate(+m[3],+m[2],+m[1]))return '';const h=+(m[4]||0),mi=+(m[5]||0);if(h>23||mi>59)return '';return `${m[3]}-${p2(m[2])}-${p2(m[1])}T${p2(h)}:${p2(mi)}`},ph:'ηη/μμ/εεεε ωω:λλ'},
+    time:{show:v=>{const m=/^(\d{2}):(\d{2})/.exec(v||'');return m?`${m[1]}:${m[2]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[:.](\d{2})\s*$/.exec(t||'');if(!m||+m[1]>23||+m[2]>59)return '';return `${p2(m[1])}:${m[2]}`},ph:'ωω:λλ'}
+  };
+  function up(inp){
+    if(inp._gr)return;const k=inp.getAttribute('type');if(!K[k])return;
+    const f=K[k],raw=D.get.call(inp);inp._gr=k;
+    inp.setAttribute('type','text');inp.dataset.grDate=k;inp.setAttribute('autocomplete','off');if(!inp.placeholder)inp.placeholder=f.ph;
+    D.set.call(inp,f.show(raw));
+    Object.defineProperty(inp,'value',{configurable:true,get(){return f.read(D.get.call(this))},set(v){D.set.call(this,f.show(v==null?'':String(v)));this.classList.remove('grBad')}});
+    if(k!=='time'){
+      Object.defineProperty(inp,'valueAsDate',{configurable:true,get(){const v=this.value;return v?new Date(v.slice(0,10)+'T00:00:00Z'):null},set(d){this.value=d?d.toISOString().slice(0,10):''}});
+      inp.showPicker=()=>openCal(inp);
+      inp.addEventListener('click',()=>openCal(inp));
+    }
+    inp.addEventListener('blur',()=>{const t=D.get.call(inp).trim();inp.classList.toggle('grBad',!!t&&!f.read(t));if(t&&f.read(t))D.set.call(inp,f.show(f.read(t)))});
+  }
+  const fire=inp=>{inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))};
+  function setDay(inp,iso){
+    if(inp._gr==='datetime-local'){const cur=inp.value,tm=cur?cur.slice(11,16):(()=>{const n=new Date();return p2(n.getHours())+':'+p2(n.getMinutes())})();inp.value=iso?iso+'T'+tm:''}
+    else inp.value=iso||'';
+    fire(inp);
+  }
+  let cal=null,tgt=null,cur=null;
+  function openCal(inp){
+    if(inp.disabled||inp.readOnly)return;
+    const v=inp.value?inp.value.slice(0,10):'';
+    // κινητό: το υπάρχον ελληνικό ημερολόγιο της εφαρμογής
+    if(typeof window.b6Cal==='function'){window.b6Cal(v||isoD(new Date()),d=>setDay(inp,d));return}
+    tgt=inp;const s=v?new Date(v+'T12:00:00'):new Date();cur=new Date(s.getFullYear(),s.getMonth(),1);
+    if(!cal){cal=document.createElement('div');cal.id='grCal';cal.className='hidden';cal.setAttribute('role','dialog');cal.setAttribute('aria-label','Ημερολόγιο');document.body.appendChild(cal);
+      cal.addEventListener('mousedown',e=>e.preventDefault());
+      cal.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();
+        if(b.dataset.n){cur=new Date(cur.getFullYear(),cur.getMonth()+Number(b.dataset.n),1);paint();return}
+        if(b.dataset.d){setDay(tgt,b.dataset.d);close();return}
+        if(b.dataset.a==='today'){setDay(tgt,isoD(new Date()));close();return}
+        if(b.dataset.a==='clear'){setDay(tgt,'');close();return}});
+      document.addEventListener('mousedown',e=>{if(cal&&!cal.classList.contains('hidden')&&!cal.contains(e.target)&&e.target!==tgt)close()},true);
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cal&&!cal.classList.contains('hidden'))close()});
+      let vw=innerWidth,vh=innerHeight;window.addEventListener('resize',()=>{if(innerWidth!==vw||innerHeight!==vh){vw=innerWidth;vh=innerHeight;close()}});   // η εφαρμογή στέλνει και τεχνητά resize: κλείνει μόνο σε πραγματική αλλαγή μεγέθους
+    }
+    paint();cal.classList.remove('hidden');place();
+  }
+  function close(){if(cal)cal.classList.add('hidden')}
+  function place(){const r=tgt.getBoundingClientRect(),h=cal.offsetHeight,w=cal.offsetWidth;let top=r.bottom+4;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-4);let left=Math.min(Math.max(8,r.left),innerWidth-w-8);cal.style.top=top+'px';cal.style.left=left+'px'}
+  function paint(){
+    const y=cur.getFullYear(),m=cur.getMonth(),st=(new Date(y,m,1).getDay()+6)%7,td=isoD(new Date()),sel=tgt.value?tgt.value.slice(0,10):'',mn=tgt.getAttribute('min')||'',mx=tgt.getAttribute('max')||'';
+    let g=['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'].map(x=>`<small>${x}</small>`).join('');
+    for(let i=0;i<42;i++){const d=new Date(y,m,1-st+i),s=isoD(d),off=(mn&&s<mn.slice(0,10))||(mx&&s>mx.slice(0,10));
+      g+=`<button type="button" data-d="${s}" class="${d.getMonth()!==m?'o ':''}${s===td?'t ':''}${s===sel?'s':''}"${off?' disabled':''}>${d.getDate()}</button>`}
+    cal.innerHTML=`<div class="gH"><button type="button" data-n="-1" aria-label="Προηγούμενος μήνας">‹</button><b>${MN[m]} ${y}</b><button type="button" data-n="1" aria-label="Επόμενος μήνας">›</button></div><div class="gG">${g}</div><div class="gB"><button type="button" data-a="today">Σήμερα</button><button type="button" data-a="clear">Καθαρισμός</button></div>`;
+  }
+  const scan=root=>{(root.querySelectorAll?root:document).querySelectorAll('input[type="date"],input[type="datetime-local"],input[type="time"]').forEach(up);if(root.matches&&root.matches('input'))up(root)};
+  scan(document);
+  new MutationObserver(ms=>{for(const m of ms){if(m.type==='attributes'){if(m.target.tagName==='INPUT')up(m.target);continue}m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)})}}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['type']});
 })();
 </script>
 </body></html>

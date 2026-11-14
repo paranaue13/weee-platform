@@ -2329,4 +2329,96 @@ body.b4Deltio #flowBar{display:none!important}
   if(vis('loads'))loadLoads();
 })();
 </script>
+<style id="grDateCss">
+/* B8: κοινό πεδίο ημερομηνίας/ώρας σε ελληνική μορφή (13/11/2026, 24ωρη ώρα), ανεξάρτητα από τη γλώσσα του browser */
+input[data-gr-date]{font-family:inherit;font-variant-numeric:tabular-nums;cursor:pointer}
+input[data-gr-date].grBad{box-shadow:inset 0 0 0 1.5px #B42318!important}
+#grCal{position:fixed;z-index:2147483000;background:#fff;border:1px solid #D0D4E0;border-radius:10px;box-shadow:0 10px 28px rgba(20,30,50,.22);padding:10px;width:268px;font-size:13px;color:#1A1B20}
+#grCal.hidden{display:none}
+#grCal .gH{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}
+#grCal .gH b{font-size:14px}
+#grCal .gH button{width:30px;height:30px;border:1px solid #D0D4E0;border-radius:8px;background:#fff;cursor:pointer;font-size:16px;line-height:1;padding:0;color:#1A1B20}
+#grCal .gG{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center}
+#grCal .gG small{font-size:11px;color:#6b7280;font-weight:600;padding:3px 0}
+#grCal .gG button{height:30px;border:1px solid transparent;border-radius:7px;background:#F3F5F9;cursor:pointer;font-size:13px;padding:0;color:#1A1B20}
+#grCal .gG button.o{opacity:.4}
+#grCal .gG button.t{border-color:#2F5FC4}
+#grCal .gG button.s{background:#2F5FC4;color:#fff}
+#grCal .gG button:disabled{opacity:.25;cursor:default}
+#grCal .gB{display:flex;justify-content:space-between;gap:6px;margin-top:8px}
+#grCal .gB button{flex:1;height:32px;border:1px solid #B9BDC9;border-radius:8px;background:#fff;cursor:pointer;font-size:12.5px;font-weight:600;color:#1A1B20}
+body[data-theme="dark"] #grCal{background:#17232d;color:#edf4f8;border-color:#2b3b48}
+body[data-theme="dark"] #grCal .gG button,body[data-theme="dark"] #grCal .gH button,body[data-theme="dark"] #grCal .gB button{background:#1c2a35;color:#e9f1f6;border-color:#344957}
+</style>
+<script id="grDateJs">
+// B8: κάθε input type=date / datetime-local / time γίνεται πεδίο κειμένου που ΔΕΙΧΝΕΙ ελληνική μορφή (ηη/μμ/εεεε, 24ωρη ώρα),
+// ενώ το .value που διαβάζει/γράφει ο κώδικας μένει ΙΔΙΟ με πριν (εεεε-μμ-ηη, εεεε-μμ-ηηTωω:λλ, ωω:λλ). Κλικ = ελληνικό ημερολόγιο (Δευτέρα πρώτη).
+(function(){
+  if(window._grDate)return;window._grDate=1;
+  const D=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  const p2=n=>String(n).padStart(2,'0');
+  const MN=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
+  const isoD=d=>d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+  const okDate=(y,m,d)=>{const x=new Date(y,m-1,d);return x.getFullYear()===y&&x.getMonth()===m-1&&x.getDate()===d};
+  const K={
+    date:{show:v=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})\s*$/.exec(t||'');if(!m||!okDate(+m[3],+m[2],+m[1]))return '';return `${m[3]}-${p2(m[2])}-${p2(m[1])}`},ph:'ηη/μμ/εεεε'},
+    'datetime-local':{show:v=>{const m=/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[ ,]+(\d{1,2}):(\d{2}))?\s*$/.exec(t||'');if(!m||!okDate(+m[3],+m[2],+m[1]))return '';const h=+(m[4]||0),mi=+(m[5]||0);if(h>23||mi>59)return '';return `${m[3]}-${p2(m[2])}-${p2(m[1])}T${p2(h)}:${p2(mi)}`},ph:'ηη/μμ/εεεε ωω:λλ'},
+    time:{show:v=>{const m=/^(\d{2}):(\d{2})/.exec(v||'');return m?`${m[1]}:${m[2]}`:''},
+          read:t=>{const m=/^\s*(\d{1,2})[:.](\d{2})\s*$/.exec(t||'');if(!m||+m[1]>23||+m[2]>59)return '';return `${p2(m[1])}:${m[2]}`},ph:'ωω:λλ'}
+  };
+  function up(inp){
+    if(inp._gr)return;const k=inp.getAttribute('type');if(!K[k])return;
+    const f=K[k],raw=D.get.call(inp);inp._gr=k;
+    inp.setAttribute('type','text');inp.dataset.grDate=k;inp.setAttribute('autocomplete','off');if(!inp.placeholder)inp.placeholder=f.ph;
+    D.set.call(inp,f.show(raw));
+    Object.defineProperty(inp,'value',{configurable:true,get(){return f.read(D.get.call(this))},set(v){D.set.call(this,f.show(v==null?'':String(v)));this.classList.remove('grBad')}});
+    if(k!=='time'){
+      Object.defineProperty(inp,'valueAsDate',{configurable:true,get(){const v=this.value;return v?new Date(v.slice(0,10)+'T00:00:00Z'):null},set(d){this.value=d?d.toISOString().slice(0,10):''}});
+      inp.showPicker=()=>openCal(inp);
+      inp.addEventListener('click',()=>openCal(inp));
+    }
+    inp.addEventListener('blur',()=>{const t=D.get.call(inp).trim();inp.classList.toggle('grBad',!!t&&!f.read(t));if(t&&f.read(t))D.set.call(inp,f.show(f.read(t)))});
+  }
+  const fire=inp=>{inp.dispatchEvent(new Event('input',{bubbles:true}));inp.dispatchEvent(new Event('change',{bubbles:true}))};
+  function setDay(inp,iso){
+    if(inp._gr==='datetime-local'){const cur=inp.value,tm=cur?cur.slice(11,16):(()=>{const n=new Date();return p2(n.getHours())+':'+p2(n.getMinutes())})();inp.value=iso?iso+'T'+tm:''}
+    else inp.value=iso||'';
+    fire(inp);
+  }
+  let cal=null,tgt=null,cur=null;
+  function openCal(inp){
+    if(inp.disabled||inp.readOnly)return;
+    const v=inp.value?inp.value.slice(0,10):'';
+    // κινητό: το υπάρχον ελληνικό ημερολόγιο της εφαρμογής
+    if(typeof window.b6Cal==='function'){window.b6Cal(v||isoD(new Date()),d=>setDay(inp,d));return}
+    tgt=inp;const s=v?new Date(v+'T12:00:00'):new Date();cur=new Date(s.getFullYear(),s.getMonth(),1);
+    if(!cal){cal=document.createElement('div');cal.id='grCal';cal.className='hidden';cal.setAttribute('role','dialog');cal.setAttribute('aria-label','Ημερολόγιο');document.body.appendChild(cal);
+      cal.addEventListener('mousedown',e=>e.preventDefault());
+      cal.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();
+        if(b.dataset.n){cur=new Date(cur.getFullYear(),cur.getMonth()+Number(b.dataset.n),1);paint();return}
+        if(b.dataset.d){setDay(tgt,b.dataset.d);close();return}
+        if(b.dataset.a==='today'){setDay(tgt,isoD(new Date()));close();return}
+        if(b.dataset.a==='clear'){setDay(tgt,'');close();return}});
+      document.addEventListener('mousedown',e=>{if(cal&&!cal.classList.contains('hidden')&&!cal.contains(e.target)&&e.target!==tgt)close()},true);
+      document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cal&&!cal.classList.contains('hidden'))close()});
+      let vw=innerWidth,vh=innerHeight;window.addEventListener('resize',()=>{if(innerWidth!==vw||innerHeight!==vh){vw=innerWidth;vh=innerHeight;close()}});   // η εφαρμογή στέλνει και τεχνητά resize: κλείνει μόνο σε πραγματική αλλαγή μεγέθους
+    }
+    paint();cal.classList.remove('hidden');place();
+  }
+  function close(){if(cal)cal.classList.add('hidden')}
+  function place(){const r=tgt.getBoundingClientRect(),h=cal.offsetHeight,w=cal.offsetWidth;let top=r.bottom+4;if(top+h>innerHeight-8)top=Math.max(8,r.top-h-4);let left=Math.min(Math.max(8,r.left),innerWidth-w-8);cal.style.top=top+'px';cal.style.left=left+'px'}
+  function paint(){
+    const y=cur.getFullYear(),m=cur.getMonth(),st=(new Date(y,m,1).getDay()+6)%7,td=isoD(new Date()),sel=tgt.value?tgt.value.slice(0,10):'',mn=tgt.getAttribute('min')||'',mx=tgt.getAttribute('max')||'';
+    let g=['Δε','Τρ','Τε','Πε','Πα','Σα','Κυ'].map(x=>`<small>${x}</small>`).join('');
+    for(let i=0;i<42;i++){const d=new Date(y,m,1-st+i),s=isoD(d),off=(mn&&s<mn.slice(0,10))||(mx&&s>mx.slice(0,10));
+      g+=`<button type="button" data-d="${s}" class="${d.getMonth()!==m?'o ':''}${s===td?'t ':''}${s===sel?'s':''}"${off?' disabled':''}>${d.getDate()}</button>`}
+    cal.innerHTML=`<div class="gH"><button type="button" data-n="-1" aria-label="Προηγούμενος μήνας">‹</button><b>${MN[m]} ${y}</b><button type="button" data-n="1" aria-label="Επόμενος μήνας">›</button></div><div class="gG">${g}</div><div class="gB"><button type="button" data-a="today">Σήμερα</button><button type="button" data-a="clear">Καθαρισμός</button></div>`;
+  }
+  const scan=root=>{(root.querySelectorAll?root:document).querySelectorAll('input[type="date"],input[type="datetime-local"],input[type="time"]').forEach(up);if(root.matches&&root.matches('input'))up(root)};
+  scan(document);
+  new MutationObserver(ms=>{for(const m of ms){if(m.type==='attributes'){if(m.target.tagName==='INPUT')up(m.target);continue}m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)})}}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['type']});
+})();
+</script>
 </body></html>
