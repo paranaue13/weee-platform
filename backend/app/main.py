@@ -4690,6 +4690,45 @@ def weee_media_detail(official_code:str, type_key:str, db:Session=Depends(get_db
     out=sorted(groups.values(),key=natural)
     return {'official_code':official_code,'type':type_name,'total':round(sum(x['kg'] for x in out),3),'media':out}
 
+@app.get('/inventory/weee/media-remaining')
+def weee_media_remaining(official_code:str, end:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), type_key:str|None=None, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """B11: Αποθήκη ΑΗΗΕ › Μέσα συλλογής — τα αριθμημένα μέσα όπου βρίσκονται τα κιλά που απομένουν για επεξεργασία (στο τέλος της περιόδου)
+    και η προέλευσή τους ανά παρτίδα (παραλαβή). Ίδιος υπολογισμός με τα κελιά του πίνακα (weee-dashboard › media): Σ κινήσεων με πρόσημο ως το τέλος της περιόδου."""
+    e=datetime.fromisoformat(end); end_dt=datetime(e.year,e.month,e.day)+timedelta(days=1)
+    cats={c.id:c for c in db.scalars(select(WEEECategory).where(WEEECategory.active==True)).all()}
+    ids={cid for cid,c in cats.items() if _weee_family_code(c)==official_code}
+    media={m.id:m for m in db.scalars(select(CollectionMedium)).all()}
+    show={t.id:t for t in db.scalars(select(CollectionMediumType)).all() if t.active and t.code!='BULK' and (t.usage or 'BOTH')!='OUT'}
+    per={}
+    rows=db.execute(select(StockMovement,WEEEStockLot,InboundLoad,InboundTrip).join(WEEEStockLot,StockMovement.lot_id==WEEEStockLot.id).join(InboundLoad,WEEEStockLot.inbound_load_id==InboundLoad.id).join(InboundTrip,InboundLoad.trip_id==InboundTrip.id).where(StockMovement.domain=='WEEE',WEEEStockLot.collection_medium_id.is_not(None),InboundTrip.deleted_at.is_(None))).all()
+    sups={}
+    for mv,lot,load,trip in rows:
+        if lot.weee_category_id not in ids: continue
+        m=media.get(lot.collection_medium_id)
+        if not m or m.type_id not in show or (type_key and m.type_id!=type_key): continue
+        ev=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
+        if ev>=end_dt: continue
+        d=per.setdefault(m.id,{'medium_id':m.id,'type_key':m.type_id,'type':show[m.type_id].name_el,'code':m.code,'kg':0.0,'moves':0,'lots':{}})
+        w=_mv_sign(mv.movement_type)*float(mv.weight or 0)
+        d['kg']+=w; d['moves']+=1
+        if load.supplier_id and load.supplier_id not in sups:
+            o=db.get(Organization,load.supplier_id); sups[load.supplier_id]=(o.trade_name or o.legal_name) if o else ''
+        c=cats.get(lot.weee_category_id)
+        L=d['lots'].setdefault(lot.id,{'at':trip.receipt_date.isoformat(),'order_number':load.order_number,'load_id':load.id,'receipt_id':trip.id,'supplier':sups.get(load.supplier_id,''),'kg':0.0,
+            'note':(f'{c.code} {c.description_el or ""}'.strip() if c and c.is_internal_subcategory else '')})
+        L['kg']+=w
+    by_type={}
+    for d in per.values(): by_type[d['type_key']]=by_type.get(d['type_key'],0.0)+d['kg']
+    out=[]
+    for d in per.values():
+        if by_type.get(d['type_key'],0)<=0.0005 or abs(d['kg'])<0.0005: continue      # ο τύπος με μηδενικό/αρνητικό σύνολο δεν φαίνεται στον πίνακα (κελί κενό)
+        lots=sorted([dict(x,kg=round(x['kg'],3)) for x in d['lots'].values() if abs(x['kg'])>=0.0005],key=lambda x:x['at'],reverse=True)
+        out.append({k:v for k,v in d.items() if k!='lots'}|{'kg':round(d['kg'],3),'lots':lots,'traced':round(sum(x['kg'] for x in lots),3)})
+    import re as _re
+    nat=lambda x:[int(q) if q.isdigit() else q.lower() for q in _re.split(r'(\d+)',str(x['code']))]
+    out.sort(key=lambda x:(x['type'],nat(x)))
+    return {'official_code':official_code,'total':round(sum(x['kg'] for x in out),3),'media':out}
+
 def _non_weee_cats(db):
     import re as _re
     return {c.id:c for c in db.scalars(select(WEEECategory)).all() if _re.fullmatch(r'\d{6}',str(c.code))}

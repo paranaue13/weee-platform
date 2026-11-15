@@ -2650,7 +2650,7 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <div id="weeeStockPane"><div class="weeeSec"><div class="weeeSecHd"><div class="weeeSecRow"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία</h3><label class="weeeSw"><input type="checkbox" id="weeeSwTot"><span class="trk"></span>Σύνολα κατηγοριών</label><label class="weeeSw"><input type="checkbox" id="weeeSwSub"><span class="trk"></span>Υποκατηγορίες</label></div></div>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeProcessTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς επεξεργασία</th><th data-wcol="done">Επεξεργασία</th><th class="hermesCol" data-wcol="herm">Επεξεργασία HERMES</th><th data-wcol="stock">Απόθεμα προς επεξεργασία</th></tr></thead><tbody id="weeeProcessRows"></tbody></table></div></div>
 <div class="weeeSec"><div class="weeeSecHd"><h3 class="weeeSecTitle">Απόθεμα προς αποστολή</h3></div>
-<div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div></div><div id="weeeMediaPane" class="hidden"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="toggleRow" id="weeeMediaOnlyWrap" style="margin-bottom:12px"><label class="toggleSwitch"><input type="checkbox" id="weeeMediaStockOnly"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span></div><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable" data-stk-skip><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable" data-stk-skip><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div></div>
+<div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div></div><div id="weeeMediaPane" class="hidden"><div class="weeeSec"><div class="weeeSecHd"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="toggleRow" id="weeeMediaOnlyWrap" style="margin-bottom:12px"><label class="toggleSwitch"><input type="checkbox" id="weeeMediaStockOnly"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span></div></div><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable" data-stk-skip><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div></div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable" data-stk-skip><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div></div>
 </section>
 <section id="production" class="view hidden">
 <div class="productionTop"><div class="productionTabs"><button class="productionTab active" data-prodtab="weee">Παραγωγή ανά ΑΗΗΕ</button><button class="productionTab" data-prodtab="people">Παραγωγή ανά Τμήμα / Άτομο</button><button class="productionTab" data-prodtab="deltio">Δελτίο Παραγωγής</button></div><div class="productionPeriod" id="productionPeriodBox"><div><label>Επιλογή περιόδου</label><div class="prodSegment"><button data-prodperiod="month" class="active">Μήνας</button><button data-prodperiod="quarter">Τρίμηνο</button><button data-prodperiod="year">Έτος</button><button type="button" id="prodRangeBtn" class="iconSeg" title="Προσαρμοσμένο διάστημα"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg></button></div></div><div class="prodPeriodNav"><button id="prodPrev">‹</button><button type="button" class="periodPickerBtn" id="prodPeriodPickerBtn"><b id="prodPeriodTitle"></b></button><button id="prodNext">›</button></div></div><div class="productionPeriod hidden" id="deltioPeriodBox"><label class="dlOnly"><span class="toggleSwitch"><input type="checkbox" id="deltioOnly"><span class="slider"></span></span>Μόνο ενεργά</label><div class="prodPeriodNav"><button type="button" id="deltioPrev">‹</button><button type="button" class="periodPickerBtn" id="deltioPeriodPickerBtn"><b id="deltioPeriodTitle"></b></button><button type="button" id="deltioNext">›</button></div></div></div>
@@ -7079,7 +7079,7 @@ async function renderWeeeMedia(){let rows=weeeLastProcessRows||[],s=weeeLastMedi
  if($('weeeMediaStockOnly')&&$('weeeMediaStockOnly').checked)types=types.filter(t=>rows.some(x=>Number((by[x.official_code]||{})[t.key])>0));   // «Μόνο με διαθέσιμο απόθεμα»: κρύβονται οι στήλες μέσων χωρίς απόθεμα στην επιλεγμένη περίοδο· Κωδικός/Περιγραφή/Απόθεμα/Χύμα μένουν πάντα
  $('weeeMediaHead').innerHTML=`<tr><th>Κωδικός</th><th class="weeeDescHeader">Περιγραφή</th><th>Απόθεμα προς επεξεργασία</th>${types.map(t=>`<th>${esc(t.name)}</th>`).join('')}<th>Χύμα / χωρίς μέσο</th></tr>`;bindWeeeDescHeader('weeeMediaHead');
  $('weeeMediaRows').innerHTML=rows.map(x=>{let f=by[x.official_code]||{},desc=(typeof weeeDescModeFor==='function'&&weeeDescModeFor('weee')==='her'&&x.herDescription)?x.herDescription:x.description;
-  return `<tr class="materialRow"><td><b>${esc(x.official_code)}</b></td><td class="weeeDescCell" data-official="${esc(x.description)}" data-her="${esc(x.herDescription||'')}">${esc(desc)}</td><td>${blankKg(x.stock_process)}</td>${types.map(t=>Number(f[t.key])?`<td class="mediaKg" data-code="${esc(x.official_code)}" data-desc="${esc(desc)}" data-type="${esc(t.key)}" data-tname="${esc(t.name)}">${blankKg(f[t.key])}</td>`:'<td></td>').join('')}<td>${blankKg(f.NONE)}</td></tr>`}).join('')||`<tr><td colspan="${4+types.length}" class="muted">Δεν υπάρχουν υλικά προς επεξεργασία.</td></tr>`;
+  return `<tr class="materialRow"><td><b>${esc(x.official_code)}</b></td><td class="weeeDescCell" data-official="${esc(x.description)}" data-her="${esc(x.herDescription||'')}">${esc(desc)}</td>${Number(x.stock_process)?`<td class="mediaKg" data-code="${esc(x.official_code)}" data-desc="${esc(desc)}" data-type="" data-tname="Απόθεμα προς επεξεργασία">${blankKg(x.stock_process)}</td>`:'<td></td>'}${types.map(t=>Number(f[t.key])?`<td class="mediaKg" data-code="${esc(x.official_code)}" data-desc="${esc(desc)}" data-type="${esc(t.key)}" data-tname="${esc(t.name)}">${blankKg(f[t.key])}</td>`:'<td></td>').join('')}<td>${blankKg(f.NONE)}</td></tr>`}).join('')||`<tr><td colspan="${4+types.length}" class="muted">Δεν υπάρχουν υλικά προς επεξεργασία.</td></tr>`;
  document.querySelectorAll('#weeeMediaRows .mediaKg').forEach(td=>td.onclick=()=>openMediaKg(td.dataset.code,td.dataset.desc,td.dataset.type,td.dataset.tname))}
 if($('weeeMediaStockOnly'))$('weeeMediaStockOnly').onchange=()=>renderWeeeMedia();
 async function openMediaKg(code,desc,typeKey,typeName){openFloat(`${code} · ${desc} — ${typeName}`,'<div class="muted">Φόρτωση...</div>');
@@ -13609,6 +13609,39 @@ body[data-theme="dark"] #grCal .gG button,body[data-theme="dark"] #grCal .gH but
   bind('weeeProcessRows','weeeProcessTable');bind('weeeShipRows','weeeShipTable');
   // κάθε τίτλος παραθύρου που κόβεται με «…» φαίνεται ολόκληρος ως tooltip
   if(typeof openFloat==='function'){const _of=openFloat;openFloat=function(title){const r=_of.apply(this,arguments);try{const t=$('floatingEditorTitle');if(t)t.title=t.textContent}catch(e){}return r}}
+})();
+</script>
+<style id="b11MediaCss">
+/* B11: Αποθήκη ΑΗΗΕ › Μέσα συλλογής — παράθυρο «μέσα και προέλευση» */
+#weeeMediaRows td.mediaKg{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}
+.b11MedT tbody tr{cursor:pointer}
+.b11MedT tbody tr.sel td{background:var(--hover,#eaf0fd)!important;font-weight:700}
+.b11MedT tbody tr.bulk{cursor:default;color:var(--muted,#5b6475)}
+.b11MedH{margin:14px 0 6px;font-size:15px;font-weight:700}
+</style>
+<script id="b11MediaJs">
+(function(){
+  const $=id=>document.getElementById(id);
+  // πάτημα σε κελί (υλικό × μέσο ή «Απόθεμα προς επεξεργασία») → πάνω τα μέσα όπου βρίσκονται τα κιλά που απομένουν, κάτω η προέλευση του επιλεγμένου μέσου
+  openMediaKg=async function(code,desc,typeKey,typeName){
+    const r=weeeRange();openFloat(`${code} · ${desc} — ${typeName}`,'<div class="muted">Φόρτωση...</div>');
+    try{
+      const d=await api(`/inventory/weee/media-remaining?official_code=${encodeURIComponent(code)}&end=${r.endISO}`+(typeKey?`&type_key=${encodeURIComponent(typeKey)}`:''));
+      const ms=d.media;let total=d.total,bulk=null;
+      if(!typeKey){const row=(weeeLastProcessRows||[]).find(x=>x.official_code===code),f=((weeeLastMedia||{}).by_code||{})[code]||{};total=Number(row?row.stock_process:d.total);bulk=Number(f.NONE||0)}
+      const name=m=>`${esc(m.type)} ${esc(m.code)}`;
+      const top=`<div class="notice"><b>Απομένουν για επεξεργασία: ${kg(total)}</b> · σε ${ms.length} ${ms.length===1?'μέσο':'μέσα'}</div>`+
+        `<div class="tablewrap"><table class="b9Moves b11MedT"><thead><tr><th>Μέσο συλλογής</th><th class="n">Κιλά</th><th class="n">Κινήσεις</th></tr></thead><tbody>${
+          ms.map((m,i)=>`<tr data-i="${i}"${i===0?' class="sel"':''}><td>${name(m)}</td><td class="n">${kg(m.kg)}</td><td class="n">${m.moves}</td></tr>`).join('')
+          +(bulk?`<tr class="bulk"><td>Χύμα / χωρίς μέσο</td><td class="n">${kg(bulk)}</td><td class="n"></td></tr>`:'')
+          ||'<tr><td colspan="3" class="muted">Κανένα μέσο συλλογής.</td></tr>'}</tbody></table></div><div id="b11MedSrc"></div>`;
+      $('floatingEditorBody').innerHTML=top;
+      const show=i=>{const m=ms[i],box=$('b11MedSrc');if(!m||!box){if(box)box.innerHTML='';return}
+        box.innerHTML=`<div class="b11MedH">Προέλευση · ${name(m)}</div>`+weeeMovesTable(m.lots.map(x=>({at:x.at,order_number:x.order_number,load_id:x.load_id,receipt_id:x.receipt_id,supplier:x.supplier,kg:x.kg,note:x.note})))};
+      $('floatingEditorBody').querySelectorAll('.b11MedT tbody tr[data-i]').forEach(tr=>tr.onclick=()=>{
+        $('floatingEditorBody').querySelectorAll('.b11MedT tbody tr.sel').forEach(x=>x.classList.remove('sel'));tr.classList.add('sel');show(+tr.dataset.i)});
+      show(0);
+    }catch(e){$('floatingEditorBody').innerHTML=`<div class="error">${esc(e.message)}</div>`}};
 })();
 </script>
 </body></html>
