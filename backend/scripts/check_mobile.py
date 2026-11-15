@@ -1,4 +1,4 @@
-"""Έλεγχος οθόνης Android (/mobile) σε 360/412/800px: όλες οι ενότητες και βασικά βήματα.
+"""Έλεγχος οθόνης Android (/mobile) σε 360/412/800/900px (900 = tablet): όλες οι ενότητες και βασικά βήματα.
 Εντοπίζει: οριζόντια υπερχείλιση, στοιχεία εκτός οθόνης, κομμένα κείμενα κουμπιών, επικαλύψεις. Τυπώνει ΜΟΝΟ προβλήματα, αλλιώς «0 προβλήματα».
 Χρήση (ΜΟΝΟ σε server με αντίγραφο δεδομένων): python check_mobile.py http://127.0.0.1:8024"""
 import sys, os
@@ -20,7 +20,7 @@ JS=r"""()=>{const out=[],iw=innerWidth,de=document.documentElement;
   const A=a.getBoundingClientRect(),B=b.getBoundingClientRect(),w=Math.min(A.right,B.right)-Math.max(A.left,B.left),h=Math.min(A.bottom,B.bottom)-Math.max(A.top,B.top);
   if(w>3&&h>3&&!(a.closest('#b4Nav')&&!b.closest('#b4Nav'))&&!(b.closest('#b4Nav')&&!a.closest('#b4Nav'))){const k=tx(a)+'|'+tx(b);if(!ov.has(k)){ov.add(k);out.push('επικάλυψη «'+tx(a)+'» / «'+tx(b)+'»')}}}
  return out}"""
-steps=[('Παραλαβές',None),('Παραλαβές ▸ ημέρα',"document.querySelector('#loadList [data-open]')?.click()"),
+steps=[('Παραλαβές',None),('Παραλαβές ▸ ημέρα',"document.querySelector('#loadList [data-open]')?.click()"),('Παραλαβές ▸ προηγούμενη ημέρα με παραλαβές',"(async()=>{const m=document.querySelector('#loadList .b6Mon [data-mon=\"-1\"]');if(m){m.click();await new Promise(r=>setTimeout(r,1200));const d=[...document.querySelectorAll('#b6Strip button[class*=stg-]')].pop();if(d)d.click()}})()"),
  ('Παραγωγή',"document.querySelector('#b4Nav [data-b4s=production]').click()"),('Παραγωγή ▸ τμήμα',"document.querySelector('#flowArea [data-k=unit]')?.click()"),
  ('Παραγωγή ▸ ΜΕΣΟ',"document.querySelector('.flStart[data-f=m]').click()"),('Παραγωγή ▸ ΑΗΗΕ',"document.querySelector('.flStart[data-f=a]').click()"),
  ('Υλικά',"document.querySelector('#b4Nav [data-b4s=materials]').click()"),('Υλικά ▸ κατηγορία',"document.querySelector('#matArea [data-cat]')?.click()"),('Υλικά ▸ υλικό',"document.querySelector('#matArea [data-mat]')?.click()"),('Υλικά ▸ παλέτα',"document.querySelector('#matArea [data-form=PALLET]')?.click()"),
@@ -29,8 +29,8 @@ steps=[('Παραλαβές',None),('Παραλαβές ▸ ημέρα',"documen
 total=0
 with sync_playwright() as p:
     b = launch(p)
-    for W in (360,412,800):
-        pg = b.new_page(viewport={'width': W, 'height': 800}, is_mobile=True, has_touch=True)
+    for W in (360,412,800,900):
+        pg = b.new_page(viewport={'width': W, 'height': 800 if W < 850 else 1300}, is_mobile=True, has_touch=True)
         pg.on('pageerror', lambda e: print('pageerror', str(e)[:200]))
         pg.goto(BASE+'/mobile', wait_until='networkidle'); pg.click('#loginBtn'); pg.wait_for_selector('#app:not(.hidden)'); pg.wait_for_timeout(5000)
         for name,js in steps:

@@ -2159,9 +2159,9 @@ body.b4Deltio #flowBar{display:none!important}
 .b6Crumbs span{color:#8a93a3;font-weight:700}
 .b6Hid{display:none!important}
 #matArea .mtLblRow{display:block!important}
-#matArea .mtSw{display:grid!important;grid-template-columns:1fr 1fr;gap:8px;width:100%;height:auto!important;min-height:0!important;margin:6px 0 8px!important;border:0!important;background:transparent!important;overflow:visible!important;padding:0!important}
-#matArea .mtSw button{border:1px solid #B9BDC9!important;background:#fff!important;color:#1A1B20!important}
-#matArea .mtSw button.on{background:#2F5FC4!important;border-color:#2F5FC4!important;color:#fff!important}
+#matArea .mtSw:not(.mtWhBar .mtSw){display:grid!important;grid-template-columns:1fr 1fr;gap:8px;width:100%;height:auto!important;min-height:0!important;margin:6px 0 8px!important;border:0!important;background:transparent!important;overflow:visible!important;padding:0!important}
+#matArea .mtSw button{border:1px solid #D9CEB8!important;background:#FEFCFF!important;color:#1A1B20!important}
+#matArea .mtSw button.on{background:#144A52!important;border-color:#144A52!important;color:#fff!important}
 #matArea .mtSw button{height:46px;min-height:46px;width:100%;font-size:14px;font-weight:700;border-radius:9px;margin:0}
 #matArea .mtFields input#mtGross,#matArea .mtFields input#mtNet,#matArea .mtFields input#mtTotal,#matArea .mtFields input#mtTare{font-size:26px;height:60px;font-weight:700;text-align:right;padding:0 14px}
 #mtSend,#mtNewWeigh{position:sticky;bottom:calc(var(--b4-nav,64px) + 8px);z-index:6;box-shadow:0 4px 14px rgba(20,30,50,.18)}
@@ -2201,7 +2201,7 @@ body.b4Deltio #flowBar{display:none!important}
     if(!R.month)R.month=R.day.slice(0,7);
     await month(R.month,force);
     if(R.day.slice(0,7)!==R.month)await month(R.day.slice(0,7),force);
-    R.rows=loadDay?await api('/sorting/available?day='+loadDay):[];
+    R.rows=loadDay?await api('/sorting/day-loads?day='+loadDay):[];   // B10: όλες οι παραλαβές της ημέρας, live κάθε φορά (χωρίς cache)
   }
   const dayInfo=d=>(R.sum[d.slice(0,7)]||{})[d]||null;
   function cardsHtml(d){
@@ -2222,9 +2222,7 @@ body.b4Deltio #flowBar{display:none!important}
       h+=`<button type="button" data-d="${d}" class="${x&&x.cls?x.cls+' ':''}${open[d]?'open ':''}${d===today?'td ':''}${d===R.day?'sel':''}">${i}<small>${WD[dt.getDay()]}</small></button>`}
     h+='</div>'+`<div class="b6DayT">${esc(dayTitle(R.day))}</div>`+cardsHtml(R.day);
     if(loadDay){
-      const rows=R.rows.filter(x=>localISODate(new Date(x.receipt_date))===loadDay),groups=[['CONTAINER','CONTAINER'],['CURTAIN_TRAILER','ΚΑΡΟΤΣΑ'],['SMALL_POINTS','ΜΙΚΡΑ ΣΗΜΕΙΑ']];
-      const tile=x=>`<button class="btn tile listCard" style="width:100%;margin:7px 0" data-id="${x.load_id}">${loadCardHtml(x)}</button>`;
-      h+=`<div class="b6ListT">Ανοιχτές παραλαβές της ημέρας</div>`+(groups.map(([t,title])=>{let g=rows.filter(x=>x.receipt_type===t);return g.length?`<div class="groupHead">${title} (${g.length})</div>`+g.map(tile).join(''):''}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
+      h+=window.b10DayList?b10DayList(R.rows):'';
     }else{
       if(!open[R.day])h+='<div class="muted" style="margin:0 0 10px">Καμία ανοιχτή παραλαβή την επιλεγμένη ημέρα.</div>';
       h+=`<div class="b6ListT">Ημέρες με ανοιχτές παραλαβές (${R.open.length})</div>`+(R.open.map(o=>{const p=o.kg>0?o.sk/o.kg*100:0;
@@ -2235,7 +2233,7 @@ body.b4Deltio #flowBar{display:none!important}
   }
   window.b6RcvRender=render;
   loadLoads=async function(force){try{await data(force===true)}catch(e){const b=$('loadList');if(b&&!Object.keys(R.sum).length)b.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}render()};
-  const pickDay=d=>{R.day=d;R.month=d.slice(0,7);loadDay=R.open.some(o=>o.day===d)?d:null;R.rows=[];render();window.scrollTo(0,0);loadLoads()};
+  const pickDay=d=>{R.day=d;R.month=d.slice(0,7);loadDay=d;R.rows=null;render();window.scrollTo(0,0);loadLoads()};
   $('loadList').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.mon){const [y,m]=R.month.split('-').map(Number),d=new Date(y,m-1+Number(b.dataset.mon),1);R.month=iso(d).slice(0,7);loadLoads();return}
@@ -2419,6 +2417,261 @@ body[data-theme="dark"] #grCal .gG button,body[data-theme="dark"] #grCal .gH but
   const scan=root=>{(root.querySelectorAll?root:document).querySelectorAll('input[type="date"],input[type="datetime-local"],input[type="time"]').forEach(up);if(root.matches&&root.matches('input'))up(root)};
   scan(document);
   new MutationObserver(ms=>{for(const m of ms){if(m.type==='attributes'){if(m.target.tagName==='INPUT')up(m.target);continue}m.addedNodes.forEach(n=>{if(n.nodeType===1)scan(n)})}}).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['type']});
+})();
+</script>
+<style id="b10Css">
+/* ===== B10: Android — χρώματα, κεφαλίδα, μπάρα καρτελών, tablet, επεξεργασία διάταξης (τελευταίο στρώμα) ===== */
+:root{--b10-dark:#022539;--b10-teal:#2A7F87;--b10-milk:#FEFCFF;--b10-beige:#EEE4D0;--b10-orange:#DA6F01;--b10-pine:#144A52;--b10-line:#D9CEB8;--b4-blue:#144A52;--b4-blue-h:#0f3a40}
+html,body,#app{background:var(--b10-beige)!important;background-image:none!important}
+.wrap{background:transparent!important}
+/* μεγάλη επιφάνεια: τα πλαίσια δεν «σκεπάζουν» το μπεζ */
+#app .card{background:transparent!important;border:0!important;box-shadow:none!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}
+/* ίδιο περιθώριο 10px από την άκρη σε όλες τις οθόνες (τίποτα κολλημένο στις άκρες) */
+#app>:not(.top){padding-left:10px!important;padding-right:10px!important;box-sizing:border-box}
+#app :is(#secProduction,#secMaterials,#work,#loads,#deltioPanel,#secLoading)>*{margin-left:0!important;margin-right:0!important}
+/* πλαίσια με λίστες (Εργαζόμενοι, Ιστορικά): milk white, ώστε οι γραμμές να μην ακουμπούν την άκρη της οθόνης */
+#app :is(#dlMain,.card:has(#prodTodayList),.card:has(#matHist),.card:has(#dlHist),.card:has(#deltioSummary),.card:has(#entries)){background:var(--b10-milk)!important;border:1px solid var(--b10-line)!important;border-radius:12px;padding-left:10px!important;padding-right:10px!important}
+/* κεφαλίδα: 1η σειρά ώρα · χρήστης στο κέντρο · SERVER + ⟳ · 2η σειρά ‹ ΠΙΣΩ · ΠΙΡΟΥΝΙΑ · ΕΡΓΑΖΟΜΕΝΟΙ */
+#app .topDark{background:var(--b10-dark)!important;grid-template-columns:auto auto 1fr auto auto!important;grid-template-rows:30px 38px!important;column-gap:8px!important;padding:6px 10px 8px!important}
+.topDark .tdClock{grid-column:1/3!important;grid-row:1!important;justify-self:start}
+.topDark #who{grid-column:1/-1!important;grid-row:1!important;justify-self:center;color:#e8eef2!important;pointer-events:none}
+.topDark #net{grid-column:4!important;grid-row:1!important;justify-self:end!important}
+.topDark #refreshBtn{grid-column:5!important;grid-row:1!important}
+.topDark #b4Back{grid-column:1!important;grid-row:2!important;height:36px;min-height:36px;width:84px;flex:none;margin:0!important;border:1px solid rgba(255,255,255,.45)!important;background:transparent!important;color:#fff!important;border-radius:9px;font-size:13px;font-weight:700}
+.topDark #b4Back:disabled{opacity:.3}
+.topDark #b4ModeBtn{grid-column:2!important;grid-row:2!important;justify-self:start!important;background:var(--b10-teal)!important;color:#fff!important;height:36px!important;min-height:36px!important}
+.topDark #b4ModeBtn:active{background:#236b72!important}
+.topDark #topDeltioBtn{grid-column:3/6!important;grid-row:2!important;justify-self:end!important;height:36px!important;min-height:36px!important}
+#b4Title{display:none!important}
+/* μπάρα καρτελών κάτω από την κεφαλίδα */
+#b10Tabs{background:var(--b10-milk);border-bottom:2px solid var(--b10-orange);padding:8px 10px}
+#b10Tabs.empty{display:none}
+#app #b10Tabs>.b10Off{display:none!important}
+#b10Tabs .sectionBar,#b10Tabs .two{display:grid!important;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+#b10Tabs .sectionBar>button,#b10Tabs .two>button,#b10Tabs .b10Mon button{min-height:46px!important;height:auto!important;margin:0!important}
+#b10Tabs .b10Mon{display:grid;grid-template-columns:48px 1fr 48px;gap:8px}
+#b10Tabs .b10Mon button{border:1px solid var(--b10-line);border-radius:9px;background:var(--b10-milk);color:#1A1B20;font-size:17px;font-weight:700;padding:0}
+#b10Tabs .b10Mon button.l{font-size:16px}
+#loadList .b6Mon{display:none!important}
+/* κάτω μπάρα πλοήγησης */
+#b4Nav{background:var(--b10-milk)!important;border-top:2px solid var(--b10-orange)!important}
+#b4Nav button.on{color:var(--b10-pine)!important}
+#b4Nav button.on::before{background:var(--b10-pine)!important}
+/* κουμπιά / πλακάκια: μη επιλεγμένα milk white με ανοιχτό περίγραμμα · επιλεγμένο Pine Blue */
+#app :is(.btn.alt,.btn.choice,.btn.tile,.flOpt,.flKind,.mtCat,.mtMatBtn,.mtForm,.b6Open,.b6Past,.b4WhMat,.listCard,.b10Card),#app .b6Strip button:not([class*="stg-"]),#b10Tabs .btn{background:var(--b10-milk)!important;border:1px solid var(--b10-line)!important;color:#1A1B20!important}
+#app :is(.btn.on,.btn.choice.on,.flOpt.on,.flKind.on,.mtCat.on,.mtMatBtn.on,.mtForm.on,.dlSt.on),#b10Tabs .btn.on,#b10Tabs .btn.choice.on{background:var(--b10-pine)!important;border-color:var(--b10-pine)!important;color:#fff!important}
+#app :is(.btn.on,.flOpt.on,.mtCat.on,.mtMatBtn.on) :is(small,b,span){color:#fff!important}
+#app .mtCat.haz,#app .mtCat.haz.on{box-shadow:none!important}
+#app .mtCat.haz:not(.on){background:var(--b10-milk)!important;border-color:var(--b10-line)!important;color:#1A1B20!important}
+/* χωρίς τίτλους καρτέλας / ενότητας πάνω από τις επιλογές, χωρίς δεύτερο κουμπί «πίσω» */
+#app .flLbl:is(:has(+ .mtCats),:has(+ .flOpts),:has(+ #mtSearch),:has(+ .mtForms)){display:none!important}
+#work #back{display:none!important}
+#deltioPanel .card>.row.space>h2{visibility:hidden}
+/* Παραλαβές ημέρας: κάρτες (κινητό) / πίνακας (tablet) */
+.b10Card{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;width:100%;text-align:left;padding:10px 12px;margin:0 0 8px;border-radius:10px}
+.b10Card .o{font-size:16px;font-weight:800}.b10Card .c{font-size:13px;color:#3d4657;text-align:right}
+.b10Card .s{grid-column:1/-1;font-size:14px;font-weight:600}.b10Card .m{grid-column:1/2;font-size:13px;color:#3d4657}
+.b10Card .go{grid-column:2;grid-row:3/5;align-self:end}
+.b10Go{min-height:40px!important;height:40px;padding:0 12px!important;border:0!important;border-radius:9px;background:var(--b10-pine)!important;color:#fff!important;font-size:13px!important;font-weight:800!important;white-space:nowrap;margin:0!important}
+.b10TblWrap{width:100%;overflow-x:auto;background:var(--b10-milk);border:1px solid var(--b10-line);border-radius:10px}
+.b10Tbl{width:100%;border-collapse:collapse;font-size:14.5px;table-layout:auto}
+.b10Tbl td{overflow-wrap:normal;word-break:normal;hyphens:none}.b10Tbl td:first-child{white-space:nowrap}
+.b10Tbl th{text-align:left;font-size:13px;font-weight:700;color:#3d4657;padding:10px 8px;border-bottom:2px solid var(--b10-line);white-space:nowrap}
+.b10Tbl td{padding:10px 8px;border-bottom:1px solid #ece4d4;vertical-align:middle}
+.b10Tbl td.b{white-space:nowrap;text-align:right;overflow-wrap:normal}
+.b10Tbl tr:last-child td{border-bottom:0}
+/* επεξεργασία διάταξης (πάτημα και κράτημα) */
+.b10Edit :is([data-cat],[data-mat],[data-k="unit"],.b10WhGrp>.b4WhCat){outline:2px dashed var(--b10-orange)!important;outline-offset:-2px;touch-action:none;user-select:none;-webkit-user-select:none}
+.b10Edit .b10Drag{opacity:.55}
+:is(.mtCats,.mtMats,.flOpts,.b4Wh) :is(button,[data-sel],.b4WhCat){-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#b10EditBar{position:fixed;left:0;right:0;bottom:calc(var(--b4-nav,64px) + env(safe-area-inset-bottom));z-index:40;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px;background:var(--b10-milk);border-top:2px solid var(--b10-orange)}
+#b10EditBar.hidden{display:none}
+#b10EditBar button{min-height:48px;border-radius:10px;font-size:15px;font-weight:800;margin:0}
+#b10EditBar .r{background:var(--b10-milk);border:1px solid var(--b10-line);color:#1A1B20}
+#b10EditBar .d{background:var(--b10-pine);border:0;color:#fff}
+.b10WhGrp>.b4WhCat{cursor:pointer}
+.b10WhGrp>.b4WhCat .b10Arr{display:none;gap:6px;margin-left:8px}
+.b10Edit .b10WhGrp>.b4WhCat .b10Arr{display:inline-flex}
+.b10Arr button{width:38px;height:34px;min-height:34px;border:1px solid var(--b10-line);border-radius:8px;background:var(--b10-milk);font-size:15px;padding:0;margin:0}
+.b10WhGrp.shut>:not(.b4WhCat){display:none!important}
+.b10WhGrp>.b4WhCat::after{content:"▾";margin-left:8px;color:#3d4657}
+.b10WhGrp.shut>.b4WhCat::after{content:"▸"}
+/* στενή οθόνη: η ετικέτα «Εργαζόμενος» πάνω από το κουμπί, ώστε να φαίνεται ολόκληρο το όνομα και το «ΑΛΛΑΓΗ» */
+@media (max-width:400px){.b6Emp{flex-wrap:wrap}.b6Emp>label{flex-basis:100%;max-width:none!important}.b6Emp>#prodEmpBtn{flex-basis:100%}}
+/* ---- TABLET (~870–900 CSS px) ---- */
+@media (min-width:840px){
+  .wrap{max-width:none!important}
+  #app>:not(.top){padding-left:16px!important;padding-right:16px!important}
+  #app .topDark{grid-template-rows:36px 48px!important;padding:8px 16px 10px!important}
+  .topDark .tdClock{font-size:19px!important}
+  .topDark #who{font-size:17px!important}
+  .topDark :is(#b4Back,#b4ModeBtn,#topDeltioBtn){height:44px!important;min-height:44px!important;font-size:16px!important}
+  .topDark #b4Back{width:110px!important}.topDark #b4ModeBtn{width:170px!important}
+  #b10Tabs{padding:10px 16px}
+  #b10Tabs .sectionBar>button,#b10Tabs .two>button,#b10Tabs .b10Mon button{min-height:56px!important;font-size:17px!important}
+  #app :is(.mtCats,.flOpts){grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+  #app .mtMats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px!important;max-height:none!important}
+  #app :is(.mtCat,.flOpt,.mtMatBtn,.mtForm){min-height:76px!important;font-size:18px!important}
+  #app .mtCat b{font-size:19px!important}#app .mtCat small,#app .flOpt small{font-size:15px!important}
+  #app :is(.btn,button,input,select){font-size:16px}
+  #app :is(label,.muted,.ptItem,.b6Open .n){font-size:15px}
+  :root{--b4-nav:78px}
+  #b4Nav button{font-size:14px!important;gap:5px!important}
+  #b4Nav svg{width:30px!important;height:30px!important}
+  .b10Tbl{font-size:15px}
+}
+</style>
+<script id="b10Js">
+(function(){
+  const $=id=>document.getElementById(id);
+  if(!$('b4Nav')||window._b10)return;window._b10=1;
+  const top=document.querySelector('#app .top'),dark=document.querySelector('#app .topDark');
+  // ---- κεφαλίδα: το «‹ ΠΙΣΩ» μπαίνει στη 2η σειρά (ένα μόνο κουμπί πίσω, πάντα στο ίδιο σημείο) ----
+  if(dark&&$('b4Back'))dark.appendChild($('b4Back'));
+  // ---- μπάρα καρτελών κάτω από την κεφαλίδα ----
+  const strip=document.createElement('div');strip.id='b10Tabs';strip.className='empty';
+  if(top)top.appendChild(strip);
+  const flowBar=$('flowBar'),matBar=$('matBar'),dlTabs=$('deltioEmpBtn')&&$('deltioEmpBtn').parentElement;
+  const mon=document.createElement('div');mon.className='b10Mon';
+  mon.innerHTML='<button type="button" data-d="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="l" data-c="1"></button><button type="button" data-d="1" aria-label="Επόμενος μήνας">›</button>';
+  mon.onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=document.querySelector(b.dataset.d?`#loadList .b6Mon [data-mon="${b.dataset.d}"]`:'#loadList .b6Mon [data-cal]');if(t)t.click()};
+  const vis=e=>!!e&&!e.classList.contains('hidden')&&getComputedStyle(e).display!=='none';
+  function want(){
+    if(document.body.classList.contains('b4Deltio')||vis($('deltioPanel'))&&!vis($('prodTransferPanel')))return dlTabs;
+    if(currentSection==='production')return flowBar;
+    if(currentSection==='materials')return matBar;
+    if(currentSection==='receiving'&&!vis($('work'))&&document.querySelector('#loadList .b6Mon'))return mon;
+    return null;
+  }
+  let shown=null;
+  function sync(){
+    const w=want();
+    if(w===mon){const l=document.querySelector('#loadList .b6Mon .b6MonL');const t=l?l.textContent:'';if(mon.children[1].textContent!==t)mon.children[1].textContent=t}
+    if(w===shown)return;shown=w;
+    [flowBar,matBar,dlTabs,mon].forEach(x=>{if(x&&x.parentElement===strip)x.classList.add('b10Off')});
+    if(w){if(w.parentElement!==strip)strip.appendChild(w);w.classList.remove('b10Off')}
+    strip.classList.toggle('empty',!w);
+  }
+  setInterval(sync,250);new MutationObserver(()=>sync()).observe(document.getElementById('app'),{subtree:true,attributes:true,attributeFilter:['class']});sync();
+
+  // ---- Παραλαβές ημέρας: κάρτες (κινητό) / πίνακας (tablet), κουμπί «ΤΑΞΙΝΟΜΗΣΗ ›» ----
+  const tablet=()=>matchMedia('(min-width:840px)').matches;
+  window.b10DayList=function(rows){
+    if(rows===null)return '<div class="muted" style="margin:8px 0">Φόρτωση…</div>';
+    if(!rows||!rows.length)return '<div class="muted" style="margin:8px 0">Δεν υπάρχουν παραλαβές αυτή την ημέρα.</div>';
+    const o=x=>esc(x.order_number||x.receipt_number||'—'),go=x=>`<button type="button" class="b10Go" data-id="${x.load_id}">ΤΑΞΙΝΟΜΗΣΗ ›</button>`;
+    if(tablet())return '<div class="b10TblWrap"><table class="b10Tbl"><thead><tr><th>Εντολή</th><th>Αποστολέας</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th><th></th></tr></thead><tbody>'
+      +rows.map(x=>`<tr><td><b>${o(x)}</b></td><td>${esc(x.sender||x.supplier||'—')}</td><td>${esc(x.city||'—')}</td><td>${esc(x.carrier||'—')}</td><td>${esc(x.collection_medium||'—')}</td><td class="b">${go(x)}</td></tr>`).join('')+'</tbody></table></div>';
+    return rows.map(x=>`<div class="b10Card"><span class="o">${o(x)}</span><span class="c">${esc(x.city||'—')}</span><span class="s">${esc(x.sender||x.supplier||'—')}</span><span class="m">${esc(x.collection_medium||'—')}</span><span class="go">${go(x)}</span></div>`).join('');
+  };
+
+  // ---- ΕΠΕΞΕΡΓΑΣΙΑ ΔΙΑΤΑΞΗΣ: πάτημα και κράτημα ~0,6 sec → διακεκομμένο πορτοκαλί περίγραμμα, σύρσιμο, ΕΠΑΝΑΦΟΡΑ / ΤΕΛΟΣ ----
+  // Η σειρά αποθηκεύεται στη συσκευή, ανά χρήστη.
+  const who=()=>($('who')&&$('who').textContent.trim())||'_';
+  const K=list=>'b10ord:'+who()+':'+list;
+  const load=list=>{try{return JSON.parse(localStorage.getItem(K(list))||'null')}catch(e){return null}};
+  const save=(list,keys)=>{try{localStorage.setItem(K(list),JSON.stringify(keys))}catch(e){}};
+  const clear=list=>{try{localStorage.removeItem(K(list))}catch(e){}};
+  // λίστες: (α) Εξαγωγή 1ο/2ο βήμα, (γ) Παραγωγή 1ο βήμα (Τμήμα)
+  const LISTS=[
+    {id:'expCats',box:()=>mt&&mt.tab==='export'&&mt.w&&mt.w.step===1&&document.querySelector('#matArea .mtCats'),item:'[data-cat]',key:e=>e.dataset.cat},
+    {id:()=>'expMats:'+(mt&&mt.w&&mt.w.cat),box:()=>mt&&mt.tab==='export'&&mt.w&&mt.w.step===2&&document.querySelector('#matArea .mtMats'),item:'[data-mat]',key:e=>e.dataset.mat},
+    {id:'prodUnits',box:()=>currentSection==='production'&&typeof fl!=='undefined'&&fl.f==='d'&&document.querySelector('#flowArea .flOpts:has([data-k="unit"])'),item:'[data-k="unit"]',key:e=>e.dataset.v}
+  ];
+  const lid=L=>typeof L.id==='function'?L.id():L.id;
+  function applyOrder(L,box){
+    const items=[...box.querySelectorAll(':scope>'+L.item)];if(items.length<2)return;
+    box.dataset.b10Orig=box.dataset.b10Orig||JSON.stringify(items.map(L.key));
+    const ord=load(lid(L));if(!ord)return;
+    const pos=k=>{const i=ord.indexOf(k);return i<0?1e6:i};
+    const sorted=items.slice().sort((a,b)=>pos(L.key(a))-pos(L.key(b))||items.indexOf(a)-items.indexOf(b));
+    if(sorted.every((e,i)=>e===items[i]))return;
+    const marks=items.map(e=>{const c=document.createComment('');e.before(c);return c});
+    marks.forEach((c,i)=>c.replaceWith(sorted[i]));
+  }
+  let edit=null;   // {L,box}
+  const bar=document.createElement('div');bar.id='b10EditBar';bar.className='hidden';
+  bar.innerHTML='<button type="button" class="r">ΕΠΑΝΑΦΟΡΑ</button><button type="button" class="d">ΤΕΛΟΣ</button>';document.body.appendChild(bar);
+  function enter(L,box){edit={L,box};box.classList.add('b10Edit');bar.classList.remove('hidden');if(navigator.vibrate)try{navigator.vibrate(30)}catch(e){}}
+  function exit(){if(edit)edit.box.classList.remove('b10Edit');edit=null;bar.classList.add('hidden')}
+  bar.querySelector('.d').onclick=exit;
+  bar.querySelector('.r').onclick=()=>{if(!edit)return;const {L,box}=edit;
+    if(L.wh){clear('whCats');whApply(true);return}
+    clear(lid(L));const orig=JSON.parse(box.dataset.b10Orig||'[]');const items=[...box.querySelectorAll(':scope>'+L.item)];
+    const sorted=items.slice().sort((a,b)=>orig.indexOf(L.key(a))-orig.indexOf(L.key(b)));const marks=items.map(e=>{const c=document.createComment('');e.before(c);return c});marks.forEach((c,i)=>c.replaceWith(sorted[i]))};
+  // πάτημα και κράτημα
+  let lp=null,swallow=false;
+  function findList(t){for(const L of LISTS){const box=L.box();if(box&&box.contains(t)){const it=t.closest(L.item);if(it&&it.parentElement===box)return {L,box,it}}}const w=whFind(t);return w}
+  document.addEventListener('pointerdown',e=>{
+    if(edit){dragStart(e);return}
+    const f=findList(e.target);if(!f)return;
+    const x0=e.clientX,y0=e.clientY;
+    lp={t:setTimeout(()=>{lp=null;swallow=true;enter(f.L,f.box)},600),x0,y0};
+  },true);
+  document.addEventListener('pointermove',e=>{if(lp&&Math.hypot(e.clientX-lp.x0,e.clientY-lp.y0)>10){clearTimeout(lp.t);lp=null}if(drag)dragMove(e)},true);
+  const end=()=>{if(lp){clearTimeout(lp.t);lp=null}if(drag)dragEnd()};
+  document.addEventListener('pointerup',end,true);document.addEventListener('pointercancel',end,true);
+  document.addEventListener('contextmenu',e=>{if(findList(e.target)||edit)e.preventDefault()},true);
+  // στην επεξεργασία (και αμέσως μετά το κράτημα) τα κλικ στα πλακάκια ΔΕΝ επιλέγουν
+  document.addEventListener('click',e=>{
+    if(swallow){swallow=false;e.preventDefault();e.stopPropagation();return}
+    if(edit&&edit.box.contains(e.target)&&!e.target.closest('.b10Arr')){e.preventDefault();e.stopPropagation()}
+  },true);
+  // σύρσιμο: το στοιχείο μπαίνει πριν/μετά από αυτό που βρίσκεται κάτω από το δάχτυλο (σωστό και προς τις δύο κατευθύνσεις)
+  let drag=null;
+  function dragStart(e){if(!edit||edit.L.wh)return;const it=e.target.closest(edit.L.item);if(!it||it.parentElement!==edit.box)return;drag={it};it.classList.add('b10Drag');try{it.setPointerCapture(e.pointerId)}catch(x){}e.preventDefault()}
+  function dragMove(e){
+    const {box,L}=edit,el=document.elementFromPoint(e.clientX,e.clientY),t=el&&el.closest(L.item);
+    if(e.clientY<90)window.scrollBy(0,-12);else if(e.clientY>innerHeight-150)window.scrollBy(0,12);
+    if(!t||t===drag.it||t.parentElement!==box)return;
+    const sib=[...box.querySelectorAll(':scope>'+L.item)];
+    if(sib.indexOf(drag.it)<sib.indexOf(t))t.after(drag.it);else t.before(drag.it);
+  }
+  function dragEnd(){if(!drag)return;drag.it.classList.remove('b10Drag');drag=null;const {L,box}=edit;save(lid(L),[...box.querySelectorAll(':scope>'+L.item)].map(L.key))}
+
+  // ---- (β) Αποθήκη: κατηγορίες ως ομάδες· πάτημα στην κατηγορία κρύβει/δείχνει τα υλικά της· στην επεξεργασία ▲▼ ----
+  const WH={wh:true,id:'whCats',item:'.b10WhGrp'};
+  const shutK=()=>'b10whShut:'+who();
+  const shutGet=()=>{try{return new Set(JSON.parse(localStorage.getItem(shutK())||'[]'))}catch(e){return new Set()}};
+  const shutSet=s=>{try{localStorage.setItem(shutK(),JSON.stringify([...s]))}catch(e){}};
+  function whBox(){return mt&&mt.tab==='stock'&&document.querySelector('#matArea .b4Wh')}
+  function whFind(t){const box=whBox();if(!box||!box.contains(t))return null;const c=t.closest('.b10WhGrp');return c?{L:WH,box,it:c}:null}
+  function whApply(reset){
+    const box=whBox();if(!box)return;
+    if(!box.querySelector('.b10WhGrp')){
+      let g=null;[...box.children].forEach(ch=>{
+        if(ch.classList.contains('b4WhCat')){g=document.createElement('div');g.className='b10WhGrp';g.dataset.key=(ch.querySelector('span')||ch).textContent.trim();ch.before(g);g.appendChild(ch);
+          ch.insertAdjacentHTML('beforeend','<span class="b10Arr"><button type="button" data-up="1" aria-label="Πάνω">▲</button><button type="button" data-up="0" aria-label="Κάτω">▼</button></span>')}
+        else if(g&&!ch.classList.contains('b4WhTot'))g.appendChild(ch);
+      });
+      box.dataset.b10Orig=JSON.stringify([...box.querySelectorAll(':scope>.b10WhGrp')].map(x=>x.dataset.key));
+    }
+    const grps=[...box.querySelectorAll(':scope>.b10WhGrp')],ord=reset?JSON.parse(box.dataset.b10Orig||'[]'):(load('whCats')||[]);
+    const pos=k=>{const i=ord.indexOf(k);return i<0?1e6:i};
+    const sorted=grps.slice().sort((a,b)=>pos(a.dataset.key)-pos(b.dataset.key)||grps.indexOf(a)-grps.indexOf(b));
+    if(!sorted.every((e,i)=>e===grps[i])){const marks=grps.map(e=>{const c=document.createComment('');e.before(c);return c});marks.forEach((c,i)=>c.replaceWith(sorted[i]))}
+    const sh=shutGet();grps.forEach(x=>x.classList.toggle('shut',sh.has(x.dataset.key)));
+    if(edit&&edit.L.wh){edit.box=box;box.classList.add('b10Edit')}
+  }
+  document.addEventListener('click',e=>{
+    const box=whBox();if(!box||!box.contains(e.target))return;
+    const arr=e.target.closest('.b10Arr button');
+    if(arr){e.preventDefault();e.stopPropagation();const g=arr.closest('.b10WhGrp');
+      if(arr.dataset.up==='1'){const p=g.previousElementSibling;if(p&&p.classList.contains('b10WhGrp'))p.before(g)}else{const n=g.nextElementSibling;if(n&&n.classList.contains('b10WhGrp'))n.after(g)}
+      save('whCats',[...box.querySelectorAll(':scope>.b10WhGrp')].map(x=>x.dataset.key));return}
+    const cat=e.target.closest('.b10WhGrp>.b4WhCat');
+    if(cat&&!edit){const g=cat.parentElement,sh=shutGet();g.classList.toggle('shut');if(g.classList.contains('shut'))sh.add(g.dataset.key);else sh.delete(g.dataset.key);shutSet(sh)}
+  });
+  // κάθε νέα σχεδίαση των λιστών: εφαρμογή της αποθηκευμένης σειράς
+  let busy=false;
+  function refresh(){if(busy)return;busy=true;try{
+    for(const L of LISTS){const box=L.box();if(box)applyOrder(L,box);if(edit&&!edit.L.wh&&lid(edit.L)===lid(L)&&box&&box!==edit.box){edit.box=box;box.classList.add('b10Edit')}}
+    if(whBox())whApply(false);
+    if(edit&&!edit.box.isConnected)exit();
+  }finally{busy=false}}
+  ['matArea','flowArea'].forEach(id=>{const el=$(id);if(el)new MutationObserver(()=>{if(!busy)requestAnimationFrame(refresh)}).observe(el,{childList:true,subtree:true})});
+  document.querySelectorAll('#b4Nav button,.matStart,.flStart').forEach(b=>b.addEventListener('click',()=>{if(edit)exit()}));
+  refresh();
 })();
 </script>
 </body></html>

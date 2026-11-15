@@ -3089,6 +3089,33 @@ def sorting_start(load_id:str, db:Session=Depends(get_db), user:User=Depends(req
     write_audit(db,user,'sorting_session',ses.id,'START',new={'load_id':load_id}); db.commit()
     return schemas.SortingStartOut(id=ses.id,inbound_load_id=load.id,status=ses.status)
 
+@app.get('/sorting/day-loads')
+def sorting_day_loads(day:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
+    """B10 (Android): ΟΛΕΣ οι παραλαβές μιας ημέρας (και προηγούμενων), live από τον server -- ίδια πεδία με το /sorting/available
+    και επιπλέον Αποστολέας / Πόλη / Μέσο συλλογής από τη ζωντανή ροή (Electrocycle) όπου υπάρχει για τον αριθμό εντολής. Μόνο ανάγνωση."""
+    d0=datetime.fromisoformat(day); d1=d0+timedelta(days=1)
+    CarrierOrg=aliased(Organization)
+    rows=db.execute(select(InboundLoad,InboundTrip,SortingSession,Organization,CarrierOrg)
+        .join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
+        .outerjoin(SortingSession,SortingSession.inbound_load_id==InboundLoad.id)
+        .outerjoin(Organization,Organization.id==InboundLoad.supplier_id)
+        .outerjoin(CarrierOrg,CarrierOrg.id==InboundTrip.carrier_id)
+        .where(InboundTrip.deleted_at.is_(None),InboundTrip.receipt_date>=d0,InboundTrip.receipt_date<d1)
+        .order_by(InboundTrip.receipt_date,InboundLoad.dpp_number,InboundLoad.order_number)).all()
+    nos=[l.order_number for l,*_ in rows if l.order_number]
+    feed={}
+    if nos:
+        for f in db.scalars(select(ElectrocycleOrder).where(ElectrocycleOrder.order_no.in_(nos)).order_by(ElectrocycleOrder.source_date)).all(): feed[f.order_no]=f
+    nm=lambda o:(o.trade_name or o.legal_name) if o else ''
+    out=[]
+    for l,t,ses,sup,car in rows:
+        f=feed.get(l.order_number or '')
+        st=(ses.status if ses else l.status) or t.status or 'DRAFT'
+        out.append({'load_id':l.id,'receipt_id':t.id,'receipt_number':t.receipt_number,'receipt_type':t.receipt_type,'receipt_date':t.receipt_date.isoformat(),
+          'supplier':nm(sup),'carrier_id':t.carrier_id,'carrier':nm(car),'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,
+          'net_weight':float(l.net_weight or 0),'status':st,'sender':(f.sender if f else None) or nm(sup),'city':f.city if f else None,'collection_medium':f.collection_medium if f else None})
+    return out
+
 @app.get('/sorting/review-queue')
 def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     # Windows history/review must show every real inbound load, not only submitted sessions.
