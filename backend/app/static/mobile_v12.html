@@ -2207,7 +2207,7 @@ body.b4Deltio #flowBar{display:none!important}
   function cardsHtml(d){
     const x=dayInfo(d),T=x?x.types:{};
     const one=(t,name,v,tot)=>{const p=v.kg>0?v.sk/v.kg*100:0;
-      return `<div class="b6Card${tot?' tot':''}"><span class="ic">${ICN[t]}</span><b>${name}</b><span>${v.n} · ${kgS(v.kg)} kg</span><div class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></div><small>Ταξ. ${pctS(p)}</small></div>`};
+      return `<div class="b6Card${tot?' tot':''}${(R.flt||'TOT')===t?' sel':''}" data-flt="${t}" role="button" tabindex="0" aria-pressed="${(R.flt||'TOT')===t}"><span class="ic">${ICN[t]}</span><b>${name}</b><span>${v.n} · ${kgS(v.kg)} kg</span><div class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></div><small>Ταξ. ${pctS(p)}</small></div>`};
     const vs=TYPES.map(([t])=>T[t]||{n:0,kg:0,sk:0}),tot=vs.reduce((a,v)=>({n:a.n+v.n,kg:a.kg+v.kg,sk:a.sk+v.sk}),{n:0,kg:0,sk:0});
     return '<div class="b6Cards">'+TYPES.map(([t,n],i)=>one(t,n,vs[i])).join('')+one('TOT','Σύνολο ημέρας',tot,true)+'</div>';
   }
@@ -2234,7 +2234,10 @@ body.b4Deltio #flowBar{display:none!important}
   window.b6RcvRender=render;
   loadLoads=async function(force){try{await data(force===true)}catch(e){const b=$('loadList');if(b&&!Object.keys(R.sum).length)b.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}render()};
   const pickDay=d=>{R.day=d;R.month=d.slice(0,7);loadDay=d;R.rows=null;render();window.scrollTo(0,0);loadLoads()};
+  window.b6PickDay=pickDay;
   $('loadList').addEventListener('click',e=>{
+    const fc=e.target.closest('.b6Card[data-flt]');   // B11: τα 4 pills = φίλτρο τύπου φορτίου (Σύνολο ημέρας = όλες)
+    if(fc){R.flt=fc.dataset.flt;if(loadDay===R.day&&R.rows)render();else pickDay(R.day);return}
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.mon){const [y,m]=R.month.split('-').map(Number),d=new Date(y,m-1+Number(b.dataset.mon),1);R.month=iso(d).slice(0,7);loadLoads();return}
     if(b.dataset.cal){b6Cal(R.day,d=>pickDay(d),async mo=>{const x=await month(mo);const o={};Object.entries(x).forEach(([d,v])=>{if(v.cls)o[d]=v.cls});return o});return}
@@ -2445,6 +2448,14 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
 #b4Title{display:none!important}
 /* μπάρα καρτελών κάτω από την κεφαλίδα */
 #b10Tabs{background:var(--b10-milk);border-bottom:2px solid var(--b10-orange);padding:8px 10px}
+/* B11: κεφαλίδα και μπάρες σε όλο το πλάτος της οθόνης (χωρίς κενό αριστερά/δεξιά σε καμία οθόνη) */
+html{overflow-x:clip}
+#app>.top{margin-left:calc(50% - 50vw)!important;margin-right:calc(50% - 50vw)!important;width:auto!important;padding-left:0!important;padding-right:0!important}
+/* B11: λωρίδα ημερών μέσα στη μπάρα, κάτω από τον μήνα */
+#b10Tabs .b10Days #b6Strip{margin:8px 0 0!important;padding:0 0 2px!important}
+/* B11: pills = φίλτρο· το επιλεγμένο με Pine Blue περίγραμμα */
+#loadList .b6Card[data-flt]{cursor:pointer;border:2px solid transparent;-webkit-tap-highlight-color:transparent}
+#loadList .b6Card[data-flt].sel{border-color:var(--b10-pine)}
 #b10Tabs.empty{display:none}
 #app #b10Tabs>.b10Off{display:none!important}
 #b10Tabs .sectionBar,#b10Tabs .two{display:grid!important;grid-auto-flow:column;grid-auto-columns:1fr;gap:8px;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
@@ -2454,7 +2465,11 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
 #b10Tabs .b10Mon button.l{font-size:16px}
 #loadList .b6Mon{display:none!important}
 /* κάτω μπάρα πλοήγησης */
-#b4Nav{background:var(--b10-milk)!important;border-top:2px solid var(--b10-orange)!important}
+#b4Nav{background:var(--b10-milk)!important;border-top:2px solid var(--b10-orange)!important;box-shadow:none!important}
+/* B11: λίγο ψηλότερη κάτω μπάρα, μεγαλύτερα εικονίδια και γράμματα */
+:root{--b4-nav:72px}
+#b4Nav button{font-size:13px!important;gap:4px!important}
+#b4Nav button svg{width:28px!important;height:28px!important}
 #b4Nav button.on{color:var(--b10-pine)!important}
 #b4Nav button.on::before{background:var(--b10-pine)!important}
 /* κουμπιά / πλακάκια: μη επιλεγμένα milk white με ανοιχτό περίγραμμα · επιλεγμένο Pine Blue */
@@ -2496,6 +2511,12 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
 .b10WhGrp.shut>:not(.b4WhCat){display:none!important}
 .b10WhGrp>.b4WhCat::after{content:"▾";margin-left:8px;color:#3d4657}
 .b10WhGrp.shut>.b4WhCat::after{content:"▸"}
+/* B11: πλαίσιο επιλεγμένου στοιχείου (Τμήμα …, Μέσο …, Εργαζόμενος …) Pine Blue με λευκά γράμματα, «ΑΛΛΑΓΗ» milk white με Pine Blue γράμματα */
+#app .flPicked{background:var(--b10-pine)!important;color:#fff!important}
+#app .flPicked small{color:#fff!important;opacity:.85}
+#app .flPicked button{background:var(--b10-milk)!important;color:var(--b10-pine)!important;border:0!important}
+#app .b6Emp>#prodEmpBtn{background:var(--b10-pine)!important;border-color:var(--b10-pine)!important;color:#fff!important}
+#app .b6Emp>#prodEmpBtn::after{background:var(--b10-milk);color:var(--b10-pine);border-radius:7px;padding:5px 9px;font-weight:800}
 /* στενή οθόνη: η ετικέτα «Εργαζόμενος» πάνω από το κουμπί, ώστε να φαίνεται ολόκληρο το όνομα και το «ΑΛΛΑΓΗ» */
 @media (max-width:400px){.b6Emp{flex-wrap:wrap}.b6Emp>label{flex-basis:100%;max-width:none!important}.b6Emp>#prodEmpBtn{flex-basis:100%}}
 /* ---- TABLET (~870–900 CSS px) ---- */
@@ -2515,9 +2536,9 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
   #app .mtCat b{font-size:19px!important}#app .mtCat small,#app .flOpt small{font-size:15px!important}
   #app :is(.btn,button,input,select){font-size:16px}
   #app :is(label,.muted,.ptItem,.b6Open .n){font-size:15px}
-  :root{--b4-nav:78px}
-  #b4Nav button{font-size:14px!important;gap:5px!important}
-  #b4Nav svg{width:30px!important;height:30px!important}
+  :root{--b4-nav:86px}
+  #b4Nav button{font-size:15px!important;gap:6px!important}
+  #b4Nav button svg{width:34px!important;height:34px!important}
   .b10Tbl{font-size:15px}
 }
 </style>
@@ -2532,9 +2553,15 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
   const strip=document.createElement('div');strip.id='b10Tabs';strip.className='empty';
   if(top)top.appendChild(strip);
   const flowBar=$('flowBar'),matBar=$('matBar'),dlTabs=$('deltioEmpBtn')&&$('deltioEmpBtn').parentElement;
-  const mon=document.createElement('div');mon.className='b10Mon';
-  mon.innerHTML='<button type="button" data-d="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="l" data-c="1"></button><button type="button" data-d="1" aria-label="Επόμενος μήνας">›</button>';
-  mon.onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=document.querySelector(b.dataset.d?`#loadList .b6Mon [data-mon="${b.dataset.d}"]`:'#loadList .b6Mon [data-cal]');if(t)t.click()};
+  const mon=document.createElement('div');mon.className='b10Rcv';
+  mon.innerHTML='<div class="b10Mon"><button type="button" data-d="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="l" data-c="1"></button><button type="button" data-d="1" aria-label="Επόμενος μήνας">›</button></div><div class="b10Days"></div>';
+  mon.firstChild.onclick=e=>{const b=e.target.closest('button');if(!b)return;const t=document.querySelector(b.dataset.d?`#loadList .b6Mon [data-mon="${b.dataset.d}"]`:'#loadList .b6Mon [data-cal]');if(t)t.click()};
+  // B11: η λωρίδα ημερών μπαίνει κάτω από τον μήνα, μέσα στην ίδια milk white μπάρα
+  const days=mon.lastChild;
+  const centerDay=s=>{const sel=s&&s.querySelector('.sel');if(sel)s.scrollLeft=Math.max(0,sel.offsetLeft-s.clientWidth/2+sel.offsetWidth/2)};
+  days.onclick=e=>{const b=e.target.closest('button[data-d]');if(b&&window.b6PickDay)b6PickDay(b.dataset.d)};
+  function moveDays(){const s=document.querySelector('#loadList #b6Strip');if(!s)return;days.replaceChildren(s);centerDay(s)}
+  if($('loadList'))new MutationObserver(moveDays).observe($('loadList'),{childList:true});moveDays();
   const vis=e=>!!e&&!e.classList.contains('hidden')&&getComputedStyle(e).display!=='none';
   function want(){
     if(document.body.classList.contains('b4Deltio')||vis($('deltioPanel'))&&!vis($('prodTransferPanel')))return dlTabs;
@@ -2546,11 +2573,12 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
   let shown=null;
   function sync(){
     const w=want();
-    if(w===mon){const l=document.querySelector('#loadList .b6Mon .b6MonL');const t=l?l.textContent:'';if(mon.children[1].textContent!==t)mon.children[1].textContent=t}
+    if(w===mon){const l=document.querySelector('#loadList .b6Mon .b6MonL');const t=l?l.textContent:'';const ml=mon.querySelector('.l');if(ml.textContent!==t)ml.textContent=t}
     if(w===shown)return;shown=w;
     [flowBar,matBar,dlTabs,mon].forEach(x=>{if(x&&x.parentElement===strip)x.classList.add('b10Off')});
     if(w){if(w.parentElement!==strip)strip.appendChild(w);w.classList.remove('b10Off')}
     strip.classList.toggle('empty',!w);
+    if(w===mon)centerDay(days.querySelector('#b6Strip'));
   }
   setInterval(sync,250);new MutationObserver(()=>sync()).observe(document.getElementById('app'),{subtree:true,attributes:true,attributeFilter:['class']});sync();
 
@@ -2559,10 +2587,14 @@ html,body,#app{background:var(--b10-beige)!important;background-image:none!impor
   window.b10DayList=function(rows){
     if(rows===null)return '<div class="muted" style="margin:8px 0">Φόρτωση…</div>';
     if(!rows||!rows.length)return '<div class="muted" style="margin:8px 0">Δεν υπάρχουν παραλαβές αυτή την ημέρα.</div>';
-    const o=x=>esc(x.order_number||x.receipt_number||'—'),go=x=>`<button type="button" class="b10Go" data-id="${x.load_id}">ΤΑΞΙΝΟΜΗΣΗ ›</button>`;
-    if(tablet())return '<div class="b10TblWrap"><table class="b10Tbl"><thead><tr><th>Εντολή</th><th>Αποστολέας</th><th>Πόλη</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th><th></th></tr></thead><tbody>'
-      +rows.map(x=>`<tr><td><b>${o(x)}</b></td><td>${esc(x.sender||x.supplier||'—')}</td><td>${esc(x.city||'—')}</td><td>${esc(x.carrier||'—')}</td><td>${esc(x.collection_medium||'—')}</td><td class="b">${go(x)}</td></tr>`).join('')+'</tbody></table></div>';
-    return rows.map(x=>`<div class="b10Card"><span class="o">${o(x)}</span><span class="c">${esc(x.city||'—')}</span><span class="s">${esc(x.sender||x.supplier||'—')}</span><span class="m">${esc(x.collection_medium||'—')}</span><span class="go">${go(x)}</span></div>`).join('');
+    const f=(window.b6R&&b6R.flt)||'TOT';if(f!=='TOT')rows=rows.filter(x=>x.receipt_type===f);
+    if(!rows.length)return '<div class="muted" style="margin:8px 0">Καμία παραλαβή για αυτόν τον τύπο φορτίου.</div>';
+    // B11: χωρίς κωδικό μητρώου «(ΠΡ…)/(ΠΕ…)/(πρ…)» στα ονόματα, χωρίς «—» όπου δεν υπάρχει τιμή
+    const nm=v=>esc(String(v||'').replace(/\s*\((?:ΠΡ|ΠΕ|Πρ|Πε|πρ|πε)\s*\d+\)/g,'').trim());
+    const o=x=>esc(x.order_number||x.receipt_number||''),go=x=>`<button type="button" class="b10Go" data-id="${x.load_id}">ΤΑΞΙΝΟΜΗΣΗ ›</button>`;
+    if(tablet())return '<div class="b10TblWrap"><table class="b10Tbl"><thead><tr><th>Εντολή</th><th>Αποστολέας</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th><th></th></tr></thead><tbody>'
+      +rows.map(x=>`<tr><td><b>${o(x)}</b></td><td>${nm(x.sender||x.supplier)}</td><td>${nm(x.carrier)}</td><td>${esc(x.collection_medium||'')}</td><td class="b">${go(x)}</td></tr>`).join('')+'</tbody></table></div>';
+    return rows.map(x=>`<div class="b10Card"><span class="o">${o(x)}</span><span class="s">${nm(x.sender||x.supplier)}</span>${x.collection_medium?`<span class="m">${esc(x.collection_medium)}</span>`:''}<span class="go">${go(x)}</span></div>`).join('');
   };
 
   // ---- ΕΠΕΞΕΡΓΑΣΙΑ ΔΙΑΤΑΞΗΣ: πάτημα και κράτημα ~0,6 sec → διακεκομμένο πορτοκαλί περίγραμμα, σύρσιμο, ΕΠΑΝΑΦΟΡΑ / ΤΕΛΟΣ ----
