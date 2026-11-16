@@ -31,7 +31,7 @@ CHECK = """(sel)=>{
   if(wr.right>pr.right+1||wr.left<pr.left-1)bad.push('πίνακας '+nm(t)+': βγαίνει έξω από το '+nm(p));
  });
  root.querySelectorAll('.card').forEach(c=>{
-  if(!vis(c)||c.closest('.hidden'))return;
+  if(!vis(c)||c.closest('.hidden')||c.matches('.tfBar'))return;   // B18: η κοινή μπάρα καρτελών απλώνει σκόπιμα ως τις άκρες
   const p=c.parentElement;if(!p||sib(c))return;const pr=R(p),cr=R(c),cs=getComputedStyle(p);
   if(c.scrollWidth>c.clientWidth+2&&getComputedStyle(c).overflowX==='visible'&&c.scrollWidth>cr.width+2)bad.push('κάρτα '+nm(c)+': περιεχόμενο κομμένο δεξιά');
   const L=cr.left-pr.left-parseFloat(cs.paddingLeft||0)-parseFloat(cs.borderLeftWidth||0),Rr=pr.right-cr.right-parseFloat(cs.paddingRight||0)-parseFloat(cs.borderRightWidth||0);

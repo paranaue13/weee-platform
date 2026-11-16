@@ -13849,10 +13849,9 @@ html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:
 </script>
 <style id="b15Css">
 /* ===== B15 (1): μπάρα καρτελών, κάρτες και πίνακες ως τις άκρες (από την πλαϊνή μπάρα ως το δεξί άκρο), όπως η κεφαλίδα της σελίδας ===== */
-.main>.content,body.pane .main>.content{padding-left:0!important;padding-right:0!important}
+/* B18: το κενό της σελίδας επανήλθε (μόνο η μπάρα καρτελών απλώνει ως τις άκρες, βλ. b18Css) */
 html[data-mode] .content :is(#master,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#dashboard) .tfBar{border-radius:0!important}
 /* B15 (1): στοιχεία που δεν έχουν δικό τους πλαίσιο (τίτλοι, διακόπτες, ημερομηνία) κρατούν 10px από τις άκρες, ίδια με το εσωτερικό κενό της μπάρας */
-.content #weee .weeeSecHd,.content #homeDate,.content :is(#receiptMonthSummary,#loadingOvPanel)>:is(.ovHead,.ovHint),.content .productionTools,.content #readyStockOnlyWrap,.content #readyPressPeriodLabel,.content #inventory .toolbar:has(#invActiveOnlyToggle),.content #invStockPanel>.invSBar{box-sizing:border-box;padding-left:10px!important;padding-right:10px!important}
 /* B15 (3): τα κουμπιά δεξιά κάθονται στο ίδιο ύψος από τη γραμμή σε όλες τις σελίδες (Υλικά/Απογραφή είχαν 6px επιπλέον από κάτω) */
 .content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar>.tfR{margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
 /* B15 (2): Αποθήκη ΑΗΗΕ — οι κάρτες δεν επιλέγονται: καμία κάρτα δεν φαίνεται επιλεγμένη */
@@ -13919,4 +13918,21 @@ html[data-mode="light"][data-pal] :is(#floatingEditor,#receiptForm,#sortingDetai
 .content .tfBar>.tfR{transform:translateY(calc(26px / var(--tfz,1) - 24px))}
 .content .tfBar>.tfR .prodPeriodNav{align-items:center!important}
 </style>
+<style id="b18Css">
+/* B18 (διορθώνει το B15-1): μόνο η μπάρα καρτελών με τη γραμμή της φτάνει από την πλαϊνή μπάρα ως το δεξί άκρο· όλο το υπόλοιπο περιεχόμενο κρατά το κενό της σελίδας όπως πριν το B15 */
+html .main>.content :is(#master,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#dashboard) .tfBar{margin-left:calc(-1 * var(--b18L,0px) / var(--pz,1))!important;margin-right:calc(-1 * var(--b18R,0px) / var(--pz,1))!important;width:auto!important;max-width:none!important}
+/* η σελίδα (.view) έχει content-visibility:auto, που κόβει ό,τι βγαίνει έξω της· αφήνουμε να φαίνεται μόνο όσο το κενό της σελίδας, για τη μπάρα */
+html .main>.content>.view{overflow-clip-margin:var(--b18M,0px)}
+</style>
+<script id="b18Js">
+/* B18: το κενό της σελίδας (αριστερά/δεξιά) για να απλώνει μόνο η μπάρα καρτελών ως τις άκρες */
+(function(){
+  function fit(){document.querySelectorAll('.main>.content').forEach(c=>{const cs=getComputedStyle(c);c.style.setProperty('--b18L',cs.paddingLeft);c.style.setProperty('--b18R',cs.paddingRight);const pz=(window.pzOf?pzOf():1)||1;c.style.setProperty('--b18M',(Math.ceil(Math.max(parseFloat(cs.paddingLeft)||0,parseFloat(cs.paddingRight)||0)/pz)+1)+'px')})}
+  let q=0;const req=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;fit()})};
+  window.addEventListener('resize',req);
+  new MutationObserver(req).observe(document.documentElement,{attributes:true,attributeFilter:['style','class','data-pal','data-mode']});
+  new MutationObserver(req).observe(document.body,{attributes:true,attributeFilter:['class','style']});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',req);else req();
+})();
+</script>
 </body></html>
