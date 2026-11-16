@@ -3946,7 +3946,7 @@ def sorting_photo_delete(photo_id:str, db:Session=Depends(get_db), user:User=Dep
     """Το αρχείο πηγαίνει στον Κάδο ανακύκλωσης των Windows (δεν σβήνεται οριστικά)."""
     from . import docs_storage
     obj=db.get(models.FileAttachment,photo_id)
-    if not obj or obj.entity_type!='INBOUND_LOAD': raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
+    if not obj or obj.entity_type not in ('INBOUND_LOAD','LOADING_ORDER'): raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
     path=Path(obj.stored_path); old={'load_id':obj.entity_id,'category':obj.category,'filename':obj.filename}
     if path.exists() and not docs_storage.to_recycle_bin(path):
         raise HTTPException(500,'Δεν μπόρεσα να στείλω τη φωτογραφία στον Κάδο ανακύκλωσης· δεν διαγράφηκε.')
@@ -3968,10 +3968,73 @@ def sorting_photo_file(photo_id:str, token:str=Query(default=''), db:Session=Dep
     except Exception:
         raise HTTPException(401,'Μη εξουσιοδοτημένη πρόσβαση')
     obj=db.get(models.FileAttachment,photo_id)
-    if not obj or obj.entity_type!='INBOUND_LOAD': raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
+    if not obj or obj.entity_type not in ('INBOUND_LOAD','LOADING_ORDER'): raise HTTPException(404,'Η φωτογραφία δεν βρέθηκε')
     path=Path(obj.stored_path)
     if not path.exists(): raise HTTPException(404,'Το αρχείο φωτογραφίας δεν βρέθηκε')
     return FileResponse(path,media_type=obj.content_type or 'application/octet-stream',filename=obj.filename)
+
+# ===== B19 (6): φωτογραφίες φορτώσεων — ίδιος μηχανισμός με τις παραλαβές (Φωτογραφίες/Φορτώσεις/<έτος>/<μήνας>/<ημέρα>/<container ή αριθμός φόρτωσης>) =====
+def _loading_photo_dir(db,o,create=True):
+    from . import docs_storage
+    root=docs_storage.photos_root()
+    for p in db.scalars(select(FileAttachment.stored_path).where(FileAttachment.entity_type=='LOADING_ORDER',FileAttachment.entity_id==o.id)).all():
+        d=Path(p).parent
+        if str(d).lower().startswith(str(root).lower()) and d.exists(): return d
+    day=None
+    try:
+        if o.delivery_date: day=datetime.strptime(str(o.delivery_date)[:10],'%Y-%m-%d')
+    except Exception: day=None
+    if not day and getattr(o,'created_at',None):
+        c=o.created_at; day=(c.replace(tzinfo=timezone.utc) if c.tzinfo is None else c).astimezone()   # τοπική ημέρα (η βάση κρατά UTC)
+    day=day or docs_storage._now()
+    name=docs_storage.safe_name(o.container_number) if str(o.container_number or '').strip() else docs_storage.safe_name(o.loading_number or o.id[:8])
+    base=root/'Φορτώσεις'/f"{day.year}"/docs_storage.month_folder(day.month)/docs_storage.day_folder(day)
+    others={str(Path(p).parent).lower() for p in db.scalars(select(FileAttachment.stored_path).where(FileAttachment.entity_type=='LOADING_ORDER',FileAttachment.entity_id!=o.id)).all()}
+    d=base/name
+    if str(d).lower() in others: d=base/f"{name} - Φόρτωση {docs_storage.safe_name(o.loading_number or o.id[:8])}"
+    if create:
+        try: d.mkdir(parents=True,exist_ok=True)
+        except OSError as e: raise HTTPException(507,f"Δεν μπορώ να δημιουργήσω τον φάκελο «{d}» ({e.strerror or e}). Επίλεξε άλλον φάκελο αποθήκευσης.")
+    return d
+
+@app.post('/loading/orders/{order_id}/photos')
+def loading_photo(order_id:str, category:str=Form('GENERAL'), stamp:str=Form('0'), file:UploadFile=File(...), db:Session=Depends(get_db), user:User=Depends(require_permission('loading.execute'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o: raise HTTPException(404,'Άγνωστη φόρτωση')
+    from . import docs_storage
+    now=docs_storage._now(); photo_dir=_loading_photo_dir(db,o)
+    suffix=Path(file.filename or 'photo.jpg').suffix or '.jpg'; stored=f"{uuid4()}{suffix}"; path=photo_dir/stored
+    with path.open('wb') as f: shutil.copyfileobj(file.file,f)
+    ctype=file.content_type
+    if (ctype or '').startswith('image/'):
+        try:
+            from PIL import Image, ImageOps
+            im=ImageOps.exif_transpose(Image.open(path)).convert('RGB')
+            if stamp=='1': im=_stamp_photo(im,now)
+            data,size,q=_fit_photo(im)
+            path.unlink(missing_ok=True); stored=f"{Path(stored).stem}.jpg"; path=photo_dir/stored; path.write_bytes(data); ctype='image/jpeg'
+            file.filename=(Path(file.filename or 'photo').stem or 'photo')+'.jpg'
+        except Exception: pass
+    obj=FileAttachment(entity_type='LOADING_ORDER',entity_id=order_id,category=category,filename=file.filename or stored,stored_path=str(path),content_type=ctype,uploaded_by=user.id)
+    db.add(obj); db.flush(); write_audit(db,user,'attachment',obj.id,'UPLOAD',new={'loading_order_id':order_id,'category':category,'filename':obj.filename}); db.commit(); return {'id':obj.id,'filename':obj.filename,'category':obj.category}
+
+@app.get('/loading/orders/{order_id}/photos')
+def loading_photos(order_id:str, db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+    rows=db.scalars(select(FileAttachment).where(FileAttachment.entity_type=='LOADING_ORDER',FileAttachment.entity_id==order_id).order_by(FileAttachment.created_at)).all()
+    return [{'id':x.id,'filename':x.filename,'category':x.category,'created_at':x.created_at.isoformat()} for x in rows]
+
+@app.post('/loading/orders/{order_id}/photos/open-folder')
+def loading_photos_open_folder(order_id:str, db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o: raise HTTPException(404,'Άγνωστη φόρτωση')
+    if os.name!='nt': raise HTTPException(400,'Το άνοιγμα φακέλου γίνεται μόνο στα Windows')
+    d=_loading_photo_dir(db,o); os.startfile(str(d)); return {'path':str(d)}
+
+@app.get('/loading/orders/{order_id}/photos/folder')
+def loading_photos_folder(order_id:str, db:Session=Depends(get_db), user=Depends(require_permission('loading.view'))):
+    o=db.get(LoadingOrder,order_id)
+    if not o: raise HTTPException(404,'Άγνωστη φόρτωση')
+    return {'path':str(_loading_photo_dir(db,o,create=False))}
 
 def _business_days_elapsed(start: date, end: date)->int:
     cur=start; count=0

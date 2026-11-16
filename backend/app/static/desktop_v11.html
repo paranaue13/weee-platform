@@ -6249,7 +6249,9 @@ async function openLoadingDetail(id){
   <h4>Διαθέσιμα υλικά</h4><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Υλικό</th><th>Μορφή</th><th>kg</th><th></th><th></th></tr></thead><tbody id="ldAvailRows">${availRows}</tbody></table></div>
   <h4>Φορτωμένα</h4><div class="tablewrap"><table><thead><tr><th>Lot</th><th>Υλικό</th><th>kg</th></tr></thead><tbody>${loadedRows}</tbody></table></div>
   ${open?`<div class="floatPanelActions"><button class="btn alt" id="ldCancel">Ακύρωση φόρτωσης</button><button class="btn" id="ldComplete">Ολοκλήρωση φόρτωσης</button></div>`:''}
+  <div id="ldPhotos" class="card" data-order="${id}"><div class="spHd"><b>Φωτογραφίες φορτίου</b><button type="button" class="ldFolder">Άνοιγμα φακέλου</button></div><div class="spBody"><div class="spNone">Δεν υπάρχουν φωτογραφίες</div></div></div>
   <div id="ldErr" class="error"></div>`);
+ if(window.ldPhotosPaint)ldPhotosPaint(id);
  document.querySelectorAll('[data-reserve]').forEach(b=>b.onclick=async()=>{try{let inp=document.querySelector('.resKg[data-for="'+b.dataset.reserve+'"]'),w=inp?Number(inp.value):NaN,mx=inp?Number(inp.max):NaN;if(inp){if(!(w>0)){$('ldErr').textContent='Βάλε kg μεγαλύτερα από 0';return}if(w>mx+1e-9){$('ldErr').textContent='Τα kg δεν μπορούν να είναι περισσότερα από το διαθέσιμο ('+mx+' kg)';return}}await api('/loading/orders/'+id+'/reserve',{method:'POST',body:JSON.stringify({ready_material_lot_id:b.dataset.reserve,weight:inp&&w<mx?w:null})});openLoadingDetail(id)}catch(e){$('ldErr').textContent=e.message||String(e)}});
  document.querySelectorAll('[data-load]').forEach(b=>b.onclick=async()=>{try{await api('/loading/orders/'+id+'/load',{method:'POST',body:JSON.stringify({ready_material_lot_id:b.dataset.load})});openLoadingDetail(id)}catch(e){$('ldErr').textContent=e.message||String(e)}});
  if($('ldDaSave'))$('ldDaSave').onclick=async()=>{try{await daFieldsSave(id,'ldda_');$('ldErr').textContent='';flToastSafe('Αποθηκεύτηκαν')}catch(e){$('ldErr').textContent=e.message||String(e)}};
@@ -13682,8 +13684,7 @@ html[data-mode="light"][data-pal] :is(#master,#receipts,#weee,#production,#ready
 html[data-mode="light"][data-pal] .receiptCalendarDay:not([class*="stg-"]):not(.selected){background:var(--pW)!important;border:1px solid var(--pL2)!important}
 html[data-mode="light"][data-pal] .receiptCalendarDay.selected{background:var(--pA)!important;border-color:var(--pA)!important;color:#fff!important}
 html[data-mode="light"][data-pal] .receiptCalendarDay.selected small{color:#fff!important}
-html[data-mode="light"][data-pal="aut"]{--st1-bg:#E7E2D8;--st1-fg:#4A4436;--st2-bg:#D5E3E6;--st2-fg:#123E45;--st3-bg:#F7E1B5;--st3-fg:#5A3600;--st4-bg:#F4D3CC;--st4-fg:#8E2A1E;--st5-bg:#C3E6CF;--st5-fg:#14532D}
-html[data-mode="light"][data-pal="aut"] .receiptCalendarDay.stg-done:not(.selected){border:1px solid #A9D6B9!important}
+/* B19 (7): τα χρώματα κατάστασης ταξινόμησης στις ημέρες είναι ίδια σε όλα τα θέματα (μόνο η επιλεγμένη ημέρα παίρνει το χρώμα του θέματος) */
 /* κάρτες φορτίων (Παραλαβές): Τρέχον #E6ECF4 / επιλεγμένη #D6E1EF */
 html[data-mode="light"][data-pal] #receipts .sortingKpiCard{background:var(--pLoad)!important}
 html[data-mode="light"][data-pal] #receipts .sortingKpiCard:is(.b5Strong,.ovCardSel){background:var(--pLoadSel)!important}
@@ -13768,7 +13769,7 @@ html[data-mode="light"][data-pal] #receipts .sortingKpiCard:is(.k1,.k2,.k3,.k4):
   window.b12GetPalette=()=>{try{return localStorage.getItem(key(who()))||localStorage.getItem('weeePalette:last')||'cur'}catch(e){return 'cur'}};
   window.b12SetPalette=p=>{try{localStorage.setItem(key(who()),p);localStorage.setItem('weeePalette:last',p)}catch(e){}apply()};
   function mode(){H.dataset.mode=document.body&&document.body.dataset.theme==='dark'?'dark':'light'}
-  function apply(){H.dataset.pal=b12GetPalette()==='aut'?'aut':'cur';mode();window.dispatchEvent(new Event('resize'))}
+  function apply(){H.dataset.pal=['aut','win','sum'].includes(b12GetPalette())?b12GetPalette():'cur';mode();window.dispatchEvent(new Event('resize'))}
   apply();
   new MutationObserver(mode).observe(document.body,{attributes:true,attributeFilter:['data-theme']});
   const $=id=>document.getElementById(id);
@@ -13788,7 +13789,7 @@ html[data-mode="light"][data-pal] #receipts .sortingKpiCard:is(.k1,.k2,.k3,.k4):
   ecEmpty();
   const wv=$('weee');if(wv)new MutationObserver(gold).observe(wv,{childList:true,subtree:true});gold();
   // Ρυθμίσεις εφαρμογής: πλάτος ~980px, ομάδα «Θέμα χρωμάτων» πάνω από Αυτόματο / Φωτεινό / Σκούρο
-  const PALS=[['cur','Τρέχον θέμα',['#0F1E36','#4A6A97','#FEFCFF','#EAEFF7']],['aut','Φθινοπωρινό θέμα',['#022539','#144A52','#DA6F01','#EEE4D0','#FEFCFF']]];
+  const PALS=[['cur','Μπλε θέμα',['#0F1E36','#4A6A97','#FEFCFF','#EAEFF7']],['aut','Φθινοπωρινό θέμα',['#022539','#144A52','#DA6F01','#EEE4D0','#FEFCFF']],['win','Χειμωνιάτικο θέμα',['#0B1A33','#1E3A5F','#5A2A52','#E3E7EE','#FAFBFF']],['sum','Καλοκαιρινό θέμα',['#2B3A5C','#3F7A7D','#C98A9B','#E8E9EE','#FBFAFC']]];
   function palUi(){const tc=$('themeChoices');if(!tc||tc.parentElement.querySelector('.b12PalGrp'))return;
     const g=document.createElement('div');g.className='b12PalGrp';
     const paint=()=>{const cur=H.dataset.pal;g.innerHTML='<h5>Θέμα χρωμάτων</h5><div class="b12Pals">'+PALS.map(([k,n,c])=>`<button type="button" class="b12Pal${k===cur?' on':''}" data-pal="${k}" aria-pressed="${k===cur}"><b>${n}</b><span class="sw">${c.map(x=>`<i style="background:${x}"></i>`).join('')}</span></button>`).join('')+'</div>'};
@@ -13841,9 +13842,11 @@ html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:
   function paint(){const groups=new Map();
     document.querySelectorAll(SEL).forEach(c=>{if(!c.offsetParent||c.classList.contains('b12Gold')){if(c.dataset.kc!==undefined&&c.classList.contains('b12Gold'))delete c.dataset.kc;return}
       const p=c.parentElement;if(!groups.has(p))groups.set(p,[]);groups.get(p).push(c)});
-    groups.forEach(list=>{let i=0;list.forEach(c=>{const v=String(i%3);i++;if(c.dataset.kc!==v)c.dataset.kc=v})})}
+    const n=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--kN'))||3;   /* B19: 4 χρώματα στα θέματα Χειμωνιάτικο/Καλοκαιρινό */
+    groups.forEach(list=>{let i=0;list.forEach(c=>{const v=String(i%n);i++;if(c.dataset.kc!==v)c.dataset.kc=v})})}
   let t=0;const later=()=>{if(!t)t=requestAnimationFrame(()=>{t=0;paint()})};
   const ct=document.querySelector('.content');if(ct)new MutationObserver(later).observe(ct,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  new MutationObserver(later).observe(document.documentElement,{attributes:true,attributeFilter:['data-pal']});
   paint();
 })();
 </script>
@@ -13959,4 +13962,178 @@ html .main>.content>.view{overflow-clip-margin:var(--b18M,0px)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
 })();
 </script>
+<style id="b19Css">
+/* ===== B19 (1): πεδία επιλογής — το ▾ μέσα στο πεδίο (δεξιά), το + κολλημένο δίπλα, ίδιο ύψος, κοινό περίγραμμα (όχι ξεχωριστά γαλάζια τετράγωνα) ===== */
+:is(.comboAction,.comboAction1){display:flex!important;align-items:stretch!important;gap:0!important;grid-template-columns:none!important;box-sizing:border-box;height:44px;border:1px solid var(--wFldBd,var(--line-strong,#b9bdc9));border-radius:var(--r-box,8px);background:var(--wFld,var(--surface,#fff));overflow:hidden}
+:is(.comboAction,.comboAction1):focus-within{border-color:var(--pA,var(--accent,#2f5fc4));box-shadow:0 0 0 1px var(--pA,var(--accent,#2f5fc4))}
+html :is(#floatingEditor,#receiptForm,#sortingDetail,body) :is(.comboAction,.comboAction1)>input{flex:1 1 auto!important;width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:none!important;padding-right:4px!important}
+html :is(#floatingEditor,#receiptForm,#sortingDetail,body) :is(.comboAction,.comboAction1)>:is(.comboDrop,.miniAdd){flex:none!important;height:auto!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:var(--fg-2,#44474f)!important;box-shadow:none!important;display:flex!important;align-items:center;justify-content:center;cursor:pointer}
+html :is(#floatingEditor,#receiptForm,#sortingDetail,body) :is(.comboAction,.comboAction1)>.comboDrop{width:34px!important;min-width:34px!important}
+html :is(#floatingEditor,#receiptForm,#sortingDetail,body) :is(.comboAction,.comboAction1)>.miniAdd{width:42px!important;min-width:42px!important;border-left:1px solid var(--wFldBd,var(--line-strong,#b9bdc9))!important;color:var(--pA,var(--accent,#2f5fc4))!important}
+html :is(#floatingEditor,#receiptForm,#sortingDetail,body) :is(.comboAction,.comboAction1)>:is(.comboDrop,.miniAdd):hover{background:var(--th-hover,rgba(74,106,151,.08))!important}
+/* ===== B19 (2): παράθυρο παραλαβής — πλέγμα 12 στηλών μέσα στα πλαίσια (μεγάλο: πολλά ανά σειρά · έως ~1150px: 2 · έως ~700px: 1) ===== */
+#receiptForm #receiptBody{container-type:inline-size;container-name:recb}
+#receiptForm :is(#grpType,#grpTransport,#singleLoadFields,#grpReport,#singleWeighFields,#smallPointFields>.aggregateWeighbridge){display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:10px 12px!important;align-items:end!important}
+#receiptForm :is(#grpType,#grpTransport,#singleLoadFields,#grpReport,#singleWeighFields,#smallPointFields>.aggregateWeighbridge)>*{grid-column:span 3;min-width:0;margin:0!important}
+#receiptForm #singleWeighFields :is(.recCard,.recNetRow)>label{grid-column:span 3;min-width:0;margin:0!important}
+#receiptForm #grpType>label:first-child{grid-column:span 8}
+#receiptForm #rtypeButtons{margin:0!important;gap:10px}
+#receiptForm #rtypeButtons>.btn{height:44px!important;min-height:44px!important;box-sizing:border-box}
+html #receiptForm :is(.comboAction,.comboAction1){height:44px!important;min-height:44px!important}
+#receiptForm #grpType>label:nth-child(2){grid-column:span 4}
+#receiptForm #grpTransport>label{grid-column:span 4}
+#receiptForm #grpType>input,#receiptForm #grpTransport>input{display:none}
+/* ζυγίσεις: τα εσωτερικά κουτιά γίνονται διαφανή, τα πεδία μπαίνουν στο ίδιο πλέγμα */
+#receiptForm #singleWeighFields :is(.recCtrCards,.recCard,.recMid,.recNetRow){display:contents!important}
+#receiptForm #singleWeighFields{grid-column:1/-1}
+#receiptForm #singleWeighFields.hidden{display:none!important}
+#receiptForm #incomingCtrWrap{order:1}#receiptForm #incomingCtrTareWrap{order:1}
+#receiptForm .recIn>label:last-child{order:2}
+#receiptForm #outgoingCtrWrap{order:3}
+#receiptForm .recOut>label:last-child{order:4}
+#receiptForm #tareDiffWrap{order:5;grid-column:1/-1!important}
+#receiptForm .recNetRow>label{order:6}
+#receiptForm:has(#incomingCtrWrap:not(.hidden)) .recNetRow>label{grid-column:span 6}
+#receiptForm :is(#incomingCtrWrap,#outgoingCtrWrap){position:relative;padding-left:14px}
+#receiptForm :is(#incomingCtrWrap,#outgoingCtrWrap)::before{content:"";position:absolute;left:0;top:.45em;width:8px;height:8px;border-radius:50%;background:#6F8FBF}
+#receiptForm #outgoingCtrWrap::before{background:#9A92C2}
+#receiptForm :is(#incomingCtrWrap,#outgoingCtrWrap)>.comboAction{margin-left:-14px}
+/* οδηγία ζυγαριάς: μία λωρίδα */
+#receiptForm #tareDiffWrap{display:flex!important;flex-direction:row!important;align-items:center;gap:0!important;background:#E3E0EE;border-radius:var(--r-box,8px);padding:9px 14px;font-weight:600}
+#receiptForm #tareDiffWrap.hidden{display:none!important}
+#receiptForm #tareDiffWrap #tareInstruction{background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;min-height:0!important;width:auto!important;color:#B42318!important;font-weight:700;text-align:left}
+#receiptForm #tareDiffWrap #tareInstruction::before{content:":\00a0";color:var(--fg,#1a1b20);font-weight:600}
+#receiptForm #tareDiffWrap #tareInstruction.tareSame{color:var(--fg-3,#74777f)!important;font-weight:500}
+/* παρατηρήσεις: μονή γραμμή */
+#receiptForm #rnotes{height:44px!important;min-height:44px!important;resize:none!important;overflow:hidden;white-space:nowrap;padding-top:11px!important}
+#receiptForm #grpReport>label.span2{grid-column:span 3}
+/* μεσαίο παράθυρο: 2 ανά σειρά */
+@container recb (max-width:1150px){
+ #receiptForm :is(#grpType,#grpTransport,#singleLoadFields,#grpReport,#singleWeighFields,#smallPointFields>.aggregateWeighbridge)>*,#receiptForm #grpType>label:first-child,#receiptForm #grpType>label:nth-child(2),#receiptForm #grpTransport>label,#receiptForm #grpReport>label.span2,#receiptForm .recNetRow>label,#receiptForm:has(#incomingCtrWrap:not(.hidden)) .recNetRow>label{grid-column:span 6}
+ #receiptForm #singleWeighFields :is(#incomingCtrWrap,#outgoingCtrWrap,.recIn>label:last-child,.recOut>label:last-child,.recNetRow>label){grid-column:span 6}
+}
+/* μικρό παράθυρο: 1 ανά σειρά */
+@container recb (max-width:700px){
+ #receiptForm :is(#grpType,#grpTransport,#singleLoadFields,#grpReport,#singleWeighFields,#smallPointFields>.aggregateWeighbridge)>*,#receiptForm #grpType>label:first-child,#receiptForm #grpType>label:nth-child(2),#receiptForm #grpTransport>label,#receiptForm #grpReport>label.span2,#receiptForm .recNetRow>label,#receiptForm:has(#incomingCtrWrap:not(.hidden)) .recNetRow>label,#receiptForm #singleWeighFields :is(#incomingCtrWrap,#outgoingCtrWrap,.recIn>label:last-child,.recOut>label:last-child,.recNetRow>label){grid-column:1/-1}
+}
+#receiptForm #singleWeighFields #tareDiffWrap{grid-column:1/-1!important}
+/* ===== B19 (2): κουμπιά σταθερά κάτω · λωρίδα, πλαίσια και κουμπιά τελειώνουν στην ίδια ευθεία δεξιά (χώρος για το scrollbar και στα τρία, scrollbar στην άκρη του παραθύρου) ===== */
+#receiptForm .recBody{scrollbar-gutter:stable;padding-bottom:0!important}
+#receiptForm>:is(#receiptReadInfo,#supplierSourceNote){margin-right:30px!important;box-sizing:border-box}
+#receiptForm .recBody>.recFoot{position:sticky;bottom:0;z-index:7;margin-top:0!important;padding:10px 0 14px!important;background:var(--wBg,var(--surface,#fff))}
+#receiptForm .recBody>.recFoot .floatPanelActions{margin-top:0!important}
+/* ===== B19 (3): Ταξινόμηση — σταθερά, το ένα ακριβώς κάτω από το άλλο, με γεμάτο φόντο: κουμπιά ενεργειών → σύνολα → αναζήτηση → κεφαλίδα πίνακα ===== */
+#sortingDetail .sortingPopupActions{position:sticky!important;top:var(--sfTop,0px)!important;z-index:8!important;margin-top:0!important;margin-bottom:0!important;padding-top:12px!important;padding-bottom:8px!important;background:var(--wBg,var(--surface,#fff))!important}
+#sortingDetail .sfBubble{top:calc(var(--sfTop,0px) + var(--sfAct,0px))!important;margin-top:0!important}
+#sortingDetail .sortEntriesCard .sfTb{position:sticky!important;top:calc(var(--sfTop,0px) + var(--sfAct,0px) + var(--sfBub,0px))!important;z-index:6!important;background:var(--wSec,#F0F3FA)!important;margin:0!important;padding-top:10px!important;padding-bottom:10px!important}
+#sortingDetail .sfTable thead th{top:calc(var(--sfTop,0px) + var(--sfAct,0px) + var(--sfBub,0px) + var(--sfTbH,0px))!important}
+#sortingDetail .sfTable .sfNr td{scroll-margin-top:calc(var(--sfTop,0px) + var(--sfAct,0px) + var(--sfBub,0px) + var(--sfTbH,0px) + 56px)!important}
+/* ===== B19 (4α): Ιστορικό Δελτίων Αποστολής — κανένα κείμενο δεν περνά στη διπλανή στήλη: «…» με το πλήρες κείμενο στο tooltip· οι κεφαλίδες αλλάζουν γραμμή αντί να κόβονται ===== */
+#shipHistCard .shipHistWrap tbody td{overflow:hidden!important;text-overflow:ellipsis!important}
+#shipHistCard .shipHistWrap thead th{white-space:normal!important;overflow:visible!important;overflow-wrap:normal;word-break:normal;vertical-align:bottom}
+#shipHistCard .shipHistWrap thead th>*{white-space:normal!important}
+/* ===== B19 (5): Παραγωγή — οι κάρτες «Συνολική παραγωγή» / «HERMES» / «Λοιποί προμηθευτές» είναι κουμπιά (= Σύνολο / HERMES / Λοιποί)· επιλεγμένη: περίγραμμα 2px στο χρώμα επιλογής του θέματος ===== */
+#production #productionKpis .sortingKpiCard.b19Pick{cursor:pointer}
+html #production #productionKpis .sortingKpiCard.b19Pick.b19Sel,html[data-mode][data-pal] .content #production #productionKpis .sortingKpiCard.b19Pick.b19Sel{box-shadow:inset 0 0 0 2px var(--pA,var(--accent,#2f5fc4))!important;border-color:var(--pA,var(--accent,#2f5fc4))!important}
+#production.b19KpiPick .productionFilter{display:none!important}
+</style>
+<script id="b19ProdJs">
+(function(){
+  const MAP={'Συνολική παραγωγή':'ALL','HERMES':'HERMES','Λοιποί προμηθευτές':'OTHER','Παραγωγή':'OTHER','Λοιποί':'OTHER'};
+  const box=()=>document.getElementById('productionKpis'),pv=()=>document.getElementById('production');
+  const grp=()=>{try{if(typeof prodState!=='undefined'&&prodState.group)return prodState.group}catch(e){}const a=document.querySelector('#production .prodSegment button.active');return a?a.dataset.prodgroup:'ALL'};
+  function mark(){const b=box(),v=pv();if(!b||!v)return;const cards=[...b.querySelectorAll('.sortingKpiCard')];let picks=0;const g=grp();
+    cards.forEach(c=>{const t=((c.querySelector('small')||{}).textContent||'').trim(),k=MAP[t];
+      if(k&&b.querySelector('.sortingKpiCard small')&&[...b.querySelectorAll('small')].some(s=>s.textContent.trim()==='HERMES')){picks++;if(!c.classList.contains('b19Pick')){c.classList.add('b19Pick');c.setAttribute('role','button');c.tabIndex=0}c.dataset.prodgroup=k;c.classList.toggle('b19Sel',k===g)}
+      else{c.classList.remove('b19Pick','b19Sel');c.removeAttribute('role')}});
+    v.classList.toggle('b19KpiPick',picks>0)}
+  function pick(c){const k=c.dataset.prodgroup;const btn=document.querySelector(`#production .prodSegment button[data-prodgroup="${k}"]`);if(btn&&!btn.classList.contains('active'))btn.click();setTimeout(mark,0)}
+  document.addEventListener('click',e=>{const c=e.target.closest&&e.target.closest('#productionKpis .sortingKpiCard.b19Pick');if(c)pick(c)});
+  document.addEventListener('keydown',e=>{if(e.key!=='Enter'&&e.key!==' ')return;const c=e.target.closest&&e.target.closest('#productionKpis .sortingKpiCard.b19Pick');if(c){e.preventDefault();pick(c)}});
+  const go=()=>{const b=box();if(b)new MutationObserver(mark).observe(b,{childList:true});const s=document.querySelector('#production .prodSegment');if(s)new MutationObserver(mark).observe(s,{attributes:true,subtree:true,attributeFilter:['class']});mark()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+})();
+</script>
+
+<script id="b19TipJs">
+/* B19 (4α): tooltip με το πλήρες κείμενο σε κάθε κελί πίνακα που δείχνει «…» (όλοι οι πίνακες) */
+document.addEventListener('mouseover',e=>{const c=e.target.closest&&e.target.closest('td,th');if(!c||c.hasAttribute('data-b19tip')&&c.title)return;
+  if(c.scrollWidth>c.clientWidth+1&&getComputedStyle(c).textOverflow==='ellipsis'){if(!c.title){c.title=(c.innerText||'').trim();c.setAttribute('data-b19tip','')}}},{passive:true});
+</script>
+
+<script id="b19SortJs">
+/* B19 (3): ύψη κουμπιών ενεργειών και αναζήτησης για τη στοίβα σταθερών της Ταξινόμησης (μόνο όσο φαίνεται το παράθυρο· αλλάζει μόνο όταν αλλάζουν) */
+(function(){
+  const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
+  const set=(k,v)=>{if(sd.style.getPropertyValue(k)!==v)sd.style.setProperty(k,v)};
+  function fit(){q=0;if(sd.classList.contains('hidden')||!sd.offsetParent&&getComputedStyle(sd).position!=='fixed')return;
+    const a=sd.querySelector('.sortingPopupActions'),t=sd.querySelector('.sortEntriesCard .sfTb');
+    set('--sfAct',(a&&a.offsetParent?a.offsetHeight:0)+'px');set('--sfTbH',(t&&t.offsetParent?t.offsetHeight:0)+'px');
+    if(window.ResizeObserver){[a,t].forEach(e=>{if(e&&!e._b19ro){e._b19ro=1;ro.observe(e)}})}}
+  const req=()=>{if(!q)q=requestAnimationFrame(fit)};
+  const ro=window.ResizeObserver?new ResizeObserver(req):null;
+  new MutationObserver(req).observe(sd,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  req();
+})();
+</script>
+
+
+
+<style id="b19PhotoCss">
+/* B19 (6): Φωτογραφίες φορτίου και στις φορτώσεις — ίδια εμφάνιση με τις παραλαβές */
+#ldPhotos{margin-top:12px}
+#ldPhotos .spHd{display:flex;align-items:center;justify-content:space-between;gap:12px}
+#ldPhotos .spBody{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+#ldPhotos .spTc{display:flex;flex-direction:column;gap:6px;width:200px;max-width:100%}
+#ldPhotos .spTc .spTh{width:100%}
+#ldPhotos :is(.ldDel,.ldFolder){height:34px;border-radius:8px;padding:0 14px;border:1px solid var(--line-strong,#c4c8d4);background:var(--surface,#fff);color:var(--fg,#1a1b20);font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+:is(#ldPhotos,.ldOv) .ldDel[data-ask]{background:#b3261e!important;color:#fff!important;border-color:#b3261e!important}
+#ldPhotos .spTh{width:200px;max-width:100%;background:var(--surface,#fff);border:1px solid var(--line,#e3e5ec);border-radius:8px;padding:6px;display:flex;flex-direction:column;gap:4px;cursor:pointer;font:inherit;color:var(--fg,#1a1b20);text-align:left}
+#ldPhotos .spTh img{display:block;width:100%;aspect-ratio:853/480;object-fit:cover;border-radius:6px;background:#dfe5ee}
+#ldPhotos .spTh small{color:#6a7488;font-size:11px}
+#ldPhotos .spNone{color:#6a7488;padding:10px 0}
+html[data-mode="light"][data-pal] #floatingEditor #ldPhotos{background:var(--wSec)!important;border:1px solid var(--wSecBd)!important;border-radius:var(--r-box,8px);padding:14px 16px}
+</style>
+<script id="b19PhotoJs">
+/* B19 (6): φωτογραφίες φόρτωσης (λίστα, μεγέθυνση, διαγραφή στον Κάδο ανακύκλωσης, άνοιγμα φακέλου) */
+async function ldPhotosPaint(orderId){
+  let box=document.getElementById('ldPhotos');if(!box||box.dataset.order!==orderId)return;let list;
+  try{clearApiCache('/loading/orders/'+orderId+'/photos');list=await api('/loading/orders/'+orderId+'/photos')}catch(e){box.querySelector('.spBody').textContent='Σφάλμα: '+e.message;return}
+  api('/loading/orders/'+orderId+'/photos/folder').then(f=>{box.dataset.folder=f.path;box.querySelectorAll('.ldFolder').forEach(b=>b.title=f.path)}).catch(()=>{});
+  box.querySelector('b').textContent='Φωτογραφίες φορτίου'+(list.length?' ('+list.length+')':'');
+  box.querySelector('.spBody').innerHTML=list.length?list.map(p=>`<div class="spTc"><button type="button" class="spTh" data-id="${p.id}" data-t="${esc(spFmt(p.created_at))}"><img alt="" loading="lazy" src="${spUrl(p.id)}"><small>Android · ${esc(spFmt(p.created_at).replace(' · ',' '))}</small></button><button type="button" class="ldDel" data-id="${p.id}">Διαγραφή</button></div>`).join(''):'<div class="spNone">Δεν υπάρχουν φωτογραφίες</div>';
+}
+document.addEventListener('click',async e=>{
+  const box=document.getElementById('ldPhotos'),oid=box&&box.dataset.order;if(!oid)return;
+  const th=e.target.closest&&e.target.closest('#ldPhotos .spTh');
+  if(th){let ov=document.createElement('div');ov.className='spOv ldOv';ov.setAttribute('role','dialog');ov.setAttribute('aria-label','Φωτογραφία φορτίου');
+    ov.innerHTML=`<div class="spBig"><img alt="" src="${spUrl(th.dataset.id)}"><span class="spCap">Android · ${esc(th.dataset.t||'')}</span><div class="spBtns"><button type="button" class="ldDel" data-id="${th.dataset.id}">Διαγραφή</button><button type="button" class="ldFolder" title="${esc(box.dataset.folder||'')}">Άνοιγμα φακέλου</button><button type="button" class="ldX">Κλείσιμο</button></div></div>`;
+    const close=()=>{ov.remove();document.removeEventListener('keydown',k2)},k2=k=>{if(k.key==='Escape')close()};
+    ov.querySelector('.ldX').onclick=close;ov.addEventListener('click',k=>{if(k.target===ov)close()});document.addEventListener('keydown',k2);document.body.appendChild(ov);ov.querySelector('.ldX').focus();return}
+  const f=e.target.closest&&e.target.closest('.ldFolder');
+  if(f){try{await api('/loading/orders/'+oid+'/photos/open-folder',{method:'POST'})}catch(er){toast(er.message)}return}
+  const d=e.target.closest&&e.target.closest('.ldDel');if(!d)return;
+  if(!d.dataset.ask){d.dataset.ask='1';d.textContent='Σίγουρα; Πάτα ξανά';setTimeout(()=>{if(d.isConnected){delete d.dataset.ask;d.textContent='Διαγραφή'}},3000);return}
+  d.disabled=true;
+  try{await api('/sorting/photos/'+d.dataset.id,{method:'DELETE'});const ov=d.closest('.ldOv');if(ov)ov.remove();await ldPhotosPaint(oid)}
+  catch(er){d.disabled=false;delete d.dataset.ask;d.textContent='Διαγραφή';toast(er.message)}
+});
+</script>
+<style id="b19ThemeCss">
+/* ===== B19 (7): νέα θέματα Χειμωνιάτικο / Καλοκαιρινό (μόνο φωτεινό· το Σκούρο είναι ξεχωριστή ρύθμιση και δεν αλλάζει) ===== */
+html[data-mode="light"][data-pal="win"]{
+  --pW:#FAFBFF;--pBg:#E3E7EE;--pS2:#EDEFF4;--pA:#1E3A5F;--pAd:#162C49;--pN:#1E3A5F;--pNav:#0B1A33;--pS:#ECEEF4;--pT:#DDD7EC;--pF:#2B2250;--pL:#CBD3E0;--pL2:#CBD3E0;
+  --pLine:#5A2A52;--pTh:#DDD7EC;--pThFg:#2B2250;--pThLn:#CBD3E0;--pLoad:#ECEEF4;--pLoadSel:#DDE2EC;--pWin:#FAFBFF;
+  --th-group-bg:#D2CBE5;--th-group-line:#CBD3E0;--th-group-fg:#2B2250;--th-leaf-bg:#DDD7EC;--th-leaf-line:#CBD3E0;--th-leaf-fg:#2B2250;--th-hover:rgba(30,58,95,.07);--link:#1E3A5F;
+  --kN:4;--kc0:#DDD7EC;--kb0:#A89FCC;--ki0:#A89FCC;--kc1:#D5DEEA;--kb1:#98A9C2;--ki1:#98A9C2;--kc2:#E8D5E4;--kb2:#B98AB0;--ki2:#B98AB0;--kc3:#D3E4DE;--kb3:#8FB3A6;--ki3:#8FB3A6;
+  --wBg:#FAFBFF;--wSec:#E3E7EE;--wSecBd:#E3E7EE;--wSecLn:#CBD3E0;--wFld:#FAFBFF;--wFldBd:#CBD3E0;--wLine:#5A2A52}
+html[data-mode="light"][data-pal="sum"]{
+  --pW:#FBFAFC;--pBg:#E8E9EE;--pS2:#EFEFF3;--pA:#3F7A7D;--pAd:#33666A;--pN:#3F7A7D;--pNav:#2B3A5C;--pS:#EEEFF3;--pT:#DDE3EA;--pF:#2B3A5C;--pL:#D3D6DE;--pL2:#D3D6DE;
+  --pLine:#C98A9B;--pTh:#DDE3EA;--pThFg:#2B3A5C;--pThLn:#D3D6DE;--pLoad:#EEEFF3;--pLoadSel:#E1E4EB;--pWin:#FBFAFC;
+  --th-group-bg:#D1D9E2;--th-group-line:#D3D6DE;--th-group-fg:#2B3A5C;--th-leaf-bg:#DDE3EA;--th-leaf-line:#D3D6DE;--th-leaf-fg:#2B3A5C;--th-hover:rgba(63,122,125,.07);--link:#3F7A7D;
+  --kN:4;--kc0:#F0DDE1;--kb0:#D1A3AE;--ki0:#D1A3AE;--kc1:#DDE3EA;--kb1:#9FB0C4;--ki1:#9FB0C4;--kc2:#D5E6E5;--kb2:#8FB5B4;--ki2:#8FB5B4;--kc3:#E4DEEE;--kb3:#B3A6CC;--ki3:#B3A6CC;
+  --wBg:#FBFAFC;--wSec:#E8E9EE;--wSecBd:#E8E9EE;--wSecLn:#D3D6DE;--wFld:#FBFAFC;--wFldBd:#D3D6DE;--wLine:#C98A9B}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc="3"]:not(.b12Gold){--kBg:var(--kc3);--kBd:var(--kb3);--kIc:var(--ki3)}
+/* pills ημερών: μόνο η επιλεγμένη παίρνει το χρώμα επιλογής του θέματος· τα χρώματα κατάστασης ταξινόμησης είναι ίδια σε όλα τα θέματα */
+</style>
 </body></html>
