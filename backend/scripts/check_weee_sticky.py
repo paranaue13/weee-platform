@@ -82,10 +82,18 @@ def wait_rows(page):
 def audit_page(page, label, quick):
     """page: Page ή Frame. Επιστρέφει το πλήθος προβλημάτων."""
     n = 0
-    page.evaluate("show('weee')"); page.wait_for_timeout(900)
-    page.evaluate("weeeDay='2026-03-15'")                      # μήνας με δεδομένα (γεμάτοι πίνακες)
+    # σε πολλαπλή οθόνη η εφαρμογή μέσα στο παράθυρο μπορεί να τελειώνει ακόμα την εκκίνηση και να ξαναδείξει την αρχική σελίδα:
+    # περιμένουμε να φαίνεται πράγματι η Αποθήκη (με επανάληψη), αλλιώς ο έλεγχος θα έβγαζε ψευδές «δεν φαίνεται»
+    for _ in range(6):
+        page.evaluate("show('weee')"); page.wait_for_timeout(900)
+        if page.evaluate("!!(document.getElementById('weee')||{}).offsetParent"): break
+        page.wait_for_timeout(1500)
+    page.evaluate("weeeDay='2026-03-15'")                     # μήνας με δεδομένα (γεμάτοι πίνακες)
     combos = [('month', False)] if quick else [('month', False), ('month', True), ('quarter', False), ('year', True)]
     for per, subs in combos:
+        for _ in range(4):                                     # αν η εκκίνηση του παραθύρου ξαναέδειξε άλλη σελίδα
+            if page.evaluate("!!(document.getElementById('weee')||{}).offsetParent"): break
+            page.evaluate("show('weee')"); page.wait_for_timeout(1500)
         page.evaluate(f"(()=>{{document.querySelector('[data-weeeperiod=\"{per}\"]').click()}})()"); wait_rows(page)
         page.evaluate(f"(()=>{{const s=document.getElementById('weeeSwSub');if(s&&s.checked!=={str(subs).lower()})s.click();}})()"); page.wait_for_timeout(1800)
         for msg in page.evaluate(AUDIT):

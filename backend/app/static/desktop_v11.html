@@ -12282,8 +12282,8 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
     const sig=[c.parentElement?c.parentElement.clientWidth:0,R.map(x=>x.id||x.className).join(','),[...L.children].reduce((a,k)=>a+k.offsetWidth,0),R.reduce((a,x)=>a+[...x.children].reduce((b,k)=>b+k.offsetWidth,0),0),(c.textContent||'').length,getComputedStyle(document.documentElement).getPropertyValue('--pz')].join('|');
     if(c._tfSig===sig&&!force)return;c._tfSig=sig;
     kids.forEach(x=>x.classList.toggle('tfFirst',x===R[0]));
-    const z0=c.style.zoom,c20=c.classList.contains('tf2');
-    c.style.zoom='';c.classList.remove('tf2','tfWrapTabs');L.style.setProperty('width','auto','important');L.style.setProperty('flex-basis','auto','important');c.style.setProperty('flex-wrap','nowrap','important');c.style.setProperty('display','flex','important');c.classList.add('tfMeasure');
+    const z0=c.style.getPropertyValue('--tfz'),c20=c.classList.contains('tf2');
+    c.style.zoom='';c.style.removeProperty('--tfz');c.classList.remove('tf2','tfWrapTabs');L.style.setProperty('width','auto','important');L.style.setProperty('flex-basis','auto','important');c.style.setProperty('flex-wrap','nowrap','important');c.style.setProperty('display','flex','important');c.classList.add('tfMeasure');
     const cs=getComputedStyle(c),gap=parseFloat(cs.columnGap)||0;
     const avail=c.clientWidth-(parseFloat(cs.paddingLeft)||0)-(parseFloat(cs.paddingRight)||0);
     // πλάτος = πραγματικό περιεχόμενο (κάποιες λίστες καρτελών έχουν δικό τους πλάτος 100%)
@@ -12297,11 +12297,13 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
     let z='',two=false,scroll=false;
     if(avail>0&&need>avail+1){
       const r=avail/need;
-      if(r>=0.8)z=String(Math.floor(r*1000)/1000);
+      // B14: η σμίκρυνση ισχύει στο περιεχόμενο (όχι στη μπάρα), οπότε το κενό ανάμεσα μένει σταθερό
+      const rg=R.length?(avail-gap)/(need-gap):r;
+      if(rg>=0.8)z=String(Math.floor(rg*1000)/1000);
       else{two=true;const row=Math.max(wL,R.length?Math.max(...R.map(cw)):0);
         if(row>avail+1){const r2=avail/row;z=String(Math.max(0.8,Math.floor(r2*1000)/1000));if(wL*Math.max(0.8,r2)>avail+1)scroll=true}}
     }
-    c.classList.toggle('tf2',two);c.classList.toggle('tfWrapTabs',scroll);c.style.zoom=z;
+    c.classList.toggle('tf2',two);c.classList.toggle('tfWrapTabs',scroll);c.style.zoom='';if(z)c.style.setProperty('--tfz',z);
     const S=(k,v)=>c.style.setProperty(k,v,'important');S('display','flex');S('flex-wrap',two?'wrap':'nowrap');S('align-items','center');S('height','auto');L.style.setProperty('width',two?'100%':'auto','important');L.style.setProperty('flex-basis',two?'100%':'auto','important');
     if(z!==z0||two!==c20)window.dispatchEvent(new CustomEvent('tableLayoutChanged'));
   }
@@ -13796,6 +13798,52 @@ html[data-mode="light"][data-pal] #receipts .sortingKpiCard:is(.k1,.k2,.k3,.k4):
     if(title==='Ρυθμίσεις εφαρμογής'){try{const s=JSON.parse(localStorage.getItem('weeePopupSizes')||'{}');if(!p.style.width)p.style.width='min(980px,calc(100vw - 16px))'}catch(e){}setTimeout(palUi,0)}
     return p}}
   const w=document.getElementById('who');if(w)new MutationObserver(apply).observe(w,{childList:true,characterData:true,subtree:true});
+})();
+</script>
+<style id="b14BarCss">
+/* ===== B14: ΚΟΙΝΗ ΜΠΑΡΑ ΚΑΡΤΕΛΩΝ — ίδιο ύψος, ίδια θέση γραμμής, ίδια όρια σε όλες τις σελίδες =====
+   ύψος 54px (μαζί με τη γραμμή 2px)· οι καρτέλες κάθονται πάνω στη γραμμή· η σμίκρυνση (όταν δεν χωράει) γίνεται στο περιεχόμενο,
+   ώστε η μπάρα και η γραμμή να μη μετακινούνται ούτε 1px όταν αλλάζει καρτέλα. */
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar{box-sizing:border-box!important;min-height:54px!important;margin:0 0 14px!important;zoom:1!important}
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar:not(.tf2){max-height:54px!important}
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar>*{zoom:var(--tfz,1)}
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar.tfMeasure>*{zoom:1!important}
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar>.tfL{align-self:flex-end!important;margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important;height:auto!important;min-height:0!important}
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar.tf2>.tfL{align-self:stretch!important}
+/* ίδια αριστερά/δεξιά όρια σε όλες τις σελίδες (Παραγωγή/Υλικά/Φορτώσεις είχαν 1px/2px επιπλέον) */
+:root{--page-gutter-l:0px;--page-gutter-r:0px}
+</style>
+<script id="b14BarJs">
+// B14: η κοινή μπάρα στήνεται αμέσως μόλις ανοίξει η σελίδα (όχι ένα καρέ αργότερα), ώστε τίποτα να μη μετακινείται στην είσοδο
+(function(){if(typeof show!=='function')return;const s0=show;show=function(){const r=s0.apply(this,arguments);try{if(window.fitTopBars)fitTopBars()}catch(e){}return r}})();
+</script>
+<style id="b14KpiCss">
+/* ===== B14-3: κάρτες KPI — φόντο + περίγραμμα 1px στο χρώμα τους, εικονίδιο σε milk white· 3 χρώματα με τη σειρά (επαναλαμβάνονται) ===== */
+html[data-mode="light"][data-pal="aut"]{--kc0:#FBE7C2;--kb0:#F3B85E;--ki0:#8A5A06;--kc1:#F4D9C6;--kb1:#D9A27C;--ki1:#8E4A22;--kc2:#E9E2C4;--kb2:#C2B77E;--ki2:#625B2A}
+html[data-mode="light"][data-pal="cur"]{--kc0:#D6E1EF;--kb0:#8FA9CB;--ki0:#3F5F8C;--kc1:#DCE9E4;--kb1:#8FB3A3;--ki1:#46705E;--kc2:#E3E0EE;--kb2:#A59FC4;--ki2:#5A5290}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc]:not(.b12Gold){border-color:transparent!important}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc="0"]:not(.b12Gold){--kBg:var(--kc0);--kBd:var(--kb0);--kIc:var(--ki0)}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc="1"]:not(.b12Gold){--kBg:var(--kc1);--kBd:var(--kb1);--kIc:var(--ki1)}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc="2"]:not(.b12Gold){--kBg:var(--kc2);--kBd:var(--kb2);--kIc:var(--ki2)}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc]:not(.b12Gold){background:var(--kBg)!important;box-shadow:inset 0 0 0 1px var(--kBd)!important}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) .sortingKpiCard[data-kc]:not(.b12Gold) .sortingKpiIcon{background:#FEFCFF!important;color:var(--kIc)!important}
+/* επιλεγμένη κάρτα: κρατά την επισήμανσή της (πιο έντονο φόντο + διπλό περίγραμμα) */
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) .sortingKpiCard[data-kc]:not(.b12Gold):is(.b5Strong,.ovCardSel){background:color-mix(in srgb,var(--kBg) 62%,var(--kBd))!important;box-shadow:inset 0 0 0 2px var(--kBd),0 0 0 3px color-mix(in srgb,var(--kBd) 28%,transparent)!important}
+html[data-mode="light"][data-pal] .sortingKpiCard.b12Gold .sortingKpiIcon{background:#FEFCFF!important}
+/* «Απόθεμα προς επεξεργασία»: κρατά την επισήμανσή της και ξεχωρίζει από τις κάρτες «σιτάρι» */
+html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:transparent!important;box-shadow:inset 0 0 0 2px #F3B85E!important}
+</style>
+<script id="b14KpiJs">
+// B14-3: σειρά χρωμάτων ανά ομάδα καρτών (ορατές κάρτες του ίδιου γονέα, με τη σειρά)
+(function(){
+  const SEL='.content>.view :is(.sortingKpiCard,.card.metric)';
+  function paint(){const groups=new Map();
+    document.querySelectorAll(SEL).forEach(c=>{if(!c.offsetParent||c.classList.contains('b12Gold')){if(c.dataset.kc!==undefined&&c.classList.contains('b12Gold'))delete c.dataset.kc;return}
+      const p=c.parentElement;if(!groups.has(p))groups.set(p,[]);groups.get(p).push(c)});
+    groups.forEach(list=>{let i=0;list.forEach(c=>{const v=String(i%3);i++;if(c.dataset.kc!==v)c.dataset.kc=v})})}
+  let t=0;const later=()=>{if(!t)t=requestAnimationFrame(()=>{t=0;paint()})};
+  const ct=document.querySelector('.content');if(ct)new MutationObserver(later).observe(ct,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+  paint();
 })();
 </script>
 </body></html>
