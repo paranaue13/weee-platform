@@ -1801,7 +1801,7 @@ document.querySelectorAll('.matStart').forEach(b=>{let o=b.onclick;b.onclick=ev=
     // ημερομηνία κινήσεων: πάτημα στην πάνω μπάρα, ισχύει για όλες τις κινήσεις μέχρι να αλλάξει
     let top=document.querySelector('.topDark'),inp=document.createElement('input');inp.type='date';inp.id='moveDateInput';inp.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(inp);
     let ban=document.createElement('div');ban.id='dateBanner';ban.className='hidden';ban.innerHTML='<span id="dateBannerTxt"></span> <button type="button" id="dateBannerBtn">Σήμερα</button>';top.insertAdjacentElement('afterend',ban);
-    top.addEventListener('click',e=>{if(e.target.closest('button,a,input,select,.tdRight,.tdBtns'))return;inp.value=moveDate()||localISODate(new Date());try{inp.showPicker()}catch(_){inp.click()}});
+    top.addEventListener('click',e=>{if(!e.target.closest('#clock'))return;   /* B16: το ημερολόγιο ανοίγει ΜΟΝΟ με πάτημα στην ημερομηνία/ώρα (όχι admin, SERVER, ανανέωση ή κενό) */inp.value=moveDate()||localISODate(new Date());try{inp.showPicker()}catch(_){inp.click()}});
     inp.addEventListener('change',()=>{setMoveDate(inp.value)});
     $('dateBannerBtn').onclick=()=>setMoveDate('');
   })();
@@ -2706,4 +2706,32 @@ html{overflow-x:clip}
   refresh();
 })();
 </script>
+<style id="b16Css">
+/* ===== B16 Android — Φθινοπωρινό θέμα χωρίς μπλε (το Android έχει σήμερα μόνο αυτό· όταν προστεθεί «Τρέχον» θα έχει data-pal="cur" και δεν επηρεάζεται) ===== */
+/* χρώματα-σκιές και κουμπιά «επιλεγμένα» (ήταν μπλε) → παλέτα· στο σκούρο της συσκευής ισχύουν οι δικές του σκιές (δικός του κανόνας, ισχυρότερος) */
+html:not([data-pal="cur"]){--e-white:#C9BFA6;--e-soft:#9DB9BC;--e-blue:#0C3238;--primary:#144A52;--primary-fg:#FEFCFF;--m3-primary:#144A52;--m3-tonal:#DCE8E6;--m3-on-tonal:#144A52;--btn-on:#DCE8E6;--btn-on-line:#9DB9BC;--btn-on-fg:#144A52}
+/* κάρτες Παραλαβών: φόντο + περίγραμμα 1px· επιλεγμένη (φίλτρο): ίδιο φόντο, περίγραμμα Pine Blue 2px (ίδιο συνολικό μέγεθος: 1px περίγραμμα + 1px εσωτερικό κενό) */
+html:not([data-pal="cur"]) #loadList .b6Card[data-flt]{border:1px solid var(--b16Bd)!important;padding:8px 7px!important;background:var(--b16Bg)!important;box-shadow:none!important}
+html:not([data-pal="cur"]) #loadList .b6Card[data-flt].sel{border:2px solid #144A52!important;padding:7px 6px!important}
+html:not([data-pal="cur"]) .b6Card[data-flt="CONTAINER"]{--b16Bg:#FBE7C2;--b16Bd:#F3B85E}
+html:not([data-pal="cur"]) .b6Card[data-flt="CURTAIN_TRAILER"]{--b16Bg:#F4D9C6;--b16Bd:#D9A27C}
+html:not([data-pal="cur"]) .b6Card[data-flt="SMALL_POINTS"]{--b16Bg:#E9E2C4;--b16Bd:#C2B77E}
+html:not([data-pal="cur"]) .b6Card[data-flt="TOT"]{--b16Bg:#E6CBA0;--b16Bd:#BF9D68}
+html:not([data-pal="cur"]) .b6Card .ic,html:not([data-pal="cur"]) .b6Card.tot .ic{background:#FEFCFF!important;color:#144A52!important}
+html:not([data-pal="cur"]) .b6Card .b6Bar{background:#FEFCFF!important}
+html:not([data-pal="cur"]) .b6Bar i{background:#144A52!important}
+html:not([data-pal="cur"]) .b6Open .p .b6Bar{background:#EEE4D0!important}
+/* ΕΡΓΑΖΟΜΕΝΟΙ: milk white με κείμενο Pine Blue· ανοιχτό (on): Pine Blue με milk white */
+html:not([data-pal="cur"]) .topDark #topDeltioBtn{background:#FEFCFF!important;color:#144A52!important;border-color:#FEFCFF!important}
+html:not([data-pal="cur"]) .topDark #topDeltioBtn.on{background:#144A52!important;color:#FEFCFF!important;border-color:#FEFCFF!important}
+/* ΕΙΣΟΔΟΣ (οθόνη εισόδου): Pine Blue */
+html:not([data-pal="cur"]) #loginBtn{background:#144A52!important;border-color:#144A52!important;color:#FEFCFF!important;--e:#0C3238}
+/* άλλα μπλε σημεία → παλέτα: σήματα «Ολιγόωρη», ετικέτες τμημάτων, λωρίδα κάτω από την κεφαλίδα, σκίαση πίσω από παράθυρα */
+html:not([data-pal="cur"]) .dlS{background:#DCE8E6!important;color:#144A52!important}
+html:not([data-pal="cur"]) .dlS b{color:#144A52!important}
+html:not([data-pal="cur"]) .dlSt.s.on{background:#144A52!important;border-color:#144A52!important;color:#FEFCFF!important}
+html:not([data-pal="cur"]) .dlChipU{background:#F6F1E7!important;border-color:#D9CEB8!important}
+html:not([data-pal="cur"]) .top{background:#FEFCFF!important}
+html:not([data-pal="cur"]) .dlScrim{background:rgba(2,37,57,.45)!important}
+</style>
 </body></html>
