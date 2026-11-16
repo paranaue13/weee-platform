@@ -13831,7 +13831,7 @@ html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#produ
 html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) .sortingKpiCard[data-kc]:not(.b12Gold):is(.b5Strong,.ovCardSel){background:color-mix(in srgb,var(--kBg) 62%,var(--kBd))!important;box-shadow:inset 0 0 0 2px var(--kBd),0 0 0 3px color-mix(in srgb,var(--kBd) 28%,transparent)!important}
 html[data-mode="light"][data-pal] .sortingKpiCard.b12Gold .sortingKpiIcon{background:#FEFCFF!important}
 /* «Απόθεμα προς επεξεργασία»: κρατά την επισήμανσή της και ξεχωρίζει από τις κάρτες «σιτάρι» */
-html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:transparent!important;box-shadow:inset 0 0 0 2px #F3B85E!important}
+html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:transparent!important;box-shadow:inset 0 0 0 1px #F3B85E!important}
 </style>
 <script id="b14KpiJs">
 // B14-3: σειρά χρωμάτων ανά ομάδα καρτών (ορατές κάρτες του ίδιου γονέα, με τη σειρά)
@@ -13844,6 +13844,48 @@ html[data-mode="light"][data-pal] .content .sortingKpiCard.b12Gold{border-color:
   let t=0;const later=()=>{if(!t)t=requestAnimationFrame(()=>{t=0;paint()})};
   const ct=document.querySelector('.content');if(ct)new MutationObserver(later).observe(ct,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
   paint();
+})();
+</script>
+<style id="b15Css">
+/* ===== B15 (1): μπάρα καρτελών, κάρτες και πίνακες ως τις άκρες (από την πλαϊνή μπάρα ως το δεξί άκρο), όπως η κεφαλίδα της σελίδας ===== */
+.main>.content,body.pane .main>.content{padding-left:0!important;padding-right:0!important}
+html[data-mode] .content :is(#master,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#dashboard) .tfBar{border-radius:0!important}
+/* B15 (1): στοιχεία που δεν έχουν δικό τους πλαίσιο (τίτλοι, διακόπτες, ημερομηνία) κρατούν 10px από τις άκρες, ίδια με το εσωτερικό κενό της μπάρας */
+.content #weee .weeeSecHd,.content #homeDate,.content :is(#receiptMonthSummary,#loadingOvPanel)>:is(.ovHead,.ovHint),.content .productionTools,.content #readyStockOnlyWrap,.content #readyPressPeriodLabel,.content #inventory .toolbar:has(#invActiveOnlyToggle),.content #invStockPanel>.invSBar{box-sizing:border-box;padding-left:10px!important;padding-right:10px!important}
+/* B15 (3): τα κουμπιά δεξιά κάθονται στο ίδιο ύψος από τη γραμμή σε όλες τις σελίδες (Υλικά/Απογραφή είχαν 6px επιπλέον από κάτω) */
+.content :is(#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#master,#galaxy,#dashboard) .tfBar>.tfR{margin-top:0!important;margin-bottom:0!important;padding-top:0!important;padding-bottom:0!important}
+/* B15 (2): Αποθήκη ΑΗΗΕ — οι κάρτες δεν επιλέγονται: καμία κάρτα δεν φαίνεται επιλεγμένη */
+html[data-mode="light"][data-pal] .content #weee .sortingKpiCard[data-kc]:not(.b12Gold):is(.b5Strong,.ovCardSel){background:var(--kBg)!important;box-shadow:inset 0 0 0 1px var(--kBd)!important}
+/* B15 (4): Παραλαβές › Καθημερινά — σταθερό το πάνω πλαίσιο, κυλάει μόνο το κάτω μέρος */
+#recScrollPane{display:contents}
+#recScrollPane.recPaneOn{display:block;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+#recScrollPane.recPaneOn>:last-child{margin-bottom:0}
+.main>.content:has(#recScrollPane.recPaneOn){padding-bottom:0!important}
+</style>
+<script id="b15Js">
+(function(){
+  // Παραλαβές › Καθημερινά: ό,τι είναι κάτω από το πεδίο αναζήτησης μπαίνει σε δικό του πλαίσιο κύλισης (σε άλλες καρτέλες το πλαίσιο είναι «διάφανο»: display:contents)
+  function setup(){const v=document.getElementById('receipts');if(!v)return null;let p=document.getElementById('recScrollPane');if(p)return p;
+    const sr=v.querySelector(':scope>.receiptSearchRow');if(!sr)return null;p=document.createElement('div');p.id='recScrollPane';
+    const mv=[];let n=sr.nextSibling;while(n){mv.push(n);n=n.nextSibling}sr.after(p);mv.forEach(x=>p.appendChild(x));return p}
+  let raf=0;
+  function fit(){raf=0;const v=document.getElementById('receipts'),p=setup();if(!p)return;const dm=document.getElementById('receiptDaysMode');
+    const on=!!(v.offsetParent&&dm&&dm.classList.contains('active'));
+    if(!on){if(p.classList.contains('recPaneOn')){p.classList.remove('recPaneOn');p.style.removeProperty('height')}return}
+    p.classList.add('recPaneOn');
+    const zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,rz=(window.pzOf?pzOf():1)||1;
+    const top=p.getBoundingClientRect().top+(window.scrollY||0);
+    const h=Math.floor((window.innerHeight-top-bh)/rz);
+    if(h>=160){p.style.height=h+'px';if(window.scrollY)window.scrollTo(0,0)}else{p.classList.remove('recPaneOn');p.style.removeProperty('height')}}
+  function req(){if(!raf)raf=requestAnimationFrame(fit)}
+  window.fitRecPane=fit;
+  window.addEventListener('resize',req);
+  if(typeof show==='function'){const s0=show;show=function(){const r=s0.apply(this,arguments);req();return r}}
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#receipts .tfBar,.receiptMode'))setTimeout(req,0)},true);
+  function obs(){const v=document.getElementById('receipts');if(!v||!window.ResizeObserver){return}const ro=new ResizeObserver(req);
+    [v.querySelector('.tfBar'),document.getElementById('receiptDayStrip'),v.querySelector('.receiptSearchRow'),document.querySelector('.topbar')].forEach(e=>{if(e)ro.observe(e)})}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{setup();obs();req()});else{setup();obs();req()}
+  new MutationObserver(req).observe(document.documentElement,{attributes:true,attributeFilter:['style','data-pal','data-mode']});
 })();
 </script>
 </body></html>
