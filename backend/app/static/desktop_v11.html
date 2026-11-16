@@ -13935,4 +13935,28 @@ html .main>.content>.view{overflow-clip-margin:var(--b18M,0px)}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',req);else req();
 })();
 </script>
+<style id="b19RecHead">
+/* Παραλαβές › Καθημερινά: σταθερό όλο το πάνω μέρος ως και την αναζήτηση· η κεφαλίδα του πίνακα «Ζωντανή ροή» κολλά ακριβώς από κάτω καθώς κυλά το κάτω μέρος */
+#recScrollPane.recPaneOn{overflow-x:auto!important}
+#recScrollPane.recPaneOn #ecTableWrap:not(.recWide){overflow-x:clip!important;overflow-y:visible!important}
+/* στενή οθόνη (ο πίνακας δεν χωρά): κρατά δικό του scroll και στους δύο άξονες, ύψος όσο το ορατό πλαίσιο, κεφαλίδα σταθερή μέσα του */
+#recScrollPane.recPaneOn #ecTableWrap.recWide{overflow:auto!important;max-height:var(--recPaneH,60vh)}
+</style>
+<script id="b19RecHeadJs">
+(function(){
+  let q=0;
+  function fit(){q=0;const P=document.getElementById('recScrollPane'),w=document.getElementById('ecTableWrap');if(!P||!w)return;
+    const t=w.querySelector('table');if(!t)return;
+    if(!P.offsetParent||!w.offsetParent)return;   /* μόνο όταν φαίνονται οι Παραλαβές · δεν αγγίζει τίποτα όσο είναι ανοιχτή άλλη σελίδα */
+    if(!P.classList.contains('recPaneOn')){if(w.classList.contains('recWide'))w.classList.remove('recWide');return}
+    const h=Math.max(160,P.clientHeight)+'px';if(P.style.getPropertyValue('--recPaneH')!==h)P.style.setProperty('--recPaneH',h);
+    const wide=t.scrollWidth>w.clientWidth+1;if(w.classList.contains('recWide')!==wide)w.classList.toggle('recWide',wide)}   /* αλλάζει μόνο όταν αλλάζει η κατάσταση (όχι βρόχος ResizeObserver) */
+  const req=()=>{if(!q)q=requestAnimationFrame(fit)};
+  const go=()=>{const P=document.getElementById('recScrollPane'),w=document.getElementById('ecTableWrap');
+    if(window.ResizeObserver){const ro=new ResizeObserver(req);if(P)ro.observe(P);if(w)ro.observe(w)}
+    if(P)new MutationObserver(req).observe(P,{attributes:true,attributeFilter:['class']});
+    if(w)new MutationObserver(req).observe(w,{childList:true,subtree:true});req()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',go);else go();
+})();
+</script>
 </body></html>
