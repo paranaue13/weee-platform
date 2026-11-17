@@ -2596,10 +2596,23 @@ from .models import ContainerAsset, InboundTrip, InboundLoad
 RECEIPT_TYPES = {"CONTAINER", "CURTAIN_TRAILER", "SMALL_POINTS"}
 
 
-def _receipt_number(db: Session, when: datetime) -> str:
+def _receipt_number(db: Session, when: datetime, order_number: str|None = None) -> str:
+    # αριθμός παραλαβής = αριθμός εντολής (όπως σε όλες τις παραλαβές από εισαγωγή)· αν υπάρχει ήδη → «-2», «-3»…· χωρίς εντολή → REC-έτος-επόμενος
+    base = str(order_number or "").strip()
+    if base:
+        used = set(db.scalars(select(InboundTrip.receipt_number).where(or_(InboundTrip.receipt_number == base, InboundTrip.receipt_number.like(base + "-%")))).all())
+        if base not in used: return base
+        k = 2
+        while f"{base}-{k}" in used: k += 1
+        return f"{base}-{k}"
     year = when.year
-    rows = db.scalars(select(InboundTrip).where(InboundTrip.receipt_number.like(f"REC-{year}-%"))).all()
-    return f"REC-{year}-{len(rows)+1:06d}"
+    # μεγαλύτερος υπάρχων αριθμός του έτους + 1 (όχι πλήθος + 1: με κενά στην αρίθμηση το πλήθος έπεφτε σε αριθμό που υπάρχει → σφάλμα 500)
+    nums = db.scalars(select(InboundTrip.receipt_number).where(InboundTrip.receipt_number.like(f"REC-{year}-%"))).all()
+    mx = 0
+    for n in nums:
+        tail = str(n or "").rsplit("-", 1)[-1]
+        if tail.isdigit(): mx = max(mx, int(tail))
+    return f"REC-{year}-{mx+1:06d}"
 
 
 def _compute_net(receipt_type: str, load: schemas.ReceiptLoadCreate, outgoing: ContainerAsset|None) -> Decimal|None:
@@ -2795,7 +2808,7 @@ def create_receipt(data:schemas.ReceiptCreate, db:Session=Depends(get_db), user:
     if not data.loads: raise HTTPException(422,"Η παραλαβή πρέπει να περιέχει τουλάχιστον ένα φορτίο")
     if data.receipt_type != "SMALL_POINTS" and len(data.loads)!=1:
         raise HTTPException(422,"Container και κουρτίνα έχουν ένα φορτίο ανά παραλαβή")
-    trip=InboundTrip(receipt_number=_receipt_number(db,data.receipt_date),receipt_type=data.receipt_type,
+    trip=InboundTrip(receipt_number=_receipt_number(db,data.receipt_date,next((str(l.order_number).strip() for l in data.loads if getattr(l,'order_number',None) and str(l.order_number).strip()),None)),receipt_type=data.receipt_type,
         receipt_date=data.receipt_date,carrier_id=data.carrier_id,driver_name=data.driver_name,
         vehicle_registration=data.vehicle_registration,status="DRAFT",created_by=user.id,notes=data.notes,
         aggregate_weighbridge_number=_compute_aggregate_weighbridge(data))
