@@ -4291,7 +4291,8 @@ function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)
 function fitProdWraps(){fitRegistry();let rz=(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--vz'))||1)*pzOf(),zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0;fitWeee();document.querySelectorAll('.prodTableWrap,.shipHistWrap,.sectionTableWrap').forEach(w=>{if(!w.offsetParent||w.closest('#weee'))return;let z=w.closest('.content>.view')?rz:1,top=w.getBoundingClientRect().top+window.scrollY,hist=w.classList.contains('shipHistWrap');
   if(w.classList.contains('sectionTableWrap')){let hh=Math.floor((window.innerHeight-top-bh)/z);if(hh>=220)w.style.maxHeight=hh+'px';else w.style.removeProperty('max-height');return}   /* πίνακες Αποθήκης ΑΗΗΕ: το οριζόντιο scroll μένει ορατό κάτω από τον πίνακα */let tb=w.querySelector('table'),need=(tb&&tb.tFoot&&tb.tFoot.rows.length)?Math.ceil((tb.tHead?tb.tHead.offsetHeight:0)+tb.tFoot.offsetHeight+38):0;      /* ΑΛΛΑΓΗ ΚΗ-2: το πλαίσιο δεν γίνεται μικρότερο από κεφαλίδα + ΟΛΟ το κάτω μπλοκ (σε πολύ μικρό παράθυρο/μεγάλο ποσοστό κάνει scroll η σελίδα, το μπλοκ δεν κόβεται) */
   let h=Math.floor(Math.max(hist?320:(need?0:220),need,(window.innerHeight-top-bh)/z));w.style.maxHeight=h+'px';if(w.querySelector('table[data-datefill]'))w.style.height=h+'px'})}
-(function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
+(function(){let t;const run=()=>{clearTimeout(t);t=setTimeout(fitProdWraps,40)};window.addEventListener('resize',run);window.addEventListener('tableLayoutChanged',run);   /* B21b: και όταν αλλάζει η διάταξη (π.χ. ύψος της μπάρας καρτελών) — πριν το κάλυπτε κατά λάθος ο ατέρμονος κύκλος του «Μέγεθος» */
+new MutationObserver(run).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});run()})();
 // ---- Αντιστοιχίσεις ετικετών → στήλες καρτελών Υλικών (Μητρώα → Αντιστοίχιση ετικετών) ----
 function rmIndex(d){
  let byKey={};(d.maps||[]).filter(m=>m.source==='EXCEL').forEach(m=>{byKey[foldName(m.label)]=m});
@@ -7763,8 +7764,8 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   });
   colWidthObserver.observe(document.body,{childList:true,subtree:true});
   // αλλαγή μεγέθους παραθύρου / διάταξης: ξαναϋπολογισμός ώστε ο πίνακας να γεμίζει πάντα το πλαίσιό του
-  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]:not(#sfTable),#weeeProcessTable,#weeeShipTable').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
-  window.addEventListener('resize',rzFill);window.addEventListener('tableLayoutChanged',rzFill);
+  let rzT=0;const rzFill=()=>{clearTimeout(rzT);rzT=setTimeout(()=>document.querySelectorAll('table[data-cwt]:not(#sfTable):not(#invCountTable),#weeeProcessTable,#weeeShipTable').forEach(t=>{if(t.offsetParent)applyStoredColWidths(t)}),120)};
+  window.addEventListener('resize',rzFill);window.addEventListener('tableLayoutChanged',rzFill);   // B21b: η Απογραφή (#invCountTable) έχει δικό της invApplyZoom (resize + ResizeObserver)· εδώ ξαναμετριόταν με άλλο τρόπο και χαλούσε τα ίσα πλάτη των τριμήνων
   ['weeeProcessTable','weeeShipTable'].forEach(id=>{let t=document.getElementById(id);if(t)applyStoredColWidths(t)});
 })();
 
@@ -12423,7 +12424,7 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
   document.addEventListener('mousedown',e=>{if(!menu.classList.contains('hidden')&&!menu.contains(e.target)&&e.target!==$z('zmPct'))closeMenu()},true);
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
   // αλλαγή σελίδας / υποκαρτέλας
-  let raf=0;const later=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(sync)};
+  let raf=0;const later=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>sync())};   // B21b: ΟΧΙ requestAnimationFrame(sync) — η ώρα του καρέ περνούσε ως «force» και κάθε αλλαγή κλάσης ξαναεφάρμοζε το μέγεθος → ατέρμονος κύκλος (τρεμόπαιγμα πινάκων)
   document.addEventListener('click',()=>setTimeout(sync,60),true);
   try{new MutationObserver(later).observe(document.querySelector('.content'),{subtree:true,attributes:true,attributeFilter:['class']})}catch(e){}
   paint();sync();
