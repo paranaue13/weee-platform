@@ -14179,7 +14179,7 @@ body[data-theme="dark"] .b20Ft .btn.alt{background:var(--surface,#181c25)!import
     const prevFocus=document.activeElement;
     return new Promise(resolve=>{
       const ov=document.createElement('div');ov.className='b20Ov';
-      ov.innerHTML=`<div class="b20Box" role="alertdialog" aria-modal="true" aria-labelledby="b20T"><div class="b20Hd"><h3 id="b20T">${esc(opts.title||'Επιβεβαίωση')}</h3><button type="button" class="b20X" aria-label="Κλείσιμο" title="Κλείσιμο">✕</button></div><div class="b20Bd"><div class="b20Q">${esc(q)}</div>${sub?`<div class="b20S">${esc(sub)}</div>`:''}</div><div class="b20Ft"><button type="button" class="btn alt b20No">Ακύρωση</button><button type="button" class="btn b20Ok${danger?' b20Danger':''}">${esc(okText)}</button></div></div>`;
+      ov.innerHTML=`<div class="b20Box" role="alertdialog" aria-modal="true" aria-labelledby="b20T"><div class="b20Hd"><h3 id="b20T">${esc(opts.title||'Επιβεβαίωση')}</h3><button type="button" class="b20X" aria-label="Κλείσιμο" title="Κλείσιμο">✕</button></div><div class="b20Bd"><div class="b20Q">${esc(q)}</div>${sub?`<div class="b20S">${esc(sub)}</div>`:''}</div><div class="b20Ft"><button type="button" class="btn alt b20No">Ακύρωση</button>${opts.altText?`<button type="button" class="btn alt b20Alt">${esc(opts.altText)}</button>`:''}<button type="button" class="btn b20Ok${danger?' b20Danger':''}">${esc(okText)}</button></div></div>`;
       let done=false;
       const finish=v=>{if(done)return;done=true;document.removeEventListener('keydown',key,true);ov.remove();resolve(v);setTimeout(()=>{try{if(prevFocus&&prevFocus.focus&&document.contains(prevFocus)&&!document.querySelector('.b20Ov'))prevFocus.focus({preventScroll:true})}catch(e){}},0)};
       const key=e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();finish(false)}
@@ -14188,6 +14188,7 @@ body[data-theme="dark"] .b20Ft .btn.alt{background:var(--surface,#181c25)!import
       ov.querySelector('.b20X').onclick=()=>finish(false);
       ov.querySelector('.b20No').onclick=()=>finish(false);
       ov.querySelector('.b20Ok').onclick=()=>finish(true);
+      if(ov.querySelector('.b20Alt'))ov.querySelector('.b20Alt').onclick=()=>finish('alt');
       ov.addEventListener('mousedown',e=>{if(e.target===ov)e.preventDefault()});
       document.addEventListener('keydown',key,true);
       document.body.appendChild(ov);
@@ -14219,4 +14220,49 @@ body[data-theme="dark"] .b20Ft .btn.alt{background:var(--surface,#181c25)!import
 html .main>.content>#weee{margin-left:calc(-1 * var(--b18L,0px) / var(--pz,1))!important;margin-right:calc(-1 * var(--b18R,0px) / var(--pz,1))!important;padding-left:calc(var(--b18L,0px) / var(--pz,1))!important;padding-right:calc(var(--b18R,0px) / var(--pz,1))!important;box-sizing:border-box;width:auto!important;max-width:none!important}
 html .main>.content :is(#master,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#dashboard) .tfBar{padding-right:calc(var(--b18R,24px) / var(--pz,1))!important}
 </style>
+<script id="b22RecJs">
+/* ===== B22: Νέα Παραλαβή — καθαρή φόρμα, σωστή ημερομηνία, προειδοποίηση για εντολή που υπάρχει ήδη =====
+   1) η νέα παραλαβή ανοίγει χωρίς στοιχεία/κατάσταση/μήνυμα προηγούμενης· η επικεφαλίδα δείχνει μόνο «Νέα Παραλαβή» και την ημερομηνία της φόρμας (ζωντανά)
+   2) ημερομηνία = η μέρα που είναι επιλεγμένη στο ημερολόγιο των Παραλαβών (με την τρέχουσα ώρα)· σήμερα όταν δεν έχει επιλεγεί άλλη
+   3) πριν αποθηκευτεί νέα παραλαβή: αν η ίδια εντολή υπάρχει ήδη σε άλλη παραλαβή → ερώτηση «Δημιουργία νέας» / «Άνοιγμα της υπάρχουσας»· η παλιά δεν αλλάζει */
+(function(){
+  const F=()=>document.getElementById('receiptForm');
+  const pad=n=>String(n).padStart(2,'0');
+  const dmy=v=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');return m?`${m[3]}/${m[2]}/${m[1]}`:'—'};
+  const isNew=()=>{const f=F();return !!(f&&f.dataset.b22New==='1')};
+  function clearHdr(){const f=F();if(!f)return;f.querySelectorAll('.uHdrWrap .uHdMain>.uInfo,.uHdrWrap .uHdMain>.uChip2').forEach(e=>e.remove());['uRcMeta','uRcTabs'].forEach(id=>{const e=document.getElementById(id);if(e)e.classList.add('hidden')})}
+  function paintDate(){if(!isNew())return;const f=F(),host=f&&f.querySelector('.uHdrWrap .uHdMain');if(!host)return;
+    let info=host.querySelector(':scope>.uInfo.b22Info');if(!info){clearHdr();info=document.createElement('div');info.className='uInfo b22Info';host.appendChild(info)}
+    const v=(document.getElementById('rdate')||{}).value||'';if(!v&&info.innerHTML)return;   /* μισογραμμένη ημερομηνία: μένει η τελευταία σωστή */
+    info.innerHTML=`<span class="dt" title="${dmy(v)}"><small>Ημερομηνία</small><b>${dmy(v)}</b></span>`}
+  function clearMsg(){const m=document.getElementById('receiptMsg');if(m){m.textContent='';m.className=''}}
+  // οι επικεφαλίδες που γράφονται αργότερα (π.χ. από αίτημα προηγούμενης παραλαβής που απαντά καθυστερημένα) δεν πειράζουν τη νέα
+  if(typeof uInfoSet==='function'){const _ui=uInfoSet;uInfoSet=function(win){if(win&&win.id==='receiptForm'&&isNew())return;return _ui.apply(this,arguments)}}
+  if(typeof prepareNewReceiptPopup==='function'){const _p=prepareNewReceiptPopup;prepareNewReceiptPopup=function(){
+    const f=F();if(f)f.dataset.b22New='1';clearMsg();clearHdr();
+    const r=_p.apply(this,arguments);
+    try{const day=(typeof receiptNav!=='undefined'&&receiptNav&&receiptNav.day)||'',now=new Date(),today=`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(day)&&day!==today){const t=`${pad(now.getHours())}:${pad(now.getMinutes())}`;const rd=document.getElementById('rdate'),rp=document.getElementById('reportDate');if(rd)rd.value=day+'T'+t;if(rp)rp.value=day}}catch(e){}
+    clearHdr();paintDate();return r}}
+  if(typeof applyLiveFeedOrderToForm==='function'){const _a=applyLiveFeedOrderToForm;applyLiveFeedOrderToForm=function(){const r=_a.apply(this,arguments);paintDate();return r}}
+  ['input','change'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target&&e.target.id==='rdate')paintDate()}));
+  let saving=false;
+  if(typeof openReceiptPopup==='function'){const _o=openReceiptPopup;openReceiptPopup=function(){const f=F();if(f)delete f.dataset.b22New;const ib=f&&f.querySelector('.uInfo.b22Info');if(ib)ib.remove();if(!saving)clearMsg();return _o.apply(this,arguments)}}
+  // αποθήκευση νέας παραλαβής: έλεγχος για εντολή που υπάρχει ήδη
+  const sb=document.getElementById('saveReceipt');
+  if(sb&&sb.onclick){const _s=sb.onclick;sb.onclick=async function(ev){
+    if(typeof editingReceiptId!=='undefined'&&editingReceiptId){saving=true;try{return await _s.call(this,ev)}finally{saving=false}}
+    let orders=[];try{if(($('rtype')||{}).value==='SMALL_POINTS')orders=(smallPointRows||[]).map(r=>String(r.order_number||'').trim());else orders=[String(($('orderNo')||{}).value||'').trim()]}catch(e){}
+    orders=orders.filter(Boolean);
+    const hits=[];for(const r of (receiptRowsAll||[])){if(r.deleted_at||r.cancelled_at)continue;for(const l of (r.loads||[])){const o=String(l.order_number||'').trim();if(o&&orders.includes(o)&&!hits.some(h=>h.r.id===r.id))hits.push({r,o})}}
+    if(hits.length&&window.uiConfirm){
+      hits.sort((a,b)=>String(b.r.receipt_date).localeCompare(String(a.r.receipt_date)));const h=hits[0],more=hits.length>1?` (και ${hits.length-1} ακόμη)`:'';
+      const chosen=dmy((document.getElementById('rdate')||{}).value||'');
+      const ans=await uiConfirm(`Η εντολή ${h.o} υπάρχει ήδη στην παραλαβή ${h.r.receipt_number} της ${dmy(h.r.receipt_date)}${more}. Η υπάρχουσα παραλαβή δεν θα αλλάξει.\n\nΤι θέλετε να γίνει;`,
+        {title:'Η εντολή υπάρχει ήδη',danger:false,okText:`Δημιουργία νέας στις ${chosen}`,altText:'Άνοιγμα της υπάρχουσας'});
+      if(ans==='alt'){try{if(typeof jumpReceiptNavToDay==='function')jumpReceiptNavToDay(String(h.r.receipt_date).slice(0,10))}catch(e){}const f=F();if(f)f.classList.add('hidden');try{resetReceipt()}catch(e){}await openReceiptPopup(h.r.id);return}
+      if(ans!==true)return}
+    saving=true;try{return await _s.call(this,ev)}finally{saving=false}}}
+})();
+</script>
 </body></html>
