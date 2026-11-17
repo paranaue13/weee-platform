@@ -14287,4 +14287,151 @@ html .content #inventory>.toolbar #invSearch,html .content #inventory>.toolbar #
   req();
 })();
 </script>
+<style id="b24RecCss">
+/* ===== B24 (Παραλαβές) ===== */
+/* (5) το πλέγμα της B19 ακύρωνε την απόκρυψη: στα Μικρά Σημεία φαίνονταν τα πεδία του απλού φορτίου (Προμηθευτής / Αρ. Δελτίου / Σφραγίδα) */
+#receiptForm :is(#grpType,#grpTransport,#singleLoadFields,#grpReport,#singleWeighFields,#smallPointFields>.aggregateWeighbridge).hidden{display:none!important}
+/* (3) Μικρά Σημεία: πάνω δεξιά 1η ζύγιση φορτηγού, πάνω αριστερά 2η, κάτω δεξιά Συνολικό βάρος φορτίων, κάτω αριστερά Συγκεντρωτικό ζυγολόγιο */
+#receiptForm #smallPointFields>.aggregateWeighbridge>label{grid-column:span 6!important}
+#receiptForm #smallPointFields>.aggregateWeighbridge>label:has(#smallTruckTare){order:1}
+#receiptForm #smallPointFields>.aggregateWeighbridge>label:has(#smallTruckGross){order:2}
+#receiptForm #smallPointFields>.aggregateWeighbridge>label:has(#smallWeighbridgeTotal){order:3}
+#receiptForm #smallPointFields>.aggregateWeighbridge>label:has(#smallLoadsTotal){order:4}
+@container recb (max-width:700px){#receiptForm #smallPointFields>.aggregateWeighbridge>label{grid-column:1 / -1!important}}
+/* (4) κάτω μπάρα πιο χαμηλή, χωρίς άδειο χώρο */
+html body #receiptForm .recBody>.recFoot{padding:6px 0 8px!important;min-height:0!important}
+html body #receiptForm .recFoot>.floatPanelActions{margin:0!important;padding:0!important;min-height:0!important}
+#receiptForm .recFoot #receiptMsg:empty,#receiptForm .recFoot #negWeighMsg.hidden{display:none!important}
+/* (2) κάδος: στο πεδίο μόνο ο αριθμός· μεταφορέας / kg δίπλα, ως πληροφορία */
+#receiptForm .b24CtrInfo{flex:0 1 auto;min-width:0;max-width:55%;align-self:center;padding:0 8px 0 4px;font-size:13px;color:var(--muted,#66717c);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text}
+#receiptForm .b24CtrInfo:empty{display:none}
+</style>
+<script id="b24RecJs">
+(function(){
+  const $i=id=>document.getElementById(id);
+  /* ---------- (2) κάδος εισόδου / εξόδου: επεξεργασία μόνο του αριθμού ---------- */
+  const D=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  function splitLbl(v){v=v==null?'':String(v);const i=v.indexOf(' · ');return i<0?[v,'']:[v.slice(0,i),v.slice(i+3)]}
+  function wireCtr(id){const inp=$i(id);if(!inp||inp._b24)return;inp._b24=1;
+    const wrap=inp.parentElement;const info=document.createElement('span');info.className='b24CtrInfo';info.onclick=()=>inp.focus();inp.after(info);
+    const own=Object.getOwnPropertyDescriptor(inp,'value');const G=own&&own.get?own:D;   // αν το πεδίο έχει ήδη δικό του value (π.χ. B8), το σεβόμαστε
+    Object.defineProperty(inp,'value',{configurable:true,get(){return G.get.call(this)},set(v){const [c,rest]=splitLbl(v);inp.dataset.full=v==null?'':String(v);G.set.call(this,c);info.textContent=rest;info.title=rest}});
+    inp.value=G.get.call(inp);   // ό,τι υπάρχει ήδη
+    inp.addEventListener('input',()=>{const full=inp.dataset.full||'',[c]=splitLbl(full);if(G.get.call(inp)!==c){info.textContent='';inp.dataset.full=G.get.call(inp)}})}
+  ['incomingCtrText','outgoingCtrText'].forEach(wireCtr);
+  // ο έλεγχος «επιλεγμένο container» συγκρίνει με την πλήρη ετικέτα
+  if(typeof ctrVisible==='function'){const _cv=ctrVisible;ctrVisible=function(c){if(_cv(c))return true;try{return ['incomingCtrText','outgoingCtrText'].map(i=>($i(i)||{}).dataset?.full||'').includes(ctrChoice(c))}catch(e){return false}}}
+
+  /* ---------- (1) αλλαγή τύπου φορτίου: οι τιμές περνούν στα αντίστοιχα πεδία ---------- */
+  const val=id=>(($i(id)||{}).value||'').trim();
+  const setv=(id,v,ev)=>{const e=$i(id);if(!e||v==null||v==='')return;e.value=v;if(ev)e.dispatchEvent(new Event('input',{bubbles:true}))};
+  function toSmall(){
+    if(typeof smallPointRows==='undefined')return;
+    if(!smallPointRows.length)smallPointRows.push({supplier_id:'',order_number:'',gross_weight:null,tare_weight:null});
+    const r=smallPointRows[0];
+    const sup=val('supplier');if(sup)r.supplier_id=sup;
+    const o=val('orderNo');if(o)r.order_number=o;
+    const dn=val('dispatchNo');if(dn)r.dispatch_note_number=dn;
+    const sn=val('sealNo');if(sn)r.seal_number=sn;
+    const dp=val('dppNo');if(dp&&Number(dp))r.dpp_number=Number(dp);
+    const wb=val('weighbridgeNo');if(wb){r.weighbridge_number=wb;if(!val('smallWeighbridgeTotal'))setv('smallWeighbridgeTotal',wb)}
+    const g=val('gross'),t=val('tare');
+    if(g){setv('smallTruckGross',g);r.gross_weight=numVal(g)}
+    if(t){setv('smallTruckTare',t);smallPointRows[smallPointRows.length-1].tare_weight=numVal(t)}
+  }
+  function fromSmall(){
+    if(typeof smallPointRows==='undefined'||!smallPointRows.length)return;
+    const r=smallPointRows[0];
+    if(r.supplier_id){$i('supplier').value=r.supplier_id;const o=(suppliers||[]).find(x=>x.id===r.supplier_id);if(o)$i('supplierText').value=orgName(o)}
+    setv('orderNo',r.order_number);setv('dispatchNo',r.dispatch_note_number);setv('sealNo',r.seal_number);
+    if(r.dpp_number)setv('dppNo',String(r.dpp_number));
+    setv('weighbridgeNo',r.weighbridge_number||val('smallWeighbridgeTotal'));
+    const ng=numVal(val('smallTruckGross')),nt=numVal(val('smallTruckTare'));if(ng!=null&&isFinite(ng))setv('gross',String(ng),true);if(nt!=null&&isFinite(nt))setv('tare',String(nt),true);
+  }
+  document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#receiptForm .rtypeBtn');if(!b)return;
+    const from=($i('rtype')||{}).value,to=b.dataset.v;if(!from||from===to)return;
+    try{if(to==='SMALL_POINTS')toSmall();else if(from==='SMALL_POINTS')fromSmall()}catch(err){console.error('B24 τύπος φορτίου',err)}},true);
+})();
+</script>
+<style id="b24SfCss">
+/* ===== B24 (6): Ταξινόμηση — όταν ο πίνακας δεν χωρά στο πλάτος του παραθύρου, οριζόντιο scroll ΜΕΣΑ στον πίνακα (όχι σε όλο το παράθυρο),
+   κεφαλίδα σταθερή μέσα του, στήλη ▶ πάντα προσβάσιμη· αλλιώς όπως πριν (ο πίνακας γεμίζει το πλαίσιο και κυλά με το παράθυρο) ===== */
+#sortingDetail .sfList.sortingCatWrap.b24SfWide{overflow:auto!important;max-height:var(--b24SfH,60vh)!important;overscroll-behavior:contain}
+#sortingDetail .sfList.b24SfWide .sfTable thead th{top:0!important}
+</style>
+<script id="b24SfJs">
+(function(){
+  const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
+  const px=k=>parseFloat(getComputedStyle(sd).getPropertyValue(k))||0;
+  function fit(){q=0;const L=document.getElementById('sfList'),t=document.getElementById('sfTable');if(!L||!t||!t.offsetParent)return;
+    const wasWide=L.classList.contains('b24SfWide');
+    const need=Math.ceil(t.getBoundingClientRect().width)>Math.floor(L.getBoundingClientRect().width)+1;
+    if(need!==wasWide)L.classList.toggle('b24SfWide',need);
+    if(need){const h=Math.max(220,Math.floor(sd.clientHeight-px('--sfTop')-px('--sfAct')-px('--sfBub')-px('--sfTbH')-12))+'px';if(sd.style.getPropertyValue('--b24SfH')!==h)sd.style.setProperty('--b24SfH',h)}}
+  const req=()=>{if(!q)q=requestAnimationFrame(fit)};
+  if(window.ResizeObserver){const ro=new ResizeObserver(req);ro.observe(sd);new MutationObserver(()=>{const t=document.getElementById('sfTable');if(t&&t._b24ro!==1){t._b24ro=1;ro.observe(t)}req()}).observe(sd,{childList:true,subtree:true})}
+  window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);
+})();
+</script>
+<style id="b24WeeeCss">
+/* ===== B24 (8–10): Αποθήκη ΑΗΗΕ — όσο κυλάτε (ροδέλα / σύρσιμο μπάρας / πληκτρολόγιο) η κίνηση είναι ελεύθερη και ομαλή·
+   όταν σταματήσετε, ο πίνακας στοιχίζεται απαλά στην πλησιέστερη γραμμή (καμία μισή γραμμή κάτω από τη σταθερή κεφαλίδα) ===== */
+#weeeBody.rowSnap.b24Free{scroll-snap-type:none!important}
+</style>
+<script id="b24WeeeJs">
+(function(){
+  const B=document.getElementById('weeeBody');if(!B)return;
+  let t=0,down=false;
+  const free=()=>{if(!B.classList.contains('b24Free'))B.classList.add('b24Free')};
+  // στοίχιση στην πλησιέστερη αρχή γραμμής, ακριβώς κάτω από τη σταθερή κεφαλίδα του πίνακα της (ίδιοι στόχοι με το rowSnap)
+  function settle(){
+    if(down){t=setTimeout(settle,150);return}
+    const st=B.scrollTop,top=B.getBoundingClientRect().top;let best=null,bd=1e9;
+    B.querySelectorAll('table.snapT>tbody>tr>td:first-child').forEach(c=>{if(!c.offsetParent)return;
+      const pad=parseFloat(getComputedStyle(c).scrollMarginTop)||0,r=c.getBoundingClientRect(),d=(r.top-top)-pad;   // d = πόσο πρέπει να κυλήσει για να έρθει ακριβώς κάτω από την κεφαλίδα
+      if(Math.abs(d)<Math.abs(bd)){bd=d;best=c}});
+    const max=B.scrollHeight-B.clientHeight;
+    if(best&&Math.abs(bd)>0.5&&!(st>=max-1&&bd>0))B.scrollTo({top:Math.max(0,Math.min(max,st+bd)),behavior:'smooth'});
+    setTimeout(()=>B.classList.remove('b24Free'),400);
+  }
+  const idle=()=>{clearTimeout(t);t=setTimeout(settle,180)};
+  B.addEventListener('wheel',()=>{free();idle()},{passive:true});
+  B.addEventListener('pointerdown',e=>{if(e.target===B){down=true;free()}});   // πάτημα πάνω στη μπάρα scroll
+  window.addEventListener('pointerup',()=>{if(down){down=false;idle()}},true);
+  B.addEventListener('keydown',()=>{free();idle()});
+  B.addEventListener('scroll',()=>{if(B.classList.contains('b24Free'))idle()},{passive:true});
+})();
+</script>
+<style id="b24UserCss">#sideUser{cursor:pointer}
+#b24ThemePop{position:fixed;z-index:3000;min-width:200px;padding:6px;border-radius:10px;background:var(--pNav,var(--nav-bg,#0f1e36));color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.14)}
+#b24ThemePop .b24TpHd{font-size:12px;opacity:.7;padding:6px 10px 8px}
+#b24ThemePop button{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:15px;text-align:left;cursor:pointer}
+#b24ThemePop button.on,#b24ThemePop button:hover{background:rgba(255,255,255,.12)}
+</style>
+<script id="b24UserJs">
+/* B24 (12): πάτημα (ποντίκι ή αφή) στο όνομα χρήστη κάτω αριστερά → ανοίγει το ίδιο μενού με το κουμπί «Ρυθμίσεις» */
+(function(){
+  // Android: μόνο μενού αλλαγής θέματος (τα 4 θέματα)· Windows: το μενού «Ρυθμίσεις»
+  const AND=/Android/i.test(navigator.userAgent||'');
+  const PALS=[['cur','Άνοιξη'],['aut','Φθινόπωρο'],['win','Χειμώνας'],['sum','Καλοκαίρι']];
+  let pop=null;
+  const closePop=()=>{if(pop){pop.remove();pop=null}};
+  function themePop(u){
+    if(pop){closePop();return}
+    const cur=document.documentElement.dataset.pal||'cur';
+    pop=document.createElement('div');pop.id='b24ThemePop';pop.setAttribute('role','menu');
+    pop.innerHTML='<div class="b24TpHd">Θέμα χρωμάτων</div>'+PALS.map(([k,n])=>`<button type="button" role="menuitemradio" aria-checked="${k===cur}" data-pal="${k}" class="${k===cur?'on':''}"><span>${n}</span>${k===cur?'<b>✓</b>':''}</button>`).join('');
+    document.body.appendChild(pop);
+    const r=u.getBoundingClientRect(),h=pop.offsetHeight;pop.style.left=Math.max(8,r.left)+'px';pop.style.top=Math.max(8,r.top-h-6)+'px';
+    pop.onclick=e=>{const btn=e.target.closest('[data-pal]');if(!btn)return;e.stopPropagation();try{window.b12SetPalette&&b12SetPalette(btn.dataset.pal)}catch(_){}closePop()};
+  }
+  document.addEventListener('pointerdown',e=>{if(pop&&!pop.contains(e.target)&&!(e.target.closest&&e.target.closest('#sideUser')))closePop()},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closePop()});
+  const go=e=>{const u=e.target.closest&&e.target.closest('#sideUser');if(!u)return;e.preventDefault();e.stopPropagation();
+    if(AND){themePop(u);return}
+    const b=document.getElementById('settingsMenuBtn');if(b)b.click()};
+  document.addEventListener('click',go,true);
+  const u=document.getElementById('sideUser');if(u){u.setAttribute('role','button');u.tabIndex=0;u.title='Μενού χρήστη / Ρυθμίσεις';u.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('settingsMenuBtn')?.click()}})}
+})();
+</script>
 </body></html>
