@@ -14266,4 +14266,25 @@ html .main>.content :is(#master,#receipts,#weee,#production,#ready,#loading,#inv
     saving=true;try{return await _s.call(this,ev)}finally{saving=false}}}
 })();
 </script>
+<style id="b23InvBarCss">
+/* ===== B23: Απογραφή — έτος / «Αναφορά» ακριβώς στη μέση της μπάρας καρτελών (ίσο κενό πάνω-κάτω, σε κάθε ποσοστό «Μέγεθος»)·
+   καθαρό κενό ως τη γραμμή φίλτρων· αναζήτηση / «Καθαρισμός φίλτρων» στο ίδιο ύψος με τα κουμπιά, ολόκληρα ===== */
+html .content #inventory>.tfBar>.tfR{transform:none!important;align-self:center!important;margin-top:0!important;margin-bottom:0!important}
+html .content #inventory>.tfBar>#invYearNav{margin-bottom:0!important}
+html .content #inventory>.toolbar:not(.invSToolbar){margin-top:0!important;padding-top:0!important;align-items:center!important}
+html .content #inventory>.toolbar #invSearch,html .content #inventory>.toolbar #invClear{box-sizing:border-box;height:var(--b23H,auto)!important;min-height:0!important;margin-top:0!important;margin-bottom:0!important}
+</style>
+<script id="b23InvBarJs">
+/* B23: πεδίο αναζήτησης και «Καθαρισμός φίλτρων» στο ίδιο ύψος με τα κουμπιά Προοδευτικά/Διάστημα/Τρίμηνα (μετριέται, όχι σταθερή τιμή)· αλλάζει μόνο όταν διαφέρει */
+(function(){
+  const v=document.getElementById('inventory');if(!v)return;
+  function fit(){const b=v.querySelector('#invQuarterSeg button')||v.querySelector('#invModeSeg button');if(!b||!b.offsetParent)return;
+    const h=b.offsetHeight;if(!(h>0))return;const val=h+'px';if(v.style.getPropertyValue('--b23H')!==val)v.style.setProperty('--b23H',val)}
+  let q=0;const req=()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;fit()})};
+  window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);
+  new MutationObserver(req).observe(v,{attributes:true,attributeFilter:['class']});
+  new MutationObserver(req).observe(document.documentElement,{attributes:true,attributeFilter:['style']});
+  req();
+})();
+</script>
 </body></html>
