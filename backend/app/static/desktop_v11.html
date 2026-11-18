@@ -4798,6 +4798,7 @@ async function loadDeltio(){
   let [att,entries,intervals,devs]=await Promise.all([api('/production/attendance/effective?date='+date),api(`/production/work-entries?start=${date}&end=${date}`),api('/production/placement-intervals?date='+date).catch(()=>[]),api('/production/device-list?date='+date).catch(()=>[])]);
   deltioState.attendance=att;deltioState.entries=entries.filter(e=>e.active!==false);deltioState.intervals=intervals;deltioState.devices=devs;
   try{deltioState.returns=await api('/production/returns?date='+date)}catch(err){deltioState.returns=[]}
+  try{deltioState.sortedLoads=await api('/production/sorted-loads?date='+date)}catch(err){deltioState.sortedLoads=[]}
   try{let [md,ty]=await Promise.all([api('/master/media?include_inactive=true'),api('/master/medium-types')]);let tn=Object.fromEntries(ty.map(t=>[t.id,t.name_el]));deltioState.mediaMap=Object.fromEntries(md.map(m=>[m.id,{code:m.code,type:tn[m.type_id]||''}]))}catch(err){}
   renderDeltio();
   if(window.dlStripPaint)dlStripPaint();
@@ -4897,9 +4898,19 @@ function renderDeltio(){
       return r;
     }).join('');
     let devHtml='';
+    // B27 (α): χύμα που στάλθηκαν απευθείας από την ταξινόμηση (εγγραφές παραγωγής χωρίς μεταφορά) — φαίνονται στο τμήμα τους
+    let bulk=isSupport?[]:(deltioState.entries||[]).filter(x=>x.source==='ANDROID_BULK'&&ids.has(x.org_unit_id));
+    let bulkHtml=bulk.map(x=>{let c=(prodState.cats||[]).find(k=>k.id===x.weee_category_id),nm=c?(c.display_name||c.official_description||c.code||''):'',m=/εντολή ([^·]+)/.exec(x.notes||''),tm=(()=>{let w=String(x.created_at||x.work_date||'');if(!w)return '';if(!/[zZ]$|[+-]\d\d:?\d\d$/.test(w))w+='Z';return new Date(w).toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'})})();
+      return `<div class="dcDev"><div class="dt"><b>${esc(nm)}</b><span class="dk">${deltioKg(x.weight_kg)} kg</span></div><div class="dm"><span class="dcPill dcPillG">Χύμα${m?' · εντολή '+esc(m[1].trim()):''}</span><span class="tm">${esc(tm)}</span></div></div>`}).join('');
+    // B27 (β): Τμήμα Ταξινόμησης — φορτία που ταξινομήθηκαν την ημέρα· κλικ = άνοιγμα ταξινόμησης
+    let sortHtml='';
+    if(!isSupport&&cardUnitIds.some(id=>((allUnits.find(u=>u.id===id)||{}).code)==='SORTING_DEPT')){
+      let L=deltioState.sortedLoads||[],tot=L.reduce((t,x)=>t+Number(x.kg||0),0);
+      sortHtml=`<div class="dcLbl dv">ΦΟΡΤΙΑ ΠΟΥ ΤΑΞΙΝΟΜΗΘΗΚΑΝ</div><div class="dcBox">${L.length?L.map(x=>`<div class="dcDev b27Ld" data-load="${x.load_id}" role="button" tabindex="0" title="Άνοιγμα ταξινόμησης"><div class="dt"><b>${esc(x.supplier||'—')}</b><span class="dk">${deltioKg(x.kg)} kg</span></div><div class="dm"><span class="dcPill dcPillA">Εντολή ${esc(x.order_number||'')}</span><span class="tm">${esc(x.time||'')}</span></div></div>`).join('')+`<div class="dcDevTot"><span>Σύνολο</span><span>${deltioKg(tot)} kg</span></div>`:'<div class="dcDevEmpty">Δεν ταξινομήθηκε φορτίο.</div>'}</div>`;
+    }
     if(!isSupport){
-      let total=devs.reduce((t,d)=>t+Number(d.weight_kg||0),0);
-      devHtml=`<div class="dcLbl dv">ΣΥΣΚΕΥΕΣ ΠΟΥ ΜΠΗΚΑΝ ΣΤΟ ΤΜΗΜΑ</div><div class="dcBox">${devs.length?devs.map(d=>deltioDevHtml(d)).join('')+`<div class="dcDevTot"><span>Σύνολο</span><span>${deltioKg(total)} kg</span></div>`:'<div class="dcDevEmpty">Δεν έχει μπει υλικό ακόμα.</div><div class="dcDevTot"><span>Σύνολο</span><span></span></div>'}</div>`;
+      let total=devs.reduce((t,d)=>t+Number(d.weight_kg||0),0)+bulk.reduce((t,x)=>t+Number(x.weight_kg||0),0);
+      devHtml=sortHtml+`<div class="dcLbl dv">ΣΥΣΚΕΥΕΣ ΠΟΥ ΜΠΗΚΑΝ ΣΤΟ ΤΜΗΜΑ</div><div class="dcBox">${(devs.length||bulk.length)?devs.map(d=>deltioDevHtml(d)).join('')+bulkHtml+`<div class="dcDevTot"><span>Σύνολο</span><span>${deltioKg(total)} kg</span></div>`:'<div class="dcDevEmpty">Δεν έχει μπει υλικό ακόμα.</div><div class="dcDevTot"><span>Σύνολο</span><span></span></div>'}</div>`;
     }
     cards.push(`<div class="dcard deltioDeptCard" data-unit="${key}"><h3>${esc(title)}</h3><div class="dcLbl">ΕΡΓΑΖΟΜΕΝΟΙ</div><div class="dcBox"><table class="dcT"><thead><tr><th>Όνομα · θέση</th><th class="r">Καθαρές ώρες</th><th class="dcAr"></th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="dcDevEmpty">Κανένας εργαζόμενος στο τμήμα.</td></tr>'}</tbody></table></div>${devHtml}</div>`);
   };
@@ -14450,5 +14461,11 @@ async function b25RevertAsk(loadId){
   }
   return q;
 }
+</script>
+<style id="b27Css">.b27Ld{cursor:pointer}.b27Ld:hover{background:var(--hover,rgba(0,0,0,.04))}</style>
+<script id="b27Js">
+/* B27 (β): κλικ σε φορτίο του Τμήματος Ταξινόμησης → άνοιγμα της ταξινόμησης */
+document.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('.b27Ld[data-load]');if(!r)return;e.preventDefault();try{openSortingDetail(r.dataset.load)}catch(err){alert(err.message||err)}});
+document.addEventListener('keydown',e=>{if(e.key!=='Enter')return;const r=e.target.closest&&e.target.closest('.b27Ld[data-load]');if(r)openSortingDetail(r.dataset.load)});
 </script>
 </body></html>

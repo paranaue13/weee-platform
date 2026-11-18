@@ -5406,6 +5406,23 @@ def production_device_list(date:str=Query(...), unit_id:str|None=Query(default=N
     day=datetime.fromisoformat(date).date()
     return _device_rows(db,day,day,unit_id)
 
+@app.get('/production/sorted-loads')
+def production_sorted_loads(date:str=Query(...), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """B27: φορτία που ταξινομήθηκαν την ημέρα (καταχωρήσεις ταξινόμησης με τοπική ημερομηνία = date): προμηθευτής, εντολή, kg."""
+    day=datetime.fromisoformat(date).date(); d0=datetime.combine(day-timedelta(days=1),datetime.min.time()); d1=datetime.combine(day+timedelta(days=2),datetime.min.time())
+    agg={}
+    for e,ses in db.execute(select(SortingEntry,SortingSession).join(SortingSession,SortingSession.id==SortingEntry.session_id).where(SortingEntry.created_at>=d0,SortingEntry.created_at<d1)).all():
+        if e.created_at is None or _local_dt(e.created_at).date()!=day: continue
+        w=e.approved_weight if e.approved_weight is not None else (e.raw_weight or 0)
+        a=agg.setdefault(ses.inbound_load_id,{'kg':Decimal(0),'last':e.created_at}); a['kg']+=Decimal(w); a['last']=max(a['last'],e.created_at)
+    out=[]
+    for lid,a in agg.items():
+        l=db.get(InboundLoad,lid)
+        if not l: continue
+        t=db.get(InboundTrip,l.trip_id); sup=db.get(Organization,l.supplier_id) if l.supplier_id else None
+        out.append({'load_id':lid,'order_number':l.order_number or (t.receipt_number if t else ''),'supplier':(sup.trade_name or sup.legal_name) if sup else '','kg':float(a['kg']),'time':_local_dt(a['last']).strftime('%H:%M')})
+    out.sort(key=lambda x:x['time']); return out
+
 @app.get('/production/device-history')
 def production_device_history(days:int=Query(default=60,ge=1,le=400), unit_id:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     """Ιστορικό ανά ημέρα (πιο πρόσφατη πρώτα), με προαιρετικό φίλτρο τμήματος."""
