@@ -4155,6 +4155,11 @@ def workflow_day_status(db:Session=Depends(get_db), user=Depends(require_permiss
         out.append(schemas.DayStatusOut(date=d,color=color,total_loads=g['total'],red=g['red'],yellow=g['yellow'],green=g['green'],overdue=g['overdue']))
     return out
 
+@app.get('/app-logo.png')
+def app_logo():
+    """B28: λογότυπο εφαρμογής για την οθόνη εισόδου του Android."""
+    return _FileResponse(static_dir/'weee_logo.png',media_type='image/png')
+
 @app.get('/m')
 def mobile_sorting_workspace():
     return _FileResponse(static_dir/'sorting.html')
