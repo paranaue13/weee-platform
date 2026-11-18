@@ -2828,4 +2828,83 @@ html[data-pal="cur"] #loadList .k{color:#4A6A97!important}
 /* (5) κάτω από το τελευταίο στοιχείο της σελίδας: μικρό περιθώριο πάνω από την κάτω μπάρα */
 .wrap{padding-bottom:calc(var(--b4-nav,64px) + env(safe-area-inset-bottom) + 16px)!important}
 </style>
+<style id="b28MedCss">
+/* ===== B28 (15): επιλογή μέσου συλλογής ===== */
+/* τίτλος κατηγορίας σε δική του κάρτα με έντονο αριστερό περίγραμμα στο χρώμα του θέματος */
+#entry>.panelHead{background:#FEFCFF;border:1px solid var(--b10-line,#D9CEB8);border-left:6px solid var(--b10-pine,#144A52);border-radius:10px;padding:8px 8px 8px 14px;margin-bottom:12px}
+#entry>.panelHead h3{margin:0;font-size:18px}
+/* σειρά: Καλάθια (+ Πλαστικό κουτί δίπλα στο Infocycle 2) · από κάτω Σάκος 1kg, Παλέτα, Χύμα · χωρίς «ΧΩΡΙΣ ΜΕΣΟ» */
+#mediumTypes.b28Mt{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#mediumTypes.b28Mt>.mediumSep{grid-column:1/-1;height:1px;margin:2px 0;background:var(--b10-line,#D9CEB8)}
+#mediumTypes.b28Mt>.btn{min-height:52px;padding:4px 6px!important;font-size:15px;line-height:1.15;white-space:normal}
+#noMedium{display:none!important}
+/* πάνελ αριθμού: σταθερό πάνω από την κάτω μπάρα (που μένει στη θέση της) */
+#mediumNumberStep.b28Kp:not(.hidden){position:fixed;left:0;right:0;bottom:calc(var(--b4-nav,64px) + env(safe-area-inset-bottom));z-index:14;background:#FEFCFF;border-top:2px solid var(--b10-pine,#144A52);box-shadow:0 -8px 24px rgba(0,0,0,.18);padding:8px 10px 10px;max-height:calc(100vh - var(--b4-nav,64px) - 70px);overflow-y:auto;box-sizing:border-box}
+#mediumNumberStep.b28Kp.b28Done{display:none!important}
+#mediumNumberStep.b28Kp #mnHead,#mediumNumberStep.b28Kp .mnInputRow>#mnOk,#mediumNumberStep.b28Kp #suggestions:empty{display:none!important}
+.b28Sum{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-right:44px;position:relative;min-height:36px}
+.b28Sum .tg{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--b10-pine,#144A52) 12%,#FEFCFF);color:var(--b10-pine,#144A52);font-weight:700;font-size:14px;border:0}
+.b28Sum .tg b{font-size:16px;line-height:1}
+.b28Sum .x{position:absolute;right:0;top:0;width:38px;height:36px;border:0;border-radius:8px;background:transparent;font-size:22px;color:#3d4657}
+#mediumNumberStep.b28Kp .mnInputRow{display:block;margin:6px 0}
+#mediumNumberStep.b28Kp #mediumSearch{width:100%;box-sizing:border-box;height:56px;font-size:30px;font-weight:800;text-align:center;letter-spacing:2px;border:2px solid var(--b10-pine,#144A52);border-radius:10px;background:#FEFCFF;caret-color:transparent}
+/* ★ / Διαθέσιμα: μόνο για Καλάθια, σε οριζόντια λίστα */
+#mediumNumberStep.b28Kp:not(.b28Bk) #mediumNumbers{display:none}
+#mediumNumberStep.b28Kp #mediumNumbers h4{margin:6px 0 4px;font-size:14px}
+#mediumNumberStep.b28Kp #mediumNumbers .mnGrid{display:flex!important;flex-wrap:nowrap;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+#mediumNumberStep.b28Kp #mediumNumbers .mnGrid>button{flex:0 0 auto;white-space:nowrap;min-height:40px;padding:0 12px;font-size:15px}
+#mediumNumberStep.b28Kp #mediumNumbers .muted{font-size:12px}
+#mediumNumberStep.b28Kp #createMedium,#mediumNumberStep.b28Kp #createMediumFields{margin-top:6px}
+/* πληκτρολόγιο της εφαρμογής: 1-9, C, 0, ⌫ */
+.b28Pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.b28Pad button{height:46px;border:1px solid var(--b10-line,#D9CEB8);border-radius:10px;background:#FEFCFF;font-size:24px;font-weight:700;color:#1f2a37}
+.b28Pad button:active{background:color-mix(in srgb,var(--b10-pine,#144A52) 18%,#FEFCFF)}
+.b28Pad button.fn{font-size:20px;color:var(--b10-pine,#144A52)}
+#mediumNumberStep.b28Off .b28Pad{display:none}
+</style>
+<script id="b28MedJs">
+(function(){
+  const $$=id=>document.getElementById(id);
+  const step=$$('mediumNumberStep'),inp=$$('mediumSearch');if(!step||!inp)return;
+  step.classList.add('b28Kp');
+  // όχι πληκτρολόγιο Android: το πεδίο γεμίζει μόνο από το δικό μας
+  inp.setAttribute('inputmode','none');inp.setAttribute('readonly','');inp.removeAttribute('pattern');
+  // σύνοψη επιλογής + × κλεισίματος πληκτρολογίου
+  const sum=document.createElement('div');sum.className='b28Sum';step.insertBefore(sum,step.firstChild);
+  const pad=document.createElement('div');pad.className='b28Pad';
+  pad.innerHTML=['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-k="${k}" class="${/\d/.test(k)?'':'fn'}">${k}</button>`).join('');
+  step.querySelector('.mnInputRow').after(pad);
+  const curType=()=>(typeof types!=='undefined'&&types||[]).find(t=>t.id===chosenMediumType)||{};
+  const isBasket=t=>/καλάθ/i.test(t.name_el||'');
+  function paintSum(){const t=curType(),c=(typeof cat!=='undefined'&&cat)?String(dname(cat)).split(' / ')[0]:'';
+    sum.innerHTML=(c?`<button type="button" class="tg" data-x="cat">${esc(c)} <b>×</b></button>`:'')+(t.name_el?`<button type="button" class="tg" data-x="type">${esc(t.name_el)} <b>×</b></button>`:'')+'<button type="button" class="x" data-x="kp" aria-label="Κλείσιμο πληκτρολογίου">✕</button>';
+    step.classList.toggle('b28Bk',isBasket(t))}
+  sum.onclick=e=>{const b=e.target.closest('[data-x]');if(!b)return;
+    if(b.dataset.x==='kp'){step.classList.add('b28Off');return}
+    if(b.dataset.x==='type'){step.classList.add('hidden');$$('mediumTypeStep')?.scrollIntoView({behavior:'smooth'});return}
+    if(b.dataset.x==='cat'){try{closePanels()}catch(_){}}};
+  inp.addEventListener('click',()=>step.classList.remove('b28Off'));
+  // ο αριθμός δίνει αποτέλεσμα αμέσως (χωρίς ✓): μοναδική ακριβής αντιστοίχιση → επιλογή· αν υπάρχουν και μεγαλύτεροι αριθμοί που ξεκινούν έτσι, μικρή αναμονή
+  let tm=0;
+  function tryPick(){clearTimeout(tm);const q=String(inp.value||'').trim();if(!q)return;
+    const rows=(typeof mediumRowsCache!=='undefined'&&mediumRowsCache)||[];const L=m=>String(numLblA(m.code));
+    const exact=rows.filter(m=>L(m)===q||String(m.code)===q),longer=rows.filter(m=>L(m)!==q&&L(m).startsWith(q));
+    if(exact.length===1){if(!longer.length)chooseMedium(exact[0].id);else tm=setTimeout(()=>{if(String(inp.value).trim()===q)chooseMedium(exact[0].id)},900)}}
+  pad.onclick=e=>{const b=e.target.closest('[data-k]');if(!b)return;const k=b.dataset.k;let v=String(inp.value||'');
+    if(k==='C')v='';else if(k==='⌫')v=v.slice(0,-1);else v=(v+k).slice(0,8);
+    inp.value=v;try{paintMediumNumbers()}catch(_){}tryPick()};
+  // στο άνοιγμα / επιλογή άλλου μέσου: ξανανοίγει το πληκτρολόγιο· όταν επιλεγεί μέσο, το πάνελ κλείνει
+  if(typeof chooseMediumType==='function'){const _c=chooseMediumType;chooseMediumType=async function(){const r=await _c.apply(this,arguments);step.classList.remove('b28Done','b28Off');paintSum();try{inp.blur()}catch(_){}return r}}
+  if(typeof chooseMedium==='function'){const _m=chooseMedium;chooseMedium=function(){clearTimeout(tm);const r=_m.apply(this,arguments);step.classList.add('b28Done');return r}}
+  // σειρά κουμπιών τύπου μέσου + τίποτα επιλεγμένο αν δεν το πάτησε ο χρήστης
+  function orderTypes(){const g=$$('mediumTypes');if(!g||g._b28===g.innerHTML)return;
+    const btns=[...g.querySelectorAll(':scope>[data-mt]')],nm=b=>b.textContent.trim();
+    const bask=btns.filter(b=>/^Καλάθ/i.test(nm(b))),box=btns.filter(b=>/κουτ/i.test(nm(b))),low=btns.filter(b=>/Σάκ|Παλέτ|Χύμα/i.test(nm(b))&&!box.includes(b)),other=btns.filter(b=>!bask.includes(b)&&!box.includes(b)&&!low.includes(b));
+    const sep=()=>{const d=document.createElement('div');d.className='mediumSep';return d};
+    g.innerHTML='';[...bask,...box,...other].forEach(b=>g.appendChild(b));g.appendChild(sep());low.sort((a,b)=>(/Σάκ/.test(nm(a))?0:/Παλέτ/.test(nm(a))?1:2)-(/Σάκ/.test(nm(b))?0:/Παλέτ/.test(nm(b))?1:2)).forEach(b=>g.appendChild(b));
+    g.querySelectorAll('.on,.sel,.active').forEach(b=>b.classList.remove('on','sel','active'));
+    g.classList.add('b28Mt');g._b28=g.innerHTML}
+  const g=$$('mediumTypes');if(g){new MutationObserver(orderTypes).observe(g,{childList:true});orderTypes()}
+})();
+</script>
 </body></html>
