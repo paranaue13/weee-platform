@@ -3120,13 +3120,18 @@ def sorting_day_loads(day:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=
     if nos:
         for f in db.scalars(select(ElectrocycleOrder).where(ElectrocycleOrder.order_no.in_(nos)).order_by(ElectrocycleOrder.source_date)).all(): feed[f.order_no]=f
     nm=lambda o:(o.trade_name or o.legal_name) if o else ''
+    # B26: ταξινομημένα kg ανά συνεδρία (για τη μπάρα % στις κάρτες του Android)
+    sids=[ses.id for _,_,ses,_,_ in rows if ses];sw={}
+    if sids:
+        for sid,w in db.execute(select(SortingEntry.session_id,func.sum(func.coalesce(SortingEntry.approved_weight,SortingEntry.raw_weight))).where(SortingEntry.session_id.in_(sids)).group_by(SortingEntry.session_id)).all(): sw[sid]=w or 0
     out=[]
     for l,t,ses,sup,car in rows:
         f=feed.get(l.order_number or '')
         st=(ses.status if ses else l.status) or t.status or 'DRAFT'
         out.append({'load_id':l.id,'receipt_id':t.id,'receipt_number':t.receipt_number,'receipt_type':t.receipt_type,'receipt_date':t.receipt_date.isoformat(),
           'supplier':nm(sup),'carrier_id':t.carrier_id,'carrier':nm(car),'order_number':l.order_number,'dpp_number':l.dpp_number,'container_number':l.incoming_container_number,
-          'net_weight':float(l.net_weight or 0),'status':st,'sender':(f.sender if f else None) or nm(sup),'city':f.city if f else None,'collection_medium':f.collection_medium if f else None})
+          'net_weight':float(l.net_weight or 0),'status':st,'sender':(f.sender if f else None) or nm(sup),'city':f.city if f else None,'collection_medium':f.collection_medium if f else None,
+          'sorted_weight':float(sw.get(ses.id,0)) if ses else 0.0,'correction':bool(ses.correction) if ses else False})
     return out
 
 @app.get('/sorting/review-queue')
@@ -3434,7 +3439,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
     db.add(obj); db.flush()
     warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
     _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count,'close_medium':bool(data.close_medium)})
-    if data.entry_type=='BULK' and 'FLOW=TO_PRODUCTION' in (data.notes or ''): _bulk_to_production(db,obj,cat,load,user)
+    if data.entry_type=='BULK' and 'FLOW=TO_PRODUCTION' in (data.notes or '') and cat.code in BULK_PROD_LABEL: _bulk_to_production(db,obj,cat,load,user)   # ψυγεία: δεν επεξεργάζονται, μένουν στην Αποθήκη ΑΗΗΕ (προς αποστολή)
     if data.close_medium and data.collection_medium_id and data.entry_type!='BULK':
         mm=db.get(CollectionMedium,data.collection_medium_id)
         if mm: mm.is_closed=True; write_audit(db,user,'collection_medium',mm.id,'CLOSE',new={'code':mm.code})
@@ -3487,6 +3492,11 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
     if (mt.usage or 'BOTH') not in ('IN','BOTH'): raise HTTPException(422,'Το είδος «'+mt.name_el+'» είναι εξερχόμενο και δεν χρησιμοποιείται στην Ταξινόμηση')
     code=(data.code or '').strip()
     if mt.code=='BULK': raise HTTPException(422,'Το Χύμα δεν έχει αριθμό: καταχώρησέ το χωρίς μέσο συλλογής')
+    if not code and (getattr(mt,'single_use',False) or (mt.usage or 'BOTH')!='IN'):
+        # B26 (δ): Σάκος / Παλέτα / Κουτί χωρίς μοναδικό αριθμό → κωδικός αυτόματα (μίας χρήσης: δίνεται στην πρώτη χρήση)
+        if getattr(mt,'single_use',False):
+            import uuid as _u3; code='~'+_u3.uuid4().hex[:8]
+        else: code=_next_medium_code(db,mt)
     if not code: raise HTTPException(422,'Γράψε αριθμό / κωδικό μέσου')
     existing=db.scalar(select(CollectionMedium).where(CollectionMedium.code==code,CollectionMedium.type_id==data.type_id,CollectionMedium.active==True))
     if existing: return existing
@@ -3786,14 +3796,14 @@ def sorting_mark_correction(load_id:str, db:Session=Depends(get_db), user:User=D
     write_audit(db,user,'sorting_session',ses.id,'MARK_CORRECTION',new={'correction':True}); db.commit(); return _sorting_payload(db,load,ses)
 
 
-# ===== B25 (δ): χύμα «ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ» από την ταξινόμηση (Android) → εγγραφή παραγωγής (Τμήμα Ταξινόμησης) + υλικό στην Αποθήκη Υλικών,
+# ===== B25/B26 (δ): χύμα «ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ» από την ταξινόμηση (Android) → εγγραφή παραγωγής (Τμήμα Εξωτερικών) + υλικό στην Αποθήκη Υλικών,
 # όπως καταγράφεται η ιστορική παραγωγή (4Α2110… → ΠΛΥΝΤΗΡΙΑ, 4Α1000 → ΚΟΥΖΙΝΕΣ). Σύνδεση με την καταχώρηση μέσω notes «B25 entry:<id>».
 BULK_PROD_LABEL={'4Α2110':'ΠΛΥΝΤΗΡΙΑ','4Α2120':'ΠΛΥΝΤΗΡΙΑ','4Α2200':'ΠΛΥΝΤΗΡΙΑ','4Α1000':'ΚΟΥΖΙΝΕΣ'}
 def _bulk_to_production(db:Session, e, cat, load, user:User):
     w=Decimal(e.raw_weight or 0)
     if w<=0: return
-    unit=db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code=='SORTING_DEPT'))
-    if not unit: raise HTTPException(422,'Δεν υπάρχει το «Τμήμα Ταξινόμησης» στα Μητρώα')
+    unit=db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code=='EXTERNAL'))
+    if not unit: raise HTTPException(422,'Δεν υπάρχει το «Τμήμα Εξωτερικών» στα Μητρώα')
     tag=f'B25 entry:{e.id}'; note=f'Χύμα από ταξινόμηση · εντολή {load.order_number or "—"} · {tag}'
     now=datetime.now(timezone.utc)
     db.add(ProductionWorkEntry(work_date=now,org_unit_id=unit.id,employee_id=None,weee_category_id=cat.id,weight_kg=w,source='ANDROID_BULK',created_by_user_id=user.id,notes=note,active=True))
