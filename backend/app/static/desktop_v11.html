@@ -4441,6 +4441,8 @@ function renderReadyMaterials(){
  const lotKgColStock=c=>{let up=umbPred(c);if(up)return rmLotKg(rmLotsStock(),up,null);if(c.kind==='rcpt'||c.kind==='group'||c.kind==='sum'||c.kind==='subpress')return 0;let m=new Set();if(c.kind==='lg'){c.subs.forEach(x=>m.add(x.mid))}else(c.labels||[]).forEach(l=>{let x=readyState.maps&&readyState.maps.byKey[foldName(l)];if(x&&x.kind==='MATERIAL'&&x.material_id)m.add(x.material_id)});return rmLotKg(rmLotsStock(),l=>m.has(l.material_id),null)};
  const rcptKg=c=>Number((readyState.maps&&readyState.maps.weee[c.weee])||0);
  if(readyStockOnly)cols=cols.filter(c=>c.kind==='rcpt'?rcptKg(c)>0:c.kind==='sum'?true:c.labels.some(readyHasStock)||lotKgColStock(c)>0);
+ const b30Key=c=>c.key||(c.labels||[]).join('|'),b30Sig=[readyState.activeGroup,readyState.period,String(readyState.cursor)].join('~');
+ if(readyStockOnly&&readyState.b30Hide&&readyState.b30Hide.sig===b30Sig)cols=cols.filter(c=>!readyState.b30Hide.keys.has(b30Key(c)));   // B30: στήλες με «Τρέχον απόθεμα» 0 / −0 / κενό (βλ. παρακάτω)
  cols.forEach(c=>{if(c.kind==='group'&&c.umb&&readyState.maps&&readyState.maps.umb&&readyState.maps.umb[c.umb]){let un=readyState.maps.umb[c.umb].name,fk=foldName(un);
    if(!c.subs.some(s=>s.parent||foldName(s.label)===fk)&&[...rmLotsPeriod(),...rmLotsStock()].some(l=>l.material_id===c.umb&&!l.sub_label))c.subs.unshift({label:'\u2063'+un,name:un,parent:true,inactive:false,order:-1})}});
  if(!readyState.colOpen)readyState.colOpen=new Set();
@@ -4486,6 +4488,7 @@ function renderReadyMaterials(){
  const balOf=l=>asOfEnd?readyBalAsOf(l,asOfEnd):(readyBalanceByName[l]||0);
  const corrSumL=(c,k)=>ledLabels(c).reduce((s,l)=>s+corrAll(l,k),0);
  const colBalance=c=>c.kind==='rcpt'||c.kind==='subpress'?0:ledLabels(c).reduce((s,l)=>s+balOf(l),0)+corrSumL(c,'weight_kg')+lotKgCol(c,null,true);   // Τρέχον απόθεμα = ιστορικό παραγωγής − αποστολές + εξαγωγές που είναι στην αποθήκη (οι φορτωμένες φεύγουν)
+ if(readyStockOnly){const z=cols.filter(c=>!['rcpt','sum','subpress'].includes(c.kind)&&(()=>{try{return Math.round(colBalance(c))<=0}catch(err){return false}})()).map(b30Key);if(z.length){const h=readyState.b30Hide&&readyState.b30Hide.sig===b30Sig?readyState.b30Hide.keys:new Set();const n=z.filter(k=>!h.has(k));if(n.length){n.forEach(k=>h.add(k));readyState.b30Hide={sig:b30Sig,keys:h};return renderReadyMaterials()}}}   // B30: «Μόνο με διαθέσιμο απόθεμα» = ό,τι δείχνει > 0 στο «Τρέχον απόθεμα»
  let buckets=readyDateBuckets();
  let groupLabel=isPlaketes?'Πλακέτες':(MAT_GROUP_LABELS[g]||matTabName(g));
  let groupEntriesAll=entries.filter(inTab);
