@@ -3434,6 +3434,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
     db.add(obj); db.flush()
     warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
     _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count,'close_medium':bool(data.close_medium)})
+    if data.entry_type=='BULK' and 'FLOW=TO_PRODUCTION' in (data.notes or ''): _bulk_to_production(db,obj,cat,load,user)
     if data.close_medium and data.collection_medium_id and data.entry_type!='BULK':
         mm=db.get(CollectionMedium,data.collection_medium_id)
         if mm: mm.is_closed=True; write_audit(db,user,'collection_medium',mm.id,'CLOSE',new={'code':mm.code})
@@ -3784,22 +3785,86 @@ def sorting_mark_correction(load_id:str, db:Session=Depends(get_db), user:User=D
     ses.correction=True
     write_audit(db,user,'sorting_session',ses.id,'MARK_CORRECTION',new={'correction':True}); db.commit(); return _sorting_payload(db,load,ses)
 
+
+# ===== B25 (δ): χύμα «ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ» από την ταξινόμηση (Android) → εγγραφή παραγωγής (Τμήμα Ταξινόμησης) + υλικό στην Αποθήκη Υλικών,
+# όπως καταγράφεται η ιστορική παραγωγή (4Α2110… → ΠΛΥΝΤΗΡΙΑ, 4Α1000 → ΚΟΥΖΙΝΕΣ). Σύνδεση με την καταχώρηση μέσω notes «B25 entry:<id>».
+BULK_PROD_LABEL={'4Α2110':'ΠΛΥΝΤΗΡΙΑ','4Α2120':'ΠΛΥΝΤΗΡΙΑ','4Α2200':'ΠΛΥΝΤΗΡΙΑ','4Α1000':'ΚΟΥΖΙΝΕΣ'}
+def _bulk_to_production(db:Session, e, cat, load, user:User):
+    w=Decimal(e.raw_weight or 0)
+    if w<=0: return
+    unit=db.scalar(select(OrganizationalUnit).where(OrganizationalUnit.code=='SORTING_DEPT'))
+    if not unit: raise HTTPException(422,'Δεν υπάρχει το «Τμήμα Ταξινόμησης» στα Μητρώα')
+    tag=f'B25 entry:{e.id}'; note=f'Χύμα από ταξινόμηση · εντολή {load.order_number or "—"} · {tag}'
+    now=datetime.now(timezone.utc)
+    db.add(ProductionWorkEntry(work_date=now,org_unit_id=unit.id,employee_id=None,weee_category_id=cat.id,weight_kg=w,source='ANDROID_BULK',created_by_user_id=user.id,notes=note,active=True))
+    lab=BULK_PROD_LABEL.get(cat.code)
+    if lab: db.add(MaterialOutputEntry(work_date=now,category_group='EIDIKIS_DIACHEIRISIS',material_label=lab,weight_kg=w,source='ANDROID_BULK',created_by_user_id=user.id,notes=note,active=True))
+    lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
+    if lot: lot.available_weight=Decimal('0'); lot.status='CONSUMED'   # η εγγραφή παραγωγής είναι η αφαίρεση· το μερίδιο δεν ξαναδιαλέγεται στο Δελτίο
+    write_audit(db,user,'sorting_entry',e.id,'BULK_TO_PRODUCTION',new={'category':cat.code,'weight':str(w),'material':lab})
+
+def _bulk_prod_rows(db:Session, entry_ids:list):
+    if not entry_ids: return [],[]
+    conds=[ProductionWorkEntry.notes.like(f'%B25 entry:{i}%') for i in entry_ids]; mconds=[MaterialOutputEntry.notes.like(f'%B25 entry:{i}%') for i in entry_ids]
+    pw=db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True,or_(*conds))).all()
+    mo=db.scalars(select(MaterialOutputEntry).where(MaterialOutputEntry.active==True,or_(*mconds))).all()
+    return pw,mo
+
+@app.get('/sorting/{load_id}/revert-info')
+def sorting_revert_info(load_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
+    """B25 (β/γ): τι υπάρχει πριν την επιστροφή στο Android — καταχωρήσεις ταξινόμησης και ποσότητες που στάλθηκαν στην παραγωγή."""
+    load,ses=_session_for_load(db,load_id,False)
+    if not ses: return {'entries':0,'entries_kg':0,'production_kg':0}
+    es=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
+    pw,_=_bulk_prod_rows(db,[x.id for x in es])
+    kg=lambda x:float(x.approved_weight if x.approved_weight is not None else (x.raw_weight or 0))
+    return {'entries':len(es),'entries_kg':round(sum(kg(x) for x in es)),'production_kg':round(sum(float(p.weight_kg or 0) for p in pw))}
+
+def _revert_cleanup(db:Session, load, ses, user:User, clear_entries:bool, clear_production:bool):
+    """B25 (β/γ): πραγματική διαγραφή καταχωρήσεων (και των κινήσεων αποθήκης τους) / ποσοτήτων παραγωγής, μόνο αν το επιλέξει ο χρήστης."""
+    es=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
+    pw,mo=_bulk_prod_rows(db,[x.id for x in es])
+    sent=lambda e:any(f'B25 entry:{e.id}' in (p.notes or '') for p in pw)
+    if clear_production:
+        for r in list(pw)+list(mo): r.active=False
+        for e in es:
+            if sent(e):
+                lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
+                if lot and not db.scalar(select(StockMovement).where(StockMovement.lot_id==lot.id,StockMovement.movement_type.in_(('TO_PRODUCTION','DIRECT_TO_PRODUCTION','DISPATCH')))):
+                    lot.available_weight=lot.original_weight; lot.status='AVAILABLE'
+        write_audit(db,user,'sorting_session',ses.id,'REVERT_CLEAR_PRODUCTION',new={'production_rows':len(pw),'material_rows':len(mo)})
+    if clear_entries:
+        keep={e.id for e in es if sent(e)} if not clear_production else set()   # ό,τι έχει σταλεί στην παραγωγή και δεν διαγράφεται εκεί, μένει
+        n=0
+        for e in es:
+            if e.id in keep: continue
+            lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
+            if lot: _retire_lot(db,lot,strict=True)
+            db.delete(e); n+=1
+        db.flush()
+        write_audit(db,user,'sorting_session',ses.id,'REVERT_CLEAR_ENTRIES',new={'deleted':n,'kept_in_production':len(keep)})
+        if not db.scalar(select(SortingEntry).where(SortingEntry.session_id==ses.id)): load.status='READY_FOR_SORTING'
+    # στο Android ξαναεμφανίζεται ως ΜΗ ολοκληρωμένη (όχι «στάλθηκε»)
+    ses.sorting_confirmed_at=None; ses.sorting_confirmed_by=None; ses.logistics_confirmed_at=None; ses.logistics_confirmed_by=None
+    ses.management_confirmed_at=None; ses.management_confirmed_by=None
+
 @app.post('/sorting/{load_id}/reopen', response_model=schemas.SortingSessionOut)
-def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή για διόρθωση'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
+def sorting_reopen(load_id:str, reason:str=Query(default='Επιστροφή για διόρθωση'), clear_entries:bool=Query(default=False), clear_production:bool=Query(default=False), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status not in {'LOGISTICS_REVIEW','MANAGEMENT_REVIEW'}: raise HTTPException(409,'Η ταξινόμηση δεν μπορεί να επιστραφεί σε αυτή την κατάσταση')
     old=ses.status; ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'
+    _revert_cleanup(db,load,ses,user,clear_entries,clear_production)
     write_audit(db,user,'sorting_session',ses.id,'REOPEN_TO_SORTING',old={'status':old},new={'status':'IN_PROGRESS'},reason=reason)
     db.commit(); return _sorting_payload(db,load,ses)
 
 @app.post('/sorting/{load_id}/revert-closed', response_model=schemas.SortingSessionOut)
-def sorting_revert_closed(load_id:str, to:str=Query(...,pattern='^(SORTING|REVIEW|CORRECTION)$'), reason:str=Query(default='Επιστροφή από Ολοκληρώθηκε (Windows)'), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
+def sorting_revert_closed(load_id:str, to:str=Query(...,pattern='^(SORTING|REVIEW|CORRECTION)$'), reason:str=Query(default='Επιστροφή από Ολοκληρώθηκε (Windows)'), clear_entries:bool=Query(default=False), clear_production:bool=Query(default=False), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.approve'))):
     """Επιστροφή ΟΛΟΚΛΗΡΩΜΕΝΗΣ ταξινόμησης (CLOSED) σε προηγούμενη κατάσταση — ΜΟΝΟ για τη Διοίκηση (sorting.approve).
     SORTING = «Προς Ταξινόμηση» (ξανά στο Android), REVIEW = «Προς Έλεγχο», CORRECTION = «Προς Διόρθωση».
     Τα αποθέματα ΑΗΗΕ και τα στοιχεία ολοκλήρωσης μένουν όπως είναι· αλλάζει μόνο η κατάσταση και οι εγγραφές γίνονται ξανά επεξεργάσιμες."""
     load,ses=_session_for_load(db,load_id,False)
     if not ses or ses.status!='CLOSED': raise HTTPException(409,'Η ταξινόμηση δεν είναι ολοκληρωμένη')
-    if to=='SORTING': ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'
+    if to=='SORTING': ses.status='IN_PROGRESS'; ses.correction=False; load.status='SORTING_IN_PROGRESS'; _revert_cleanup(db,load,ses,user,clear_entries,clear_production)
     else: ses.status='LOGISTICS_REVIEW'; ses.correction=(to=='CORRECTION'); load.status='SORTING_CONFIRMED'
     # ΔΕΝ διαγράφεται τίποτα: μένουν οι εγγραφές της ταξινόμησης και τα στοιχεία ολοκλήρωσης (τελικό βάρος, ποιος/πότε)· αλλάζει μόνο η κατάσταση
     write_audit(db,user,'sorting_session',ses.id,'REVERT_CLOSED',old={'status':'CLOSED'},new={'to':to,'status':ses.status,'correction':ses.correction},reason=reason)

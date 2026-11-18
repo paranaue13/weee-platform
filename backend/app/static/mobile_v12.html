@@ -2746,4 +2746,30 @@ html:not([data-pal="cur"]) .dlScrim{background:rgba(2,37,57,.45)!important}
     catch(err){if(msg){msg.className='ldPhMsg error';msg.textContent=(ok?ok+' αποθηκεύτηκαν. ':'')+'Σφάλμα: '+(err&&err.message||err)}}};
 })();
 </script>
+<style id="b25ThemeCss">
+#who{cursor:pointer;-webkit-tap-highlight-color:transparent}
+#b25Tp{position:fixed;z-index:9999;min-width:190px;padding:6px;border-radius:12px;background:#0F3238;color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+html[data-pal="cur"] #b25Tp{background:#0f1e36}
+#b25Tp .hd{font-size:12px;opacity:.75;padding:6px 10px 8px}
+#b25Tp button{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:48px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;font-size:16px;text-align:left}
+#b25Tp button.on{background:rgba(255,255,255,.14)}
+</style>
+<script id="b25ThemeJs">
+/* B25 (α): πάτημα στο όνομα χρήστη → μόνο μενού θέματος (θέματα που υπάρχουν στο Android: Φθινόπωρο = προεπιλογή, Άνοιξη = data-pal="cur") */
+(function(){
+  const K='weeeMobilePal',H=document.documentElement,P=[['cur','Άνοιξη'],['aut','Φθινόπωρο']];
+  const apply=v=>{if(v==='cur')H.dataset.pal='cur';else delete H.dataset.pal};
+  try{apply(localStorage.getItem(K)||'aut')}catch(e){}
+  let pop=null;const close=()=>{if(pop){pop.remove();pop=null}};
+  function open(w){if(pop){close();return}
+    const cur=H.dataset.pal==='cur'?'cur':'aut';pop=document.createElement('div');pop.id='b25Tp';
+    pop.innerHTML='<div class="hd">Θέμα χρωμάτων</div>'+P.map(([k,n])=>`<button type="button" data-p="${k}" class="${k===cur?'on':''}"><span>${n}</span>${k===cur?'<b>✓</b>':''}</button>`).join('');
+    document.body.appendChild(pop);const r=w.getBoundingClientRect();pop.style.top=(r.bottom+6)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.right-pop.offsetWidth))+'px';
+    pop.onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;try{localStorage.setItem(K,b.dataset.p)}catch(_){}apply(b.dataset.p);close()}}
+  // το όνομα καλύπτεται από τη σκούρα λωρίδα (.topDark): ελέγχεται η ΘΕΣΗ του πατήματος, όχι το στοιχείο
+  const onWho=e=>{const w=document.getElementById('who');if(!w||!w.offsetParent||!w.textContent.trim())return null;const r=w.getBoundingClientRect(),x=e.clientX,y=e.clientY;return (x>=r.left-6&&x<=r.right+6&&y>=r.top-8&&y<=r.bottom+8)?w:null};
+  document.addEventListener('click',e=>{if(pop&&pop.contains(e.target))return;const w=onWho(e);if(w){e.preventDefault();e.stopPropagation();open(w)}},true);
+  document.addEventListener('pointerdown',e=>{if(pop&&!pop.contains(e.target)&&!onWho(e))close()},true);
+})();
+</script>
 </body></html>

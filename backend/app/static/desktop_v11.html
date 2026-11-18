@@ -6396,11 +6396,11 @@ async function openSortingDetail(loadId,sourceRow=null){
       try{$('cxGo').disabled=true;await api('/receipts/'+d.receipt_id+'/cancel',{method:'POST',body:JSON.stringify({reason:why})});ov.remove();sd.classList.add('hidden');try{await loadSortingReview()}catch(e){}try{await loadReceiptsV2()}catch(e){}try{if(typeof refreshHistoryState==='function')refreshHistoryState()}catch(e){}}
       catch(e){$('cxGo').disabled=false;$('cxMsg').textContent=e.message||'Σφάλμα'}};
   };
-  $('closeSortDetail').onclick=()=>sd.classList.add('hidden');if(canReopenSort)$('sortReopenBtn').onclick=async()=>{if(!await uiConfirm('Η ταξινόμηση θα εμφανιστεί ξανά στο Android. Συνέχεια;'))return;try{await api('/sorting/'+loadId+'/reopen?reason='+encodeURIComponent('Προς Ταξινόμηση από Windows'),{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
+  $('closeSortDetail').onclick=()=>sd.classList.add('hidden');if(canReopenSort)$('sortReopenBtn').onclick=async()=>{if(!await uiConfirm('Η ταξινόμηση θα εμφανιστεί ξανά στο Android. Συνέχεια;'))return;let b25q=await b25RevertAsk(loadId);if(b25q===null)return;try{await api('/sorting/'+loadId+'/reopen?reason='+encodeURIComponent('Προς Ταξινόμηση από Windows')+b25q,{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   if(canMarkCorrection)$('sortCorrectionBtn').onclick=async()=>{try{await api('/sorting/'+loadId+'/mark-correction',{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   if(canMarkReview)$('sortMarkReview').onclick=async()=>{try{await api('/sorting/'+loadId+'/confirm',{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
   if(canCompleteSort)$('sortCompleteBtn').onclick=async()=>{if(!await uiConfirm('Ολοκλήρωση ταξινόμησης; Η εγγραφή κλείνει και ενημερώνεται το απόθεμα ΑΗΗΕ.'))return;try{await api('/sorting/'+loadId+'/logistics-review',{method:'POST',body:JSON.stringify({requires_management_approval:false,notes:null})});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}};
-  if(canRevert)[['sortReopenBtn','SORTING','Η ολοκληρωμένη ταξινόμηση θα ξανανοίξει ως «Προς Ταξινόμηση» και θα εμφανιστεί ξανά στο Android. Συνέχεια;'],['sortMarkReview','REVIEW','Η ολοκληρωμένη ταξινόμηση θα γυρίσει σε «Προς Έλεγχο». Συνέχεια;'],['sortCorrectionBtn','CORRECTION','Η ολοκληρωμένη ταξινόμηση θα γυρίσει σε «Προς Διόρθωση». Συνέχεια;']].forEach(([id,to,msg])=>{$(id).title='Επιστροφή από «Ολοκληρώθηκε»';$(id).onclick=async()=>{if(!await uiConfirm(msg))return;try{await api('/sorting/'+loadId+'/revert-closed?to='+to,{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}}});
+  if(canRevert)[['sortReopenBtn','SORTING','Η ολοκληρωμένη ταξινόμηση θα ξανανοίξει ως «Προς Ταξινόμηση» και θα εμφανιστεί ξανά στο Android. Συνέχεια;'],['sortMarkReview','REVIEW','Η ολοκληρωμένη ταξινόμηση θα γυρίσει σε «Προς Έλεγχο». Συνέχεια;'],['sortCorrectionBtn','CORRECTION','Η ολοκληρωμένη ταξινόμηση θα γυρίσει σε «Προς Διόρθωση». Συνέχεια;']].forEach(([id,to,msg])=>{$(id).title='Επιστροφή από «Ολοκληρώθηκε»';$(id).onclick=async()=>{if(!await uiConfirm(msg))return;let b25q=to==='SORTING'?await b25RevertAsk(loadId):'';if(b25q===null)return;try{await api('/sorting/'+loadId+'/revert-closed?to='+to+b25q,{method:'POST'});await loadSortingReview();await openSortingDetail(loadId)}catch(e){alert(e.message)}}});
   $('exportSortDetail').onclick=(e)=>{e.stopPropagation();let m=$('sortExportChoices'),o=!m.classList.contains('open');m.classList.toggle('open',o);$('exportSortDetail').setAttribute('aria-expanded',String(o))};
   document.querySelectorAll('#sortExportChoices [data-format]').forEach(b=>b.onclick=async()=>{$('sortExportChoices').classList.remove('open');try{await downloadAuthorized('/sorting/'+loadId+'/export?format='+b.dataset.format)}catch(e){alert(e.message)}});
   async function saveSortMetaNow(){try{
@@ -7121,7 +7121,7 @@ let kpiIcons={
   archive:'<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
   zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>'
 };
-let cards=[['Απόθεμα έναρξης',k.opening_stock_period_total,'k4','archive'],['Παραλαβές '+weeePW(),k.receipts_month,'k1','inbox'],['Επεξεργασία',k.processed_month,'k3','activity'],['Επεξεργασία HERMES',k.processed_hermes_total,'k2','zap'],['Απόθεμα προς επεξεργασία',k.stock_to_process,'k4','box'],['Αποστολές',k.weee_shipments_month,'k2','truck'],['Απόθεμα προς αποστολή',k.stock_to_ship,'k1','boxAlt']];
+let cards=[['Απόθεμα έναρξης',k.opening_stock_period_total,'k4','archive'],['Παραλαβές '+weeePW(),[...(d.to_process||[]),...(d.to_ship||[])].filter(x=>!/^\d{6}$/.test(String(x.official_code||x.internal_code||x.code||'').trim())).reduce((a,x)=>a+Number(x.classification_month||0),0),'k1','inbox'],['Επεξεργασία',k.processed_month,'k3','activity'],['Επεξεργασία HERMES',k.processed_hermes_total,'k2','zap'],['Απόθεμα προς επεξεργασία',k.stock_to_process,'k4','box'],['Αποστολές',k.weee_shipments_month,'k2','truck'],['Απόθεμα προς αποστολή',k.stock_to_ship,'k1','boxAlt']];
 const kShort={'Επεξεργασία HERMES':'Επεξ. HERMES','Απόθεμα προς επεξεργασία':'Προς επεξεργασία','Απόθεμα ΑΗΗΕ προς αποστολή':'Προς αποστολή','Απόθεμα προς αποστολή':'Προς αποστολή'},kTitle=t=>kShort[t]?`<span class="kF">${t}</span><span class="kS">${kShort[t]}</span>`:t;
 $('weeeKpis').innerHTML=cards.map(x=>`<div class="sortingKpiCard ${x[2]}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${kpiIcons[x[3]]}</svg></span><span class="sortingKpiText"><small>${kTitle(x[0])}</small><b>${blankKg(x[1])}</b></span></div>`).join('');let by={};function acc(x,kind){let key=x.official_code||x.code||x.id;if(!by[key])by[key]={key,official_code:key,description:x.description||x.official_description||'',herDescription:x.her_description||'',opening:0,receipts:0,to_process:0,processed:0,processedHermes:0,stock_process:0,to_ship:0,shipped:0,stock_ship:0};let r=by[key],opening=Number(x.previous_stock||0),incoming=Number(x.classification_month||0),out=Number(x.outgoing_month||0),processed=Number(x.processed_month||0),processedHermes=Number(x.processed_month_hermes||0),cur=Number(x.current_stock||0);r.kind=kind;r.opening+=opening;r.receipts+=incoming;if(kind==='process'&&x.parent_code){(r.subs||(r.subs=[])).push({id:x.id,code:x.sub_code||'',desc:x.description||'',opening:Number(x.own_previous_stock||0),receipts:incoming,processed,processedHermes,stock:Number(x.own_current_stock||0)})}if(kind==='process'){r.to_process+=incoming;r.processed+=processed;r.processedHermes+=processedHermes;r.stock_process+=cur}else{r.to_ship+=incoming;r.shipped+=out;r.stock_ship+=cur}};(d.to_process||[]).forEach(x=>acc(x,'process'));(d.to_ship||[]).forEach(x=>acc(x,'ship'));let rows=Object.values(by);
 // Split into two dedicated tables instead of one wide table where half the columns are
@@ -14433,5 +14433,22 @@ html body #receiptForm .recFoot>.floatPanelActions{margin:0!important;padding:0!
   document.addEventListener('click',go,true);
   const u=document.getElementById('sideUser');if(u){u.setAttribute('role','button');u.tabIndex=0;u.title='Μενού χρήστη / Ρυθμίσεις';u.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('settingsMenuBtn')?.click()}})}
 })();
+</script>
+<script id="b25RevertJs">
+/* B25 (β/γ): πριν σταλεί ξανά στο Android — ερώτηση για διαγραφή των καταχωρήσεων (και των κινήσεών τους) και των ποσοτήτων που στάλθηκαν στην παραγωγή.
+   Επιστρέφει τις παραμέτρους του αιτήματος ή null (ακύρωση με ✕/Esc). */
+async function b25RevertAsk(loadId){
+  let inf={entries:0,entries_kg:0,production_kg:0};try{inf=await api('/sorting/'+loadId+'/revert-info')}catch(e){}
+  const kg=v=>Number(v||0).toLocaleString('el-GR');let q='';
+  if(inf.production_kg>0){
+    const a=await uiConfirm('Από αυτή την εντολή έχουν σταλεί '+kg(inf.production_kg)+' kg στην παραγωγή.\n\nΝα διαγραφεί η ποσότητα παραγωγής;',{title:'Ποσότητα παραγωγής',okText:'Ναι',altText:'Όχι',danger:true});
+    if(a!==true&&a!=='alt')return null;if(a===true)q+='&clear_production=true';
+  }
+  if(inf.entries>0){
+    const a=await uiConfirm('Η εντολή έχει '+inf.entries+' καταχωρήσεις ταξινόμησης ('+kg(inf.entries_kg)+' kg).\n\nΝα διαγραφούν οι καταχωρήσεις και οι κινήσεις τους, ώστε η ταξινόμηση να γίνει ξανά από την αρχή στο Android;',{title:'Καταχωρήσεις ταξινόμησης',okText:'Ναι, διαγραφή',altText:'Όχι, να μείνουν',danger:true});
+    if(a!==true&&a!=='alt')return null;if(a===true)q+='&clear_entries=true';
+  }
+  return q;
+}
 </script>
 </body></html>
