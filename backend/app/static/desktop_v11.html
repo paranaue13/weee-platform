@@ -14489,4 +14489,33 @@ html .uHdrWrap:has(>.uTabs:not(.hidden))>.uHdr{box-shadow:inset 0 -1px 0 var(--w
     const g=document.createElement('span');g.className='b28R';r[0].before(g);r.forEach(e=>g.appendChild(e))};
   new MutationObserver(fix).observe(sd,{childList:true,subtree:true});fix();})();
 </script>
+<style id="b29StickyCss">
+/* ===== B29 (1): σε ΟΛΟΥΣ τους πίνακες — η δεξιά άκρη των σταθερών στηλών και η κάτω άκρη της σταθερής επικεφαλίδας φαίνονται πάντα
+   (γραμμή στο ίδιο χρώμα με τις γραμμές του πίνακα· διάφανο στρώμα πάνω από το κελί, χωρίς αλλαγή σε φόντα / χρώματα / πλάτη) ===== */
+table :is(td,th).b29SE:not(.rmG):not(.rmGL):not(.rmGR)::after,table th.b29SB::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;box-shadow:var(--b29a,0 0 #0000),var(--b29b,0 0 #0000)}
+table :is(td,th).b29SE{--b29a:inset -1px 0 0 var(--b29Ln,#cfd6e6)}
+table th.b29SB{--b29b:inset 0 -1px 0 var(--b29Ln,#cfd6e6)}
+</style>
+<script id="b29StickyJs">
+/* B29 (1): σημαδεύει την τελευταία σταθερή (αριστερά) στήλη κάθε γραμμής και την τελευταία γραμμή της σταθερής επικεφαλίδας· αλλάζει μόνο όταν διαφέρει */
+(function(){
+  let q=0;
+  const isLeft=c=>{const s=getComputedStyle(c);return s.position==='sticky'&&s.left!=='auto'};
+  function lineColor(t){for(const r of t.tBodies.length?t.tBodies[0].rows:[]){for(const c of r.cells){const s=getComputedStyle(c);if(s.position!=='sticky'){const w=parseFloat(s.borderBottomWidth)||0;if(w>0&&s.borderBottomStyle!=='none')return s.borderBottomColor}}}return ''}
+  function mark(t){
+    if(!t.offsetParent)return;
+    const ln=lineColor(t);if(ln&&t.style.getPropertyValue('--b29Ln')!==ln)t.style.setProperty('--b29Ln',ln);
+    for(const r of t.rows){let last=null;for(const c of r.cells){if(isLeft(c))last=c;else break}
+      for(const c of r.cells){const want=c===last;if(c.classList.contains('b29SE')!==want)c.classList.toggle('b29SE',want);if(!want&&!isLeft(c))break}}
+    const th=t.tHead;if(th&&th.rows.length){const lr=th.rows[th.rows.length-1];
+      [...th.querySelectorAll('th')].forEach(c=>{const s=getComputedStyle(c),want=s.position==='sticky'&&s.top!=='auto'&&(c.parentElement===lr||c.rowSpan>1&&c.parentElement.rowIndex+c.rowSpan>=th.rows.length);if(c.classList.contains('b29SB')!==want)c.classList.toggle('b29SB',want)})}
+  }
+  function run(){q=0;document.querySelectorAll('table').forEach(t=>{try{mark(t)}catch(e){}})}
+  const req=()=>{if(!q)q=setTimeout(run,180)};
+  window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);
+  new MutationObserver(ms=>{if(ms.some(m=>!(m.target.classList&&(m.target.classList.contains('b29SE')||m.target.classList.contains('b29SB')))))req()}).observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('click',()=>setTimeout(req,60),true);
+  req();
+})();
+</script>
 </body></html>
