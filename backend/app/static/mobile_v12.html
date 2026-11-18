@@ -2242,7 +2242,7 @@ body.b4Deltio #flowBar{display:none!important}
         return `<button type="button" class="b6Open" data-open="${o.day}"><span class="t">${esc(loadDayLabel(o.day))}</span><span class="k">${kgS(o.kg)} kg</span><span class="n">${o.n} ${o.n===1?'παραλαβή':'παραλαβές'}</span><span></span><span class="p"><span class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></span><em>${pctS(p)}</em></span></button>`}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
     }
     box.innerHTML=h;
-    const sel=box.querySelector('#b6Strip .sel');if(sel){const s=$('b6Strip');s.scrollLeft=Math.max(0,sel.offsetLeft-s.clientWidth/2+21)}
+    const sel=box.querySelector('#b6Strip .sel');if(sel){const s=$('b6Strip'),ctr=()=>{const a=sel.getBoundingClientRect(),b=s.getBoundingClientRect();if(!b.width)return;s.scrollLeft=Math.max(0,s.scrollLeft+(a.left-b.left)-(s.clientWidth-a.width)/2)};ctr();requestAnimationFrame(ctr)}   /* B30: επιλεγμένη ημέρα στο κέντρο της γραμμής */
   }
   window.b6RcvRender=render;
   loadLoads=async function(force){try{await data(force===true)}catch(e){const b=$('loadList');if(b&&!Object.keys(R.sum).length)b.innerHTML='<div class="error">Σφάλμα φόρτωσης: '+esc(e?.message||e)+'</div>';return}render()};
@@ -2907,4 +2907,9 @@ html[data-pal="cur"] #loadList .k{color:#4A6A97!important}
   const g=$$('mediumTypes');if(g){new MutationObserver(orderTypes).observe(g,{childList:true});orderTypes()}
 })();
 </script>
+<style id="b30StripCss">
+/* B30: επιλεγμένη ημέρα — σκούρο γέμισμα στο χρώμα του κουμπιού του θέματος, λευκά γράμματα (όπως στα Windows) */
+html #app #b6Strip button.sel{background:var(--b10-pine,#144A52)!important;border-color:var(--b10-pine,#144A52)!important;color:#fff!important;box-shadow:none!important}
+html #app #b6Strip button.sel small{color:#fff!important;opacity:.9}
+</style>
 </body></html>

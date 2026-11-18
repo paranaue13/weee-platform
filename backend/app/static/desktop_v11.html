@@ -2607,10 +2607,10 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 </style>
 <style id="b21LoginCss">
 /* ===== B21 (4): οθόνη εισόδου — κάρτα ~440px στο κέντρο, σκούρα κεφαλίδα στο χρώμα του sidebar του θέματος (Σκούρο: το δικό του sidebar) ===== */
-#login.b21Login{max-width:440px;width:calc(100% - 32px);box-sizing:border-box;padding:0!important;overflow:hidden;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);margin:0!important;box-shadow:0 12px 36px rgba(10,20,40,.18)}
+#login.b21Login{max-width:440px;width:calc(100% - 32px);box-sizing:border-box;padding:0!important;overflow:hidden;position:fixed;left:50%;top:max(33.333vh,180px);transform:translate(-50%,-50%);margin:0!important;box-shadow:0 12px 36px rgba(10,20,40,.18)}   /* B30: κέντρο στο πρώτο τρίτο του ύψους */
 #login.b21Login.hidden{display:none!important}
-#login .b21LgHd{position:relative;display:flex;align-items:center;justify-content:center;height:58px;padding:0 64px;box-sizing:border-box;background:var(--pNav,var(--nav-bg,#0f1e36))}
-#login .b21LgLogo{position:absolute;left:12px;top:7px;width:44px;height:44px;object-fit:cover;transform:scale(1.1);clip-path:inset(3px round 9px)}   /* B28: χωρίς το σκούρο περίγραμμα του αρχείου (ελαφρά κοπή) */
+#login .b21LgHd{position:relative;display:flex;align-items:center;justify-content:center;height:58px;padding:0 76px;box-sizing:border-box;background:var(--pNav,var(--nav-bg,#0f1e36))}
+#login .b21LgLogo{position:absolute;left:17px;top:4px;width:50px;height:50px;object-fit:cover;clip-path:inset(3px round 9px)}   /* B28: χωρίς το σκούρο περίγραμμα του αρχείου (ελαφρά κοπή) */
 #login .b21LgLogo:not([src]){visibility:hidden}
 #login .b21LgHd h1{margin:0;color:#fff;font-size:22px;line-height:1.2;text-align:center}
 #login .b21LgBd{padding:22px 24px 16px}
