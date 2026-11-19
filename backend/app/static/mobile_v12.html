@@ -3245,4 +3245,17 @@ html #app :is(.btn,.b30B,#quick>.btn):active:not(:disabled),#b30Sh :is(.seg,.kp)
 #prodTodayList .muted,#matHist .muted{font-size:17px!important}
 .mtCat b{font-size:19px!important}.mtCat small{font-size:16px!important}
 </style>
+<style id="b35Css">
+/* ===== B35: Android — ήπιο 3D σε ό,τι πατιέται (διακριτική διαβάθμιση του ίδιου χρώματος) · κάτω μπάρα με 4 ανεβασμένα κουμπιά · χωρίς κουκκίδα στις μέρες ===== */
+.b6Strip button.open::after{display:none!important}
+html :is(.b10Mon button,.b10Card,.b6Open,.b6Card[data-flt],.b6Strip button,.b30Sgc,.enItem,.ctrlHead,#b4Back,#b4ModeBtn,#topDeltioBtn,.shEdit,.shDel,.b28Pad button,#flKb button,.flPicked button,.kc,.mnChip,.b4WhMat,.b10Arr button,.cP .cG button,.cP .cH button){background-image:linear-gradient(rgba(255,255,255,.3),rgba(0,0,0,.035))!important;border-bottom-width:2px!important;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.45)!important}
+html :is(.b10Mon button,.b10Card,.b6Open,.b6Card[data-flt],.b6Strip button,.b30Sgc,.enItem,.ctrlHead,#b4Back,#b4ModeBtn,#topDeltioBtn,.shEdit,.shDel,.b28Pad button,#flKb button,.flPicked button,.kc,.mnChip,.b4WhMat,.b10Arr button,.cP .cG button,.cP .cH button):active{transform:translateY(1px);border-bottom-width:1px!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.28)!important}
+/* κάτω μπάρα: 4 ξεχωριστά ανεβασμένα κουμπιά */
+:root{--b4-nav:86px}
+#b4Nav{gap:6px;padding:6px 6px calc(6px + env(safe-area-inset-bottom))!important;align-items:stretch}
+#b4Nav button{height:auto!important;border:1px solid var(--b10-line,#D9CEB8)!important;border-bottom:2px solid color-mix(in srgb,var(--b10-line,#D9CEB8) 70%,#000)!important;border-radius:10px;background:linear-gradient(#FFFFFF,#F8F6F9)!important;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)!important}
+#b4Nav button.on{background:color-mix(in srgb,var(--b10-pine,#144A52) 14%,#FEFCFF)!important;border-bottom-width:1px!important;box-shadow:inset 0 2px 4px rgba(0,0,0,.22)!important;transform:translateY(1px)}
+#b4Nav button.on::before{left:14%;right:14%}
+#b4Nav button:active:not(.on){transform:translateY(1px);border-bottom-width:1px!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.28)!important}
+</style>
 </body></html>
