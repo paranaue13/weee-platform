@@ -1491,7 +1491,7 @@ body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 #receiptForm .comboAction1 input{flex:1 1 auto;width:100%;min-width:0}
 #receiptForm .comboAction1>.miniAdd{flex:none}
 /* ΑΛΛΑΓΗ ΚΓ: κενός ενδιάμεσος χώρος σε πίνακες ανά ημέρα/μήνα (data-datefill): οι γραμμές συνεχίζονται κενές με την ίδια λεπτή γραμμή */
-#app table[data-datefill] tr.tFill>td{padding:0!important;border-bottom:0!important;color:transparent;background-color:var(--surface,#fff)!important;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--tfRow,34px) - 1px),#eef1f6 calc(var(--tfRow,34px) - 1px),#eef1f6 var(--tfRow,34px))!important}
+#app :is(table[data-datefill],#weee .stockTable) tr.tFill>td{padding:0!important;border-bottom:0!important;color:transparent;background-color:var(--surface,#fff)!important;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent calc(var(--tfRow,34px) - 1px),#eef1f6 calc(var(--tfRow,34px) - 1px),#eef1f6 var(--tfRow,34px))!important}
 table[data-datefill] tr.tFill{pointer-events:none}
 /* ΑΛΛΑΓΗ ΚΓ.Γ: γραμμή πάνω από τα σύνολα και δεξιά διαχωριστική γραμμή 2px = box-shadow (όχι border) — δεν χάνει πάχος σε sticky κελιά / scroll. Το κοινό component πινάκων έχει ήδη border-collapse:separate; border-spacing:0 */
 #app :is(#ready,#production) table.prodTable.prodTable tbody tr:last-child>:is(th,td):not(.pinColHide){border-bottom:1px solid var(--ln)!important}
@@ -4300,6 +4300,13 @@ function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)
   v.style.setProperty('--vw',((sc&&!v.classList.contains('weeeNoStick')?sc:v).clientWidth).toFixed(2)+'px');
   let avail=Math.min(v.clientHeight||1e9,hh),noStick=hh<260||(sc?((hh-o1)<200||need>(hh-o1)/2):((o1+need)>avail/2));v.classList.toggle('weeeNoStick',noStick);if(sc&&noStick){v.style.setProperty('--o1',o1.toFixed(2)+'px');v.style.setProperty('--vw',v.clientWidth.toFixed(2)+'px')}      // όριο: τα σταθερά πιάνουν πάνω από το μισό ύψος του παραθύρου → δεν κολλά τίποτα
   {let ss=secs;ss.forEach((sec,i)=>{sec.style.minHeight=(i===ss.length-1&&hh>=260&&!noStick)?Math.max(0,sc?sc.clientHeight:v.clientHeight-o1)+'px':''})}      // ο τελευταίος πίνακας μπορεί να ανέβει ως το τέρμα: ο τίτλος και η κεφαλίδα του κολλούν στη θέση τους
+  v.querySelectorAll('tr.tFill').forEach(f=>{if(f.parentNode)f.style.display='none'});      // κενή γραμμή συμπλήρωσης στον τελευταίο πίνακα: γεμίζει το κενό ως το κάτω άκρο της ενότητας
+  {let ls=secs[secs.length-1],lt=ls&&ls.style.minHeight?ls.querySelector('.stockTable'):null,tb=lt&&lt.tBodies[0],hr=tb&&tb.rows[0];
+   if(hr&&hr.cells.length>2){let f=tb.querySelector('tr.tFill');if(!f){f=document.createElement('tr');f.className='tFill';f.setAttribute('aria-hidden','true')}tb.appendChild(f);
+    let n=lt.tHead.rows[lt.tHead.rows.length-1].cells.length;if(f.cells.length!==n){f.innerHTML='';for(let i=0;i<n;i++)f.appendChild(document.createElement('td'))}
+    let rh=Math.max(20,Math.round(hr.getBoundingClientRect().height/rz)||34);f.style.setProperty('--tfRow',rh+'px');f.style.display='none';
+    let gap=Math.floor((ls.getBoundingClientRect().bottom-lt.getBoundingClientRect().bottom)/rz);
+    if(gap>=2){f.style.display='';f.style.height=gap+'px';[...f.cells].forEach(td=>td.style.height=gap+'px')}else f.style.display='none'}}
   v.querySelectorAll('.stockTable').forEach(t=>{let c=t.tHead&&t.tHead.rows[0]&&t.tHead.rows[0].cells[0];if(c)t.style.setProperty('--c1w',(c.getBoundingClientRect().width/rzT).toFixed(2)+'px')});
   if(!v._ro&&window.ResizeObserver){v._ro=new ResizeObserver(()=>fitWeee());v._ro.observe(v);if(sc)v._ro.observe(sc);if(st)v._ro.observe(st);v.querySelectorAll('.weeeSecHd,.stockTable').forEach(h=>v._ro.observe(h))}
   else if(v._ro){v.querySelectorAll('.weeeSecHd,.stockTable').forEach(h=>{if(!h._wo){h._wo=1;v._ro.observe(h)}})}}
