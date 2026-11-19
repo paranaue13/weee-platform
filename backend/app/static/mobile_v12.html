@@ -2770,7 +2770,7 @@ html[data-pal="cur"] #b25Tp{background:#0f1e36}
 <script id="b25ThemeJs">
 /* B25 (α): πάτημα στο όνομα χρήστη → μόνο μενού θέματος (θέματα που υπάρχουν στο Android: Φθινόπωρο = προεπιλογή, Άνοιξη = data-pal="cur") */
 (function(){
-  const K='weeeMobilePal',H=document.documentElement,P=[['cur','Άνοιξη'],['aut','Φθινόπωρο'],['win','Χειμώνας'],['sum','Καλοκαίρι']];
+  const K='weeeMobilePal',H=document.documentElement,P=[['win','Χειμώνας'],['cur','Άνοιξη'],['sum','Καλοκαίρι'],['aut','Φθινόπωρο']];
   const apply=v=>{if(v==='aut'||!v)delete H.dataset.pal;else H.dataset.pal=v};
   try{apply(localStorage.getItem(K)||'aut')}catch(e){}
   let pop=null;const close=()=>{if(pop){pop.remove();pop=null}};
