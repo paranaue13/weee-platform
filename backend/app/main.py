@@ -3522,6 +3522,40 @@ def sorting_medium_suggestions(load_id:str, weee_category_id:str, db:Session=Dep
     out.sort(key=lambda x:(not x['used_by_me'], x['last_used_at']), reverse=False)
     return out
 
+def _release_empty_single_use(db:Session,user,medium_id):
+    """Μέσο μίας χρήσης (παλέτα/σάκος/κουτί) που έμεινε χωρίς καμία καταχώρηση μετά από διαγραφή: ανενεργό και ελευθερώνεται το όνομά του
+    (ο μετρητής γυρίζει πίσω αν ήταν ο τελευταίος αριθμός), ώστε να μη φαίνεται ως υπάρχον/ανοιχτό μέσο."""
+    if not medium_id: return
+    m=db.get(CollectionMedium,medium_id)
+    if not m or not m.active: return
+    t=db.get(CollectionMediumType,m.type_id)
+    import re as _re8
+    if not t or not (getattr(t,'single_use',False) or _re8.match(r'^(\d{2}-.+-\d{4}|~.*)$',str(m.code or ''))): return   # μόνο μέσα με αυτόματο όνομα (παλέτα/σάκος/κουτί)· τα αριθμημένα καλάθια δεν αγγίζονται
+    if db.scalar(select(models.SortingEntry.id).where(models.SortingEntry.collection_medium_id==m.id).limit(1)): return
+    if db.scalar(select(models.WEEEStockLot.id).where(models.WEEEStockLot.collection_medium_id==m.id,models.WEEEStockLot.available_weight>0).limit(1)): return
+    if db.scalar(select(models.ReadyMaterialLot.id).where(models.ReadyMaterialLot.collection_medium_id==m.id).limit(1)): return
+    old=m.code
+    if _medium_referenced(db,m.id):
+        m.active=False
+        import uuid as _u9
+        m.code='~'+_u9.uuid4().hex[:8]
+    else:
+        db.delete(m)
+    import re as _re9
+    mm=_re9.match(r'^(\d{2})-(.+)-(\d{4})$',str(old or ''))
+    if mm:
+        yr=2000+int(mm.group(1)); row=db.get(models.CodeCounter,(yr,mm.group(2)))
+        if row and int(row.last_no or 0)==int(mm.group(3)): row.last_no=int(row.last_no)-1
+    write_audit(db,user,'collection_medium',medium_id,'RELEASE_EMPTY',old={'code':old,'active':True},new={'active':False},reason='Διαγράφηκε η μοναδική καταχώρηση του μέσου: το όνομα ελευθερώθηκε')
+
+@app.get('/sorting-meta/next-medium-name')
+def sorting_next_medium_name(weee_category_id:str, db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
+    """Μόνο ανάγνωση: το όνομα (κωδικός) που θα πάρει ένα νέο μέσο μίας χρήσης στην πρώτη αποθήκευση."""
+    from . import codes as _codes
+    cat=db.get(WEEECategory,weee_category_id)
+    if not cat: raise HTTPException(404,'Άγνωστη κατηγορία')
+    return {'code':_codes.preview_code_for(db,_content_code_for_category(db,cat))}
+
 @app.delete('/sorting/entries/{entry_id}')
 def sorting_delete_entry(entry_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     e=db.get(SortingEntry,entry_id)
@@ -3530,7 +3564,8 @@ def sorting_delete_entry(entry_id:str, db:Session=Depends(get_db), user:User=Dep
     if ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση έχει ήδη ολοκληρωθεί')
     lot=db.scalar(select(WEEEStockLot).where(WEEEStockLot.source_sorting_entry_id==e.id))
     if lot: _retire_lot(db,lot,strict=True)
-    write_audit(db,user,'sorting_entry',e.id,'DELETE_DRAFT',old={'weight':str(e.raw_weight),'category_id':e.weee_category_id}); db.delete(e); db.flush()
+    write_audit(db,user,'sorting_entry',e.id,'DELETE_DRAFT',old={'weight':str(e.raw_weight),'category_id':e.weee_category_id}); mid_del=e.collection_medium_id; db.delete(e); db.flush()
+    _release_empty_single_use(db,user,mid_del)
     # Deleting the only/last entry leaves an empty IN_PROGRESS session with the load stuck showing
     # "Σε ταξινόμηση" even though nothing is left to sort -- reset back to the pre-start state so the
     # load reappears as ready and a later /start creates a clean new session.
