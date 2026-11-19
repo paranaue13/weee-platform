@@ -3014,10 +3014,11 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   let S={pick:null,br:null,val:'',num:'',tr:'',fld:'w',cls:false,mode:null,ses:null,busy:false,nm:''};
   try{const m=localStorage.getItem('b30Mode');if(m==='g'||m==='n')S.mode=m}catch(e){}
   const rs=()=>{S.nm='';S.val=S.edit?S.val:'';S.num='';S.tr='';S.cls=false;S.fld=needNum()?'n':needTare()?'t':'w';msg('')};
-  const pt=()=>S.pick?(S.pick.mid?tById((openMedia().find(m=>m.id===S.pick.mid)||{}).type_id):tById(S.pick.typeId)):null;
+  const findMed=id=>openMedia().find(m=>m.id===id)||(S.edit?media.find(m=>m.id===id):null);
+  const pt=()=>S.pick?(S.pick.mid?tById((findMed(S.pick.mid)||{}).type_id):tById(S.pick.typeId)):null;
   const needNum=()=>!!S.pick&&S.pick.kind==='basket'&&!S.pick.mid;
   const needTare=()=>!!S.pick&&S.pick.kind==='new'&&!(pt()||{}).tare_fixed&&S.mode==='g';
-  const curMed=()=>S.pick&&S.pick.mid?openMedia().find(m=>m.id===S.pick.mid):null;
+  const curMed=()=>S.pick&&S.pick.mid?findMed(S.pick.mid):null;
   const tareOf=()=>{const m=curMed();if(m)return Number(m.tare_weight||0);if(S.pick&&S.pick.kind==='new'){const t=pt()||{};return t.tare_fixed?Number(t.default_tare_weight||0):Number(S.tr||0)}return 0};
   const insideOf=()=>{const m=curMed();if(!m||!S.ses)return 0;return (S.ses.entries||[]).filter(e=>e.collection_medium_id===m.id&&!(S.edit&&e.id===S.edit.id)).reduce((a,e)=>a+Number(e.approved_weight!=null?e.approved_weight:e.raw_weight||0),0)};
   const isGross=()=>S.mode==='g'&&!!S.pick&&S.pick.kind!=='bulk';
@@ -3040,7 +3041,9 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const ent=$$('entry'),host=document.createElement('div');host.id='b30Form';ent.querySelector('.panelHead').after(host);ent.classList.add('b30E');
   function card(m,on){const cs=Object.entries(m.cats||{}).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>catName(x[0])).filter(Boolean);const t=tById(m.type_id)||{};
     const isCur=!!(S.edit&&S.edit.e.collection_medium_id===m.id);
-    return `<button type="button" class="b30Sgc${isCur?' cur':''}" data-mid="${m.id}" aria-pressed="${!!on}"><span><b>${esc(t.name_el||'Μέσο')} · ${esc(code(m))}</b><small>${esc(cs.join(', ')||'κενό')}</small>${isCur?'<small class="cm">τρέχον μέσο</small>':''}</span><span class="k">${fmt(m.kg)} kg<small style="display:block">ήδη μέσα</small></span></button>`}
+    if(isCur&&!cs.length){const ec=catName(S.edit.e.weee_category_id);if(ec)cs.push(ec)}
+    const kgShow=isCur&&!(Number(m.kg)>0)?enNet(S.edit.e):m.kg;
+    return `<button type="button" class="b30Sgc${isCur?' cur':''}" data-mid="${m.id}" aria-pressed="${!!on}"><span><b>${esc(t.name_el||'Μέσο')} · ${esc(code(m))}</b><small>${esc(cs.join(', ')||'κενό')}</small>${isCur?'<small class="cm">Τρέχον μέσο</small>':''}</span><span class="k">${fmt(kgShow)} kg<small style="display:block">Ήδη μέσα</small></span></button>`}
   function renderForm(){
     if(!cat){host.innerHTML='';return}
     const all=openMedia(),sg=all.filter(m=>Number((m.cats||{})[cat.id]||0)>0).sort((a,b)=>Number(b.cats[cat.id])-Number(a.cats[cat.id]));
@@ -3087,7 +3090,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     $$('b30mg').setAttribute('aria-pressed',S.mode==='g');$$('b30mn').setAttribute('aria-pressed',S.mode==='n');
     const cz=$$('b30cz');cz.style.visibility=S.pick.kind==='bulk'?'hidden':'';cz.setAttribute('aria-pressed',S.cls);cz.firstChild.textContent=ZN[t.name_el]||(isB(t)?'Καλάθι':t.name_el||'Μέσο');cz.lastChild.textContent=S.cls?'Γέμισε':'Με χώρο';
     let c='';if(!S.mode)c='Διάλεξε: ένδειξη ζυγαριάς ή καθαρό βάρος';
-    else if(isGross()&&S.val){const ins=insideOf();c='− απόβαρο '+fmt(tareOf())+(ins?' − ήδη μέσα '+fmt(ins):'')+' = καθαρό <b>'+(net()>0?fmt(net())+' kg':'—')+'</b>'}
+    else if(isGross()&&S.val){const ins=insideOf();c='Απόβαρο '+fmt(tareOf())+(ins?' − Ήδη μέσα '+fmt(ins):'')+' = καθαρό <b>'+(net()>0?fmt(net())+' kg':'—')+'</b>'}
     $$('b30cl').innerHTML=c;
     requestAnimationFrame(()=>document.documentElement.style.setProperty('--b30ShH',sh.offsetHeight+'px'))}
   sh.addEventListener('click',e=>{const k=e.target.closest('[data-k]');if(k){const K=k.dataset.k,f=S.fld;let v=f==='n'?S.num:f==='t'?S.tr:S.val;
@@ -3119,7 +3122,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   // άνοιγμα / κλείσιμο κατηγορίας
   if(typeof choose==='function'){const _ch=choose;choose=async function(){S.pick=null;S.br=null;rs();const r=await _ch.apply(this,arguments);renderForm();markQuick();return r}}
   const close=()=>{S.edit=null;S.pick=null;S.br=null;rs();sh.classList.remove('on');setTimeout(markQuick,0)};
-  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#closeEntry,#back'))close()},true);
+  document.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('#closeEntry,#back')){const w=S.edit;close();if(w)endEdit()}},true);
   new MutationObserver(()=>{if(ent.classList.contains('hidden')){sh.classList.remove('on');markQuick()}}).observe(ent,{attributes:true,attributeFilter:['class']});
   // ---------- B36: Επεξεργασία καταχώρησης με την κανονική οθόνη ----------
   const codeOfCat=id=>{const c=cats.find(x=>x.id===id);return c?(c.official_code||c.code):''};
@@ -3144,6 +3147,9 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     if(m){S.pick={mid:m.id,kind:isB(t)?'basket':'existing'};S.mode=(m.tare_weight!=null)?'g':'n'}
     else{const bt=tByName('Χύμα');S.pick=bt?{typeId:bt.id,kind:'bulk'}:null;S.mode='n'}
     rs();renderForm();
+    $$('entryTitle').textContent='Αλλαγή';
+    {const ph=ent.querySelector('.panelHead');let bi=$$('b37Info');if(bi)bi.remove();bi=document.createElement('div');bi.id='b37Info';
+     bi.innerHTML=`<div class="b37R1"><b class="b37N">${esc(dname(c))}</b><b class="b37K">${fmt(enNet(e))} kg</b></div><div class="b37R2">Αποθηκευμένο σε: <b>${m?esc((t&&t.name_el||'Μέσο')+' · '+code(m)):'Χύμα'}</b></div>`;ph.appendChild(bi)}
     (async()=>{await loadSes();const n=enNet(e),tr=m&&m.tare_weight!=null?Number(m.tare_weight):0;
       if(S.mode==='g'){S.val=String(Math.round(n+tr+insideOf()));S.tr=m&&!isB(t)?String(Math.round(tr)):'';S.num=isB(t)?String(code(m)):''}else S.val=String(Math.round(n));
       S.fld='w';renderForm()})()};
@@ -3159,7 +3165,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     let bar=$$('b32BulkEd');if(bar)bar.remove();bar=document.createElement('div');bar.id='b32BulkEd';
     bar.innerHTML='<button type="button" class="btn alt" id="b32BCan">ΑΚΥΡΟ</button><button type="button" class="btn good" id="b32BOk">ΥΠΟΒΟΛΗ ΑΛΛΑΓΗΣ</button>';P.appendChild(bar);
     const done=()=>{P.classList.remove('b32Be');P.classList.add('hidden');document.documentElement.classList.remove('b32Ed2');const b=$$('b32BulkEd');if(b)b.remove();bulk={}};
-    $$('b32BCan').onclick=done;
+    $$('b32BCan').onclick=done;{const cx=P.querySelector('.panelHead .closeX');if(cx)cx.onclick=done}
     $$('b32BOk').onclick=async()=>{const ok=$$('b32BOk');ok.disabled=true;
       try{for(const id of Object.keys(bulk)){const ex=byCode[codeOfCat(id)],n=bulk[id]||0;
           if(ex&&n>0){if(n!==ex.piece_count)await api('/sorting/entries/'+ex.id,{method:'PUT',body:JSON.stringify({weee_category_id:ex.weee_category_id,collection_medium_id:null,entry_type:'BULK',raw_weight:ex.raw_weight,piece_count:n,notes:ex.notes||null,source:'ANDROID'})})}
@@ -3168,7 +3174,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
         done();try{await refresh()}catch(e2){$$('work').classList.add('hidden');$$('loads').classList.remove('hidden');cur=null;await loadLoads()}}
       catch(err){ok.disabled=false;$$('workMsg').textContent=err.message||String(err)}};
     new MutationObserver((_,o)=>{if(P.classList.contains('hidden')){P.classList.remove('b32Be');document.documentElement.classList.remove('b32Ed2');const b=$$('b32BulkEd');if(b)b.remove();o.disconnect()}}).observe(P,{attributes:true,attributeFilter:['class']})}
-  {const upd=()=>{const t=$$('entryTitle');document.documentElement.classList.toggle('b32Ed',!ent.classList.contains('hidden')&&!!t&&/^Edit\s*·/.test(t.textContent||''))};
+  {const upd=()=>{const t=$$('entryTitle');document.documentElement.classList.toggle('b32Ed',!ent.classList.contains('hidden')&&!!t&&/^(Edit\s*·|Αλλαγή$)/.test(t.textContent||''))};
    new MutationObserver(upd).observe(ent,{attributes:true,attributeFilter:['class'],subtree:true,childList:true,characterData:true});upd()}
 })();
 </script>
@@ -3321,5 +3327,23 @@ html.b32Ed2 #app #work>.b32Be{background:var(--b10-beige,#F1F0EC)!important;bord
 #b4Nav button.on{background:color-mix(in srgb,var(--b10-pine,#144A52) 14%,#FEFCFF)!important;border-bottom-width:1px!important;box-shadow:inset 0 2px 4px rgba(0,0,0,.22)!important;transform:translateY(1px)}
 #b4Nav button.on::before{left:14%;right:14%}
 #b4Nav button:active:not(.on){transform:translateY(1px);border-bottom-width:1px!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.28)!important}
+
+/* B37 */
+.bulkcell.b32Hl{outline-offset:-3px!important}
+html.b32Ed body #app #entry>.panelHead,html.b32Ed #entry>.panelHead{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;border:2px solid #144A52!important;border-left-width:5px!important;padding:8px 10px!important}
+html.b32Ed #entry>.panelHead h3{color:#144A52!important;font-size:18px!important;font-weight:700!important;margin:0}
+#b37Info{display:none}
+html.b32Ed #b37Info{display:block;flex:0 0 100%;margin-top:6px}
+.b37R1{display:flex;justify-content:space-between;align-items:baseline;gap:10px}.b37N{font-weight:700;font-size:16px;min-width:0}.b37K{font-weight:800;font-size:24px;white-space:nowrap}
+.b37R2{font-size:15px;margin-top:2px}.b37R2 b{font-weight:700}
+html.b32Ed body #app #closeEntry.closeX,html.b32Ed2 body #app .b32Be>.panelHead>.closeX{font-size:0!important;width:auto!important;height:auto!important;min-width:0!important;padding:8px 14px!important;border:1px solid #D6D0C3!important;border-bottom:2px solid #D6D0C3!important;border-radius:10px!important;background:linear-gradient(#FFFFFF,#F8F6F9)!important;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)!important;color:#14222B!important}
+html.b32Ed #closeEntry.closeX::after,html.b32Ed2 .b32Be>.panelHead>.closeX::after{content:"‹ Πίσω";font-size:16px;font-weight:700;color:#14222B}
+html.b32Ed #closeEntry.closeX:active,html.b32Ed2 .b32Be>.panelHead>.closeX:active{transform:translateY(1px);border-bottom-width:1px!important;box-shadow:inset 0 2px 3px rgba(0,0,0,.28)!important}
+/* Καταχωρήσεις: επικεφαλίδα κάρτας */
+html body #app #work .card:has(#entries)>.row.space{background:#F6F4EE;margin:-8px -10px 6px!important;padding:8px 10px;border-radius:9px 9px 0 0;border-bottom:2px solid #144A52;align-items:center}
+html body #app #work .card:has(#entries)>.row.space h3{color:#144A52!important;font-weight:700!important;margin:0}
+html body #app #work .card:has(#entries)>.row.space .sumWrap{gap:10px}
+.enGo,.sumWrap .enGoSp{flex:0 0 14px!important;width:14px!important}
+html body #app #ctrlCard .ctrlHead{min-height:61px;align-items:center}
 </style>
 </body></html>
