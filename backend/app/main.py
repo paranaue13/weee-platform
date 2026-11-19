@@ -3468,6 +3468,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     db.flush()
     warn=_assign_single_use_code(db,user,e.collection_medium_id,cat) if e.collection_medium_id and e.collection_medium_id!=old['medium_id'] else None
     _sync_entry_stock(db,e,user)
+    if old['medium_id'] and old['medium_id']!=e.collection_medium_id: _release_empty_single_use(db,user,old['medium_id'])
     write_audit(db,user,'sorting_entry',e.id,'EDIT_DRAFT',old=old,new={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count})
     db.commit(); db.refresh(e); e.warning=warn; return e
 
@@ -3549,11 +3550,14 @@ def _release_empty_single_use(db:Session,user,medium_id):
     write_audit(db,user,'collection_medium',medium_id,'RELEASE_EMPTY',old={'code':old,'active':True},new={'active':False},reason='Διαγράφηκε η μοναδική καταχώρηση του μέσου: το όνομα ελευθερώθηκε')
 
 @app.get('/sorting-meta/next-medium-name')
-def sorting_next_medium_name(weee_category_id:str, db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
-    """Μόνο ανάγνωση: το όνομα (κωδικός) που θα πάρει ένα νέο μέσο μίας χρήσης στην πρώτη αποθήκευση."""
+def sorting_next_medium_name(weee_category_id:str, type_id:str|None=None, db:Session=Depends(get_db), user=Depends(require_permission('sorting.perform'))):
+    """Μόνο ανάγνωση: το όνομα (κωδικός) που θα πάρει ένα νέο μέσο: μέσα μίας χρήσης παίρνουν κωδικό περιεχομένου στην πρώτη αποθήκευση, τα υπόλοιπα κωδικό τύπου στη δημιουργία."""
     from . import codes as _codes
     cat=db.get(WEEECategory,weee_category_id)
     if not cat: raise HTTPException(404,'Άγνωστη κατηγορία')
+    mt=db.get(CollectionMediumType,type_id) if type_id else None
+    if mt is not None and not getattr(mt,'single_use',False):
+        return {'code':_codes.preview_code_for(db,mt.short_code or _suggest_short_code(db,mt.name_el))}
     return {'code':_codes.preview_code_for(db,_content_code_for_category(db,cat))}
 
 @app.delete('/sorting/entries/{entry_id}')
