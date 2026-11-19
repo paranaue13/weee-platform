@@ -2770,12 +2770,12 @@ html[data-pal="cur"] #b25Tp{background:#0f1e36}
 <script id="b25ThemeJs">
 /* B25 (α): πάτημα στο όνομα χρήστη → μόνο μενού θέματος (θέματα που υπάρχουν στο Android: Φθινόπωρο = προεπιλογή, Άνοιξη = data-pal="cur") */
 (function(){
-  const K='weeeMobilePal',H=document.documentElement,P=[['cur','Άνοιξη'],['aut','Φθινόπωρο']];
-  const apply=v=>{if(v==='cur')H.dataset.pal='cur';else delete H.dataset.pal};
+  const K='weeeMobilePal',H=document.documentElement,P=[['cur','Άνοιξη'],['aut','Φθινόπωρο'],['win','Χειμώνας'],['sum','Καλοκαίρι']];
+  const apply=v=>{if(v==='aut'||!v)delete H.dataset.pal;else H.dataset.pal=v};
   try{apply(localStorage.getItem(K)||'aut')}catch(e){}
   let pop=null;const close=()=>{if(pop){pop.remove();pop=null}};
   function open(w){if(pop){close();return}
-    const cur=H.dataset.pal==='cur'?'cur':'aut';pop=document.createElement('div');pop.id='b25Tp';
+    const cur=H.dataset.pal||'aut';pop=document.createElement('div');pop.id='b25Tp';
     pop.innerHTML='<div class="hd">Θέμα χρωμάτων</div>'+P.map(([k,n])=>`<button type="button" data-p="${k}" class="${k===cur?'on':''}"><span>${n}</span>${k===cur?'<b>✓</b>':''}</button>`).join('');
     document.body.appendChild(pop);const r=w.getBoundingClientRect();pop.style.top=(r.bottom+6)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.right-pop.offsetWidth))+'px';
     pop.onclick=e=>{const b=e.target.closest('[data-p]');if(!b)return;try{localStorage.setItem(K,b.dataset.p)}catch(_){}apply(b.dataset.p);close()}}
@@ -3117,4 +3117,32 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   new MutationObserver(()=>{if(ent.classList.contains('hidden')){sh.classList.remove('on');markQuick()}}).observe(ent,{attributes:true,attributeFilter:['class']});
 })();
 </script>
+<style id="b31PalCss">
+/* ===== B31: Android — θέματα Χειμώνας / Καλοκαίρι (ίδια λογική με Άνοιξη/Φθινόπωρο· όλα τα χρώματα από μεταβλητές) ===== */
+html[data-pal="win"]{--tBar:#0B1A33;--tBg:#E3E7EE;--tLn:#5A2A52;--tBtn:#1E3A5F;--tBtnH:#162C49;--tBd:#C9CFDB;--tC1:#E7EDF6;--tC2:#EEE5EE;--tC3:#E5EAEE;--tC4:#D8DFEA}
+html[data-pal="sum"]{--tBar:#2B3A5C;--tBg:#E8E9EE;--tLn:#C98A9B;--tBtn:#3F7A7D;--tBtnH:#33666A;--tBd:#CFD2DA;--tC1:#E5F0F0;--tC2:#F4E6EA;--tC3:#E8EBF2;--tC4:#DBE6EA}
+html:is([data-pal="win"],[data-pal="sum"]){--b10-dark:var(--tBar);--b10-teal:var(--tBtn);--b10-milk:#FEFCFF;--b10-beige:var(--tBg);--b10-orange:var(--tLn);--b10-pine:var(--tBtn);--b10-line:var(--tBd);--b4-blue:var(--tBtn);--b4-blue-h:var(--tBtnH);
+  --primary:var(--tBtn);--primary-fg:#FEFCFF;--m3-primary:var(--tBtn);--m3-tonal:color-mix(in srgb,var(--tBtn) 14%,#FEFCFF);--m3-on-tonal:var(--tBtn);--btn-on:color-mix(in srgb,var(--tBtn) 14%,#FEFCFF);--btn-on-line:color-mix(in srgb,var(--tBtn) 40%,#FEFCFF);--btn-on-fg:var(--tBtn);--e-white:var(--tBd);--e-soft:color-mix(in srgb,var(--tBtn) 35%,#FEFCFF);--e-blue:var(--tBtnH);--b30Ln:var(--tBd);--b30Ln2:var(--tBd)}
+html:is([data-pal="win"],[data-pal="sum"]) body{background:var(--tBg)}
+html:is([data-pal="win"],[data-pal="sum"]) #loadList .b6Card[data-flt]{border:1px solid var(--tBd)!important;background:var(--b16Bg)!important}
+html:is([data-pal="win"],[data-pal="sum"]) #loadList .b6Card[data-flt].sel{border:2px solid var(--tBtn)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card[data-flt="CONTAINER"]{--b16Bg:var(--tC1);--b16Bd:var(--tBd)}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card[data-flt="CURTAIN_TRAILER"]{--b16Bg:var(--tC2);--b16Bd:var(--tBd)}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card[data-flt="SMALL_POINTS"]{--b16Bg:var(--tC3);--b16Bd:var(--tBd)}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card[data-flt="TOT"]{--b16Bg:var(--tC4);--b16Bd:var(--tBd)}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card .ic,html:is([data-pal="win"],[data-pal="sum"]) .b6Card.tot .ic{background:#FEFCFF!important;color:var(--tBtn)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Card .b6Bar{background:#FEFCFF!important}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Bar i,html:is([data-pal="win"],[data-pal="sum"]) .b26Bar i b{background:var(--tBtn)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .b6Open .p .b6Bar{background:var(--tBg)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .topDark #topDeltioBtn{background:#FEFCFF!important;color:var(--tBtn)!important;border-color:#FEFCFF!important}
+html:is([data-pal="win"],[data-pal="sum"]) .topDark #topDeltioBtn.on{background:var(--tBtn)!important;color:#FEFCFF!important;border-color:#FEFCFF!important}
+html:is([data-pal="win"],[data-pal="sum"]) #loginBtn{background:var(--tBtn)!important;border-color:var(--tBtn)!important;color:#FEFCFF!important;--e:var(--tBtnH)}
+html:is([data-pal="win"],[data-pal="sum"]) #login .b28LgHd,html:is([data-pal="win"],[data-pal="sum"]) #b25Tp{background:var(--tBar)}
+html:is([data-pal="win"],[data-pal="sum"]) .dlS{background:color-mix(in srgb,var(--tBtn) 14%,#FEFCFF)!important;color:var(--tBtn)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .dlS b,html:is([data-pal="win"],[data-pal="sum"]) #loadList .lcKg,html:is([data-pal="win"],[data-pal="sum"]) #loadList .k,html:is([data-pal="win"],[data-pal="sum"]) .lcKg{color:var(--tBtn)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .dlSt.s.on{background:var(--tBtn)!important;border-color:var(--tBtn)!important;color:#FEFCFF!important}
+html:is([data-pal="win"],[data-pal="sum"]) .dlChipU{background:var(--tBg)!important;border-color:var(--tBd)!important}
+html:is([data-pal="win"],[data-pal="sum"]) .top{background:#FEFCFF!important}
+html:is([data-pal="win"],[data-pal="sum"]) .dlScrim{background:color-mix(in srgb,var(--tBar) 45%,transparent)!important}
+</style>
 </body></html>
