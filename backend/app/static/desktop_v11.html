@@ -13700,8 +13700,8 @@ html[data-mode="light"][data-pal="cur"]{
   --pLine:#5878A6;--pTh:#D3DEEC;--pThFg:#2B3A52;--pThLn:#B9C9DE;--pLoad:#E6ECF4;--pLoadSel:#D6E1EF;--pWin:#FEFCFF;
   --th-group-bg:#C9D7E8;--th-group-line:#B9C9DE;--th-group-fg:#2B3A52;--th-leaf-bg:#D3DEEC;--th-leaf-line:#B9C9DE;--th-leaf-fg:#2B3A52;--th-hover:rgba(74,106,151,.08);--link:#4A6A97}
 html[data-mode="light"][data-pal="aut"]{
-  --pW:#FEFCFF;--pBg:#EEE4D0;--pS2:#F6EEDD;--pA:#144A52;--pAd:#0F3A40;--pN:#2A7F87;--pNav:#022539;--pS:#F6EEDD;--pT:#DCE7E5;--pF:#0F3238;--pL:#E4D6BC;--pL2:#D9D2C2;
-  --pLine:#DA6F01;--pTh:#F6EEDD;--pThFg:#3A2E1A;--pThLn:#E4D6BC;--pLoad:#F6EEDD;--pLoadSel:#E9DCC2;--pWin:#EEE4D0;
+  --pW:#FEFCFF;--pBg:#F1F0EC;--pS2:#F6EEDD;--pA:#144A52;--pAd:#0F3A40;--pN:#2A7F87;--pNav:#022539;--pS:#F6EEDD;--pT:#DCE7E5;--pF:#0F3238;--pL:#E4D6BC;--pL2:#D9D2C2;
+  --pLine:#DA6F01;--pTh:#F6EEDD;--pThFg:#3A2E1A;--pThLn:#E4D6BC;--pLoad:#F6EEDD;--pLoadSel:#E9DCC2;--pWin:#F1F0EC;
   --th-group-bg:#EFE3CB;--th-group-line:#E4D6BC;--th-group-fg:#144A52;--th-leaf-bg:#F6EEDD;--th-leaf-line:#E4D6BC;--th-leaf-fg:#2B2418;--th-hover:rgba(20,74,82,.07);--link:#144A52}
 /* φόντο χωρίς texture */
 html[data-mode="light"][data-pal] :is(body,.main,.shell,.content){background-image:none!important}
@@ -13832,7 +13832,7 @@ html[data-mode="light"][data-pal] #receipts .sortingKpiCard:is(.k1,.k2,.k3,.k4):
   ecEmpty();
   const wv=$('weee');if(wv)new MutationObserver(gold).observe(wv,{childList:true,subtree:true});gold();
   // Ρυθμίσεις εφαρμογής: πλάτος ~980px, ομάδα «Θέμα χρωμάτων» πάνω από Αυτόματο / Φωτεινό / Σκούρο
-  const PALS=[['cur','Άνοιξη',['#0F1E36','#4A6A97','#FEFCFF','#EAEFF7']],['aut','Φθινόπωρο',['#022539','#144A52','#DA6F01','#EEE4D0','#FEFCFF']],['win','Χειμώνας',['#0B1A33','#1E3A5F','#5A2A52','#E3E7EE','#FAFBFF']],['sum','Καλοκαίρι',['#2B3A5C','#3F7A7D','#C98A9B','#E8E9EE','#FBFAFC']]];
+  const PALS=[['cur','Άνοιξη',['#0F1E36','#4A6A97','#FEFCFF','#EAEFF7']],['aut','Φθινόπωρο',['#022539','#144A52','#DA6F01','#F1F0EC','#FEFCFF']],['win','Χειμώνας',['#0B1A33','#1E3A5F','#5A2A52','#E3E7EE','#FAFBFF']],['sum','Καλοκαίρι',['#2B3A5C','#3F7A7D','#C98A9B','#E8E9EE','#FBFAFC']]];
   function palUi(){const tc=$('themeChoices');if(!tc||tc.parentElement.querySelector('.b12PalGrp'))return;
     const g=document.createElement('div');g.className='b12PalGrp';
     const paint=()=>{const cur=H.dataset.pal;g.innerHTML='<h5>Θέμα χρωμάτων</h5><div class="b12Pals">'+PALS.map(([k,n,c])=>`<button type="button" class="b12Pal${k===cur?' on':''}" data-pal="${k}" aria-pressed="${k===cur}"><b>${n}</b><span class="sw">${c.map(x=>`<i style="background:${x}"></i>`).join('')}</span></button>`).join('')+'</div>'};
@@ -13936,7 +13936,7 @@ html[data-mode] .content :is(#master,#receipts,#weee,#production,#ready,#loading
 <style id="b17Css">
 /* B17: ενιαίο στυλ παραθύρων (πρότυπο: παράθυρο ταξινόμησης) — μόνο εμφάνιση, μόνο φωτεινό (το σκούρο δεν αλλάζει) */
 html[data-mode="light"][data-pal="cur"]{--wBg:#FEFCFF;--wSec:#E3E9F2;--wSecBd:#E3E9F2;--wSecLn:#C9D5E5;--wFld:#FEFCFF;--wFldBd:#B9C9DE;--wLine:#5878A6}
-html[data-mode="light"][data-pal="aut"]{--wBg:#EEE4D0;--wSec:#FEFCFF;--wSecBd:#D9CDB0;--wSecLn:#E4D6BC;--wFld:#FEFCFF;--wFldBd:#D9D2C2;--wLine:#DA6F01}
+html[data-mode="light"][data-pal="aut"]{--wBg:#F1F0EC;--wSec:#FEFCFF;--wSecBd:#D9CDB0;--wSecLn:#E4D6BC;--wFld:#FEFCFF;--wFldBd:#D9D2C2;--wLine:#DA6F01}
 /* φόντο παραθύρου */
 html[data-mode="light"][data-pal] :is(#floatingEditor,#receiptForm,#sortingDetail,.repPop,.drpPop):not(.popupMin){background:var(--wBg)!important}
 /* κεφαλίδα milk white + γραμμή 2px (κάτω από τον τίτλο ή, όπου υπάρχουν, κάτω από τις καρτέλες) */
