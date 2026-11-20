@@ -6782,7 +6782,8 @@ function openFloatAt(title,html,x,y){return openFloat(title,html)}
   document.addEventListener('dblclick',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(!(e.clientX>r.right-24&&e.clientY>r.bottom-24))return;
     try{let o=load();delete o[p.dataset.sizeKey||('win:'+p.id)];localStorage.setItem(KEY,JSON.stringify(o))}catch(x){}
     p.style.width='';p.style.height='';
-    if(p.id==='floatingEditor'&&FIXED.has(keyOf(($('floatingEditorTitle')||{}).textContent))){p.style.width=p.querySelector('.mpWrap')?'min(912px,calc(100vw - 16px))':'min(520px,calc(100vw - 16px))';requestAnimationFrame(()=>{p.style.height=Math.min(p.offsetHeight,innerHeight-80)+'px'})}
+    if(p.id==='floatingEditor'&&FIXED.has(keyOf(($('floatingEditorTitle')||{}).textContent))){let wide=/^Προφίλ/.test(keyOf(($('floatingEditorTitle')||{}).textContent));p.style.width=(p.querySelector('.mpWrap')||wide)?'min(960px,calc(100vw - 16px))':'min(520px,calc(100vw - 16px))';
+      requestAnimationFrame(()=>{let act=p.querySelector('.floatPanelActions'),h=p.offsetHeight;if(wide&&act){let r=p.getBoundingClientRect();h=Math.round(act.getBoundingClientRect().bottom-r.top+p.scrollTop+24)}p.style.height=Math.min(h,innerHeight-80)+'px';let q=p.getBoundingClientRect();if(q.right>innerWidth-8){p.style.left=Math.max(8,q.left-(q.right-innerWidth+8))+'px';p.style.transform='none'}})}
   },true);
   document.addEventListener('pointerup',()=>{if(!drag)return;let {p,w,h}=drag;drag=null;setTimeout(()=>{let r=p.getBoundingClientRect();if(Math.abs(r.width-w)>2||Math.abs(r.height-h)>2)save(p.dataset.sizeKey||('win:'+p.id),Math.round(r.width),Math.round(r.height))},0)},true);
 })();
@@ -14613,7 +14614,7 @@ html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td{backg
 html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:first-child{box-shadow:inset 2px 2px 0 #144A52,inset 0 -2px 0 #144A52}
 html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52}
 /* B41 (15): η γραμμή κάτω από τον τίτλο παραθύρου (πορτοκαλί/του θέματος) μένει πάντα ορατή πάνω από το χρώμα των κουμπιών */
-:is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader){position:relative}
+
 :is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--pLine,#5878A6);pointer-events:none;z-index:50}
 </style>
 <style id="b42Css">
