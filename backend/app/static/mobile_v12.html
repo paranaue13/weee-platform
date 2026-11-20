@@ -3382,14 +3382,14 @@ html body #app:not(#z1):not(#z2) .topDark #b4ModeBtn{background:linear-gradient(
 .b6Strip{scrollbar-width:none!important}.b6Strip::-webkit-scrollbar{display:none}
 html body #app:not(#z1):not(#z2) .b6Strip button[class*="stg-"]:not(.sel){border-color:color-mix(in srgb,var(--sf) 22%,var(--sb))!important;border-bottom-color:color-mix(in srgb,var(--sf) 38%,var(--sb))!important}
 /* 3. κάρτα φορτίου: ήπιο 3D, όχι πατητή */
-html body #app #work>.card:has(#title){border-bottom:2px solid #D6D0C3!important;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)!important}
+html body #app #work>.card:has(#title){box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7),inset 0 -1px 0 #D6D0C3!important}
 /* 5. πίνακας Καταχωρήσεις */
 html body #app #work .card:has(#entries){background:#FEFCFF!important;padding:0!important;overflow:hidden;border:1px solid #D6D0C3!important;border-bottom:2px solid #D6D0C3!important;border-radius:6px!important;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)!important}
 html body #app #work .card:has(#entries)>.row.space{background:#FEFCFF!important;margin:0!important;padding:9px 11px!important;border-radius:0!important;border-bottom:2px solid #144A52!important;align-items:center}
 html body #app #work .card:has(#entries)>.row.space h3{color:#14222B!important;font-weight:700!important;font-size:16px;letter-spacing:.3px;margin:0}
 html body #app #work .card:has(#entries)>.row.space b{color:#14222B}
-html body #app:not(#z1):not(#z2) #entries .enItem{border:0!important;border-bottom:1px solid #D6D0C3!important;border-radius:0!important;margin:0!important;padding:9px 11px!important;min-height:0;background:transparent!important;background-image:none!important;box-shadow:none!important}
-html body #app:not(#z1):not(#z2) #entries .enItem:last-child{border-bottom:0!important}
+html body #app:not(#z1):not(#z2) #entries .enItem{border:0!important;border-top:1px solid #D6D0C3!important;border-radius:0!important;margin:0!important;padding:5px 11px!important;min-height:0;background:transparent!important;background-image:none!important;box-shadow:none!important}
+html body #app:not(#z1):not(#z2) #entries .enItem:first-child{border-top:0!important}
 html body #app:not(#z1):not(#z2) #entries .enItem:active{background:#EFEDE6!important;transform:none!important;box-shadow:none!important}
 #entries .muted{padding:9px 11px}
 /* Όλες οι κατηγορίες: επικεφαλίδα + Πίσω, αναζήτηση με dropdown */
@@ -3457,10 +3457,12 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + 16px)!importa
 #b30Sh .p39m .inf{font-size:13px}
 #b30Sh .p39m .msg{font-size:13px;font-weight:700;color:#A52A22}#b30Sh .p39m .msg:empty{display:none}
 
-@media (max-width:480px){
+@media (max-width:380px){
 html body #app .topDark #b4Back{width:84px!important;font-size:13px!important}
 html body #app .topDark #b4ModeBtn{width:112px!important;font-size:13px!important}
 html body #app .topDark #topDeltioBtn{font-size:11px!important;padding:0 8px!important}
+}
+@media (max-width:480px){
 html body #b30Sh .p39ttl.c{flex-wrap:wrap}
 html body #b30Sh .p39tt{order:3;flex:0 0 100%;margin:0}
 }
@@ -3469,6 +3471,10 @@ html body #app #work>.b32Be>.panelHead{display:flex!important;justify-content:sp
 html body #app #work>.b32Be>.panelHead>h3{display:none}
 html body #app #work>.b32Be>.panelHead>.p39bt{display:block;flex:1;min-width:0}
 .p39bt b{display:block;font-size:19px;color:#14222B}.p39bt small{display:block;font-size:13px;color:#5B6670;margin-top:3px}.p39bt small b{display:inline;font-size:13px;color:#14222B}
+/* B40: Στοιχεία Ελέγχου & Φωτογραφίες = ένα ενιαίο 3D κουμπί σε όλο το πλάτος */
+html body #app #work #ctrlCard{background:transparent!important;border:0!important;padding:0!important;box-shadow:none!important;border-radius:0!important}
+html body #app #ctrlCard .ctrlHead{width:100%;min-height:61px;padding:0 12px;background:linear-gradient(#FFFFFF,#F8F6F9)!important;border:1px solid #D6D0C3!important;border-bottom:2px solid #D6D0C3!important;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)!important}
+html body #app #ctrlCard #ctrlBody:not(.hidden){background:#FEFCFF;border:1px solid #D6D0C3;border-radius:6px;padding:10px;margin-top:8px}
 </style>
 <script id="b39Js">
 (function(){

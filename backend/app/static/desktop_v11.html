@@ -3810,7 +3810,7 @@ function prodFilteredEntries(){let q=($('productionSearch')?.value||'').trim().s
 function renderProductionKpis(){let a=prodFilteredEntries(),sum=a.reduce((s,e)=>s+Number(e.weight_kg||0),0),h=prodState.entries.filter(e=>e.supplier_group==='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),o=prodState.entries.filter(e=>e.supplier_group!=='HERMES').reduce((s,e)=>s+Number(e.weight_kg||0),0),days=new Set(a.map(e=>(e.work_date||'').slice(0,10))).size;let units=new Set(a.map(e=>e.org_unit_id).filter(Boolean)).size,emps=new Set(a.map(e=>e.employee_id).filter(Boolean)).size;
  const IC={scale:'<path d="M12 3v18"/><path d="M5 21h14"/><path d="M5 7h14"/><path d="M5 7l-3 7a3 3 0 0 0 6 0z"/><path d="M19 7l-3 7a3 3 0 0 0 6 0z"/>',sq:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>',person:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>'};
  const card=(cls,ic,t,v)=>`<div class="sortingKpiCard ${cls}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${IC[ic]}</svg></span><span class="sortingKpiText"><small>${t}</small><b>${v}</b></span></div>`;
- $('productionKpis').innerHTML=prodState.tab==='weee'?card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','scale','HERMES',(prodVal(h)||'0')+' kg')+card('k3','scale','Λοιποί προμηθευτές',(prodVal(o)||'0')+' kg')+card('k4','cal','Ημέρες με παραγωγή',days):card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','sq','Τμήματα',units)+card('k3','person','Άτομα',emps)+card('k4','cal','Ημέρες με παραγωγή',days)}
+ $('productionKpis').innerHTML=prodState.tab==='weee'?card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','scale','HERMES',(prodVal(h)||'0')+' kg')+card('k3','scale','Λοιποί προμηθευτές',(prodVal(o)||'0')+' kg')+card('k4','cal','Εργάσιμες',days):card('k2','scale','Συνολική παραγωγή',(prodVal(sum)||'0')+' kg')+card('k1','sq','Τμήματα',units)+card('k3','person','Άτομα',emps)+card('k4','cal','Εργάσιμες',days)}
 function prodDateBuckets(){let {start,end}=prodRange(),out=[];if(prodState.period==='day')out=[new Date(start)];else if(prodState.period==='month'){for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1))out.push(new Date(d))}else if(prodState.period==='quarter'||prodState.period==='half'||prodState.period==='nine'){for(let d=new Date(start);d<=end;d.setMonth(d.getMonth()+1))out.push(new Date(d.getFullYear(),d.getMonth(),1))}else{for(let m=0;m<12;m++)out.push(new Date(start.getFullYear(),m,1))}return out}
 function prodBucketKey(dt){if(prodState.period==='day'||prodState.period==='month')return localISODate(dt);return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`}
 function prodEntryBucket(e){let d=(e.work_date||'').slice(0,10);return prodState.period==='day'||prodState.period==='month'?d:d.slice(0,7)}
@@ -13401,11 +13401,11 @@ body[data-theme="dark"] .sortingKpiCard .sortingKpiIcon{background:#1d2633!impor
     const pk=document.getElementById('productionKpis');
     if(pk){const cs=[...pk.querySelectorAll(':scope>.sortingKpiCard')];
       const f=re=>cs.find(c=>re.test(lab(c)));
-      const days=f(/^Ημέρες/),oth=f(/^Λοιποί προμηθευτές|^Παραγωγή$/),her=f(/^HERMES/),tot=f(/^Συνολική παραγωγή/);
+      const days=f(/^(Ημέρες|Εργάσιμες)/),oth=f(/^Λοιποί προμηθευτές|^Παραγωγή$/),her=f(/^HERMES/),tot=f(/^Συνολική παραγωγή/);
       if(oth){const s=oth.querySelector('.sortingKpiText small');if(s&&s.textContent.trim()!=='Παραγωγή')s.textContent='Παραγωγή'}
       if(days&&oth&&her&&tot){const want=[days,oth,her,tot];if(want.some((c,i)=>pk.children[i]!==c))want.forEach(c=>pk.appendChild(c))}
       cs.forEach(c=>{const l=lab(c);
-        setIcon(c,/^Ημέρες/.test(l)?'cal':/^HERMES/.test(l)?'feather':/^Συνολική/.test(l)?'sigma':'factory','k3',/^Συνολική/.test(l))});
+        c.classList.toggle('kDays',/^Εργάσιμες/.test(l));setIcon(c,/^(Ημέρες|Εργάσιμες)/.test(l)?'cal':/^HERMES/.test(l)?'feather':/^Συνολική/.test(l)?'sigma':'factory','k3',/^Συνολική/.test(l))});
     }
     // Αποθήκη ΑΗΗΕ: Επεξεργασία (εργοστάσιο) / Επεξεργασία HERMES (φτερό) σε τιρκουάζ
     document.querySelectorAll('#weeeKpis .sortingKpiCard').forEach(c=>{const l=lab(c);
@@ -13425,7 +13425,7 @@ body[data-theme="dark"] .sortingKpiCard .sortingKpiIcon{background:#1d2633!impor
     if(w.style.maxHeight!==h+'px')w.style.maxHeight=h+'px';
   }
   let tm=0;const later=()=>{if(!tm)tm=setTimeout(run,120)};
-  new MutationObserver(ms=>{if(ms.some(m=>m.addedNodes.length))later()}).observe(document.body,{childList:true,subtree:true});
+  new MutationObserver(ms=>{if(!ms.some(m=>m.addedNodes.length))return;if(ms.some(m=>{const t=m.target;return t&&(t.id==='productionKpis'||(t.closest&&t.closest('#productionKpis')))})){if(tm){clearTimeout(tm);tm=0}run()}else later()}).observe(document.body,{childList:true,subtree:true});
   window.addEventListener('resize',later);setInterval(fitPres,1500);later();
   {const pv=document.getElementById('presence');if(pv&&window.ResizeObserver){const ro=new ResizeObserver(()=>fitPres());ro.observe(pv);ro.observe(document.querySelector('.content')||document.body);[...pv.children].forEach(c=>{if(c.id!=='presWrap')ro.observe(c)})}}
 })();
@@ -14077,7 +14077,7 @@ html #receiptForm :is(.comboAction,.comboAction1){height:44px!important;min-heig
 #shipHistCard .shipHistWrap thead th>*{white-space:normal!important}
 /* ===== B19 (5): Παραγωγή — οι κάρτες «Συνολική παραγωγή» / «HERMES» / «Λοιποί προμηθευτές» είναι κουμπιά (= Σύνολο / HERMES / Λοιποί)· επιλεγμένη: περίγραμμα 2px στο χρώμα επιλογής του θέματος ===== */
 #production #productionKpis .sortingKpiCard.b19Pick{cursor:pointer}
-html #production #productionKpis .sortingKpiCard.b19Pick.b19Sel,html[data-mode][data-pal] .content #production #productionKpis .sortingKpiCard.b19Pick.b19Sel{box-shadow:inset 0 0 0 2px var(--pA,var(--accent,#2f5fc4))!important;border-color:var(--pA,var(--accent,#2f5fc4))!important}
+html #production #productionKpis .sortingKpiCard.b19Pick.b19Sel,html[data-mode][data-pal] .content #production #productionKpis .sortingKpiCard.b19Pick.b19Sel{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--kBd,var(--pA,var(--accent,#2f5fc4))) 62%,#000)!important;border-color:color-mix(in srgb,var(--kBd,var(--pA,var(--accent,#2f5fc4))) 62%,#000)!important}
 #production.b19KpiPick .productionFilter{display:none!important}
 </style>
 <script id="b19ProdJs">
@@ -14526,6 +14526,45 @@ table th.b29SB{--b29b:inset 0 -1px 0 var(--b29Ln,#cfd6e6)}
   new MutationObserver(ms=>{if(ms.some(m=>!(m.target.classList&&(m.target.classList.contains('b29SE')||m.target.classList.contains('b29SB')))))req()}).observe(document.body,{childList:true,subtree:true});
   document.addEventListener('click',()=>setTimeout(req,60),true);
   req();
+})();
+</script>
+<style id="b40Css">
+/* ===== B40 (Windows): «Πιο ήπιο 3D» του ed_btn.html — μόνο σκιά και κάτω γραμμή inset, ίδιο μέγεθος και ίδια διάταξη ===== */
+html{--b40-l:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 #D6D0C3;--b40-d:0 1px 1px rgba(20,34,43,.15),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -1px 0 rgba(0,0,0,.35)}
+html :is(.btn.alt,.iconSeg,.ovFilterBtn,.uniSub:not(.active),.prodSegment>button:not(.active),.ppvI,.carrIc,.prepMoveBtn,.prodPeriodNav,#receiptMoreBtn,.receiptCalendarDay){box-shadow:var(--b40-l)!important}
+html :is(.btn:not(.alt),.prodSegment>button.active,.uniSub.active,.receiptCalendarDay.selected){box-shadow:var(--b40-d)!important}
+html .receiptCalendarDay.stg-done{box-shadow:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #A4C8B3!important}
+html .receiptCalendarDay.stg-sorting{box-shadow:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #9FB9DE!important}
+html .receiptCalendarDay.stg-ready{box-shadow:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #BFC3CF!important}
+html .receiptCalendarDay.stg-review{box-shadow:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #D9B98A!important}
+html .receiptCalendarDay.stg-correct{box-shadow:0 1px 1px rgba(20,34,43,.08),inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 #D9A5A5!important}
+html .receiptCalendarDay.selected{box-shadow:0 1px 1px rgba(20,34,43,.15),inset 0 1px 0 rgba(255,255,255,.12),inset 0 -1px 0 rgba(0,0,0,.35)!important}
+html :is(#receiptSearch,#productionSearch,#ppvSearch,.ppvSearch,#masterSearch,.masterSearch,#invSearch,#shipHistSearch,#prepSearch,#carrCtrQ,.carrCtrQ):not(:focus){box-shadow:var(--b40-l)!important}
+html .btn:active:not(:disabled),html .receiptCalendarDay:active,html .iconSeg:active,html .prodSegment>button:active{transform:translateY(1px)}
+/* ===== B40: κάρτα «Εργάσιμες» = απλή ένδειξη (όχι πατητή): τίτλος γκρι με κεφαλαίο, αριθμός έντονος στην ίδια γραμμή ===== */
+html #production #productionKpis .sortingKpiCard.kDays{cursor:default}
+html #production #productionKpis .sortingKpiCard.kDays .sortingKpiText{display:flex!important;flex-direction:row!important;align-items:baseline;gap:6px}
+html #production #productionKpis .sortingKpiCard.kDays .sortingKpiText b{order:-1}
+html #production #productionKpis .sortingKpiCard.kDays .sortingKpiText small{font-size:13px;color:#6B6358;margin:0;-webkit-line-clamp:unset}
+</style>
+<script id="b40Js">
+/* B40 (12): κλικ σε κάρτα Παραγωγής — οι κάρτες δεν ξαναχτίζονται· ενημερώνονται μόνο οι τιμές στα ίδια στοιχεία (χωρίς αναβόσβημα, χωρίς άλμα) */
+(function(){
+  if(typeof renderProductionKpis!=='function')return;
+  const _b40=renderProductionKpis;
+  const key=c=>{const t=((c.querySelector('.sortingKpiText small')||{}).textContent||'').trim();return t==='Λοιποί προμηθευτές'?'Παραγωγή':t};
+  renderProductionKpis=function(){
+    const box=document.getElementById('productionKpis');
+    const old=box?[...box.children]:[];
+    const had=old.length>0&&old.every(c=>c.classList&&c.classList.contains('sortingKpiCard'));
+    const ret=_b40.apply(this,arguments);
+    if(!had||!box)return ret;
+    const fresh=[...box.children],km=new Map(old.map(c=>[key(c),c]));
+    if(fresh.length!==old.length||km.size!==old.length||!fresh.every(f=>km.has(key(f))))return ret;
+    fresh.forEach(f=>{const o=km.get(key(f)),nb=f.querySelector('.sortingKpiText b'),ob=o.querySelector('.sortingKpiText b');if(nb&&ob&&ob.innerHTML!==nb.innerHTML)ob.innerHTML=nb.innerHTML});
+    box.replaceChildren(...old);
+    return ret;
+  };
 })();
 </script>
 </body></html>
