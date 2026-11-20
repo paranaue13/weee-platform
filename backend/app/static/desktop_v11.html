@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="el"><head><meta charset="utf-8"><script>try{var h=document.documentElement,p=localStorage.getItem('weeePalette:last')||'cur';h.dataset.pal=['aut','win','sum'].includes(p)?p:'cur';h.dataset.mode=localStorage.getItem('weeeTheme')==='dark'?'dark':'light'}catch(e){}</script><style id="b41Hide">html:not(.b41Rdy) body{visibility:hidden!important}</style><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no"><title>WEEE Platform — Windows</title>
+<html lang="el"><head><meta charset="utf-8"><script>try{var h=document.documentElement,p=localStorage.getItem('weeePalette:last')||'cur';h.dataset.pal=['aut','win','sum'].includes(p)?p:'cur';h.dataset.mode=localStorage.getItem('weeeTheme')==='dark'?'dark':'light'}catch(e){}</script><style id="b41Gutter">html{scrollbar-gutter:stable}</style><style id="b41Hide">html:not(.b41Rdy) body{visibility:hidden!important}</style><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no"><title>WEEE Platform — Windows</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=greek">
 <style>
@@ -6778,6 +6778,12 @@ function openFloatAt(title,html,x,y){return openFloat(title,html)}
   [['receiptForm','receipt'],['sortingDetail','sorting']].forEach(([id,k])=>{let p=document.getElementById(id);if(!p)return;new MutationObserver(()=>{if(!p.classList.contains('hidden')&&!p.dataset.sized){p.dataset.sized='1';popupApplySize(p,'win:'+k)}else if(p.classList.contains('hidden'))delete p.dataset.sized}).observe(p,{attributes:true,attributeFilter:['class']})});
   let drag=null;
   document.addEventListener('pointerdown',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(e.clientX>r.right-24&&e.clientY>r.bottom-24)drag={p,w:r.width,h:r.height}},true);
+  // Διπλό κλικ στη γωνία (δεξιά-κάτω) του παραθύρου: επαναφορά στο αρχικό μέγεθος (σβήνει και το αποθηκευμένο μέγεθος του τύπου)
+  document.addEventListener('dblclick',e=>{let p=e.target.closest&&e.target.closest('#floatingEditor,#receiptForm,#sortingDetail');if(!p||p.classList.contains('popupMax')||p.classList.contains('popupMin'))return;let r=p.getBoundingClientRect();if(!(e.clientX>r.right-24&&e.clientY>r.bottom-24))return;
+    try{let o=load();delete o[p.dataset.sizeKey||('win:'+p.id)];localStorage.setItem(KEY,JSON.stringify(o))}catch(x){}
+    p.style.width='';p.style.height='';
+    if(p.id==='floatingEditor'&&FIXED.has(keyOf(($('floatingEditorTitle')||{}).textContent))){p.style.width=p.querySelector('.mpWrap')?'min(912px,calc(100vw - 16px))':'min(520px,calc(100vw - 16px))';requestAnimationFrame(()=>{p.style.height=Math.min(p.offsetHeight,innerHeight-80)+'px'})}
+  },true);
   document.addEventListener('pointerup',()=>{if(!drag)return;let {p,w,h}=drag;drag=null;setTimeout(()=>{let r=p.getBoundingClientRect();if(Math.abs(r.width-w)>2||Math.abs(r.height-h)>2)save(p.dataset.sizeKey||('win:'+p.id),Math.round(r.width),Math.round(r.height))},0)},true);
 })();
 document.addEventListener('scroll',e=>{let w=e.target;if(w&&w.classList&&w.classList.contains('prodTableWrap'))w.classList.toggle('hs',w.scrollLeft>0)},true);
