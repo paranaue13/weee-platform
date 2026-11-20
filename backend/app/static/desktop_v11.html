@@ -9148,7 +9148,10 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
   // εικονίδιο στο δεξί άκρο του (ορατού μέρους του) κελιού· hotEls παίρνουν το φόντο hover (cls)
   function eyeFor(t,cell,wr,key,onclick,hotEls,cls){
     let vr=clampR(cell.getBoundingClientRect(),wr);if(vr.width<30||vr.height<14)return false;
-    let left=vr.right-8-18,cy=vr.top+vr.height/2,e=document.elementFromPoint(left+9,cy);
+    let left=vr.right-8-18,cy=vr.top+vr.height/2;
+    try{let rg=document.createRange();rg.selectNodeContents(cell);let q=rg.getBoundingClientRect();
+      if(q.width&&q.right>left-3&&q.left<left+21&&q.bottom>cy-9&&q.top<cy+9){let l2=vr.left+8;if(l2+18<=q.left-3||l2>=q.right+3)left=l2}}catch(x){}
+    let e=document.elementFromPoint(left+9,cy);
     if(!e||!e.closest||e.closest('th,td')!==cell)return false;     // κομμένο / κρυμμένο κάτω από κολλημένο κελί
     let L=openLayer(key);
     if(L){
@@ -11117,6 +11120,20 @@ const OV={
     host.innerHTML=`<span class="ovPillTx" title="${esc(txt)}">${esc(txt)}</span><button type="button" class="ovPillX" aria-label="Καθαρισμός επιλογής" title="Καθαρισμός επιλογής">✕</button>`;
     host.querySelector('.ovPillX').onclick=e=>{e.stopPropagation();onClear()};
   },
+  // Αντικατάσταση περιεχομένου οθόνης Συγκεντρωτικών: αν οι κάρτες υπάρχουν ήδη (ίδιοι τύποι) ΜΕΝΟΥΝ τα ίδια στοιχεία, αλλάζει μόνο η επιλογή/το κείμενο· κρατιέται η θέση scroll
+  assign(host,html){
+    const scs=[];for(let n=host.parentElement;n;n=n.parentElement)if(n.scrollTop>0)scs.push([n,n.scrollTop]);
+    const t=document.createElement('template');t.innerHTML=html;const nw=t.content;
+    const oc=host.querySelector(':scope>.ovCards'),nc=nw.querySelector('.ovCards');
+    if(oc&&nc&&oc.children.length===nc.children.length&&[...oc.children].every((c,i)=>c.dataset.type===nc.children[i].dataset.type)){
+      [...oc.children].forEach((c,i)=>{const n=nc.children[i];
+        c.classList.toggle('ovCardSel',n.classList.contains('ovCardSel'));c.setAttribute('aria-pressed',n.getAttribute('aria-pressed'));
+        const a=c.querySelector('.sortingKpiText'),b=n.querySelector('.sortingKpiText');if(a&&b&&a.innerHTML!==b.innerHTML)a.innerHTML=b.innerHTML});
+      nc.replaceWith(oc);
+    }
+    host.replaceChildren(...nw.childNodes);
+    scs.forEach(([n,v])=>{if(n.scrollTop!==v)n.scrollTop=v});
+  },
   cardsHtml(specs){ // specs: [{key,cls,icon,title,text,sel}]
     return specs.map(c=>`<button type="button" class="sortingKpiCard ${c.cls} ovCard${c.sel?' ovCardSel':''}" data-type="${c.key}" aria-pressed="${c.sel?'true':'false'}"><span class="sortingKpiIcon"><svg viewBox="0 0 24 24">${c.icon}</svg></span><span class="sortingKpiText"><small>${c.title}</small><b>${c.text}</b>${c.extra||''}</span></button>`).join('');
   }
@@ -11150,12 +11167,12 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',text:`<i class="uKl">Παραλήφθηκαν</i>${cnt()} · ${OV.num(kgs())} kg`,sel:st.types.size===0});
     let chosen=base.filter(x=>!st.types.size||st.types.has(x.type));
     let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
-    host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
+    OV.assign(host,`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
       <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων</span></div>
       <div class="ovTables">
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Μεταφορέας</b><span id="recOvFC"></span></span></div><div class="tablewrap"><table id="recOvCTbl"><thead><tr><th style="width:46%">Μεταφορέας</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvCRows"></tbody></table></div></div>
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτής</b><span id="recOvFS"></span><span class="ovPill" id="recOvPill" hidden></span></span></div><div class="tablewrap"><table id="recOvSTbl"><thead><tr><th style="width:46%">Προμηθευτής</th><th class="ovR" style="width:24%">Παραλαβές</th><th class="ovR" style="width:30%">Κιλά</th></tr></thead><tbody id="recOvSRows"></tbody></table></div></div>
-      </div>`;
+      </div>`);
     host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);render()});
     // επιλογές φίλτρων από τα πραγματικά δεδομένα (διάστημα + επιλεγμένοι τύποι)
     const uniq=key=>{let m=new Map();chosen.forEach(x=>{let k=x[key]||'';if(!m.has(k))m.set(k,orgLabel(k))});return [...m].map(([id,label])=>({id,label})).sort((a,b)=>a.label.localeCompare(b.label,'el'))};
@@ -11243,12 +11260,12 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let all=n();specs.push({key:'',cls:'k4',icon:TOT_ICON,title:'Σύνολο',...sCard(all),sel:st.types.size===0});
     let ofType=inPeriod.filter(r=>!st.types.size||st.types.has(r.receipt_type));
     let tname=st.types.size?[...st.types].map(typeName).join(' + '):'Όλοι οι τύποι';
-    host.innerHTML=`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
+    OV.assign(host,`<div class="ovCards" role="group" aria-label="Τύπος φορτίου">${OV.cardsHtml(specs)}</div>
       <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών τύπων · Κλικ σε φορτίο: μόνο αυτό (Ctrl + κλικ: περισσότερα)</span></div>
       <div class="ovTables">
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Προμηθευτές</b><span id="soFS"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall hidden" id="soClearLoads">Καθαρισμός φορτίων</button></span></div><div class="ovList" id="soLoads"></div></div>
         <div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>Ταξινόμηση</b><span id="soFC"></span></span><span class="ovHeadBtns"><button type="button" class="btn alt ovSmall" id="soToggle">Ανάπτυξη όλων</button></span></div><div class="ovList" id="soCats"><div class="muted" style="padding:10px">Φόρτωση…</div></div></div>
-      </div>`;
+      </div>`);
     host.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.types,b.dataset.type,e.ctrlKey||e.metaKey);st.loads.clear();render()});
     // φίλτρο προμηθευτή: από τα φορτία του διαστήματος και των επιλεγμένων τύπων
     let sNames=[...new Set(ofType.map(r=>r.supplier||'—'))].sort((a,b)=>a.localeCompare(b,'el'));
@@ -11410,10 +11427,10 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     let chosen=lines.filter(l=>!st.purposes.size||st.purposes.has(l.purpose));
     let tname=st.purposes.size?[...st.purposes].join(' + '):totName;
     const tbl=(id,title,fid,first)=>`<div class="card ovTbl"><div class="ovTblHead"><span class="ovTitle"><b>${title}</b><span id="${fid}"></span><span class="ovPill" id="${id}Pill" hidden></span></span></div><div class="tablewrap"><table id="${id}"><thead><tr><th style="width:44%">${first}</th><th class="ovR" style="width:28%">Φορτώσεις</th><th class="ovR" style="width:28%">Κιλά</th></tr></thead><tbody id="${id}Rows"></tbody></table></div></div>`;
-    panel.innerHTML=`<div class="ovCards ovCardsAuto" role="group" aria-label="Σκοπός φόρτωσης">${OV.cardsHtml(specs)}</div>
+    OV.assign(panel,`<div class="ovCards ovCardsAuto" role="group" aria-label="Σκοπός φόρτωσης">${OV.cardsHtml(specs)}</div>
       <div class="ovHint muted" style="margin:-6px 0 10px">Ένα Δ.Α. με γραμμές διαφορετικού σκοπού μετριέται σε κάθε σκοπό που έχει. Τα κιλά αθροίζουν πάντα στο Σύνολο.</div>
       <div class="ovHead"><h3>Συγκεντρωτικά: ${esc(tname)}</h3><span class="ovHint muted">Ctrl + κλικ στις κάρτες: επιλογή / αποεπιλογή πολλών σκοπών</span></div>
-      <div class="ovTables">${tbl('ldOvC','Μεταφορέας','ldOvFC','Μεταφορέας')}${tbl('ldOvR','Πελάτης / Παραλήπτης','ldOvFR','Πελάτης / Παραλήπτης')}${tbl('ldOvM','Υλικό','ldOvFM','Υλικό')}</div>`;
+      <div class="ovTables">${tbl('ldOvC','Μεταφορέας','ldOvFC','Μεταφορέας')}${tbl('ldOvR','Πελάτης / Παραλήπτης','ldOvFR','Πελάτης / Παραλήπτης')}${tbl('ldOvM','Υλικό','ldOvFM','Υλικό')}</div>`);
     panel.querySelectorAll('.ovCard').forEach(b=>b.onclick=e=>{OV.toggleType(st.purposes,b.dataset.type,e.ctrlKey||e.metaKey);render()});
     const optsOf=get=>[...new Set(chosen.map(get))].sort((a,b)=>a.localeCompare(b,'el')).map(v=>({id:v,label:v}));
     const cOpts=optsOf(l=>l.carrier),rOpts=optsOf(l=>l.recipient),mOpts=optsOf(l=>l.mat);
@@ -14574,13 +14591,23 @@ html #production #productionKpis .sortingKpiCard.kDays .sortingKpiText small{fon
     return ret;
   };
 })();
+/* B42: κλικ σε κάρτα Παραγωγής: ο πίνακας ξαναχτίζεται και η διάταξη (γραμμή συμπλήρωσης κ.λπ.) ολοκληρώνεται στο ΙΔΙΟ βήμα, με διατήρηση θέσης scroll */
+(function(){
+  const wrap=fn=>{if(typeof fn!=='function')return fn;return function(){
+    const ws=[...document.querySelectorAll('#production .prodTableWrap,#production .tablewrap')].map(w=>[w,w.scrollTop,w.scrollLeft]);
+    const r=fn.apply(this,arguments);
+    try{if(window.StickyTables)window.StickyTables.fix()}catch(e){}
+    ws.forEach(([w,t,l])=>{if(w.isConnected){if(w.scrollTop!==t)w.scrollTop=t;if(w.scrollLeft!==l)w.scrollLeft=l}});
+    return r}};
+  renderProdWeee=wrap(renderProdWeee);renderProdPeople=wrap(renderProdPeople);
+})();
 </script>
 <style id="b41Css">
 /* B41 (12): επιλεγμένη κάρτα = περίγραμμα 2px (1px border + 1px inset) στο σκούρο χρώμα της κάρτας, φόντο μόνο μέσα στο περίγραμμα· ίδιο μέγεθος */
 html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="0"]{--kSel:#97723A}
 html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="1"]{--kSel:#87644D}
 html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="2"]{--kSel:#78714E}
-html[data-mode][data-pal] .content :is(#production #productionKpis .sortingKpiCard.b19Pick.b19Sel,:is(#receipts,#weee,#loading) .sortingKpiCard.ovCardSel){--kS2:var(--kSel,color-mix(in srgb,var(--kBd,var(--pA,#2f5fc4)) 62%,#000));box-shadow:inset 0 0 0 1px var(--kS2)!important;border:1px solid var(--kS2)!important;border-color:var(--kS2)!important;background-clip:padding-box!important}
+html[data-mode][data-pal] .content :is(#production #productionKpis .sortingKpiCard.b19Pick.b19Sel,:is(#receipts,#weee,#loading) .sortingKpiCard.ovCardSel){--kS2:var(--kSel,color-mix(in srgb,var(--kBd,var(--pA,#2f5fc4)) 62%,#000));box-shadow:none!important;border-color:transparent!important;outline:2px solid var(--kS2)!important;outline-offset:-2px!important;background-clip:border-box!important}
 /* B41 (13): επιλεγμένη γραμμή Συγκεντρωτικών: περίγραμμα 2px ως τα άκρα του πίνακα */
 html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td{background:#DDE8E6;box-shadow:inset 0 2px 0 #144A52,inset 0 -2px 0 #144A52}
 html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:first-child{box-shadow:inset 2px 2px 0 #144A52,inset 0 -2px 0 #144A52}
@@ -14588,6 +14615,15 @@ html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:last-
 /* B41 (15): η γραμμή κάτω από τον τίτλο παραθύρου (πορτοκαλί/του θέματος) μένει πάντα ορατή πάνω από το χρώμα των κουμπιών */
 :is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader){position:relative}
 :is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--pLine,#5878A6);pointer-events:none;z-index:50}
+</style>
+<style id="b42Css">
+/* B42 (1): όλες οι κάρτες KPI: το φόντο μένει μέσα στο περίγραμμα (padding-box), χωρίς εξωτερική σκιά· περίγραμμα 1px στο χρώμα της κάρτας */
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc]:not(.b12Gold){background-clip:border-box!important;box-shadow:none!important;border-color:transparent!important;outline:1px solid var(--kBd)!important;outline-offset:-1px!important}
+html[data-mode="light"][data-pal] .content :is(#dashboard,#receipts,#weee,#production,#ready,#loading,#inventory,#reports,#galaxy,#master) :is(.sortingKpiCard,.card.metric)[data-kc]:not(.b12Gold):hover{box-shadow:none!important}
+/* B42 (3α): γραμμή πίνακα Παραγωγής που φωτίζεται: περίγραμμα 2px #144A52 ως τα άκρα του πίνακα */
+html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td{box-shadow:inset 0 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
+html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:first-child{box-shadow:inset 2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
+html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 </style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
 </body></html>
