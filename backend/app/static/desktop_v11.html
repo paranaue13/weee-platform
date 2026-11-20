@@ -1877,6 +1877,8 @@ body[data-theme="dark"]{--pin:#E8906F;--col-sep:rgba(255,255,255,.09)}
 /* Ζωντανή ροή (Παραλαβές + Φορτώσεις): χωρίς κάθετες γραμμές, ίδια εμφάνιση σε όλες τις γραμμές. Κενό τύπων φορτίου (Παραλαβές): φόντο σελίδας από token */
 #ecTableWrap table tr>*,#loadingEcTableWrap table tr>*{border-left:0!important;border-right:0!important}
 #ecTableWrap tbody tr:nth-child(even),#loadingEcTableWrap tbody tr:nth-child(even){background:transparent}
+#ecTableWrap tbody tr.ecRow:hover,#loadingEcTableWrap tbody tr.ecRow:hover{background:#EAEFF7!important}
+body[data-theme="dark"] #ecTableWrap tbody tr.ecRow:hover,body[data-theme="dark"] #loadingEcTableWrap tbody tr.ecRow:hover{background:#1a2733!important}
 #ecOrderRows tr.ecTypeGap,#ecOrderRows tr.ecTypeGap:hover{background:var(--bg,#f6f7fa)!important}
 #ecOrderRows tr.ecTypeGap td{background:var(--bg,#f6f7fa)!important;border:0!important;box-shadow:none!important;padding:0!important;height:6px}
 </style>
