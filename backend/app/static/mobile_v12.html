@@ -1828,7 +1828,7 @@ document.querySelectorAll('.matStart').forEach(b=>{let o=b.onclick;b.onclick=ev=
   let _f=window.fetch.bind(window);window.fetch=function(){return _f.apply(null,arguments).then(r=>{setNet(true);return r},e=>{setNet(false);throw e})};
   $('refreshBtn').onclick=()=>{
     let vis=id=>$(id)&&!$(id).classList.contains('hidden');
-    if(vis('secReceiving')){if(vis('loads'))$('reload').click();else if(typeof refresh==='function'&&cur)refresh()}
+    if(vis('secReceiving')){if(vis('loads'))loadLoads(true);else if(typeof refresh==='function'&&cur)refresh()}
     else if(vis('secProduction')){if(vis('deltioPanel'))loadDeltioAndroid();else flLoad(true)}
     else if(vis('secMaterials'))mtReload();
     else if(vis('secLoading'))loadLoadingSection();
