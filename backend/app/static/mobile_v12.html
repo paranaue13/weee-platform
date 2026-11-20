@@ -3110,9 +3110,9 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     if(st===2){S.fld='w';renderSheet();return}
     if(!can())return;if(S.edit){await submitEdit();return}S.busy=true;renderSheet();msg('');
     try{let mid=S.pick.mid||null;
-      if(S.pick.kind==='new'){const t=pt();const nm=await api(`/sorting/${cur.id}/media`,{method:'POST',body:JSON.stringify({type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null})});mid=nm.id;S.pick={mid,kind:'existing'};try{await reloadMasters()}catch(_){}}
-      const body={weee_category_id:cat.id,collection_medium_id:mid,entry_type:(mid&&S.mode==='g')?'SCALE_GROSS':'MEDIUM',raw_weight:roundInt(Number(S.val)),piece_count:null,source:'ANDROID'};
-      if(mid&&S.cls)body.close_medium=true;
+      let nmd=null;if(S.pick.kind==='new'){const t=pt();nmd={type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null}}   // το μέσο δημιουργείται ΜΑΖΙ με την καταχώρηση (τελική κίνηση), όχι πριν
+      const body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g')?'SCALE_GROSS':'MEDIUM',raw_weight:roundInt(Number(S.val)),piece_count:null,source:'ANDROID'};
+      if((mid||nmd)&&S.cls)body.close_medium=true;
       const saved=await api('/sorting/'+cur.id+'/entries',{method:'POST',body:JSON.stringify(body)});
       try{await reloadMasters()}catch(_){}await refresh();
       S.pick=null;S.br=null;rs();renderForm();markQuick();
@@ -3131,8 +3131,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   async function submitEdit(){
     S.busy=true;renderSheet();msg('');
     try{let mid=S.pick.kind==='bulk'?null:(S.pick.mid||null);
-      if(S.pick.kind==='new'){const t=pt();const nm=await api(`/sorting/${cur.id}/media`,{method:'POST',body:JSON.stringify({type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null})});mid=nm.id}
-      const e0=S.edit.e,body={weee_category_id:cat.id,collection_medium_id:mid,entry_type:'MEDIUM',raw_weight:roundInt(net()),piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID'};
+      let nmd=null;if(S.pick.kind==='new'){const t=pt();nmd={type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null}}
+      const e0=S.edit.e,body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:'MEDIUM',raw_weight:roundInt(net()),piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID'};
       const saved=await api('/sorting/entries/'+S.edit.id,{method:'PUT',body:JSON.stringify(body)});
       endEdit();try{await reloadMasters()}catch(_){}await refresh();if(saved&&saved.warning)$$('workMsg').textContent=saved.warning}
     catch(err){msg(err.message||String(err))}finally{S.busy=false;renderSheet()}}

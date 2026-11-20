@@ -436,6 +436,7 @@ class SortingEntryCreate(BaseModel):
     notes: str|None = None
     close_medium: bool = False      # «Κλείσιμο καλαθιού»: μετά την αποθήκευση το μέσο δεν δέχεται άλλα κιλά
     source: str|None = None         # 'PC' (Windows) ή 'ANDROID'
+    new_medium: MediumCreate|None = None   # νέο μέσο: δημιουργείται ΜΑΖΙ με την καταχώρηση, στην ίδια πράξη (αν αποτύχει η καταχώρηση δεν δημιουργείται τίποτα)
 
 class SortingEntryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

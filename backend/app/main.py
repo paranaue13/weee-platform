@@ -3415,6 +3415,7 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
     if ses.status not in ('IN_PROGRESS','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'): raise HTTPException(409,'Η ταξινόμηση δεν είναι σε επεξεργασία')
     cat=db.get(WEEECategory,data.weee_category_id)
     if not cat: raise HTTPException(422,'Άγνωστη κατηγορία ΑΗΗΕ')
+    if data.new_medium is not None and not data.collection_medium_id: data.collection_medium_id=_create_medium_in_sorting(db,user,data.new_medium).id
     if data.collection_medium_id and not db.get(CollectionMedium,data.collection_medium_id): raise HTTPException(422,'Άγνωστο μέσο συλλογής')
     if data.collection_medium_id and db.get(CollectionMedium,data.collection_medium_id).is_closed: raise HTTPException(409,'Το μέσο είναι κλειστό και δεν δέχεται άλλα κιλά')
     if data.raw_weight is None and data.piece_count is None: raise HTTPException(422,'Απαιτείται βάρος ή τεμάχια')
@@ -3458,6 +3459,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     if data.collection_medium_id and data.collection_medium_id!=e.collection_medium_id:
         tm=db.get(CollectionMedium,data.collection_medium_id)
         if tm and tm.is_closed: raise HTTPException(409,'Το μέσο είναι κλειστό και δεν δέχεται άλλα κιλά')
+    if data.new_medium is not None and not data.collection_medium_id: data.collection_medium_id=_create_medium_in_sorting(db,user,data.new_medium).id
     old={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count}
     e.weee_category_id=data.weee_category_id; e.collection_medium_id=data.collection_medium_id; e.entry_type=data.entry_type
     e.raw_weight=data.raw_weight; e.piece_count=data.piece_count; e.notes=data.notes
@@ -3488,6 +3490,11 @@ def sorting_medium_type_suggestions(load_id:str, weee_category_id:str, db:Sessio
 def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     # Operators may create a missing medium in-place without leaving sorting.
     _session_for_load(db,load_id,True,user)
+    obj=_create_medium_in_sorting(db,user,data)
+    db.commit(); db.refresh(obj); return obj
+
+def _create_medium_in_sorting(db:Session,user,data):
+    """Δημιουργία μέσου χωρίς commit: καλείται είτε μόνη της είτε μέσα στην ίδια πράξη με την καταχώρηση (να μη μένουν άδεια μέσα)."""
     mt=db.get(CollectionMediumType,data.type_id)
     if not mt or not mt.active: raise HTTPException(404,'Άγνωστος τύπος μέσου')
     if (mt.usage or 'BOTH') not in ('IN','BOTH'): raise HTTPException(422,'Το είδος «'+mt.name_el+'» είναι εξερχόμενο και δεν χρησιμοποιείται στην Ταξινόμηση')
@@ -3505,7 +3512,7 @@ def sorting_create_medium(load_id:str, data:schemas.MediumCreate, db:Session=Dep
         raise HTTPException(409,'Ο κωδικός υπάρχει ήδη στον τύπο (ανενεργός). Σε άλλον τύπο επιτρέπεται.')
     tare=mt.default_tare_weight if getattr(mt,'tare_fixed',False) else (data.tare_weight if data.tare_weight is not None else mt.default_tare_weight)
     obj=CollectionMedium(type_id=data.type_id,code=code,tare_weight=tare,linked_loading_order_id=data.linked_loading_order_id)
-    db.add(obj); db.flush(); write_audit(db,user,'collection_medium',obj.id,'CREATE_FROM_SORTING',new={'code':code,'type':mt.code,'tare':str(tare) if tare is not None else None}); db.commit(); db.refresh(obj); return obj
+    db.add(obj); db.flush(); write_audit(db,user,'collection_medium',obj.id,'CREATE_FROM_SORTING',new={'code':code,'type':mt.code,'tare':str(tare) if tare is not None else None}); return obj
 
 @app.get('/sorting/{load_id}/medium-suggestions')
 def sorting_medium_suggestions(load_id:str, weee_category_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
