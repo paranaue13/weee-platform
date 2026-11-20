@@ -3001,11 +3001,15 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
 (function(){
   const $$=id=>document.getElementById(id),fmt=n=>Math.round(Number(n)||0).toLocaleString('el-GR');
   const isB=t=>!!t&&/^Καλάθ/i.test(t.name_el||''),isBulk=t=>!!t&&(t.code==='BULK'||/^Χύμα$/i.test(t.name_el||''));
-  const ROW1=['Καλάθια μεγάλα','Καλάθια μικρά','Καλάθια Infocycle 1','Καλάθια Infocycle 2','Χύμα'],ROW2=['Σάκος 1kg','Παλέτα','Πλαστικό κουτί'];
-  const NEW={'Σάκος 1kg':'Νέος σάκος','Παλέτα':'Νέα παλέτα','Πλαστικό κουτί':'Νέο πλαστικό κουτί'};
-  const ZN={'Σάκος 1kg':'Σάκος','Παλέτα':'Παλέτα','Πλαστικό κουτί':'Πλαστικό κουτί'};
-  const NEWS={'Σάκος 1kg':'νέος','Παλέτα':'νέα','Πλαστικό κουτί':'νέο'};
-  const CLS={'Σάκος 1kg':'σάκου','Παλέτα':'παλέτας','Πλαστικό κουτί':'κουτιού'};
+  /* B43: τα μέσα των Σταθερά / Μίας Χρήσης έρχονται από το μητρώο ΜΕ ΤΟΝ ΚΩΔΙΚΟ ΤΥΠΟΥ και δείχνουν το όνομα του μητρώου (πριν έλειπαν τα Καλάθια και το Πλαστικό Κουτί γιατί τα ονόματα δεν ταίριαζαν) */
+  const ROWC1=['BASKET_LARGE','BASKET_SMALL','INFOCYCLE_1','INFOCYCLE_2','BULK'],ROWC2=['SACK_1KG','PALLET','BOX'];
+  const nmOf=c=>{const t=(typeof types!=='undefined'&&types||[]).find(x=>x.code===c&&x.active!==false);return t?t.name_el:''};
+  const rowN=a=>a.map(nmOf).filter(Boolean);
+  const ci=o=>{const m={};Object.keys(o).forEach(k=>m[k.toLowerCase()]=o[k]);return new Proxy(m,{get:(t,k)=>typeof k==='string'?t[k.toLowerCase()]:t[k]})};
+  const NEW=ci({'Σάκος 1kg':'Νέος σάκος','Παλέτα':'Νέα παλέτα','Πλαστικό κουτί':'Νέο πλαστικό κουτί'});
+  const ZN=ci({'Σάκος 1kg':'Σάκος','Παλέτα':'Παλέτα','Πλαστικό κουτί':'Πλαστικό κουτί'});
+  const NEWS=ci({'Σάκος 1kg':'νέος','Παλέτα':'νέα','Πλαστικό κουτί':'νέο'});
+  const CLS=ci({'Σάκος 1kg':'σάκου','Παλέτα':'παλέτας','Πλαστικό κουτί':'κουτιού'});
   const tByName=n=>(typeof types!=='undefined'&&types||[]).find(t=>t.active!==false&&t.name_el===n);
   const tById=id=>(typeof types!=='undefined'&&types||[]).find(t=>t.id===id);
   const openMedia=()=>((typeof sortOpts!=='undefined'&&sortOpts&&sortOpts.media)||[]).filter(m=>m.active!==false);
@@ -3058,8 +3062,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     else ttl=`<b>${esc(dname(cat))}</b><small>Διάλεξε Μέσο Για Αποθήκευση</small>`;
     let h=`<div class="p39ttl c"><button type="button" class="p39bk" id="p39Bk">‹ Πίσω</button><div class="p39tt">${ttl}</div><div class="slot"></div></div>`;
     if(sg.length)h+=`<div class="p39l">Προτεινόμενα</div>`+sg.map(m=>card(m,false)).join('');
-    h+=`<div class="p39l">Σταθερά</div><div class="p39g3">${ROW1.map(btn).join('')}</div>`;
-    h+=`<div class="p39l">Μίας Χρήσης</div><div class="p39g3">${ROW2.map(btn).join('')}</div>`;
+    h+=`<div class="p39l">Σταθερά</div><div class="p39g3">${rowN(ROWC1).map(btn).join('')}</div>`;
+    h+=`<div class="p39l">Μίας Χρήσης</div><div class="p39g3">${rowN(ROWC2).map(btn).join('')}</div>`;
     if(S.br){const t=tByName(S.br),ot=t?all.filter(m=>m.type_id===t.id&&!(Number((m.cats||{})[cat.id]||0)>0)):[];
       h+=`<div class="p39l">${esc(S.br)} · ${ot.length?'Ανοιχτά Με Άλλο ΑΗΗΕ':'Κανένα Άλλο Ανοιχτό'}</div>`+ot.map(m=>card(m,false)).join('')+`<button type="button" class="p39b add" data-new="${esc(S.br)}">+ ${esc(NEW[S.br])}</button>`}
     host.innerHTML=h;renderSheet()}
@@ -3153,6 +3157,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   // ---------- B36: Επεξεργασία καταχώρησης με την κανονική οθόνη ----------
   const codeOfCat=id=>{const c=cats.find(x=>x.id===id);return c?(c.official_code||c.code):''};
   const bulkKind=c=>{if(!c)return null;const o=[c.official_code,c.code],has=d=>d.pairs.some(p=>o.includes(p[0][0])||o.includes(p[1][0]))||d.single.some(x=>o.includes(x[0]));return has(washDefs)?'wash':has(fridgeDefs)?'fridge':null};
+  window.b30CloseAll=function(){if(S.edit){endEdit();return}S.pick=null;S.br=null;rs();$$('closeEntry').click()};
   function endEdit(){S.edit=null;S.pick=null;S.br=null;rs();editing=null;ent.classList.add('hidden');sh.classList.remove('on');try{sortRestoreScroll()}catch(_){}}
   async function submitEdit(){
     S.busy=true;renderSheet();msg('');
@@ -3499,7 +3504,8 @@ html body #app #work #confirm{margin-top:18px!important}
 #p42Mat .p39g3 .p39b{min-height:54px}
 #p42Mat .p42ab{display:grid;grid-template-columns:1fr 1fr;gap:6px}#p42Mat .p42ab .p39b{min-height:54px}
 #p42Mat .p42it{display:flex;flex-direction:column;gap:6px}#p42Mat .p42it .p39b{min-height:48px;font-size:15px;padding:12px 10px}
-#p42Mat .p42hr{border:0;border-top:1px solid #C9CFDB;margin:6px 4px}
+#p42Mat .p42hr{border:0;border-top:2px solid #144A52;margin:6px -12px}
+#p42Mat .p42bd.wide{margin:0 -12px;padding:0 12px}
 html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m,#p42Mat .p42m{height:min(780px,100%)!important}
 html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none}
 @media (max-width:480px){html body #b30Form .slot{width:0}}
@@ -3528,7 +3534,7 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
   function paint(){
     const t=$$('p42t'),sb=$$('p42s');
     if(V.view==='items'){
-      t.textContent=generalNames[V.g]||'';sb.textContent='Διάλεξε Υλικό';bd.className='p42bd';
+      t.textContent=generalNames[V.g]||'';sb.textContent='Διάλεξε Υλικό';bd.className='p42bd wide';
       let a=cats.filter(c=>mGroup(c)===String(V.g)&&c.active!==false);const par=new Set(a.filter(c=>c.is_internal_subcategory).map(c=>c.official_code));
       a=a.filter(c=>c.is_internal_subcategory||!par.has(c.code));
       let h='<div class="p42it">';
@@ -3541,7 +3547,7 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
     const f=freq();
     bd.innerHTML=`<div class="p39l">Συχνά</div><div class="p39g3">${f.map(c=>`<button type="button" class="p39b" data-c="${c.id}">${esc(dname(c))}</button>`).join('')}</div>`+
       `<div class="p39l">Κατηγορίες ΑΗΗΕ</div><div class="p39g3">${['1','2','3','4','5','6'].map(n=>`<button type="button" class="p39b" data-g="${n}">${generalNames[n]}</button>`).join('')}</div>`+
-      `<div class="p42ab">${['A','B'].map(n=>`<button type="button" class="p39b" data-g="${n}">${generalNames[n]}</button>`).join('')}</div>`+
+      `<div class="p39l">Υλικά ΜΗ ΑΗΗΕ</div><div class="p42ab">${[['A','Τύπου Α · Επικίνδυνα'],['B','Τύπου Β · Μη Επικίνδυνα']].map(([n,t])=>`<button type="button" class="p39b" data-g="${n}">${t}</button>`).join('')}</div>`+
       `<div class="p39sw" style="margin-top:auto"><div id="p42Dd" class="p39dd" hidden></div><input id="p42q" placeholder="Αναζήτηση περιγραφής" autocomplete="off"></div>`}
   function show(){try{document.documentElement.style.setProperty('--b39Top',Math.round(document.querySelector('#app .topDark').getBoundingClientRect().bottom)+'px')}catch(_){}
     paint();ov.hidden=false}
@@ -3555,6 +3561,11 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
     const a=cats.filter(c=>dname(c).sn().includes(q));
     dd.innerHTML=a.length?a.map(c=>`<div data-c="${c.id}">${esc(dname(c))}</div>`).join(''):'<div class="no">Δεν Βρέθηκε</div>';dd.hidden=false});
   document.addEventListener('pointerdown',e=>{const dd=$$('p42Dd');if(dd&&!dd.hidden&&!e.target.closest('.p39sw'))dd.hidden=true},true);
+  document.addEventListener('click',e=>{if(!e.target.closest('#b4Back'))return;
+    const vis=id=>{const x=$$(id);return !!x&&!x.classList.contains('hidden')};
+    const open=!ov.hidden||vis('entry')||$$('b30Sh').classList.contains('on')||!!document.querySelector('#bulkWash.b32Be:not(.hidden),#bulkFridge.b32Be:not(.hidden)');
+    if(!open)return;e.stopImmediatePropagation();e.preventDefault();
+    from=null;ov.hidden=true;if(window.b30CloseAll)window.b30CloseAll();closePanels()},true);
   window.p42Back=()=>{if(!from)return;V=from;from=null;show()};
 })();
 </script>
