@@ -14575,5 +14575,19 @@ html #production #productionKpis .sortingKpiCard.kDays .sortingKpiText small{fon
   };
 })();
 </script>
+<style id="b41Css">
+/* B41 (12): επιλεγμένη κάρτα = περίγραμμα 2px (1px border + 1px inset) στο σκούρο χρώμα της κάρτας, φόντο μόνο μέσα στο περίγραμμα· ίδιο μέγεθος */
+html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="0"]{--kSel:#97723A}
+html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="1"]{--kSel:#87644D}
+html[data-mode="light"][data-pal="aut"] .content :is(#production,#receipts,#weee,#loading) .sortingKpiCard[data-kc="2"]{--kSel:#78714E}
+html[data-mode][data-pal] .content :is(#production #productionKpis .sortingKpiCard.b19Pick.b19Sel,:is(#receipts,#weee,#loading) .sortingKpiCard.ovCardSel){--kS2:var(--kSel,color-mix(in srgb,var(--kBd,var(--pA,#2f5fc4)) 62%,#000));box-shadow:inset 0 0 0 1px var(--kS2)!important;border:1px solid var(--kS2)!important;border-color:var(--kS2)!important;background-clip:padding-box!important}
+/* B41 (13): επιλεγμένη γραμμή Συγκεντρωτικών: περίγραμμα 2px ως τα άκρα του πίνακα */
+html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td{background:#DDE8E6;box-shadow:inset 0 2px 0 #144A52,inset 0 -2px 0 #144A52}
+html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:first-child{box-shadow:inset 2px 2px 0 #144A52,inset 0 -2px 0 #144A52}
+html[data-mode="light"][data-pal="aut"] .ovTbl tbody tr.ovPick.ovRowSel td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52}
+/* B41 (15): η γραμμή κάτω από τον τίτλο παραθύρου (πορτοκαλί/του θέματος) μένει πάντα ορατή πάνω από το χρώμα των κουμπιών */
+:is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader){position:relative}
+:is(.floatPanelHeader,.receiptPopupHeader,.sortingPopupHeader)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--pLine,#5878A6);pointer-events:none;z-index:50}
+</style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
 </body></html>
