@@ -301,7 +301,7 @@ body:has(#login:not(.hidden)) #b4Nav{display:none!important}
 <div class="card"><div class="row space"><h3>Καταχωρήσεις</h3><span id="sumWrap" class="sumWrap"><b id="sum">0 kg</b><i class="enGo enGoSp" aria-hidden="true">›</i></span></div><div id="entries"></div></div>
 <button type="button" id="p42New" class="p42New forkOnly">+ Νέα Καταχώρηση</button>
 <div class="card" id="ctrlCard"><button type="button" id="ctrlToggle" class="ctrlHead"><span class="chT"><b>Στοιχεία Ελέγχου &amp; Φωτογραφίες</b><span id="ctrlSum"> · Καμία Επιλογή, 0 Φωτο</span></span><i id="ctrlArrow">▼</i></button><div id="ctrlBody" class="hidden"><div class="two" style="margin-top:10px"><button class="btn choice" data-flag="check_special">ΕΙΔΙΚΗΣ ΔΙΑΧΕΙΡΙΣΗΣ</button><button class="btn choice" data-flag="check_kday">ΚΔΑΥ</button><button class="btn choice" data-flag="check_non_integer">ΜΗ ΑΚΕΡΑΙΟ</button><button class="btn choice" data-flag="load_pure">ΑΜΙΓΕΣ</button></div><div id="ctrlMsg"></div><label>Φωτογραφίες</label><div class="phRow"><button id="photoBtn" class="btn alt">📷 ΦΩΤΟΓΡΑΦΙΑ</button><div id="stampBox" class="stampBox"><span>Σφραγίδα</span><div id="stampSw" class="stampSw on" role="switch" aria-checked="true" aria-label="Σφραγίδα" tabindex="0"></div></div></div><input id="photo" class="hidden" type="file" accept="image/*" multiple><div id="photoMsg" class="ok"></div><div id="photoList" class="row" style="flex-wrap:wrap;gap:8px;margin-top:8px"></div></div></div>
-<button id="confirm" class="btn good" style="width:100%;margin:4px 0 0">Ολοκλήρωση Ταξινόμησης</button><div id="workMsg" class="ok"></div></div></div><div id="secProduction" class="hidden"><div class="sectionBar" id="flowBar" style="margin-bottom:10px"><button type="button" class="btn choice flStart on" data-f="d">ΤΜΗΜΑ</button><button type="button" class="btn choice flStart" data-f="m">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button type="button" class="btn choice flStart" data-f="a">ΑΗΗΕ</button></div><div class="sectionBar" style="display:none"><button type="button" class="btn choice on" id="prodModeTransferBtn">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button type="button" class="btn choice" id="prodModeDeltioBtn">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button></div><div id="prodTransferPanel"><div class="card"><div id="flowArea"></div><div id="prodOldForm" class="hidden"><label>Μέσο συλλογής</label><button type="button" id="prodMediumBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή μέσου συλλογής</button><label>Κατηγορία ΑΗΗΕ</label><button type="button" id="prodCatBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή κατηγορίας</button><div id="prodStockWrap" class="hidden"><label>Διαθέσιμα μέσα συλλογής</label><div id="prodStockList"></div><div class="muted" id="prodStockTotal"></div></div><label>Τμήμα</label><button type="button" id="prodDeptBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή τμήματος</button><button id="prodSubmit" class="btn good" style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button></div><label>Εργαζόμενος (προαιρετικό)</label><button type="button" id="prodEmpBtn" class="btn alt" style="width:100%;text-align:left">Συγκεντρωτικά τμήματος</button><button id="flSend" class="btn good" disabled style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button><div id="prodMsg" class="error"></div></div><div class="card"><h3>Ιστορικό καταχωρήσεων</h3><div id="ptUnitNote" class="muted" style="margin-bottom:8px"></div><div id="prodTodayList" class="muted">Καμία καταχώρηση.</div></div></div>
+<button id="confirm" class="btn good" style="width:100%;margin:4px 0 0">Ολοκλήρωση Ταξινόμησης</button><div id="workMsg" class="ok"></div></div></div><div id="secProduction" class="hidden"><div id="p45"></div><div class="sectionBar" id="flowBar" style="margin-bottom:10px"><button type="button" class="btn choice flStart on" data-f="d">ΤΜΗΜΑ</button><button type="button" class="btn choice flStart" data-f="m">ΜΕΣΟ ΣΥΛΛΟΓΗΣ</button><button type="button" class="btn choice flStart" data-f="a">ΑΗΗΕ</button></div><div class="sectionBar" style="display:none"><button type="button" class="btn choice on" id="prodModeTransferBtn">ΜΕΤΑΦΟΡΑ ΥΛΙΚΟΥ</button><button type="button" class="btn choice" id="prodModeDeltioBtn">ΔΕΛΤΙΟ ΗΜΕΡΑΣ</button></div><div id="prodTransferPanel"><div class="card"><div id="flowArea"></div><div id="prodOldForm" class="hidden"><label>Μέσο συλλογής</label><button type="button" id="prodMediumBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή μέσου συλλογής</button><label>Κατηγορία ΑΗΗΕ</label><button type="button" id="prodCatBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή κατηγορίας</button><div id="prodStockWrap" class="hidden"><label>Διαθέσιμα μέσα συλλογής</label><div id="prodStockList"></div><div class="muted" id="prodStockTotal"></div></div><label>Τμήμα</label><button type="button" id="prodDeptBtn" class="btn alt" style="width:100%;text-align:left">Επιλογή τμήματος</button><button id="prodSubmit" class="btn good" style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button></div><label>Εργαζόμενος (προαιρετικό)</label><button type="button" id="prodEmpBtn" class="btn alt" style="width:100%;text-align:left">Συγκεντρωτικά τμήματος</button><button id="flSend" class="btn good" disabled style="width:100%;margin-top:12px">ΑΠΟΣΤΟΛΗ ΣΕ ΠΑΡΑΓΩΓΗ</button><div id="prodMsg" class="error"></div></div><div class="card"><h3>Ιστορικό καταχωρήσεων</h3><div id="ptUnitNote" class="muted" style="margin-bottom:8px"></div><div id="prodTodayList" class="muted">Καμία καταχώρηση.</div></div></div>
 <div id="deltioPanel" class="hidden">
 <div class="card"><div class="row space"><h2>Εργαζόμενοι</h2><input type="date" id="deltioDateInput" style="width:auto;min-height:40px"></div>
 <div class="two" style="margin-top:8px"><button type="button" id="deltioEmpBtn" class="btn choice on">ΠΑΡΟΥΣΙΕΣ</button><button type="button" id="deltioDeptBtn" class="btn choice">ΤΜΗΜΑΤΑ</button></div><div id="dlSched" class="dlSched"></div><div id="dlCnt" class="dlCnt"></div></div><div class="card" id="dlMain"></div><div class="card"><h3>Ιστορικό</h3><div id="dlHist"></div></div>
@@ -3092,11 +3092,11 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   async function loadSes(){try{if(cur&&cur.id)S.ses=await api('/sorting/'+cur.id);renderSheet()}catch(e){}}
   // ---------- Γ. κάτω πάνελ ----------
   const sh=document.createElement('div');sh.id='b30Sh';document.body.appendChild(sh);
-  sh.innerHTML=`<div class="p39m"><div class="p39ttl c"><button type="button" class="p39bk" id="b30bk">‹ Πίσω</button><div class="p39tt"><div class="p39ed" id="b30ed" hidden>Αλλαγή</div><b id="b30s1"></b><em id="b30s2"></em></div><button type="button" class="p39sv" id="b30ok" disabled>ΑΠΟΘΗΚΕΥΣΗ</button></div><div class="inf" id="b30inf" hidden></div>
-    <div class="p39tgg"><button type="button" id="b30mg" aria-pressed="false">ΕΝΔΕΙΞΗ ΖΥΓΑΡΙΑΣ</button><button type="button" id="b30mn" aria-pressed="false">ΚΑΘΑΡΟ ΒΑΡΟΣ</button></div>
+  sh.innerHTML=`<div class="p39m"><div class="p39ttl c"><button type="button" class="p39bk" id="b30bk">‹ Πίσω</button><div class="p39tt"><div class="p39ed" id="b30ed" hidden>Αλλαγή</div><b id="b30s1"></b><em id="b30s2"></em></div><button type="button" class="p39sv" id="b30ok" disabled>Αποθήκευση</button></div><div class="inf" id="b30inf" hidden></div>
+    <div class="p39tgg"><button type="button" id="b30mg" aria-pressed="false">Ένδειξη ζυγαριάς</button><button type="button" id="b30mn" aria-pressed="false">Καθαρό βάρος</button></div>
     <div class="p39fz"><div class="disp" id="b30dn"></div><div class="disp" id="b30dt"></div><div class="disp" id="b30dw"></div></div><div class="p39net" id="b30cl"></div>
     <div class="p39k3" id="b30kp">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-k="${k}">${k}</button>`).join('')}</div>
-    <div class="p39acts"><button type="button" class="cn" id="b30kx">ΑΚΥΡΟ</button><button type="button" class="tg" id="b30cz" aria-pressed="false"><span class="a"></span><span class="b"></span></button></div>
+    <div class="p39acts"><button type="button" class="cn" id="b30kx">Άκυρο</button><button type="button" class="tg" id="b30cz" aria-pressed="false"><span class="a"></span><span class="b"></span></button></div>
     <div class="msg" id="b30Msg"></div></div>`;
   const fixFld=()=>{if(needTare()&&S.tr===''&&S.fld==='w'&&!needNum())S.fld='t';else if(!needTare()&&S.fld==='t')S.fld='w'};
   const step=()=>needNum()&&S.fld==='n'?1:(needTare()&&S.fld==='t'?2:0);
@@ -3113,7 +3113,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     fill('b30dn',S.num,'Αριθμός',S.fld==='n',needNum()||(!!S.edit&&S.pick.kind==='basket'));
     fill('b30dt',S.tr!==''?S.tr+'<u>kg</u>':'','Απόβαρο',S.fld==='t',needTare()||(!!S.edit&&S.pick.kind==='existing'&&S.mode==='g'&&S.tr!==''));
     fill('b30dw',S.val?S.val+'<u>kg</u>':'',S.mode==='g'?'Ζυγαριά':S.mode==='n'?'Καθαρό':'Βάρος',S.fld==='w',true);
-    const ok=$$('b30ok'),st=step();ok.textContent=st?'ΕΠΟΜΕΝΟ':(S.edit?'ΥΠΟΒΟΛΗ ΑΛΛΑΓΗΣ':'ΑΠΟΘΗΚΕΥΣΗ');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
+    const ok=$$('b30ok'),st=step();ok.textContent=st?'Επόμενο':(S.edit?'Υποβολή αλλαγής':'Αποθήκευση');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
     $$('b30mg').setAttribute('aria-pressed',S.mode==='g');$$('b30mn').setAttribute('aria-pressed',S.mode==='n');
     const cz=$$('b30cz');cz.style.visibility=S.pick.kind==='bulk'?'hidden':'';cz.setAttribute('aria-pressed',S.cls);cz.firstChild.textContent=ZN[t.name_el]||(isB(t)?'Καλάθι':t.name_el||'Μέσο');cz.lastChild.textContent=S.cls?'Γέμισε':'Με Χώρο';
     {let f='',nv='—';
@@ -3144,8 +3144,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const dlg=document.createElement('div');dlg.id='p44Dlg';dlg.hidden=true;document.body.appendChild(dlg);
   function dlgPaint(){if(!D){dlg.hidden=true;return}
     const t=pt()||{},cd=prefixOf(t)+S.num;dlg.hidden=false;
-    if(D.t==='ask')dlg.innerHTML=`<div class="p44d"><h3>Το καλάθι δεν υπάρχει</h3><p>Το ${esc(t.name_el||'Καλάθι')} <b>${esc(cd)}</b> δεν υπάρχει στο μητρώο. Θέλεις να το προσθέσεις;</p><div class="p44a"><button type="button" class="c" data-d="no">ΑΚΥΡΟ</button><button type="button" class="g" data-d="yes">ΠΡΟΣΘΗΚΗ ΣΤΟ ΜΗΤΡΩΟ</button></div></div>`;
-    else dlg.innerHTML=`<div class="p44d"><h3 class="pt">Απόβαρο καλαθιού</h3><p>Δώσε το απόβαρο για το ${esc(t.name_el||'Καλάθι')} <b>${esc(cd)}</b>.</p><div class="p44f"><span>Απόβαρο</span><b>${esc(D.v)} <small>kg</small></b></div><div class="p44k">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-dk="${k}">${k}</button>`).join('')}</div><div class="p44m">${esc(D.m||'')}</div><div class="p44a"><button type="button" class="c" data-d="no">ΑΚΥΡΟ</button><button type="button" class="g" data-d="ok"${D.busy?' disabled':''}>ΠΡΟΣΘΗΚΗ</button></div></div>`}
+    if(D.t==='ask')dlg.innerHTML=`<div class="p44d"><h3>Το καλάθι δεν υπάρχει</h3><p>Το ${esc(t.name_el||'Καλάθι')} <b>${esc(cd)}</b> δεν υπάρχει στο μητρώο. Θέλεις να το προσθέσεις;</p><div class="p44a"><button type="button" class="c" data-d="no">Άκυρο</button><button type="button" class="g" data-d="yes">Προσθήκη στο μητρώο</button></div></div>`;
+    else dlg.innerHTML=`<div class="p44d"><h3 class="pt">Απόβαρο καλαθιού</h3><p>Δώσε το απόβαρο για το ${esc(t.name_el||'Καλάθι')} <b>${esc(cd)}</b>.</p><div class="p44f"><span>Απόβαρο</span><b>${esc(D.v)} <small>kg</small></b></div><div class="p44k">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-dk="${k}">${k}</button>`).join('')}</div><div class="p44m">${esc(D.m||'')}</div><div class="p44a"><button type="button" class="c" data-d="no">Άκυρο</button><button type="button" class="g" data-d="ok"${D.busy?' disabled':''}>Προσθήκη</button></div></div>`}
   async function resolveNum(){
     const t=pt();if(!t||!S.num||!S.pick)return false;
     const m=openMedia().find(x=>x.type_id===t.id&&(String(code(x))===S.num||String(x.code)===S.num));
@@ -3217,7 +3217,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     {const ph=P.querySelector('.panelHead'),old=ph.querySelector('.p39bt');if(old)old.remove();const c0=cats.find(x=>x.id===e.weee_category_id),d=document.createElement('div');d.className='p39bt';
       d.innerHTML=`<div class="p39ed">Αλλαγή</div><b>${esc(dname(c0))}</b><small>Αποθηκευμένο Σε: <b>Χύμα · ${fmt(enNet(e))} kg</b></small>`;ph.prepend(d)}
     let bar=$$('b32BulkEd');if(bar)bar.remove();bar=document.createElement('div');bar.id='b32BulkEd';
-    bar.innerHTML='<button type="button" class="btn alt" id="b32BCan">ΑΚΥΡΟ</button><button type="button" class="btn good" id="b32BOk">ΥΠΟΒΟΛΗ ΑΛΛΑΓΗΣ</button>';P.appendChild(bar);
+    bar.innerHTML='<button type="button" class="btn alt" id="b32BCan">Άκυρο</button><button type="button" class="btn good" id="b32BOk">Υποβολή αλλαγής</button>';P.appendChild(bar);
     const done=()=>{P.classList.remove('b32Be');P.classList.add('hidden');document.documentElement.classList.remove('b32Ed2');const b=$$('b32BulkEd');if(b)b.remove();bulk={}};
     $$('b32BCan').onclick=done;{const cx=P.querySelector('.panelHead .closeX');if(cx)cx.onclick=done}
     $$('b32BOk').onclick=async()=>{const ok=$$('b32BOk');ok.disabled=true;
@@ -3616,6 +3616,248 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
     if(!open)return;e.stopImmediatePropagation();e.preventDefault();
     from=null;ov.hidden=true;if(window.b30CloseAll)window.b30CloseAll();closePanels()},true);
   window.p42Back=()=>{if(!from)return;V=from;from=null;show()};
+})();
+</script>
+<style id="b45Css">
+/* ===== B45 Android: οθόνη Παραγωγής (mockup_paragogi_android.html) ===== */
+html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransferPanel,html body #app #secProduction>.sectionBar{display:none!important}
+#secProduction:has(#deltioPanel:not(.hidden)) #p45{display:none}
+#p45 .p45sc{padding:8px 0 0;display:flex;flex-direction:column;gap:6px}
+#p45 .p39l{font-size:14px;font-weight:600;color:#3B4A55;margin:2px 2px 0}
+#p45 .p45dg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#p45 .p45dp{font:inherit;display:flex;align-items:center;min-height:50px;box-sizing:border-box;padding:11px 12px;font-size:15px;font-weight:700;color:#14222B;text-align:left;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;width:auto;height:auto}
+#p45 .p45dp.on{background:linear-gradient(#18535B,#144A52);color:#fff;border-color:#0F3A40}
+#p45 .p45dp:active,#p45 .p45btn:active,#p45Ov button:active{transform:translateY(1px)}
+#p45 .p45btn{font:inherit;display:flex;align-items:center;justify-content:center;width:100%;box-sizing:border-box;height:46px;min-height:0;padding:0 8px;font-size:15px;font-weight:700;border-radius:6px;cursor:pointer}
+#p45 .p45new{color:#fff;background:linear-gradient(#18535B,#144A52);border:1px solid #0F3A40;border-bottom:2px solid #0F3A40;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.18);margin-top:6px}
+#p45 .p45new:disabled{background:#E3E5E8;border-color:#D0D4D9;color:#9AA2AA;box-shadow:none;cursor:default}
+#p45 .p45sh{color:#14222B;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)}
+#p45 .p45card{background:#FEFCFF;border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);overflow:hidden;margin-top:2px}
+#p45 .p45card>h4{margin:0;display:flex;justify-content:space-between;background:#FEFCFF;color:#14222B;font-weight:700;font-size:16px;letter-spacing:.3px;padding:9px 11px;border-bottom:2px solid #144A52}
+#p45 .p45card>h4 span{padding-right:14px}
+#p45 .p45gh{display:flex;justify-content:space-between;align-items:center;background:#F6F0E2;font-weight:700;font-size:14px;padding:8px 25px 8px 10px;margin-top:6px;border-top:1px solid #E4DCC9}
+#p45 .p45gh b{color:#144A52}
+#p45 .p45ge{border-bottom:1px solid #144A52}
+#p45 .p45it{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 11px;border-bottom:1px solid #D6D0C3;cursor:pointer}
+#p45 .p45it:last-child{border-bottom:0}
+#p45 .p45it.ro{cursor:default}
+#p45 .p45it b{font-size:14.5px}#p45 .p45it small{display:block;font-size:13px;color:#5B6670}#p45 .p45it small b{font-size:inherit;color:#14222B}#p45 .p45it small em{font-style:normal;color:#1A6A3F;font-weight:700}
+#p45 .p45it>span{font-size:14.5px;font-weight:700;white-space:nowrap}
+#p45 .cv{display:inline-block;width:14px;text-align:right;font-style:normal}
+#p45 .p45toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--b4-nav,64px) + 12px);background:#1A6A3F;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;z-index:12}
+/* popup */
+#p45Ov{position:fixed;left:0;right:0;top:var(--b39Top,78px);bottom:var(--b4-nav,64px);z-index:14;background:rgba(20,34,43,.55);padding:12px;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+#p45Ov[hidden]{display:none}
+#p45Ov .p45m{width:min(560px,100%);height:min(780px,100%);box-sizing:border-box;background:#FEFCFF;border:1px solid #D6D0C3;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.4);color:#14222B}
+#p45Ov .p39ttl.c{display:flex;align-items:center;gap:10px;border-bottom:2px solid #D6D0C3;padding-bottom:8px;flex:none}
+#p45Ov .p39tt{flex:1;margin-left:6px;min-width:0}#p45Ov .p39tt b{display:block;font-size:19px}#p45Ov .p39tt small{display:block;font-size:13px;color:#5B6670;margin-top:3px}
+#p45Ov .slot{width:150px;flex:none;display:flex;justify-content:flex-end}
+#p45Ov .p45bd{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
+#p45Ov .p39l{font-size:14px;font-weight:600;color:#3B4A55;margin:2px 2px 0}
+#p45Ov .p45g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#p45Ov .p45tl{font:inherit;text-align:left;color:#14222B;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:48px;box-sizing:border-box;padding:5px 11px;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;height:auto;width:100%}
+#p45Ov .p45tl.wide{min-height:62px}
+#p45Ov .p45tl b{display:block;font-size:14.5px;line-height:1.2}#p45Ov .p45tl small{display:block;font-size:12.5px;color:#5B6670;margin-top:2px}#p45Ov .p45tl .r{font-size:13px;font-weight:700;white-space:nowrap}
+#p45Ov .p45tl.wide b{font-size:16px}#p45Ov .p45tl.wide .r{font-size:16px}
+#p45Ov .p45tp{font:inherit;text-align:left;color:#14222B;min-height:48px;box-sizing:border-box;padding:6px 12px;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;height:auto}
+#p45Ov .p45tp b{display:block;font-size:16px}#p45Ov .p45tp small{font-size:14px;font-weight:600}
+#p45Ov .p45tp.off{background:#F2F1EE;color:#A7ADB3;box-shadow:none;cursor:default}
+#p45Ov .p45em{color:#5B6670;font-size:14px;padding:6px 2px}
+#p45Ov .p45sm{background:#FEFCFF;border:1px solid #D6D0C3;border-radius:8px;padding:4px 14px}
+#p45Ov .p45sm div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #E4E2DC;font-size:15px}#p45Ov .p45sm div:last-child{border-bottom:0}
+#p45Ov .p45sm span{color:#5B6670}#p45Ov .p45sm b{text-align:right}#p45Ov .p45sm .big{font-size:22px;color:#1A6A3F}
+#p45Ov .p45wl{display:flex;flex-direction:column;gap:5px;overflow-y:auto;min-height:0}
+#p45Ov .p45wr{font:inherit;text-align:left;color:#14222B;display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:46px;box-sizing:border-box;padding:6px 11px;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;cursor:pointer;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);height:auto;width:100%}
+#p45Ov .p45wr b{display:block;font-size:14.5px}#p45Ov .p45wr small{display:block;font-size:12px;color:#5B6670}#p45Ov .p45wr em{font-style:normal;font-size:12.5px;color:#5B6670;white-space:nowrap}
+#p45Ov .p45wr.on,#p45Ov .p45wr.fa{background:#DDE8E6;border-color:#144A52;box-shadow:inset 0 0 0 2px #144A52}
+#p45Ov .p45acts2{display:flex;gap:8px}
+#p45Ov .p45acts2 button{flex:1;font:inherit;text-align:center;padding:12px 6px;font-size:13.5px;font-weight:700;color:#14222B;border-radius:6px;border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;background:linear-gradient(#FFFFFF,#F8F6F9);box-shadow:0 1px 2px rgba(20,34,43,.14);cursor:pointer;height:auto;min-height:0}
+#p45Ov .p45acts2 button:disabled{background:#F2F1EE;color:#A7ADB3;box-shadow:none;cursor:default}
+#p45Ov .p45go{font:inherit;margin-top:auto;background:linear-gradient(#1F7547,#1A6A3F);color:#fff;border:0;border-bottom:2px solid #145634;border-radius:6px;text-align:center;font-weight:700;font-size:17px;padding:16px;cursor:pointer;box-shadow:0 1px 2px rgba(20,34,43,.22),inset 0 1px 0 rgba(255,255,255,.18);height:auto;min-height:0;width:100%}
+#p45Ov .p45go.sm{margin:0;width:auto;font-size:14.5px;padding:14px 16px;background:linear-gradient(#18535B,#144A52);border-bottom-color:#0F3A40}
+#p45Ov .p45go:disabled,#p45Ov .p45go.off{background:#E3E5E8;border-color:#D0D4D9;color:#9AA2AA;box-shadow:none;cursor:default}
+#p45Ov .p45acts{display:flex;gap:8px}
+#p45Ov .p45acts button{flex:1;font:inherit;text-align:center;padding:12px;font-weight:700;font-size:14.5px;border-radius:6px;cursor:pointer;height:auto;min-height:0}
+#p45Ov .p45acts .rd{background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #A52A22;border-bottom:2px solid #A52A22;color:#A52A22;box-shadow:0 1px 2px rgba(20,34,43,.16),inset 0 1px 0 rgba(255,255,255,.7)}
+#p45Ov .p45acts .pt{background:linear-gradient(#18535B,#144A52);border:1px solid #0F3A40;border-bottom:2px solid #0F3A40;color:#fff;box-shadow:0 1px 2px rgba(20,34,43,.22),inset 0 1px 0 rgba(255,255,255,.18)}
+#p45Ov .p45one{margin-top:auto;font:inherit;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #144A52;border-bottom:2px solid #144A52;color:#144A52;border-radius:6px;height:43px;min-height:0;padding:0;font-weight:700;font-size:14.5px;cursor:pointer;box-shadow:0 1px 2px rgba(20,34,43,.14);width:100%}
+#p45Ov .p45msg{font-size:16px;line-height:1.5;padding:6px 2px}
+#p45Ov .p45err{font-size:13px;font-weight:700;color:#A52A22}#p45Ov .p45bad{color:#A52A22}
+#p45Ov .p45shh{display:flex;justify-content:space-between;font-size:12.5px;color:#5B6670;padding:0 11px}
+#p45Ov .p45wl.sh .p45wr{min-height:54px}
+#p45Ov .p45n{color:#144A52!important;font-weight:700}
+#p45Ov .p45kbx{width:92px;height:36px;box-sizing:border-box;border:1px solid #D6D0C3;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;font-size:16px;font-weight:700;background:#FEFCFF;color:#A7ADB3;flex:none}
+#p45Ov .p45kbx.v{color:#14222B}#p45Ov .p45kbx.bd{border-color:#A52A22;color:#A52A22}#p45Ov .p45wr.fa .p45kbx{border-color:#144A52}
+#p45Ov .p45kp{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:40px;gap:6px;flex:none}
+#p45Ov .p45kp button{font:inherit;border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px;color:#14222B;background:linear-gradient(#FFFFFF,#F8F6F9);box-shadow:0 1px 2px rgba(20,34,43,.14);cursor:pointer;height:auto;min-height:0;padding:0}
+#p45Ov .p45fz{border:2px solid #144A52;border-radius:7px;height:50px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:16px;color:#8A929A;flex:none}
+#p45Ov .p45fz b{color:#14222B;font-size:22px}#p45Ov .p45fz b small{font-size:14px;color:#5B6670;font-weight:600}
+#p45Ov .p39ed{font-size:14px;font-weight:700;color:#144A52;letter-spacing:.3px}
+</style>
+<script id="b45Js">
+(function(){
+  const $$=id=>document.getElementById(id);
+  const MN=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'],WD=['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'];
+  const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
+  const fmt=n=>Math.round(Number(n)||0).toLocaleString('el-GR');
+  const Q={day:iso(new Date()),month:iso(new Date()).slice(0,7),dep:null,mv:[],emp:[],hours:{},stk:[],P:null,busy:false,toast:'',loaded:false};
+  const host=$$('p45');if(!host)return;
+  const ov=document.createElement('div');ov.id='p45Ov';ov.hidden=true;document.body.appendChild(ov);
+  const units=()=>(typeof prodUnits!=='undefined'?prodUnits:[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+  const emps=()=>typeof prodEmps!=='undefined'?prodEmps:[];
+  const uName=id=>{const u=units().find(x=>x.id===id);return u?(u.name_el||u.code):'—'};
+  const eName=id=>{const e=emps().find(x=>x.id===id);return e?e.full_name:''};
+  const cName=id=>{try{return dname(flCat(id)||{})}catch(e){return 'Υλικό'}};
+  const hhmm=s=>String(s||'').slice(11,16);
+  const hrs=m=>m==null?'':Math.floor(m/60)+'ω '+String(m%60).padStart(2,'0')+'λ';
+  const mvTitle=m=>m.medium_id?(m.medium_type||'Μέσο')+' · '+m.medium_code:'Χύμα';
+  // ---------- δεδομένα ----------
+  async function loadMasters(){try{if(typeof flLoad==='function')await flLoad(false)}catch(e){}
+    if(!units().length){try{const [u,e]=await Promise.all([api('/master/org-units'),api('/master/employees')]);androidApplyMasters(u,e)}catch(e){}}}
+  async function loadDay(){
+    try{Q.mv=await api('/production/android/movements?date='+Q.day)}catch(e){Q.mv=[]}
+    try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes})}catch(e){Q.hours={}}
+    Q.loaded=true;paint()}
+  async function loadStock(){
+    const m=await api('/inventory/weee/media-with-stock'),out=[];
+    m.forEach(g=>g.categories.forEach(c=>{const ct=flCat(c.category_id);if(!ct||!isProducedCat(ct))return;
+      out.push({id:(g.medium_id||'bulk')+'|'+c.category_id,mid:g.medium_id||null,tcode:g.medium_id?g.medium_type_code:'BULK',tname:g.medium_id?g.medium_type:'Χύμα',code:g.medium_id?g.medium_code:'Χύμα',cat:c.category_id,kg:Number(c.weight)||0})}));
+    Q.stk=out}
+  // ---------- σειρά κινήσεων / ολοκληρωμένες ----------
+  const sameWho=(a,b)=>(a.employee_id||'')===(b.employee_id||'');
+  function listOf(dep){return Q.mv.filter(m=>m.unit_id===dep).sort((a,b)=>String(a.at).localeCompare(String(b.at)))}
+  const done=(m,l)=>m.closed||l.slice(l.indexOf(m)+1).some(o=>sameWho(o,m));
+  const isOpen=(m,l)=>!m.readonly&&!done(m,l);
+  function openList(){const ids=Q.dep?[Q.dep]:units().map(u=>u.id),r=[];ids.forEach(d=>{const l=listOf(d);l.forEach(m=>{if(isOpen(m,l))r.push(m)})});return r}
+  // ---------- αρχική ----------
+  function days(){const [y,mo]=Q.month.split('-').map(Number),n=new Date(y,mo,0).getDate(),td=iso(new Date());let h='';
+    for(let i=1;i<=n;i++){const d=Q.month+'-'+String(i).padStart(2,'0'),w=WD[new Date(y,mo-1,i).getDay()];h+=`<button type="button" data-d="${d}" class="${d===td?'td ':''}${d===Q.day?'sel':''}">${i}<small>${w}</small></button>`}return h}
+  function histHtml(){
+    const ids=Q.dep?[Q.dep]:units().map(u=>u.id);let day=0,g='';
+    ids.forEach(d=>{const l=listOf(d);if(!l.length)return;const t=l.reduce((a,m)=>a+m.kg,0);day+=t;
+      g+=`<div class="p45gh"><span>${esc(uName(d))}</span><b>${fmt(t)} kg</b></div><div class="p45ge"></div>`+l.map(m=>{const dn=done(m,l);
+        return `<div class="p45it" ${m.readonly?'':`data-a="hed" data-i="${m.entry_id}"`}><div><b>${esc(cName(m.category_id))}</b><small>${esc(mvTitle(m))} · ${m.carry_from?'από '+esc(m.carry_from):esc(hhmm(m.at))}${m.employee_id?' · <b class="who">'+esc(eName(m.employee_id))+'</b>':''}${dn&&!m.readonly?' · <em>✓ Ολοκληρώθηκε</em>'+(m.left?' · περίσσεψαν '+fmt(m.left)+' kg':''):''}</small></div><span>${fmt(m.kg)} kg${m.readonly?'':' <i class="cv">›</i>'}</span></div>`}).join('')});
+    if(!g)g='<div class="p45it ro"><div><small>Καμία καταχώρηση.</small></div></div>';
+    return `<div class="p45card"><h4>${Q.dep?'Σύνολο τμήματος':'Σύνολο ημέρας'}<span>${day?fmt(day)+' kg':''}</span></h4>${g}</div>`}
+  function paint(){
+    const [y,mo]=Q.month.split('-').map(Number);
+    host.innerHTML=`<div class="b6Mon"><button type="button" data-mon="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="b6MonL">${MN[mo-1]} ${y}</button><button type="button" data-mon="1" aria-label="Επόμενος μήνας">›</button></div><div class="b6Strip" id="p45Strip">${days()}</div>`+
+      `<div class="p45sc"><div class="p39l">Τμήμα</div><div class="p45dg">${units().map(u=>`<button type="button" class="p45dp${u.id===Q.dep?' on':''}" data-a="dep" data-u="${u.id}">${esc(u.name_el||u.code)}</button>`).join('')}</div>`+
+      `<button type="button" class="p45btn p45new" ${Q.dep?'data-a="new"':'disabled'}>+ Νέα Καταχώρηση</button><button type="button" class="p45btn p45sh" data-a="shift">Κλείσιμο βάρδιας</button>`+histHtml()+
+      (Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>';
+    const s=$$('p45Strip'),sel=s&&s.querySelector('.sel');if(sel){const a=sel.getBoundingClientRect(),b=s.getBoundingClientRect();if(b.width)s.scrollLeft=Math.max(0,s.scrollLeft+(a.left-b.left)-(s.clientWidth-a.width)/2)}
+    paintPop()}
+  // ---------- popup ----------
+  const hd=(bk,ttl,act)=>`<div class="p39ttl c"><button type="button" class="p39bk" data-a="${bk}">‹ Πίσω</button><div class="p39tt">${ttl}</div><div class="slot">${act||''}</div></div>`;
+  const row=(a,attrs,t,s,r,wide)=>`<button type="button" class="p45tl${wide?' wide':''}" data-a="${a}" ${attrs}><span class="l"><b>${t}</b>${s?'<small>'+s+'</small>':''}</span><span class="r">${r}</span></button>`;
+  function suggested(){
+    const dep=Q.P.dep,sc={};const h=(typeof flHist!=='undefined'&&flHist.dc&&flHist.dc[dep])||{};
+    Q.stk.forEach(x=>{if(sc[x.cat]==null){let s=h[x.cat]||0;try{if(!s&&typeof flNameMatch==='function'&&flNameMatch((units().find(u=>u.id===dep)||{}),flCat(x.cat)))s=.5}catch(e){}sc[x.cat]=s}});
+    return Q.stk.filter(x=>sc[x.cat]>0&&x.kg>0).sort((a,b)=>sc[b.cat]-sc[a.cat]||b.kg-a.kg).slice(0,12)}
+  const itTitle=x=>x.tcode==='BULK'?esc(cName(x.cat)):esc(x.tname+' · '+x.code);
+  const itSub=x=>x.tcode==='BULK'?'Χύμα':esc(cName(x.cat));
+  const TYPE_ORDER=['BASKET_LARGE','BASKET_SMALL','INFOCYCLE_1','INFOCYCLE_2','PALLET','SACK_1KG','BOX','BULK'];
+  const tname=c=>{const t=(types||[]).find(x=>x.code===c&&x.active!==false);return t?t.name_el:''};
+  function s1(){const P=Q.P,ed=P.mode==='edit';
+    const sg=suggested().map(x=>row('pick',`data-id="${x.id}"`,itTitle(x),itSub(x),fmt(x.kg)+' kg')).join('')||'<div class="p45em">Δεν υπάρχουν ακόμα συχνά υλικά για το τμήμα.</div>';
+    const tp=TYPE_ORDER.map(c=>{const n=c==='BULK'?(Q.stk.some(x=>x.tcode==='BULK')?1:0):new Set(Q.stk.filter(x=>x.tcode===c).map(x=>x.mid)).size,nm=tname(c);if(!nm)return '';
+      return `<button type="button" class="p45tp${n?'':' off'}" ${n?`data-a="type" data-t="${c}"`:'disabled'}><b>${esc(nm)}</b><small>${n}</small></button>`}).join('');
+    return hd(ed?'toEd':'close',(ed?'<div class="p39ed">Αλλαγή</div>':'')+`<b>${ed?'Άλλο μέσο':'Νέα Καταχώρηση'}</b><small>Διάλεξε μέσο · ${esc(uName(P.dep))}</small>`)+`<div class="p45bd"><div class="p39l">Προτεινόμενα (συχνά)</div><div class="p45g2">${sg}</div><div class="p39l">Όλα τα μέσα με υλικό</div><div class="p45g2">${tp}</div></div>`}
+  function ls(){const P=Q.P,l=Q.stk.filter(x=>x.tcode===P.type).sort((a,b)=>b.kg-a.kg),n=new Set(l.map(x=>x.mid)).size;
+    return hd('to1',`<b>${esc(tname(P.type))}</b><small>${P.type==='BULK'?'Υλικά σε χύμα':n+' μέσα με υλικό'}</small>`)+`<div class="p45bd">`+l.map(x=>row('pick',`data-id="${x.id}"`,itTitle(x),P.type==='BULK'?'':itSub(x),fmt(x.kg)+' kg',true)).join('')+'</div>'}
+  const it=id=>Q.stk.find(x=>x.id===id);
+  const KG=()=>Q.P.kg||'';
+  function kgStep(){const P=Q.P,x=it(P.sel);
+    return hd('toFrom',`<b>${esc(cName(x.cat))}</b><small>Χύμα · διαθέσιμα ${fmt(x.kg)} kg</small>`,`<button type="button" class="p45go sm" data-a="kgok"${Number(KG())>0?'':' disabled'}>Επόμενο</button>`)+`<div class="p45bd"><div class="p45fz"><span>Βάρος</span><b>${esc(KG()||'')} <small>kg</small></b></div>${Number(KG())>x.kg?'<div class="p45err">Μεγαλύτερο από το διαθέσιμο</div>':''}`+keypad('kk')+'</div>'}
+  const keypad=a=>`<div class="p45kp">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-a="${a}" data-k="${k}">${k}</button>`).join('')}</div>`;
+  function summary(x,who,kg){const P=Q.P;return `<div class="p45sm"><div><span>Τμήμα</span><b>${esc(uName(P.dep))}</b></div><div><span>Ημερομηνία</span><b>${esc(Q.day.split('-').reverse().join('/'))}</b></div><div><span>Μέσο</span><b>${esc(x.tcode==='BULK'?'Χύμα':x.tname+' · '+x.code)}</b></div><div><span>Υλικό</span><b>${esc(cName(x.cat))}</b></div><div><span>Για</span><b>${esc(who||'Όλο το τμήμα')}</b></div><div><span>Βάρος</span><b class="big">${fmt(kg)} kg</b></div></div>`}
+  function workers(){const P=Q.P,ws=emps().filter(e=>(e.org_unit_ids||[]).includes(P.dep)).sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'));
+    const r=ws.map(w=>`<button type="button" class="p45wr${P.who===w.id?' on':''}" data-a="who" data-w="${w.id}"><span><b>${esc(w.full_name)}</b></span><em>${hrs(Q.hours[w.id])}</em></button>`).join('');
+    return `<div class="p39l">Εργαζόμενοι · σε ποιον πάει η λήψη</div><div class="p45wl"><button type="button" class="p45wr${!P.who?' on':''}" data-a="who" data-w=""><span><b>Όλο το τμήμα</b><small>Χωρίς συγκεκριμένο εργαζόμενο</small></span></button>${r||'<div class="p45em">Κανένας εργαζόμενος στο τμήμα.</div>'}</div><div class="p45acts2"><button type="button" ${P.who?'data-a="mv"':'disabled'}>Μετακίνηση σε τμήμα</button><button type="button" ${P.who?'data-a="en"':'disabled'}>Τέλος εργασίας στο τμήμα</button></div>`}
+  function cf(){const P=Q.P,x=it(P.sel),ed=P.mode==='edit',kg=x.tcode==='BULK'?Number(P.kg):x.kg;
+    return hd('toFrom',(ed?'<div class="p39ed">Αλλαγή</div>':'')+'<b>Επιβεβαίωση</b><small>Έλεγξε και στείλε σε παραγωγή</small>')+`<div class="p45bd">${summary(x,eName(P.who),kg)}${workers()}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<button type="button" class="p45go" data-a="send"${Q.busy?' disabled':''}>${ed?'Υποβολή αλλαγής':'Αποστολή σε παραγωγή'}</button></div>`}
+  function edp(){const m=Q.mv.find(x=>x.entry_id===Q.P.eid),l=listOf(m.unit_id),op=isOpen(m,l);
+    return hd('close',`<b>Καταχώρηση</b><small>${esc(hhmm(m.at))} · ${esc(uName(m.unit_id))}</small>`)+`<div class="p45bd"><div class="p45sm"><div><span>Τμήμα</span><b>${esc(uName(m.unit_id))}</b></div><div><span>Ημερομηνία</span><b>${esc(m.at.slice(0,10).split('-').reverse().join('/'))}</b></div><div><span>Μέσο</span><b>${esc(mvTitle(m))}</b></div><div><span>Υλικό</span><b>${esc(cName(m.category_id))}</b></div><div><span>Για</span><b>${esc(eName(m.employee_id)||'Όλο το τμήμα')}</b></div><div><span>Βάρος</span><b class="big">${fmt(m.kg)} kg</b></div></div>${op?'<button type="button" class="p45one" data-a="one">Κλείσιμο κίνησης</button>':''}<div class="p45acts" style="${op?'margin-top:8px':'margin-top:auto'}"><button type="button" class="rd" data-a="delq">Διαγραφή</button><button type="button" class="pt" data-a="chg">Αλλαγή μέσου</button></div></div>`}
+  function dlq(){const m=Q.mv.find(x=>x.entry_id===Q.P.eid);return hd('toEd',`<b>Διαγραφή</b><small>${esc(cName(m.category_id))}</small>`)+`<div class="p45bd"><div class="p45msg">Να διαγραφεί η καταχώρηση <b>${esc(cName(m.category_id))} · ${fmt(m.kg)} kg</b>;<br>Το μέσο με το υλικό του γυρνάει πίσω στα διαθέσιμα.</div>${Q.P.err?'<div class="p45err">'+esc(Q.P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toEd">Άκυρο</button><button type="button" class="rd" data-a="delok"${Q.busy?' disabled':''}>Διαγραφή</button></div></div>`}
+  function mvs(){const P=Q.P,l=units().filter(u=>u.id!==P.dep).map(u=>row('mvto',`data-u="${u.id}"`,esc(u.name_el||u.code),'','',true)).join('');
+    return hd('toCf',`<b>Μετακίνηση σε τμήμα</b><small>${esc(eName(P.who))} · από ${esc(uName(P.dep))}</small>`)+`<div class="p45bd">${l}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}</div>`}
+  function ens(){const P=Q.P;return hd('toCf',`<b>Τέλος εργασίας</b><small>${esc(eName(P.who))}</small>`)+`<div class="p45bd"><div class="p45msg">Να τερματιστεί η εργασία του <b>${esc(eName(P.who))}</b> στο <b>${esc(uName(P.dep))}</b>;<br>Αν εργάζεται και σε άλλο τμήμα, εκεί δεν αλλάζει τίποτα.</div>${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toCf">Άκυρο</button><button type="button" class="rd" data-a="enok">Τερματισμός</button></div></div>`}
+  // κλείσιμο βάρδιας / κίνησης
+  const gr=v=>parseFloat(String(v||'').replace(',','.'))||0;
+  const tr=m=>m.tare||0;
+  const bad=(m,v)=>{const g=gr(v);return g>0&&(g<tr(m)||g-tr(m)>m.kg)};
+  const nt=(m,v)=>{const g=gr(v);return g>0?Math.max(0,Math.min(g-tr(m),m.kg)):0};
+  function nl(m,v){if(bad(m,v))return `<span class="p45bad">${gr(v)<tr(m)?'Μικρότερο από το απόβαρο ('+tr(m)+' kg)':'Περισσότερο από την κίνηση'}</span>`;const g=gr(v);if(!g)return tr(m)?'Απόβαρο μέσου '+tr(m)+' kg':'';return 'Καθαρά: '+fmt(nt(m,v))+' kg'+(tr(m)?' (−'+tr(m)+' απόβαρο)':'')}
+  function shp(){const P=Q.P,o=P.only?Q.mv.filter(m=>m.entry_id===P.only):openList(),lo=P.lo||{};
+    const l=o.map(m=>`<button type="button" class="p45wr${P.f===m.entry_id?' fa':''}" data-a="shf" data-e="${m.entry_id}"><span><b>${esc(cName(m.category_id))}</b><small>${esc(mvTitle(m))} · ${esc(uName(m.unit_id))}${m.employee_id?' · '+esc(eName(m.employee_id)):''} · ${fmt(m.kg)} kg</small><small class="p45n">${nl(m,lo[m.entry_id])}</small></span><span class="p45kbx${lo[m.entry_id]?' v':''}${bad(m,lo[m.entry_id])?' bd':''}">${esc(lo[m.entry_id]||'0')}</span></button>`).join('')||'<div class="p45msg">Δεν υπάρχουν μη ολοκληρωμένες κινήσεις.</div>';
+    const anyBad=o.some(m=>bad(m,lo[m.entry_id]));
+    return hd(P.only?'toEd':'close',P.only?`<b>Κλείσιμο κίνησης</b><small>${esc(o[0]?uName(o[0].unit_id):'')}</small>`:`<b>Κλείσιμο βάρδιας</b><small>${Q.dep?esc(uName(Q.dep)):'Όλα τα τμήματα'} · ${o.length} μη ολοκληρωμένες</small>`)+`<div class="p45bd"><div class="p45shh"><span>Κίνηση</span><span>Μικτά με το μέσο (kg)</span></div><div class="p45wl sh">${l}</div>${P.f?keypad('shk'):''}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="${P.only?'toEd':'close'}">Άκυρο</button><button type="button" class="p45go${anyBad||!o.length||Q.busy?' off':''}" style="flex:1" ${anyBad||!o.length||Q.busy?'disabled':'data-a="shok"'}>${P.only?'Κλείσιμο κίνησης':'Κλείσιμο βάρδιας'}</button></div></div>`}
+  function paintPop(){const P=Q.P;if(!P){ov.hidden=true;return}
+    const st=P.step,h=st==='s1'?s1():st==='ls'?ls():st==='kg'?kgStep():st==='cf'?cf():st==='ed'?edp():st==='dl'?dlq():st==='mv'?mvs():st==='en'?ens():shp();
+    try{document.documentElement.style.setProperty('--b39Top',Math.round(document.querySelector('#app .topDark').getBoundingClientRect().bottom)+'px')}catch(_){}
+    ov.innerHTML=`<div class="p45m">${h}</div>`;ov.hidden=false}
+  // ---------- ενέργειες ----------
+  async function send(){const P=Q.P,x=it(P.sel);if(!x||Q.busy)return;Q.busy=true;P.err='';paintPop();
+    try{const kg=x.tcode==='BULK'?Number(P.kg):x.kg;
+      const d=await api('/inventory/weee/category/'+x.cat+'/positions'),g=(d.positions||[]).find(p=>(p.medium_id||null)===x.mid);
+      if(!g)throw new Error('Το μέσο δεν έχει πλέον διαθέσιμο απόθεμα για αυτό το υλικό');
+      let rem=kg,items=[];for(const l of g.lots){if(rem<=0.0005)break;const take=Math.min(Number(l.weight),rem);items.push({stock_lot_id:l.lot_id,weight:take>=Number(l.weight)-0.0005?null:Math.round(take*1000)/1000});rem-=take}
+      if(rem>0.001)throw new Error('Δεν υπάρχει αρκετό διαθέσιμο απόθεμα');
+      if(P.mode==='edit'){const old=Q.mv.find(m=>m.entry_id===P.eid);await api('/production/transfers/'+old.transfer_id+'/cancel',{method:'POST'})}
+      const now=new Date(),t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+      await api('/production/transfers',{method:'POST',body:JSON.stringify({destination_org_unit_id:P.dep,items,notes:P.who?('Χειριστής: '+eName(P.who)):null,
+        work_entry:{work_date:Q.day+'T'+t,employee_id:P.who||null,weee_category_id:x.cat,weight_kg:kg,source:'ANDROID'}})});
+      Q.toast=P.mode==='edit'?'Η αλλαγή υποβλήθηκε':'Στάλθηκε στην παραγωγή';Q.P=null;Q.busy=false;await Promise.all([loadDay(),loadStock().catch(()=>{})]);setTimeout(()=>{Q.toast='';paint()},2500)}
+    catch(e){Q.busy=false;P.err=e.message||String(e);paintPop()}}
+  async function reloadPeople(){const [u,e]=await Promise.all([api('/master/org-units'),api('/master/employees')]);androidApplyMasters(u,e);try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes})}catch(_){}}
+  async function act(a,t,ev){const P=Q.P;
+    if(a==='dep'){Q.dep=Q.dep===t.dataset.u?null:t.dataset.u;paint();return}
+    if(a==='new'){Q.P={step:'s1',mode:'new',dep:Q.dep,who:null};paintPop();await loadStock().catch(()=>{});if(Q.P&&Q.P.step==='s1')paintPop();return}
+    if(a==='shift'){const o=openList();Q.P={step:'sh',lo:{},f:o.length?o[0].entry_id:null,err:''};paintPop();return}
+    if(a==='hed'){const m=Q.mv.find(x=>x.entry_id===t.dataset.i);if(!m)return;Q.P={step:'ed',mode:'edit',eid:m.entry_id,dep:m.unit_id,who:m.employee_id||null};paintPop();return}
+    if(!P)return;
+    if(a==='close'){Q.P=null;paintPop();return}
+    if(a==='type'){P.type=t.dataset.t;P.step='ls'}
+    else if(a==='to1'){P.step='s1'}
+    else if(a==='pick'){const x=it(t.dataset.id);P.sel=x.id;P.from=P.step;P.kg='';P.err='';P.step=x.tcode==='BULK'?'kg':'cf'}
+    else if(a==='toFrom'){P.step=P.step==='kg'?P.from:(it(P.sel).tcode==='BULK'?'kg':P.from)}
+    else if(a==='kk'){const k=t.dataset.k;let v=String(P.kg||'');if(k==='C')v='';else if(k==='⌫')v=v.slice(0,-1);else if(v.length<7)v+=k;P.kg=v}
+    else if(a==='kgok'){if(Number(P.kg)>0&&Number(P.kg)<=it(P.sel).kg)P.step='cf'}
+    else if(a==='who'){P.who=t.dataset.w||null}
+    else if(a==='mv'){P.step='mv';P.err=''}
+    else if(a==='en'){P.step='en';P.err=''}
+    else if(a==='toCf'){P.step='cf';P.err=''}
+    else if(a==='mvto'||a==='enok'){
+      try{const body={work_date:Q.day+'T12:00:00',employee_id:P.who,unit_id:a==='mvto'?t.dataset.u:P.dep,action:a==='mvto'?'move':'remove'};if(a==='mvto')body.from_unit_ids=[P.dep];
+        await api('/production/attendance/units',{method:'POST',body:JSON.stringify(body)});await reloadPeople();P.who=null;P.step='cf';P.err=''}
+      catch(e){P.err=e.message||String(e)}}
+    else if(a==='toEd'){P.step='ed';P.only=null;P.err=''}
+    else if(a==='chg'){P.step='s1'}
+    else if(a==='delq'){P.step='dl';P.err=''}
+    else if(a==='delok'){Q.busy=true;paintPop();try{const m=Q.mv.find(x=>x.entry_id===P.eid);await api('/production/transfers/'+m.transfer_id+'/cancel',{method:'POST'});Q.toast='Η καταχώρηση διαγράφηκε';Q.P=null;Q.busy=false;await loadDay();setTimeout(()=>{Q.toast='';paint()},2500);return}catch(e){Q.busy=false;P.err=e.message||String(e)}}
+    else if(a==='one'){P.step='sh';P.only=P.eid;P.lo={};P.f=P.eid;P.err=''}
+    else if(a==='shf'){P.f=t.dataset.e}
+    else if(a==='shk'){const k=t.dataset.k;let v=String((P.lo||{})[P.f]||'');if(k==='C')v='';else if(k==='⌫')v=v.slice(0,-1);else if(v.length<6)v+=k;(P.lo=P.lo||{})[P.f]=v}
+    else if(a==='shok'){Q.busy=true;P.err='';paintPop();
+      try{const o=P.only?Q.mv.filter(m=>m.entry_id===P.only):openList();
+        await api('/production/android/close',{method:'POST',body:JSON.stringify({day:Q.day,items:o.map(m=>({item_id:m.item_id,gross:gr((P.lo||{})[m.entry_id])||null}))})});
+        Q.toast='Η βάρδια έκλεισε';Q.P=null;Q.busy=false;await loadDay();setTimeout(()=>{Q.toast='';paint()},2500);return}
+      catch(e){Q.busy=false;P.err=e.message||String(e)}}
+    else if(a==='send'){send();return}
+    paintPop()}
+  document.addEventListener('click',ev=>{
+    if(!ev.target.closest)return;
+    const t=ev.target.closest('#p45 [data-a],#p45Ov [data-a]');
+    if(t){act(t.dataset.a,t,ev);return}
+    const d=ev.target.closest('#p45 [data-d]');if(d){Q.day=d.dataset.d;Q.month=Q.day.slice(0,7);Q.P=null;loadDay();return}
+    const mo=ev.target.closest('#p45 [data-mon]');if(mo){const [y,m]=Q.month.split('-').map(Number),n=new Date(y,m-1+Number(mo.dataset.mon),1);Q.month=iso(n).slice(0,7);paint()}});
+  // ΠΙΣΩ της πάνω μπάρας: κλείνει όλο το popup της Παραγωγής
+  document.addEventListener('click',e=>{if(!e.target.closest('#b4Back')||ov.hidden)return;e.stopImmediatePropagation();e.preventDefault();Q.P=null;paintPop()},true);
+  // άνοιγμα οθόνης
+  async function open(){if(!Q.loaded)paint();await loadMasters();await loadDay()}
+  document.addEventListener('click',e=>{if(e.target.closest('[data-section="production"],[data-b4s="production"]'))setTimeout(open,60)});
+  const rb=$$('refreshBtn');if(rb)rb.addEventListener('click',()=>{const s=$$('secProduction');if(s&&s.offsetParent&&!($$('deltioPanel')&&!$$('deltioPanel').classList.contains('hidden')))open()});
+  window.p45Open=open;
 })();
 </script>
 </body></html>

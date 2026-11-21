@@ -552,6 +552,14 @@ class ProductionBalanceOut(BaseModel):
     processed_weight: Decimal
     status: str
 
+class AndroidCloseItem(BaseModel):
+    item_id: str
+    gross: float|None = None      # μικτά με το μέσο (kg)· κενό/0 = δεν περίσσεψε τίποτα
+
+class AndroidCloseIn(BaseModel):
+    items: list[AndroidCloseItem]
+    day: str|None = None          # YYYY-MM-DD της βάρδιας (για την ημερομηνία του περισσεύματος)
+
 class ItemRemainderIn(BaseModel):
     mode: str            # GROSS (μικτά) | NET (καθαρά)
     kg: Decimal

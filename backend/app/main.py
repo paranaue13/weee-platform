@@ -5586,6 +5586,81 @@ def undo_item_remainder(item_id:str, db:Session=Depends(get_db), user:User=Depen
     db.commit()
     return {"ok":True,"item_id":i.id,"net_production":float(sum((x.weight for x in items),Decimal(0)))}
 
+# ---- B45: οθόνη Παραγωγής του Android (κινήσεις ημέρας, κλείσιμο βάρδιας / κίνησης με περίσσευμα στην επόμενη μέρα) ----
+@app.get('/production/android/movements')
+def android_movements(date:str, db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
+    """Κινήσεις παραγωγής μιας ημέρας (μεταφορές υλικού + καταχωρήσεις χύμα από ταξινόμηση), από τις ίδιες εγγραφές που βλέπουν τα Windows. Μόνο ανάγνωση."""
+    try: d0=datetime.strptime(date,'%Y-%m-%d')
+    except Exception: raise HTTPException(422,'Μη έγκυρη ημερομηνία')
+    d1=d0+timedelta(days=1)
+    ents=db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.active==True,ProductionWorkEntry.work_date>=d0,ProductionWorkEntry.work_date<d1).order_by(ProductionWorkEntry.work_date)).all()
+    rows=[]
+    for e in ents:
+        r={'entry_id':e.id,'unit_id':e.org_unit_id,'employee_id':e.employee_id,'category_id':e.weee_category_id,'kg':float(e.weight_kg or 0),'at':e.work_date.isoformat() if e.work_date else None,
+           'source':e.source,'notes':e.notes,'transfer_id':None,'item_id':None,'medium_type':None,'medium_type_code':'BULK','medium_code':None,'medium_id':None,'tare':None,'sent':None,'left':None,'closed':False,'carry_from':None,'readonly':True}
+        if e.transfer_id:
+            t=db.get(ProductionTransfer,e.transfer_id)
+            if not t or t.status=='CANCELLED': continue
+            its=db.scalars(select(ProductionTransferItem).where(ProductionTransferItem.transfer_id==t.id).order_by(ProductionTransferItem.id)).all()
+            if its:
+                lot=db.get(WEEEStockLot,its[0].stock_lot_id); med=db.get(CollectionMedium,lot.collection_medium_id) if lot and lot.collection_medium_id else None
+                mt=db.get(CollectionMediumType,med.type_id) if med else None
+                tare=its[0].tare_weight if its[0].tare_weight is not None else (med.tare_weight if med is not None else None)
+                rem=any(x.remainder_at is not None for x in its)
+                nt=(t.notes or '')
+                r.update(readonly=False,transfer_id=t.id,item_id=its[0].id,number=t.transfer_number,medium_type=mt.name_el if mt else None,medium_type_code=mt.code if mt else 'BULK',
+                    medium_code=med.code if med else None,medium_id=med.id if med else None,tare=float(tare) if tare is not None else None,
+                    sent=float(sum(((x.sent_weight if x.sent_weight is not None else x.weight) for x in its),Decimal(0))),
+                    left=float(sum((x.remainder_net or Decimal(0) for x in its),Decimal(0))) if rem else None,closed=rem,
+                    carry_from=(nt.split('από',1)[1].strip().split(' ')[0] if nt.startswith('ΠΕΡΙΣΣΕΥΜΑ') and 'από' in nt else None))
+        rows.append(r)
+    return rows
+
+@app.post('/production/android/close')
+def android_close(data:schemas.AndroidCloseIn, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
+    """Κλείσιμο βάρδιας / κίνησης: για κάθε κίνηση δηλώνεται το περίσσευμα (μικτά με το μέσο − απόβαρο μέσου, τα χύμα δεν έχουν απόβαρο)· τα καθαρά kg αφαιρούνται από την κίνηση
+    (ίδιος κανόνας με το «Υπόλοιπο μέσου» των Windows) και περνούν ως νέα κίνηση της επόμενης ημέρας στο ίδιο τμήμα και με τον ίδιο εργαζόμενο."""
+    plan=[]
+    for it in data.items:
+        i=db.get(ProductionTransferItem,it.item_id)
+        if not i: raise HTTPException(404,'Η κίνηση δεν βρέθηκε')
+        t=db.get(ProductionTransfer,i.transfer_id)
+        if not t or t.status=='CANCELLED': raise HTTPException(404,'Η μεταφορά έχει ακυρωθεί')
+        items=_group_items(db,i)
+        if any(x.remainder_at is not None for x in items): continue      # ήδη ολοκληρωμένη
+        sent=sum(((x.sent_weight if x.sent_weight is not None else x.weight) for x in items),Decimal(0))
+        g=Decimal(str(it.gross or 0))
+        tare=next((x.tare_weight for x in items if x.tare_weight is not None),None)
+        if tare is None:
+            lot0=db.get(WEEEStockLot,i.stock_lot_id); m0=db.get(CollectionMedium,lot0.collection_medium_id) if lot0.collection_medium_id else None
+            tare=m0.tare_weight if m0 is not None else None
+        if g<=0: mode,kg='NET',Decimal(0)
+        elif tare is not None: mode,kg='GROSS',g
+        else: mode,kg='NET',g
+        net=(kg-tare) if mode=='GROSS' else kg
+        if net<0: raise HTTPException(422,f'Τα μικτά ({kg} kg) είναι λιγότερα από το απόβαρο ({tare} kg)')
+        if net>sent: raise HTTPException(422,f'Το περίσσευμα ({net} kg) είναι μεγαλύτερο από την κίνηση ({sent} kg)')
+        plan.append((i,t,mode,kg))
+    out=[]
+    for i,t,mode,kg in plan:
+        e=_entry_for_transfer(db,t); unit_id=t.destination_org_unit_id
+        lot=db.get(WEEEStockLot,i.stock_lot_id); cat_id=lot.weee_category_id
+        set_item_remainder(i.id,schemas.ItemRemainderIn(mode=mode,kg=kg,reason='Κλείσιμο βάρδιας'),db,user)
+        db.expire_all()
+        items=[x for x in _group_items(db,db.get(ProductionTransferItem,i.id)) if (x.remainder_net or Decimal(0))>0]
+        left=sum((x.remainder_net for x in items),Decimal(0))
+        carried=None
+        if left>0:
+            base=datetime.strptime(data.day,'%Y-%m-%d') if data.day else (e.work_date if e and e.work_date else datetime.now()).replace(hour=0,minute=0,second=0,microsecond=0)
+            nd=base+timedelta(days=1)
+            tr=production_transfer(schemas.ProductionTransferCreate(destination_org_unit_id=unit_id,
+                items=[schemas.ProductionTransferItemCreate(stock_lot_id=x.stock_lot_id,weight=x.remainder_net) for x in items],
+                notes='ΠΕΡΙΣΣΕΥΜΑ από '+base.strftime('%d/%m'),
+                work_entry=schemas.TransferWorkEntryIn(employee_id=e.employee_id if e else None,weee_category_id=cat_id,weight_kg=left,source='ANDROID',work_date=nd.replace(hour=8),notes='Περίσσευμα από '+base.strftime('%d/%m'))),db,user)
+            carried=tr.id
+        out.append({'item_id':i.id,'left':float(left),'carry_transfer_id':carried})
+    return {'ok':True,'results':out}
+
 @app.get('/warehouse')
 def warehouse_workspace():
     return _FileResponse(static_dir/'warehouse.html')
