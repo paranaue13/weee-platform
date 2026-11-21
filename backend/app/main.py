@@ -2042,7 +2042,7 @@ def change_attendance_units(data:schemas.AttendanceUnitsIn, db:Session=Depends(g
         new_ids=prev_ids+[data.unit_id]
     else:
         if data.unit_id not in prev_ids: raise HTTPException(409,"Ο εργαζόμενος δεν ανήκει σε αυτό το τμήμα")
-        if len(prev_ids)<2: raise HTTPException(409,"Η αφαίρεση επιτρέπεται μόνο αν ο εργαζόμενος ανήκει σε 2 ή περισσότερα τμήματα (χρησιμοποίησε «Μετακίνηση»)")
+        # B46: επιτρέπεται και η αφαίρεση από το ΜΟΝΑΔΙΚΟ τμήμα (ο εργαζόμενος μένει «Χωρίς τμήμα», όπως στην οθόνη Εργαζόμενοι του Android)
         new_ids=[i for i in prev_ids if i!=data.unit_id]
     obj=db.scalar(select(ProductionAttendance).where(ProductionAttendance.work_date==day,ProductionAttendance.employee_id==emp.id))
     if obj: p_exists,p_status,p_org,p_late,p_arr,p_since=True,(obj.status or "PRESENT"),obj.org_unit_id,bool(obj.late),obj.arrived_at,obj.since_at

@@ -3620,7 +3620,7 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
 </script>
 <style id="b45Css">
 /* ===== B45 Android: οθόνη Παραγωγής (mockup_paragogi_android.html) ===== */
-html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransferPanel,html body #app #secProduction>.sectionBar{display:none!important}
+html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html body #app #secProduction>#prodTransferPanel,html body #app #secProduction>.sectionBar{display:none!important}
 #secProduction:has(#deltioPanel:not(.hidden)) #p45{display:none}
 #p45 .p45sc{padding:8px 0 0;display:flex;flex-direction:column;gap:6px}
 #p45 .p39l{font-size:14px;font-weight:600;color:#3B4A55;margin:2px 2px 0}
@@ -3693,6 +3693,29 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
 #p45Ov .p45fz{border:2px solid #144A52;border-radius:7px;height:50px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:16px;color:#8A929A;flex:none}
 #p45Ov .p45fz b{color:#14222B;font-size:22px}#p45Ov .p45fz b small{font-size:14px;color:#5B6670;font-weight:600}
 #p45Ov .p39ed{font-size:14px;font-weight:700;color:#144A52;letter-spacing:.3px}
+
+/* B46: οθόνη Εργαζόμενοι · popup που χωράνε το περιεχόμενο · γράμματα 16/14 · ύψος 54px */
+#p45 .p45chips{display:flex;gap:5px;flex-wrap:wrap;margin:8px 0}
+#p45 .p45pill,#p45Ov .p45pill{font-style:normal;font-weight:700;font-size:13px;min-width:70px;text-align:center;border-radius:6px;padding:5px 8px;display:inline-block;box-sizing:border-box}
+#p45 .p45pill.sm{min-width:0;font-size:12.5px;padding:4px 9px;border:0}
+#p45 .p45it.w b{font-size:16px}#p45 .p45it.w small{font-size:14px}
+#p45 .p45it .sp{display:flex;align-items:center;gap:8px}
+#p45Ov .p45m.fit{height:auto;max-height:100%}
+#p45Ov .p45m.fit .p45bd{flex:0 1 auto}
+#p45Ov .p45wr.ro{cursor:default}
+#p45Ov .p45m.fit .p45wr,#p45Ov .p45wr{height:54px;min-height:54px}
+#p45Ov .p45wr b{font-size:16px}#p45Ov .p45wr small{font-size:14px}
+#p45Ov .p45g3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+#p45Ov .p45st{font:inherit;font-size:14px;font-weight:700;color:#14222B;height:54px;padding:0;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;min-height:0}
+#p45Ov .p45st.on{background:linear-gradient(#18535B,#144A52);color:#fff;border-color:#0F3A40}
+#p45Ov .p45acts2 button{height:54px;padding:0 6px}
+#p45Ov .p45big{font:inherit;display:flex;align-items:center;justify-content:center;height:54px;min-height:0;flex:none;width:100%;box-sizing:border-box;font-size:15px;font-weight:700;color:#14222B;background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7);cursor:pointer;padding:0}
+#p45Ov .p45m.fit .p45tl{min-height:54px}
+#p45Ov .p45go.ok{margin-top:0;background:linear-gradient(#1F7547,#1A6A3F);color:#fff;border-bottom-color:#145634;font-size:15px;padding:0 12px;height:54px}
+#p45Ov .p45acts button,#p45Ov .p45go.off{height:54px;padding:0 12px}
+#p45Ov .p45go.off{margin-top:0;flex:1.4}
+#p45Ov .p45tp:disabled{cursor:default}
+@media (max-width:480px){#p45Ov .slot{width:0}}
 </style>
 <script id="b45Js">
 (function(){
@@ -3700,7 +3723,7 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
   const MN=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'],WD=['Κυρ','Δευ','Τρι','Τετ','Πεμ','Παρ','Σαβ'];
   const iso=d=>{const x=new Date(d);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')};
   const fmt=n=>Math.round(Number(n)||0).toLocaleString('el-GR');
-  const Q={day:iso(new Date()),month:iso(new Date()).slice(0,7),dep:null,mv:[],emp:[],hours:{},stk:[],P:null,busy:false,toast:'',loaded:false};
+  const Q={day:iso(new Date()),month:iso(new Date()).slice(0,7),dep:null,mv:[],emp:[],hours:{},att:{},scr:'P',stk:[],P:null,busy:false,toast:'',loaded:false};
   const host=$$('p45');if(!host)return;
   const ov=document.createElement('div');ov.id='p45Ov';ov.hidden=true;document.body.appendChild(ov);
   const units=()=>(typeof prodUnits!=='undefined'?prodUnits:[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
@@ -3716,7 +3739,7 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
     if(!units().length){try{const [u,e]=await Promise.all([api('/master/org-units'),api('/master/employees')]);androidApplyMasters(u,e)}catch(e){}}}
   async function loadDay(){
     try{Q.mv=await api('/production/android/movements?date='+Q.day)}catch(e){Q.mv=[]}
-    try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes})}catch(e){Q.hours={}}
+    try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};Q.att={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes;Q.att[x.employee_id]=x})}catch(e){Q.hours={};Q.att={}}
     Q.loaded=true;paint()}
   async function loadStock(){
     const m=await api('/inventory/weee/media-with-stock'),out=[];
@@ -3742,9 +3765,9 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
   function paint(){
     const [y,mo]=Q.month.split('-').map(Number);
     host.innerHTML=`<div class="b6Mon"><button type="button" data-mon="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="b6MonL">${MN[mo-1]} ${y}</button><button type="button" data-mon="1" aria-label="Επόμενος μήνας">›</button></div><div class="b6Strip" id="p45Strip">${days()}</div>`+
-      `<div class="p45sc"><div class="p39l">Τμήμα</div><div class="p45dg">${units().map(u=>`<button type="button" class="p45dp${u.id===Q.dep?' on':''}" data-a="dep" data-u="${u.id}">${esc(u.name_el||u.code)}</button>`).join('')}</div>`+
+      (Q.scr==='W'?`<div class="p45sc">${wscr()}`+(Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>':`<div class="p45sc"><div class="p39l">Τμήμα</div><div class="p45dg">${units().map(u=>`<button type="button" class="p45dp${u.id===Q.dep?' on':''}" data-a="dep" data-u="${u.id}">${esc(u.name_el||u.code)}</button>`).join('')}</div>`+
       `<button type="button" class="p45btn p45new" ${Q.dep?'data-a="new"':'disabled'}>+ Νέα Καταχώρηση</button><button type="button" class="p45btn p45sh" data-a="shift">Κλείσιμο βάρδιας</button>`+histHtml()+
-      (Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>';
+      (Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>');
     const s=$$('p45Strip'),sel=s&&s.querySelector('.sel');if(sel){const a=sel.getBoundingClientRect(),b=s.getBoundingClientRect();if(b.width)s.scrollLeft=Math.max(0,s.scrollLeft+(a.left-b.left)-(s.clientWidth-a.width)/2)}
     paintPop()}
   // ---------- popup ----------
@@ -3773,7 +3796,7 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
   function summary(x,who,kg){const P=Q.P;return `<div class="p45sm"><div><span>Τμήμα</span><b>${esc(uName(P.dep))}</b></div><div><span>Ημερομηνία</span><b>${esc(Q.day.split('-').reverse().join('/'))}</b></div><div><span>Μέσο</span><b>${esc(x.tcode==='BULK'?'Χύμα':x.tname+' · '+x.code)}</b></div><div><span>Υλικό</span><b>${esc(cName(x.cat))}</b></div><div><span>Για</span><b>${esc(who||'Όλο το τμήμα')}</b></div><div><span>Βάρος</span><b class="big">${fmt(kg)} kg</b></div></div>`}
   function workers(){const P=Q.P,ws=emps().filter(e=>(e.org_unit_ids||[]).includes(P.dep)).sort((a,b)=>a.full_name.localeCompare(b.full_name,'el'));
     const r=ws.map(w=>`<button type="button" class="p45wr${P.who===w.id?' on':''}" data-a="who" data-w="${w.id}"><span><b>${esc(w.full_name)}</b></span><em>${hrs(Q.hours[w.id])}</em></button>`).join('');
-    return `<div class="p39l">Εργαζόμενοι · σε ποιον πάει η λήψη</div><div class="p45wl"><button type="button" class="p45wr${!P.who?' on':''}" data-a="who" data-w=""><span><b>Όλο το τμήμα</b><small>Χωρίς συγκεκριμένο εργαζόμενο</small></span></button>${r||'<div class="p45em">Κανένας εργαζόμενος στο τμήμα.</div>'}</div><div class="p45acts2"><button type="button" ${P.who?'data-a="mv"':'disabled'}>Μετακίνηση σε τμήμα</button><button type="button" ${P.who?'data-a="en"':'disabled'}>Τέλος εργασίας στο τμήμα</button></div>`}
+    return `<div class="p39l">Εργαζόμενοι · σε ποιον πάει η λήψη</div><div class="p45wl"><button type="button" class="p45wr${!P.who?' on':''}" data-a="who" data-w=""><span><b>Όλο το τμήμα</b><small>Χωρίς συγκεκριμένο εργαζόμενο</small></span></button>${r||'<div class="p45em">Κανένας εργαζόμενος στο τμήμα.</div>'}</div><div class="p45acts2"><button type="button" data-a="inw">Εισαγωγή εργαζομένου</button></div>`}
   function cf(){const P=Q.P,x=it(P.sel),ed=P.mode==='edit',kg=x.tcode==='BULK'?Number(P.kg):x.kg;
     return hd('toFrom',(ed?'<div class="p39ed">Αλλαγή</div>':'')+'<b>Επιβεβαίωση</b><small>Έλεγξε και στείλε σε παραγωγή</small>')+`<div class="p45bd">${summary(x,eName(P.who),kg)}${workers()}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<button type="button" class="p45go" data-a="send"${Q.busy?' disabled':''}>${ed?'Υποβολή αλλαγής':'Αποστολή σε παραγωγή'}</button></div>`}
   function edp(){const m=Q.mv.find(x=>x.entry_id===Q.P.eid),l=listOf(m.unit_id),op=isOpen(m,l);
@@ -3793,9 +3816,50 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
     const anyBad=o.some(m=>bad(m,lo[m.entry_id]));
     return hd(P.only?'toEd':'close',P.only?`<b>Κλείσιμο κίνησης</b><small>${esc(o[0]?uName(o[0].unit_id):'')}</small>`:`<b>Κλείσιμο βάρδιας</b><small>${Q.dep?esc(uName(Q.dep)):'Όλα τα τμήματα'} · ${o.length} μη ολοκληρωμένες</small>`)+`<div class="p45bd"><div class="p45shh"><span>Κίνηση</span><span>Μικτά με το μέσο (kg)</span></div><div class="p45wl sh">${l}</div>${P.f?keypad('shk'):''}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="${P.only?'toEd':'close'}">Άκυρο</button><button type="button" class="p45go${anyBad||!o.length||Q.busy?' off':''}" style="flex:1" ${anyBad||!o.length||Q.busy?'disabled':'data-a="shok"'}>${P.only?'Κλείσιμο κίνησης':'Κλείσιμο βάρδιας'}</button></div></div>`}
   function paintPop(){const P=Q.P;if(!P){ov.hidden=true;return}
-    const st=P.step,h=st==='s1'?s1():st==='ls'?ls():st==='kg'?kgStep():st==='cf'?cf():st==='ed'?edp():st==='dl'?dlq():st==='mv'?mvs():st==='en'?ens():shp();
+    const st=P.step,h=st==='ww'?ww():st==='wm'?wm():st==='wd'?wd():(st==='wdin'||st==='wdout')?wdm():st==='in'?insP():st==='s1'?s1():st==='ls'?ls():st==='kg'?kgStep():st==='cf'?cf():st==='ed'?edp():st==='dl'?dlq():st==='mv'?mvs():st==='en'?ens():shp();
     try{document.documentElement.style.setProperty('--b39Top',Math.round(document.querySelector('#app .topDark').getBoundingClientRect().bottom)+'px')}catch(_){}
-    ov.innerHTML=`<div class="p45m">${h}</div>`;ov.hidden=false}
+    const key=st+(P.wsub||''),sv=Q.lk===key?[...ov.querySelectorAll('.p45bd,.p45wl')].map(e=>e.scrollTop):null;Q.lk=key;
+    ov.innerHTML=`<div class="p45m${['ww','wd','wdin','wdout','wm'].includes(st)?' fit':''}">${h}</div>`;ov.hidden=false;
+    if(sv)[...ov.querySelectorAll('.p45bd,.p45wl')].forEach((e,i)=>{if(sv[i])e.scrollTop=sv[i]})}
+  // ---------- οθόνη «Εργαζόμενοι» (παρουσιολόγιο + τμήματα, κοινά με τα Windows) ----------
+  const ST=['Παρών','Αργοπορία','Απών','Έφυγε','Ολιγόωρη'],STC={'Παρών':['#E3F3E8','#1A6A3F'],'Αργοπορία':['#FDEFD3','#8A5A00'],'Απών':['#E6E9EE','#3C4756'],'Έφυγε':['#FBE6E6','#A52A22'],'Ολιγόωρη':['#E3EAEA','#144A52']};
+  const byName=(a,b)=>a.full_name.localeCompare(b.full_name,'el');
+  const eById=id=>emps().find(e=>e.id===id)||{};
+  const wdep=id=>(eById(id).org_unit_ids||[]).filter(u=>units().some(x=>x.id===u));
+  const gs0=id=>{const a=Q.att[id];if(!a)return 'Παρών';if(a.status==='ABSENT')return 'Απών';if(a.status==='LEFT')return 'Έφυγε';if((a.short_leaves||[]).length)return 'Ολιγόωρη';if(a.late)return 'Αργοπορία';return 'Παρών'};
+  const pil=id=>{const t=gs0(id),c=STC[t];return `<em class="p45pill" style="background:${c[0]};color:${c[1]};border:1px solid ${c[1]}">${t}</em>`};
+  const oth=(id,d)=>{const o=wdep(id).filter(u=>u!==d).map(u=>'<b>'+esc(uName(u))+'</b>');return o.length?'<br>Έχει παρουσία και στο '+o.join(', ')+'.':''};
+  function wscr(){const E=emps().slice().sort(byName),cnt={};ST.forEach(x=>cnt[x]=0);E.forEach(e=>cnt[gs0(e.id)]++);
+    const chips='<div class="p45chips">'+ST.map(x=>{const c=STC[x];return `<em class="p45pill sm" style="background:${c[0]};color:${c[1]}">${x} ${cnt[x]}</em>`}).join('')+'</div>';
+    const rows=(l,d)=>l.map(e=>`<div class="p45it w" data-a="wrow" data-n="${e.id}" data-d="${d}"><div><b>${esc(e.full_name)}</b></div><span class="sp">${pil(e.id)}<i class="cv">›</i></span></div>`).join('');
+    const gs=units().map(u=>{const l=E.filter(e=>wdep(e.id).includes(u.id));return `<div class="p45gh" data-a="wdp" data-u="${u.id}" style="cursor:pointer"><span>${esc(u.name_el||u.code)}</span><b>${l.length} <i class="cv">›</i></b></div><div class="p45ge"></div>`+(l.length?rows(l,u.id):'<div class="p45it ro"><div><small>Κανένας εργαζόμενος.</small></div></div>')}).join('');
+    const no=E.filter(e=>!wdep(e.id).length);
+    return chips+`<div class="p45card"><h4>Παρουσίες ημέρας<span>${E.length} εργαζόμενοι</span></h4>${gs}`+(no.length?`<div class="p45gh"><span>Χωρίς τμήμα</span><b>${no.length}</b></div><div class="p45ge"></div>${rows(no,'')}`:'')+'</div>'}
+  const perr=P=>P.err?'<div class="p45err">'+esc(P.err)+'</div>':'';
+  function ww(){const P=Q.P,e=eById(P.n),cur=gs0(P.n),has=!!P.d;
+    return hd('close',`<b>${esc(e.full_name)}</b><small>${has?esc(uName(P.d)):'Χωρίς τμήμα'}</small>`)+`<div class="p45bd"><div class="p39l">Παρουσία</div><div class="p45g3">${ST.map(x=>`<button type="button" class="p45st${x===cur?' on':''}" data-a="wst" data-s="${x}"${Q.busy?' disabled':''}>${x}</button>`).join('')}</div><div class="p39l" style="margin-top:8px">Τμήμα</div><div class="p45acts2"><button type="button" data-a="win">Εισαγωγή</button><button type="button" ${has?'data-a="wmv"':'disabled'}>Μετακίνηση</button><button type="button" ${has?'data-a="wen"':'disabled'}>Τερματισμός</button></div>${perr(P)}</div>`}
+  function wm(){const P=Q.P,n=P.ws.n,d=P.ws.d,t=P.wsub,e=eById(n);
+    if(t==='en')return hd('wb','<b>Τερματισμός από τμήμα</b>')+`<div class="p45bd"><div class="p45msg">Να φύγει ο <b>${esc(e.full_name)}</b> από το <b>${esc(uName(d))}</b>;${oth(n,d)}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="wb">Άκυρο</button><button type="button" class="rd" data-a="wenok"${Q.busy?' disabled':''}>Τερματισμός</button></div></div>`;
+    const inn=wdep(n),l=units().filter(u=>t==='mv'?u.id!==d:!inn.includes(u.id)).map(u=>row('wdo',`data-u="${u.id}"`,esc(u.name_el||u.code),'','',true)).join('')||'<div class="p45msg">Δεν υπάρχει άλλο τμήμα.</div>';
+    return hd('wb',`<b>${t==='mv'?'Μετακίνηση σε τμήμα':'Εισαγωγή σε τμήμα'}</b><small>${esc(e.full_name)}${t==='mv'?' · από '+esc(uName(d)):''}</small>`)+`<div class="p45bd">${l}${perr(P)}</div>`}
+  function wd(){const P=Q.P,E=emps().filter(e=>wdep(e.id).includes(P.u)).sort(byName);
+    return hd('close',`<b>${esc(uName(P.u))}</b><small>${E.length} εργαζόμενοι</small>`)+`<div class="p45bd"><button type="button" class="p45big" data-a="wdi">Εισαγωγή εργαζομένου</button><button type="button" class="p45big" data-a="wdt">Τερματισμός εργαζομένου</button><div class="p39l" style="margin-top:6px">Εργαζόμενοι τμήματος</div><div class="p45wl">${E.map(e=>`<div class="p45wr ro"><span><b>${esc(e.full_name)}</b></span>${pil(e.id)}</div>`).join('')||'<div class="p45msg">Κανένας εργαζόμενος στο τμήμα.</div>'}</div></div>`}
+  function wdm(){const P=Q.P,inn=P.step==='wdin',n=Object.keys(P.sel).length,E=emps().filter(e=>inn?!wdep(e.id).includes(P.u):wdep(e.id).includes(P.u)).sort(byName);
+    const l=E.map(e=>{const on=P.sel[e.id];return `<button type="button" class="p45wr${on?' on':''}" data-a="wsl" data-n="${e.id}"><span><b>${esc(e.full_name)}</b></span><em>${on?'✓':''}</em></button>`}).join('')||'<div class="p45msg">Δεν υπάρχουν εργαζόμενοι.</div>';
+    return hd('wdb',`<b>${inn?'Εισαγωγή εργαζομένου':'Τερματισμός εργαζομένου'}</b><small>${esc(uName(P.u))}</small>`)+`<div class="p45bd"><div class="p45wl">${l}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="wdb">Άκυρο</button><button type="button" class="${n?(inn?'p45go ok':'rd'):'p45go off'}" style="flex:1.4"${n&&!Q.busy?` data-a="${inn?'wdiok':'wdtok'}"`:' disabled'}>${inn?'Εισαγωγή':'Τερματισμός'}${n?' ('+n+')':''}</button></div></div>`}
+  function insP(){const P=Q.P,sel=P.insSel||{},n=Object.keys(sel).length,E=emps().filter(e=>!wdep(e.id).includes(P.dep)).sort(byName);
+    const h=E.map(e=>{const on=sel[e.id];return `<button type="button" class="p45wr${on?' on':''}" data-a="inpick" data-n="${e.id}"><span><b>${esc(e.full_name)}</b></span><em>${on?'✓':''}</em></button>`}).join('')||'<div class="p45msg">Όλοι οι εργαζόμενοι είναι ήδη στο τμήμα.</div>';
+    return hd('toCf',`<b>Εισαγωγή εργαζομένου</b><small>στο ${esc(uName(P.dep))}</small>`)+`<div class="p45bd"><div class="p45wl">${h}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toCf">Άκυρο</button><button type="button" class="${n?'p45go ok':'p45go off'}" style="flex:1.4"${n&&!Q.busy?' data-a="inok"':' disabled'}>Εισαγωγή${n?' ('+n+')':''}</button></div></div>`}
+  async function schedMin(){try{const sc=await api('/settings/schedule'),d=(sc&&(sc[sc.active]||sc.summer))||{},f=v=>{const m=/^(\d\d):(\d\d)$/.exec(v||'');return m?+m[1]*60+ +m[2]:null};return [f(d.start),f(d.end)]}catch(e){return [null,null]}}
+  async function setStatus(id,s){const a=Q.att[id]||{},body={work_date:Q.day+'T12:00:00',employee_id:id,org_unit_id:a.org_unit_id||null,short_leaves:[]};
+    if(s==='Παρών'){body.status='PRESENT';body.late=false}
+    else if(s==='Αργοπορία'){body.status='PRESENT';body.late=true}
+    else if(s==='Απών')body.status='ABSENT';
+    else if(s==='Έφυγε')body.status='LEFT';
+    else{body.status='PRESENT';const [S0,E0]=await schedMin(),n=new Date();let m=n.getHours()*60+n.getMinutes();if(S0!=null&&E0!=null)m=Math.max(S0,Math.min(m,E0-1));body.short_leaves=[{from:String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'),to:null}]}   // η ώρα της ολιγόωρης διορθώνεται στα Windows
+    await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)})}
+  const unitsAct=(emp,action,unit,from)=>api('/production/attendance/units',{method:'POST',body:JSON.stringify({work_date:Q.day+'T12:00:00',employee_id:emp,action,unit_id:unit,from_unit_ids:from||undefined})});
+  async function safe(P,fn){Q.busy=true;P.err='';paintPop();try{await fn();await reloadPeople()}catch(e){P.err=e.message||String(e)}Q.busy=false;paint()}
   // ---------- ενέργειες ----------
   async function send(){const P=Q.P,x=it(P.sel);if(!x||Q.busy)return;Q.busy=true;P.err='';paintPop();
     try{const kg=x.tcode==='BULK'?Number(P.kg):x.kg;
@@ -3809,10 +3873,12 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
         work_entry:{work_date:Q.day+'T'+t,employee_id:P.who||null,weee_category_id:x.cat,weight_kg:kg,source:'ANDROID'}})});
       Q.toast=P.mode==='edit'?'Η αλλαγή υποβλήθηκε':'Στάλθηκε στην παραγωγή';Q.P=null;Q.busy=false;await Promise.all([loadDay(),loadStock().catch(()=>{})]);setTimeout(()=>{Q.toast='';paint()},2500)}
     catch(e){Q.busy=false;P.err=e.message||String(e);paintPop()}}
-  async function reloadPeople(){const [u,e]=await Promise.all([api('/master/org-units'),api('/master/employees')]);androidApplyMasters(u,e);try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes})}catch(_){}}
+  async function reloadPeople(){const [u,e]=await Promise.all([api('/master/org-units'),api('/master/employees')]);androidApplyMasters(u,e);try{const a=await api('/production/attendance/effective?date='+Q.day);Q.hours={};Q.att={};a.forEach(x=>{Q.hours[x.employee_id]=x.net_minutes;Q.att[x.employee_id]=x})}catch(_){}}
   async function act(a,t,ev){const P=Q.P;
     if(a==='dep'){Q.dep=Q.dep===t.dataset.u?null:t.dataset.u;paint();return}
-    if(a==='new'){Q.P={step:'s1',mode:'new',dep:Q.dep,who:null};paintPop();await loadStock().catch(()=>{});if(Q.P&&Q.P.step==='s1')paintPop();return}
+    if(a==='wrow'){Q.P={step:'ww',n:t.dataset.n,d:t.dataset.d||''};paintPop();return}
+    if(a==='wdp'){Q.P={step:'wd',u:t.dataset.u};paintPop();return}
+    if(a==='new'){await loadStock().catch(()=>{});Q.P={step:'s1',mode:'new',dep:Q.dep,who:null};paintPop();return}
     if(a==='shift'){const o=openList();Q.P={step:'sh',lo:{},f:o.length?o[0].entry_id:null,err:''};paintPop();return}
     if(a==='hed'){const m=Q.mv.find(x=>x.entry_id===t.dataset.i);if(!m)return;Q.P={step:'ed',mode:'edit',eid:m.entry_id,dep:m.unit_id,who:m.employee_id||null};paintPop();return}
     if(!P)return;
@@ -3824,13 +3890,22 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
     else if(a==='kk'){const k=t.dataset.k;let v=String(P.kg||'');if(k==='C')v='';else if(k==='⌫')v=v.slice(0,-1);else if(v.length<7)v+=k;P.kg=v}
     else if(a==='kgok'){if(Number(P.kg)>0&&Number(P.kg)<=it(P.sel).kg)P.step='cf'}
     else if(a==='who'){P.who=t.dataset.w||null}
-    else if(a==='mv'){P.step='mv';P.err=''}
-    else if(a==='en'){P.step='en';P.err=''}
+    else if(a==='inw'){P.step='in';P.insSel={};P.err=''}
+    else if(a==='inpick'){const q=t.dataset.n;if(P.insSel[q])delete P.insSel[q];else P.insSel[q]=1}
+    else if(a==='inok'){await safe(P,async()=>{const ad=Object.keys(P.insSel);for(const q of ad)await unitsAct(q,'add',P.dep);P.who=ad.length===1?ad[0]:null;P.insSel={};P.step='cf'})}
     else if(a==='toCf'){P.step='cf';P.err=''}
-    else if(a==='mvto'||a==='enok'){
-      try{const body={work_date:Q.day+'T12:00:00',employee_id:P.who,unit_id:a==='mvto'?t.dataset.u:P.dep,action:a==='mvto'?'move':'remove'};if(a==='mvto')body.from_unit_ids=[P.dep];
-        await api('/production/attendance/units',{method:'POST',body:JSON.stringify(body)});await reloadPeople();P.who=null;P.step='cf';P.err=''}
-      catch(e){P.err=e.message||String(e)}}
+    else if(a==='wst'){await safe(P,()=>setStatus(P.n,t.dataset.s))}
+    else if(a==='win'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'in'};paintPop();return}
+    else if(a==='wmv'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'mv'};paintPop();return}
+    else if(a==='wen'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'en'};paintPop();return}
+    else if(a==='wb'){Q.P={step:'ww',n:P.ws.n,d:P.ws.d};paintPop();return}
+    else if(a==='wdo'){const td=t.dataset.u,n=P.ws.n,mvf=P.wsub==='mv'?P.ws.d:null;await safe(P,()=>unitsAct(n,mvf?'move':'add',td,mvf?[mvf]:null));if(!P.err){Q.P={step:'ww',n,d:td}}}
+    else if(a==='wenok'){const n=P.ws.n,d=P.ws.d;await safe(P,()=>unitsAct(n,'remove',d));if(!P.err){const r=wdep(n);Q.P={step:'ww',n,d:r.length?r[0]:''}}}
+    else if(a==='wdi'){Q.P={step:'wdin',u:P.u,sel:{}};paintPop();return}
+    else if(a==='wdt'){Q.P={step:'wdout',u:P.u,sel:{}};paintPop();return}
+    else if(a==='wdb'){Q.P={step:'wd',u:P.u};paintPop();return}
+    else if(a==='wsl'){const q=t.dataset.n;if(P.sel[q])delete P.sel[q];else P.sel[q]=1}
+    else if(a==='wdiok'||a==='wdtok'){const u=P.u,ids=Object.keys(P.sel);await safe(P,async()=>{for(const q of ids)await unitsAct(q,a==='wdiok'?'add':'remove',u)});if(!P.err)Q.P={step:'wd',u}}
     else if(a==='toEd'){P.step='ed';P.only=null;P.err=''}
     else if(a==='chg'){P.step='s1'}
     else if(a==='delq'){P.step='dl';P.err=''}
@@ -3852,10 +3927,13 @@ html body #app #secProduction>#flowBar,html body #app #secProduction>#prodTransf
     const d=ev.target.closest('#p45 [data-d]');if(d){Q.day=d.dataset.d;Q.month=Q.day.slice(0,7);Q.P=null;loadDay();return}
     const mo=ev.target.closest('#p45 [data-mon]');if(mo){const [y,m]=Q.month.split('-').map(Number),n=new Date(y,m-1+Number(mo.dataset.mon),1);Q.month=iso(n).slice(0,7);paint()}});
   // ΠΙΣΩ της πάνω μπάρας: κλείνει όλο το popup της Παραγωγής
-  document.addEventListener('click',e=>{if(!e.target.closest('#b4Back')||ov.hidden)return;e.stopImmediatePropagation();e.preventDefault();Q.P=null;paintPop()},true);
+  document.addEventListener('click',e=>{if(!e.target.closest('#b4Back'))return;const sp=$$('secProduction')&&$$('secProduction').offsetParent;if(!ov.hidden){e.stopImmediatePropagation();e.preventDefault();Q.P=null;paintPop();return}if(Q.scr==='W'&&sp){e.stopImmediatePropagation();e.preventDefault();Q.scr='P';paint()}},true);
+  {const b4=$$('b4Back'),fix=()=>{const sp=$$('secProduction');if(b4&&b4.disabled&&sp&&sp.offsetParent&&Q.scr==='W')b4.disabled=false};if(b4)new MutationObserver(fix).observe(b4,{attributes:true,attributeFilter:['disabled']});setInterval(fix,100)}
+  // κουμπί «Εργαζόμενοι» (πάνω δεξιά): ανοίγει τη νέα οθόνη αντί για το παλιό Δελτίο
+  document.addEventListener('click',e=>{if(!e.target.closest('#topDeltioBtn'))return;e.stopImmediatePropagation();e.preventDefault();const sb=document.querySelector('.secBtn[data-section="production"]');if(sb)sb.click();Q.scr='W';Q.P=null;Q.loaded=false;paint();open()},true);
   // άνοιγμα οθόνης
   async function open(){if(!Q.loaded)paint();await loadMasters();await loadDay()}
-  document.addEventListener('click',e=>{if(e.target.closest('[data-section="production"],[data-b4s="production"]'))setTimeout(open,60)});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-section="production"],[data-b4s="production"]')){Q.scr='P';setTimeout(open,60)}});
   const rb=$$('refreshBtn');if(rb)rb.addEventListener('click',()=>{const s=$$('secProduction');if(s&&s.offsetParent&&!($$('deltioPanel')&&!$$('deltioPanel').classList.contains('hidden')))open()});
   window.p45Open=open;
 })();
