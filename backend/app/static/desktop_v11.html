@@ -3129,13 +3129,24 @@ function tfConstraint(el){
     let sc=scheduleToMinutes(presState.sched);if(sc.e==null)return null;
     let fi=(el.closest('.slv')||{}).querySelector?el.closest('.slv').querySelector('.tf[data-k="sfrom"] .tfIn'):null,fm=fi?tfToM(fi.value.trim()):null;
     if(fm===null)return null;
-    return {min:fm+1,max:sc.e,step:1};
+    let nx=slOthers(el).map(x=>x[0]).filter(a=>a>=fm).sort((a,b)=>a-b)[0];
+    return {min:fm+1,max:nx!=null?Math.min(sc.e,nx):sc.e,step:1};
+  }
+  // Ολιγόωρη «Έφυγε»: μέσα στο ωράριο, βήμα 1', χωρίς ώρες που πέφτουν μέσα σε άλλη ολιγόωρη του ίδιου εργαζομένου
+  if(el.dataset.e&&el.dataset.k==='sfrom'&&typeof presState!=='undefined'&&presState.sched){
+    let sc=scheduleToMinutes(presState.sched);if(sc.s==null||sc.e==null)return null;
+    return {min:sc.s,max:sc.e-1,step:1,excl:slOthers(el)};
   }
   return null;
 }
+// άλλες ολιγόωρες του ίδιου εργαζομένου (λεπτά [από,έως)), ανοιχτή = μέχρι το τέλος της ημέρας
+function slOthers(el){
+  let a=presState.att.find(x=>x.employee_id===el.dataset.e)||{},i=+el.dataset.i;
+  return (a.short_leaves||[]).map((x,j)=>[j,tfToM(x.from),x.to?tfToM(x.to):1440]).filter(x=>x[0]!==i&&x[1]!==null).map(x=>[x[1],x[2]]);
+}
 function tfOptions(el){
   let c=tfConstraint(el),a=[];
-  if(c){let st=c.step||1,m=Math.ceil(c.min/st)*st;for(;m<=c.max;m+=st)a.push(m)}
+  if(c){let st=c.step||1,m=Math.ceil(c.min/st)*st;for(;m<=c.max;m+=st)a.push(m);if(c.excl)a=a.filter(m=>!c.excl.some(([x,y])=>m>=x&&m<y))}
   else if(el.dataset.k==='late'||el.dataset.k==='leave'||el.dataset.k==='brk'){}
   else{for(let m=0;m<1440;m+=5)a.push(m)}
   return a.map(tfFromM);
@@ -3270,15 +3281,14 @@ async function presShortAction(act,eid,i){
   let a=presState.att.find(x=>x.employee_id===eid)||{status:'PRESENT'},cur=(a.short_leaves||[]).map(x=>({from:x.from,to:x.to||null})),msg=$('presMsg');
   try{
     if(act==='add'){
-      let nw=new Date(),nm=nw.getHours()*60+nw.getMinutes(),sc=presState.sched?scheduleToMinutes(presState.sched):null;
-      // δεύτερη (τρίτη…) ολιγόωρη: η νέα «Έφυγε» είναι ΜΕΤΑ την προηγούμενη «Επέστρεψε» (πριν έμενε η τρέχουσα ώρα, που έπεφτε μέσα στην προηγούμενη απουσία και το «+ Άλλη» δεν έκανε τίποτα)
-      if(cur.length){
-        let last=cur[cur.length-1],lt=last.to?tfToM(last.to):null;
-        if(lt===null){msg.textContent='Όρισε πρώτα την ώρα «Επέστρεψε» της προηγούμενης ολιγόωρης.';return}
-        nm=Math.max(nm,lt+1);
-      }
-      if(cur.length&&sc&&sc.e!=null&&nm>=sc.e){msg.textContent='Δεν υπάρχει χρόνος μέχρι το τέλος του ωραρίου ('+sc.end+') για άλλη ολιγόωρη.';return}
-      let from=tfFromM(nm),next=cur.concat([{from,to:null}]),er=slError(next);
+      // νέα ολιγόωρη: στο πρώτο ελεύθερο διάστημα ΜΕΣΑ στο ωράριο (από την τωρινή ώρα αν χωράει), χωρίς επικάλυψη με τις υπάρχουσες
+      let sc=presState.sched?scheduleToMinutes(presState.sched):null,S0=sc&&sc.s!=null?sc.s:0,E0=sc&&sc.e!=null?sc.e:1440,nw=new Date(),nm=nw.getHours()*60+nw.getMinutes();
+      let busy=cur.map(x=>[tfToM(x.from),x.to?tfToM(x.to):E0]).filter(x=>x[0]!==null).sort((p,q)=>p[0]-q[0]),free=[],pp=S0;
+      busy.forEach(([x,y])=>{if(x>pp)free.push([pp,x]);pp=Math.max(pp,y)});if(pp<E0)free.push([pp,E0]);
+      free=free.map(f=>[f[0],Math.min(f[1],E0)]).filter(f=>f[1]-f[0]>=2);
+      if(!free.length){msg.textContent='Δεν υπάρχει διαθέσιμο διάστημα μέσα στο ωράριο'+(sc?' ('+sc.start+'–'+sc.end+')':'')+' για άλλη ολιγόωρη.';return}
+      let f=free.find(x=>x[1]>nm+1)||free[0],fm=(nm>=f[0]&&nm<=f[1]-2)?nm:f[0],from=tfFromM(fm),to=f[1]<E0?tfFromM(Math.min(f[1],fm+15)):null;
+      let next=cur.concat([{from,to}]).sort((p,q)=>tfToM(p.from)-tfToM(q.from)),er=slError(next);
       if(er){msg.textContent=er;return}
       msg.textContent='';await presPutShorts(eid,next);
     }else if(act==='del'){
