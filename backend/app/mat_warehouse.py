@@ -357,6 +357,7 @@ class ExportIn(BaseModel):
     is_bale: bool = False                 # παλέτα που εξάγεται ως ΜΠΑΛΑ (μόνο υλικά με can_bale)
     date: str | None = None               # ημερομηνία εξαγωγής YYYY-MM-DD (ορίζει την περίοδο)· χωρίς τιμή = σήμερα
     sub_label: str | None = None          # υποπροϊόν ομάδας (μόνο υλικά-ομπρέλες)· τα κιλά καταχωρούνται ΠΑΝΤΑ στο υποπροϊόν
+    production_item_id: str | None = None  # μέσο με υλικό από την Παραγωγή που εξάγεται (δεν ξαναπροτείνεται όσο η εξαγωγή δεν έχει διαγραφεί)
 
 
 class InventoryIn(BaseModel):
@@ -495,6 +496,38 @@ def next_code_preview(form: str, material_id: str | None = None, bale: bool = Fa
     return {"code": _codes.preview_code_for(db, cc)}
 
 
+@router.get("/production-media")
+def production_media(material_id: str, db: Session = Depends(get_db), user=Depends(require_permission("production.view"))):
+    """Μέσα με υλικό που έχει σταλεί στην Παραγωγή και αντιστοιχεί στο υλικό (ίδιο όνομα με κατηγορία ΑΗΗΕ). Μόνο ανάγνωση·
+    προτείνονται στη φόρμα Εξαγωγής ως έτοιμη επιλογή μέσου με βάρος. Μέσα με ολοκληρωμένο υπόλοιπο ή ακυρωμένη αποστολή δεν περιλαμβάνονται."""
+    mat = _material(db, material_id)
+    names = {_norm(x) for x in (mat.official_description, mat.internal_name, mat.galaxy_description, mat.short_description) if x}
+    cat_ids = [c.id for c in db.scalars(select(models.WEEECategory)).all() if _norm(c.description_el) in names]
+    if not cat_ids:
+        return []
+    rows = db.execute(select(models.ProductionTransferItem, models.ProductionTransfer, models.WEEEStockLot)
+                      .join(models.ProductionTransfer, models.ProductionTransfer.id == models.ProductionTransferItem.transfer_id)
+                      .join(models.WEEEStockLot, models.WEEEStockLot.id == models.ProductionTransferItem.stock_lot_id)
+                      .where(models.WEEEStockLot.weee_category_id.in_(cat_ids), models.ProductionTransfer.status != "CANCELLED",
+                             models.ProductionTransferItem.emptied == False, models.ProductionTransferItem.remainder_at.is_(None))
+                      .order_by(models.ProductionTransfer.created_at.desc())).all()
+    types = {t.id: t for t in db.scalars(select(CollectionMediumType)).all()}
+    taken = {(n or "")[5:] for (n,) in db.execute(select(ReadyMaterialLot.notes).where(ReadyMaterialLot.entry_type == "EXPORT", ReadyMaterialLot.status != "CANCELLED", ReadyMaterialLot.notes.like("PROD:%"))).all()}
+    out = []
+    for it, tr, lot in rows:
+        if it.id in taken:
+            continue
+        med = db.get(CollectionMedium, lot.collection_medium_id) if lot.collection_medium_id else None
+        tp = types.get(med.type_id) if med else None
+        form = "BULK"
+        if tp is not None:
+            form = next((k for k, v in FORMS.items() if v and v == tp.code), "BULK")
+        unit = db.get(models.OrganizationalUnit, tr.destination_org_unit_id)
+        out.append({"item_id": it.id, "form": form, "medium": (tp.name_el if tp else "Χύμα"), "medium_code": (med.code if med and form != "BULK" else None),
+                    "kg": float(it.weight), "department": unit.name_el if unit else ""})
+    return out
+
+
 @router.post("/export")
 def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move")), x_demo: str | None = Header(default=None)):
     demo = is_demo(x_demo)
@@ -542,7 +575,7 @@ def export_material(data: ExportIn, db: Session = Depends(get_db), user: User = 
     lot = ReadyMaterialLot(lot_number=_lot_number(db, mat, demo), material_id=mat.id, output_form=("CONTAINER" if medium else "BULK"),
                            collection_medium_id=medium.id if medium else None, gross_weight=gross, tare_weight=tare, net_weight=net, original_weight=net,
                            location_id=_location(db).id, status=("DEMO" if demo else "AVAILABLE"), created_by=user.id,
-                           notes=("DEMO" if demo else None), entry_type="EXPORT", period_year=y, period_quarter=q, period_month=mo,
+                           notes=("DEMO" if demo else (("PROD:" + data.production_item_id) if data.production_item_id else None)), entry_type="EXPORT", period_year=y, period_quarter=q, period_month=mo,
                            counted_kg=counted, storage_group_id=mat.storage_group_id, source_inventory_id=inv.id if inv else None, is_demo=demo, is_bale=bool(data.is_bale), sub_label=sub_label)
     if pick_at:
         lot.created_at = pick_at

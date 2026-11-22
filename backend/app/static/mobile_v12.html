@@ -3059,8 +3059,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     const btn=n=>{const t=tByName(n);if(!t)return '';const on=NEW[n]?S.br===n:false;return `<button type="button" class="p39b" data-tn="${esc(n)}" aria-pressed="${on}">${esc(n)}</button>`};
     let ttl;
     if(ed){const cm=e0.collection_medium_id?(media.find(x=>x.id===e0.collection_medium_id)||findMed(e0.collection_medium_id)):null,ct=cm?tById(cm.type_id):null;
-      ttl=`<div class="p39ed">Αλλαγή</div><b>${esc(dname(cat))}</b><small>Αποθηκευμένο Σε: <b>${cm?esc((ct&&ct.name_el||'Μέσο')+' · '+dcode(cm)):'Χύμα'} · ${fmt(enNet(e0))} kg</b></small>`}
-    else ttl=`<b>${esc(dname(cat))}</b><small>Διάλεξε Μέσο Για Αποθήκευση</small>`;
+      ttl=`<div class="p39ed">Αλλαγή</div><b>${esc(dname(cat))}</b>`}
+    else ttl=`<b>${esc(dname(cat))}</b>`;
     let h=`<div class="p39ttl c"><button type="button" class="p39bk" id="p39Bk">‹ Πίσω</button><div class="p39tt">${ttl}</div><div class="slot"></div></div>`;
     if(sg.length)h+=`<div class="p39l">Προτεινόμενα</div>`+sg.map(m=>card(m,false)).join('');
     h+=`<div class="p39l">Σταθερά</div><div class="p39g3">${rowN(ROWC1).map(btn).join('')}</div>`;
@@ -3113,7 +3113,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     fill('b30dn',S.num,'Αριθμός',S.fld==='n',needNum()||(!!S.edit&&S.pick.kind==='basket'));
     fill('b30dt',S.tr!==''?S.tr+'<u>kg</u>':'','Απόβαρο',S.fld==='t',needTare()||(!!S.edit&&S.pick.kind==='existing'&&S.mode==='g'&&S.tr!==''));
     fill('b30dw',S.val?S.val+'<u>kg</u>':'',S.mode==='g'?'Ζυγαριά':S.mode==='n'?'Καθαρό':'Βάρος',S.fld==='w',true);
-    const ok=$$('b30ok'),st=step();ok.textContent=st?'Επόμενο':(S.edit?'Υποβολή αλλαγής':'Αποθήκευση');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
+    const ok=$$('b30ok'),st=step();ok.textContent=st?'Επόμενο':(S.edit?'Αλλαγή':'Αποθήκευση');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
     $$('b30mg').setAttribute('aria-pressed',S.mode==='g');$$('b30mn').setAttribute('aria-pressed',S.mode==='n');
     const cz=$$('b30cz');cz.style.visibility=S.pick.kind==='bulk'?'hidden':'';cz.setAttribute('aria-pressed',S.cls);cz.firstChild.textContent=ZN[t.name_el]||(isB(t)?'Καλάθι':t.name_el||'Μέσο');cz.lastChild.textContent=S.cls?'Γέμισε':'Με Χώρο';
     {let f='',nv='—';
@@ -3215,9 +3215,9 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     Object.keys(bulk).forEach(id=>{if(codeOfCat(id)===codeOfCat(e.weee_category_id)){const el=$$('bc-'+id),bc=el&&el.closest('.bulkcell');if(bc)bc.classList.add('b32Hl')}});
     P.classList.add('b32Be');document.documentElement.classList.add('b32Ed2');
     {const ph=P.querySelector('.panelHead'),old=ph.querySelector('.p39bt');if(old)old.remove();const c0=cats.find(x=>x.id===e.weee_category_id),d=document.createElement('div');d.className='p39bt';
-      d.innerHTML=`<div class="p39ed">Αλλαγή</div><b>${esc(dname(c0))}</b><small>Αποθηκευμένο Σε: <b>Χύμα · ${fmt(enNet(e))} kg</b></small>`;ph.prepend(d)}
+      d.innerHTML=`<div class="p39ed">Αλλαγή</div><b>${esc(dname(c0))}</b>`;ph.prepend(d)}
     let bar=$$('b32BulkEd');if(bar)bar.remove();bar=document.createElement('div');bar.id='b32BulkEd';
-    bar.innerHTML='<button type="button" class="btn alt" id="b32BCan">Άκυρο</button><button type="button" class="btn good" id="b32BOk">Υποβολή αλλαγής</button>';P.appendChild(bar);
+    bar.innerHTML='<button type="button" class="btn alt" id="b32BCan">Άκυρο</button><button type="button" class="btn good" id="b32BOk">Αλλαγή</button>';P.appendChild(bar);
     const done=()=>{P.classList.remove('b32Be');P.classList.add('hidden');document.documentElement.classList.remove('b32Ed2');const b=$$('b32BulkEd');if(b)b.remove();bulk={}};
     $$('b32BCan').onclick=done;{const cx=P.querySelector('.panelHead .closeX');if(cx)cx.onclick=done}
     $$('b32BOk').onclick=async()=>{const ok=$$('b32BOk');ok.disabled=true;
@@ -3583,7 +3583,7 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
   function paint(){
     const t=$$('p42t'),sb=$$('p42s');
     if(V.view==='items'){
-      t.textContent=generalNames[V.g]||'';sb.textContent='Διάλεξε Υλικό';bd.className='p42bd wide';
+      t.textContent=generalNames[V.g]||'';sb.textContent='';bd.className='p42bd wide';
       let a=cats.filter(c=>mGroup(c)===String(V.g)&&c.active!==false);const par=new Set(a.filter(c=>c.is_internal_subcategory).map(c=>c.official_code));
       a=a.filter(c=>c.is_internal_subcategory||!par.has(c.code));
       let h='<div class="p42it">';
@@ -3592,7 +3592,7 @@ html body #app #work>#entry.b30E>#b30Form,html body #b30Sh .p39m{max-height:none
         if(V.g==='2'&&(code==='2Α2110'||code==='2Β1000'))h+='<hr class="p42hr">';
         h+=`<button type="button" class="p39b" data-c="${c.id}">${esc(dname(c))}</button>`});
       bd.innerHTML=h+'</div>';return}
-    t.textContent='Νέα Καταχώρηση';sb.textContent='Διάλεξε Υλικό';bd.className='p42bd vis';
+    t.textContent='Νέα Καταχώρηση';sb.textContent='';bd.className='p42bd vis';
     const f=freq();
     bd.innerHTML=`<div class="p39l">Συχνά</div><div class="p39g3">${f.map(c=>`<button type="button" class="p39b" data-c="${c.id}">${esc(dname(c))}</button>`).join('')}</div>`+
       `<div class="p39l">Κατηγορίες ΑΗΗΕ</div><div class="p39g3">${['1','2','3','4','5','6'].map(n=>`<button type="button" class="p39b" data-g="${n}">${generalNames[n]}</button>`).join('')}</div>`+
@@ -3717,6 +3717,16 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
 #p45Ov .p45tp:disabled{cursor:default}
 @media (max-width:480px){#p45Ov .slot{width:0}}
 </style>
+<style id="b49Css">
+/* B49: επικεφαλίδες τμημάτων 16px με αριθμό σε σταθερό πλάτος στο κέντρο · γραμμές εργαζομένων ίδιου ύψους */
+#p45 .p45gh{font-size:16px}
+#p45 .p45gh b.n{display:flex;align-items:center;gap:8px}
+#p45 .p45gh .p45cnt{display:inline-block;width:88px;text-align:center}
+#p45 .p45it.w{height:54px;min-height:54px;box-sizing:border-box}
+#p45 .p45it.w .p45pill{font-size:14px}
+#p42Mat .p39tt small:empty,html body #b30Form .p39tt small:empty{display:none}
+#p42Mat .p39tt b,html body #b30Form .p39tt b,html body #b30Sh .p39tt b,html body #b30Sh .p39tt em{white-space:nowrap}
+</style>
 <script id="b45Js">
 (function(){
   const $$=id=>document.getElementById(id);
@@ -3728,7 +3738,8 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
   const ov=document.createElement('div');ov.id='p45Ov';ov.hidden=true;document.body.appendChild(ov);
   const units=()=>(typeof prodUnits!=='undefined'?prodUnits:[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const emps=()=>typeof prodEmps!=='undefined'?prodEmps:[];
-  const uName=id=>{const u=units().find(x=>x.id===id);return u?(u.name_el||u.code):'—'};
+  const wunits=()=>(typeof dlUnits!=='undefined'?dlUnits:[]).slice().sort((a,b)=>(isSuppU(a)-isSuppU(b))||(a.sort_order||0)-(b.sort_order||0));
+  const uName=id=>{const u=wunits().find(x=>x.id===id);return u?(u.name_el||u.code):'—'};
   const eName=id=>{const e=emps().find(x=>x.id===id);return e?e.full_name:''};
   const cName=id=>{try{return dname(flCat(id)||{})}catch(e){return 'Υλικό'}};
   const hhmm=s=>String(s||'').slice(11,16);
@@ -3804,7 +3815,7 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
   function dlq(){const m=Q.mv.find(x=>x.entry_id===Q.P.eid);return hd('toEd',`<b>Διαγραφή</b><small>${esc(cName(m.category_id))}</small>`)+`<div class="p45bd"><div class="p45msg">Να διαγραφεί η καταχώρηση <b>${esc(cName(m.category_id))} · ${fmt(m.kg)} kg</b>;<br>Το μέσο με το υλικό του γυρνάει πίσω στα διαθέσιμα.</div>${Q.P.err?'<div class="p45err">'+esc(Q.P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toEd">Άκυρο</button><button type="button" class="rd" data-a="delok"${Q.busy?' disabled':''}>Διαγραφή</button></div></div>`}
   function mvs(){const P=Q.P,l=units().filter(u=>u.id!==P.dep).map(u=>row('mvto',`data-u="${u.id}"`,esc(u.name_el||u.code),'','',true)).join('');
     return hd('toCf',`<b>Μετακίνηση σε τμήμα</b><small>${esc(eName(P.who))} · από ${esc(uName(P.dep))}</small>`)+`<div class="p45bd">${l}${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}</div>`}
-  function ens(){const P=Q.P;return hd('toCf',`<b>Τέλος εργασίας</b><small>${esc(eName(P.who))}</small>`)+`<div class="p45bd"><div class="p45msg">Να τερματιστεί η εργασία του <b>${esc(eName(P.who))}</b> στο <b>${esc(uName(P.dep))}</b>;<br>Αν εργάζεται και σε άλλο τμήμα, εκεί δεν αλλάζει τίποτα.</div>${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toCf">Άκυρο</button><button type="button" class="rd" data-a="enok">Τερματισμός</button></div></div>`}
+  function ens(){const P=Q.P;return hd('toCf',`<b>Τέλος εργασίας</b>`)+`<div class="p45bd"><div class="p45msg">Να τερματιστεί η εργασία του <b>${esc(eName(P.who))}</b> στο <b>${esc(uName(P.dep))}</b>;<br>Αν εργάζεται και σε άλλο τμήμα, εκεί δεν αλλάζει τίποτα.</div>${P.err?'<div class="p45err">'+esc(P.err)+'</div>':''}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toCf">Άκυρο</button><button type="button" class="rd" data-a="enok">Τερματισμός</button></div></div>`}
   // κλείσιμο βάρδιας / κίνησης
   const gr=v=>parseFloat(String(v||'').replace(',','.'))||0;
   const tr=m=>m.tare||0;
@@ -3825,31 +3836,36 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
   const ST=['Παρών','Αργοπορία','Απών','Έφυγε','Ολιγόωρη'],STC={'Παρών':['#E3F3E8','#1A6A3F'],'Αργοπορία':['#FDEFD3','#8A5A00'],'Απών':['#E6E9EE','#3C4756'],'Έφυγε':['#FBE6E6','#A52A22'],'Ολιγόωρη':['#E3EAEA','#144A52']};
   const byName=(a,b)=>a.full_name.localeCompare(b.full_name,'el');
   const eById=id=>emps().find(e=>e.id===id)||{};
-  const wdep=id=>(eById(id).org_unit_ids||[]).filter(u=>units().some(x=>x.id===u));
+  const wdep=id=>(eById(id).org_unit_ids||[]).filter(u=>wunits().some(x=>x.id===u));
+  const upos=u=>((wunits().find(x=>x.id===u)||{}).positions)||[];
+  const posOf=(id,d)=>{const p=eById(id).position;return p&&d&&upos(d).includes(p)?p:''};
   const gs0=id=>{const a=Q.att[id];if(!a)return 'Παρών';if(a.status==='ABSENT')return 'Απών';if(a.status==='LEFT')return 'Έφυγε';if((a.short_leaves||[]).length)return 'Ολιγόωρη';if(a.late)return 'Αργοπορία';return 'Παρών'};
   const pil=id=>{const t=gs0(id),c=STC[t];return `<em class="p45pill" style="background:${c[0]};color:${c[1]};border:1px solid ${c[1]}">${t}</em>`};
   const oth=(id,d)=>{const o=wdep(id).filter(u=>u!==d).map(u=>'<b>'+esc(uName(u))+'</b>');return o.length?'<br>Έχει παρουσία και στο '+o.join(', ')+'.':''};
   function wscr(){const E=emps().slice().sort(byName),cnt={};ST.forEach(x=>cnt[x]=0);E.forEach(e=>cnt[gs0(e.id)]++);
     const chips='<div class="p45chips">'+ST.map(x=>{const c=STC[x];return `<em class="p45pill sm" style="background:${c[0]};color:${c[1]}">${x} ${cnt[x]}</em>`}).join('')+'</div>';
-    const rows=(l,d)=>l.map(e=>`<div class="p45it w" data-a="wrow" data-n="${e.id}" data-d="${d}"><div><b>${esc(e.full_name)}</b></div><span class="sp">${pil(e.id)}<i class="cv">›</i></span></div>`).join('');
-    const gs=units().map(u=>{const l=E.filter(e=>wdep(e.id).includes(u.id));return `<div class="p45gh" data-a="wdp" data-u="${u.id}" style="cursor:pointer"><span>${esc(u.name_el||u.code)}</span><b>${l.length} <i class="cv">›</i></b></div><div class="p45ge"></div>`+(l.length?rows(l,u.id):'<div class="p45it ro"><div><small>Κανένας εργαζόμενος.</small></div></div>')}).join('');
+    const rows=(l,d)=>l.map(e=>`<div class="p45it w" data-a="wrow" data-n="${e.id}" data-d="${d}"><div><b>${esc(e.full_name)}</b>${posOf(e.id,d)?'<small>'+esc(posOf(e.id,d))+'</small>':''}</div><span class="sp">${pil(e.id)}<i class="cv">›</i></span></div>`).join('');
+    const gs=wunits().map(u=>{const l=E.filter(e=>wdep(e.id).includes(u.id));return `<div class="p45gh" data-a="wdp" data-u="${u.id}" style="cursor:pointer"><span>${esc(u.name_el||u.code)}</span><b class="n"><span class="p45cnt">${l.length}</span><i class="cv">›</i></b></div><div class="p45ge"></div>`+(l.length?rows(l,u.id):'<div class="p45it ro"><div><small>Κανένας εργαζόμενος.</small></div></div>')}).join('');
     const no=E.filter(e=>!wdep(e.id).length);
-    return chips+`<div class="p45card"><h4>Παρουσίες ημέρας<span>${E.length} εργαζόμενοι</span></h4>${gs}`+(no.length?`<div class="p45gh"><span>Χωρίς τμήμα</span><b>${no.length}</b></div><div class="p45ge"></div>${rows(no,'')}`:'')+'</div>'}
+    return chips+`<div class="p45card"><h4>Παρουσίες ημέρας<span>${E.length} εργαζόμενοι</span></h4>${gs}`+(no.length?`<div class="p45gh"><span>Χωρίς τμήμα</span><b class="n"><span class="p45cnt">${no.length}</span><i class="cv" style="visibility:hidden">›</i></b></div><div class="p45ge"></div>${rows(no,'')}`:'')+'</div>'}
   const perr=P=>P.err?'<div class="p45err">'+esc(P.err)+'</div>':'';
-  function ww(){const P=Q.P,e=eById(P.n),cur=gs0(P.n),has=!!P.d;
-    return hd('close',`<b>${esc(e.full_name)}</b><small>${has?esc(uName(P.d)):'Χωρίς τμήμα'}</small>`)+`<div class="p45bd"><div class="p39l">Παρουσία</div><div class="p45g3">${ST.map(x=>`<button type="button" class="p45st${x===cur?' on':''}" data-a="wst" data-s="${x}"${Q.busy?' disabled':''}>${x}</button>`).join('')}</div><div class="p39l" style="margin-top:8px">Τμήμα</div><div class="p45acts2"><button type="button" data-a="win">Εισαγωγή</button><button type="button" ${has?'data-a="wmv"':'disabled'}>Μετακίνηση</button><button type="button" ${has?'data-a="wen"':'disabled'}>Τερματισμός</button></div>${perr(P)}</div>`}
+  function ww(){const P=Q.P,e=eById(P.n),cur=gs0(P.n),has=!!P.d,ps=has?upos(P.d):[],pc=posOf(P.n,P.d);
+    const pb=ps.length?`<div class="p39l" style="margin-top:8px">Θέση στο τμήμα</div><div class="p45g3">${ps.map((x,i)=>`<button type="button" class="p45st${pc===x?' on':''}" data-a="wpos" data-p="${i}"${Q.busy?' disabled':''}>${esc(x)}</button>`).join('')}</div>`:'';
+    return hd('close',`<b>${esc(e.full_name)}</b><small>${has?esc(uName(P.d))+(pc?' · '+esc(pc):''):'Χωρίς τμήμα'}</small>`)+`<div class="p45bd"><div class="p39l">Παρουσία</div><div class="p45g3">${ST.map(x=>`<button type="button" class="p45st${x===cur?' on':''}" data-a="wst" data-s="${x}"${Q.busy?' disabled':''}>${x}</button>`).join('')}</div>${pb}<div class="p39l" style="margin-top:8px">Τμήμα</div><div class="p45acts2"><button type="button" data-a="win">Εισαγωγή</button><button type="button" ${has?'data-a="wmv"':'disabled'}>Μετακίνηση</button><button type="button" ${has?'data-a="wen"':'disabled'}>Τερματισμός</button></div>${perr(P)}</div>`}
   function wm(){const P=Q.P,n=P.ws.n,d=P.ws.d,t=P.wsub,e=eById(n);
     if(t==='en')return hd('wb','<b>Τερματισμός από τμήμα</b>')+`<div class="p45bd"><div class="p45msg">Να φύγει ο <b>${esc(e.full_name)}</b> από το <b>${esc(uName(d))}</b>;${oth(n,d)}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="wb">Άκυρο</button><button type="button" class="rd" data-a="wenok"${Q.busy?' disabled':''}>Τερματισμός</button></div></div>`;
-    const inn=wdep(n),l=units().filter(u=>t==='mv'?u.id!==d:!inn.includes(u.id)).map(u=>row('wdo',`data-u="${u.id}"`,esc(u.name_el||u.code),'','',true)).join('')||'<div class="p45msg">Δεν υπάρχει άλλο τμήμα.</div>';
+    const inn=wdep(n),l=wunits().filter(u=>t==='mv'?u.id!==d:!inn.includes(u.id)).map(u=>row('wdo',`data-u="${u.id}"`,esc(u.name_el||u.code),'','',true)).join('')||'<div class="p45msg">Δεν υπάρχει άλλο τμήμα.</div>';
     return hd('wb',`<b>${t==='mv'?'Μετακίνηση σε τμήμα':'Εισαγωγή σε τμήμα'}</b><small>${esc(e.full_name)}${t==='mv'?' · από '+esc(uName(d)):''}</small>`)+`<div class="p45bd">${l}${perr(P)}</div>`}
   function wd(){const P=Q.P,E=emps().filter(e=>wdep(e.id).includes(P.u)).sort(byName);
-    return hd('close',`<b>${esc(uName(P.u))}</b><small>${E.length} εργαζόμενοι</small>`)+`<div class="p45bd"><button type="button" class="p45big" data-a="wdi">Εισαγωγή εργαζομένου</button><button type="button" class="p45big" data-a="wdt">Τερματισμός εργαζομένου</button><div class="p39l" style="margin-top:6px">Εργαζόμενοι τμήματος</div><div class="p45wl">${E.map(e=>`<div class="p45wr ro"><span><b>${esc(e.full_name)}</b></span>${pil(e.id)}</div>`).join('')||'<div class="p45msg">Κανένας εργαζόμενος στο τμήμα.</div>'}</div></div>`}
+    return hd('close',`<b>${esc(uName(P.u))}</b><small>${E.length} εργαζόμενοι</small>`)+`<div class="p45bd"><button type="button" class="p45big" data-a="wdi">Εισαγωγή εργαζομένου</button><button type="button" class="p45big" data-a="wdt">Τερματισμός εργαζομένου</button><div class="p39l" style="margin-top:6px">Εργαζόμενοι τμήματος</div><div class="p45wl">${E.map(e=>`<div class="p45wr ro"><span><b>${esc(e.full_name)}</b>${posOf(e.id,P.u)?'<small>'+esc(posOf(e.id,P.u))+'</small>':''}</span>${pil(e.id)}</div>`).join('')||'<div class="p45msg">Κανένας εργαζόμενος στο τμήμα.</div>'}</div></div>`}
   function wdm(){const P=Q.P,inn=P.step==='wdin',n=Object.keys(P.sel).length,E=emps().filter(e=>inn?!wdep(e.id).includes(P.u):wdep(e.id).includes(P.u)).sort(byName);
     const l=E.map(e=>{const on=P.sel[e.id];return `<button type="button" class="p45wr${on?' on':''}" data-a="wsl" data-n="${e.id}"><span><b>${esc(e.full_name)}</b></span><em>${on?'✓':''}</em></button>`}).join('')||'<div class="p45msg">Δεν υπάρχουν εργαζόμενοι.</div>';
     return hd('wdb',`<b>${inn?'Εισαγωγή εργαζομένου':'Τερματισμός εργαζομένου'}</b><small>${esc(uName(P.u))}</small>`)+`<div class="p45bd"><div class="p45wl">${l}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="wdb">Άκυρο</button><button type="button" class="${n?(inn?'p45go ok':'rd'):'p45go off'}" style="flex:1.4"${n&&!Q.busy?` data-a="${inn?'wdiok':'wdtok'}"`:' disabled'}>${inn?'Εισαγωγή':'Τερματισμός'}${n?' ('+n+')':''}</button></div></div>`}
   function insP(){const P=Q.P,sel=P.insSel||{},n=Object.keys(sel).length,E=emps().filter(e=>!wdep(e.id).includes(P.dep)).sort(byName);
     const h=E.map(e=>{const on=sel[e.id];return `<button type="button" class="p45wr${on?' on':''}" data-a="inpick" data-n="${e.id}"><span><b>${esc(e.full_name)}</b></span><em>${on?'✓':''}</em></button>`}).join('')||'<div class="p45msg">Όλοι οι εργαζόμενοι είναι ήδη στο τμήμα.</div>';
     return hd('toCf',`<b>Εισαγωγή εργαζομένου</b><small>στο ${esc(uName(P.dep))}</small>`)+`<div class="p45bd"><div class="p45wl">${h}</div>${perr(P)}<div class="p45acts" style="margin-top:auto"><button type="button" class="pt" data-a="toCf">Άκυρο</button><button type="button" class="${n?'p45go ok':'p45go off'}" style="flex:1.4"${n&&!Q.busy?' data-a="inok"':' disabled'}>Εισαγωγή${n?' ('+n+')':''}</button></div></div>`}
+  async function setPos(id,pos){const e=eById(id),ids=(e.org_unit_ids||[]).slice().sort((a,b)=>(b===e.default_org_unit_id)-(a===e.default_org_unit_id));
+    await api('/master/employees/'+id,{method:'PUT',body:JSON.stringify({full_name:e.full_name,phone:e.phone||null,org_unit_ids:ids,default_org_unit_id:null,position:pos||null})})}
   async function schedMin(){try{const sc=await api('/settings/schedule'),d=(sc&&(sc[sc.active]||sc.summer))||{},f=v=>{const m=/^(\d\d):(\d\d)$/.exec(v||'');return m?+m[1]*60+ +m[2]:null};return [f(d.start),f(d.end)]}catch(e){return [null,null]}}
   async function setStatus(id,s){const a=Q.att[id]||{},body={work_date:Q.day+'T12:00:00',employee_id:id,org_unit_id:a.org_unit_id||null,short_leaves:[]};
     if(s==='Παρών'){body.status='PRESENT';body.late=false}
@@ -3895,6 +3911,7 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
     else if(a==='inok'){await safe(P,async()=>{const ad=Object.keys(P.insSel);for(const q of ad)await unitsAct(q,'add',P.dep);P.who=ad.length===1?ad[0]:null;P.insSel={};P.step='cf'})}
     else if(a==='toCf'){P.step='cf';P.err=''}
     else if(a==='wst'){await safe(P,()=>setStatus(P.n,t.dataset.s))}
+    else if(a==='wpos'){const v=upos(P.d)[+t.dataset.p];await safe(P,()=>setPos(P.n,posOf(P.n,P.d)===v?'':v))}
     else if(a==='win'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'in'};paintPop();return}
     else if(a==='wmv'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'mv'};paintPop();return}
     else if(a==='wen'){Q.P={step:'wm',ws:{n:P.n,d:P.d},wsub:'en'};paintPop();return}
@@ -3936,6 +3953,215 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
   document.addEventListener('click',e=>{if(e.target.closest('[data-section="production"],[data-b4s="production"]')){Q.scr='P';setTimeout(open,60)}});
   const rb=$$('refreshBtn');if(rb)rb.addEventListener('click',()=>{const s=$$('secProduction');if(s&&s.offsetParent&&!($$('deltioPanel')&&!$$('deltioPanel').classList.contains('hidden')))open()});
   window.p45Open=open;
+})();
+</script>
+<style id="b49xCss">
+/* B49: Υλικά → Εξαγωγή (νέα φόρμα) και popup κίνησης Παραλαβών */
+#secMaterials #matHistCard{display:none!important}
+#p49Ov,#p49Ev{position:fixed;left:0;right:0;top:var(--b39Top,78px);bottom:var(--b4-nav,64px);z-index:15;background:rgba(20,34,43,.55);padding:12px;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+#p49Ov[hidden],#p49Ev[hidden]{display:none}
+#p49Ov,#p49Ov *,#p49Ev,#p49Ev *{box-sizing:border-box;text-transform:none}
+#p49Ov button,#p49Ev button{font:inherit;color:#14222B;cursor:pointer;margin:0;min-height:0}
+#p49Ov .mo,#p49Ev .mo{width:min(556px,100%);height:min(556px,100%);background:#FEFCFF;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 28px rgba(0,0,0,.4);border:1px solid #D6D0C3;color:#14222B}
+#p49Ov .mo.auto,#p49Ev .mo.auto{height:auto;max-height:100%}
+#p49Ov .ttl,#p49Ev .ttl{min-height:52px;display:flex;align-items:center;gap:6px;border-bottom:2px solid #D6D0C3;padding-bottom:8px;flex:none}
+#p49Ov .bk,#p49Ev .bk{font-size:13px;font-weight:700;padding:9px 12px;border:1px solid #D6D0C3;border-bottom-width:2px;border-radius:6px;background:linear-gradient(#FFFFFF,#F8F6F9);box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)}
+#p49Ov .ttl>div,#p49Ev .ttl>div{flex:1;min-width:0;margin-left:6px}
+#p49Ov .ttl b,#p49Ev .ttl b{display:block;font-size:19px;white-space:nowrap}
+#p49Ov .ttl em{display:block;font-style:normal;font-size:16px;font-weight:700;color:#144A52;margin-top:2px;white-space:nowrap}
+#p49Ov .bd,#p49Ev .bd{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px}
+#p49Ov .mo.auto .bd,#p49Ev .mo.auto .bd{flex:0 1 auto}
+#p49Ov .bd>*,#p49Ev .bd>*{flex:none}
+#p49Ov .btn,#p49Ev .btn{background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom-width:2px;border-radius:6px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.7)}
+#p49Ov .btn:active,#p49Ev .btn:active{transform:translateY(1px)}
+#p49Ov .g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
+#p49Ov .tile{height:58px;padding:0 12px;display:flex;flex-direction:column;justify-content:center;text-align:left}
+#p49Ov .tile b{font-size:15px}#p49Ov .tile small{font-size:12.5px;color:#5B6670}
+#p49Ov .lb{font-size:14px;font-weight:600;color:#3B4A55;margin:2px 2px 0;flex:none}
+#p49Ov .ml{display:flex;flex-direction:column;gap:6px}
+#p49Ov .mr{height:46px;flex:none;padding:0 12px;display:flex;align-items:center;justify-content:space-between;font-size:14px;font-weight:700;text-align:left;gap:8px}
+#p49Ov .mr span{color:#2F4FB0;white-space:nowrap}
+#p49Ov .md{display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;text-align:center;padding:0 4px}
+#p49Ov .md:disabled{opacity:.45;cursor:default}
+#p49Ov .sel{background:linear-gradient(#18535B,#144A52)!important;border-color:#0F3A40!important;color:#fff!important}
+#p49Ov .mdg{display:grid;gap:8px;flex:none}
+#p49Ov .fz{display:flex;gap:8px;flex:none}
+#p49Ov .fld{flex:1;border:1px solid #D6D0C3;border-radius:6px;background:#FEFCFF;display:flex;align-items:center;justify-content:space-between;padding:0 14px;cursor:text;min-width:0}
+#p49Ov .fld span{font-size:16px;font-weight:400;color:#8A929A}
+#p49Ov .fld b{font-size:22px;display:flex;align-items:center}
+#p49Ov .fld b small{font-size:14px;color:#5B6670;font-weight:600;margin-left:5px}
+#p49Ov .fld.act{border:2px solid #144A52;padding:0 13px;background:#fff}
+#p49Ov .fld.bad{border:2px solid #A52A22;padding:0 13px}
+#p49Ov .fld u{display:inline-block;width:2px;height:26px;background:#144A52;margin-left:2px;text-decoration:none;animation:p49bl 1s steps(1) infinite}
+@keyframes p49bl{50%{opacity:0}}
+#p49Ov .inf{flex:1 1 auto;font-size:14px;min-height:14px;color:#5B6670;margin:0 2px}
+#p49Ov .inf .er{color:#A52A22;font-weight:700}
+#p49Ov .kg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;flex:none}
+#p49Ov .kg button{display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;padding:0}
+#p49Ov .acts,#p49Ev .acts{display:flex;gap:8px;flex:none}
+#p49Ov .acts button,#p49Ev .acts button{flex:1;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;border-radius:6px;border:1px solid #D6D0C3;border-bottom-width:2px}
+#p49Ov .a3{background:linear-gradient(#1F7547,#1A6A3F);color:#fff!important;border-color:#145634!important}
+#p49Ov .a3:disabled{background:#E3E5E8;color:#9AA2AA!important;border-color:#D0D4D9!important;cursor:default}
+#p49Ov .a2,#p49Ev .a2{background:linear-gradient(#B3322A,#A52A22);color:#fff!important;border-color:#7E1F19!important}
+#p49Ov .aw,#p49Ev .aw{background:linear-gradient(#FFFFFF,#F8F6F9)}
+#p49Ov .kv,#p49Ev .kv{display:flex;justify-content:space-between;gap:10px;font-size:16px;padding:7px 2px;border-bottom:1px solid #EAE4D6}
+#p49Ov .kv span,#p49Ev .kv span{color:#5B6670}#p49Ov .kv b,#p49Ev .kv b{text-align:right}
+#p49Ov .emsg,#p49Ev .emsg{font-size:14px;color:#A52A22;font-weight:700}
+#p49x .p49c{background:#fff;border:1px solid #DAD8D2;border-radius:6px;overflow:hidden;margin-bottom:8px}
+#p49x .p49c h4{margin:0;padding:11px 12px;font-size:17px;display:flex;justify-content:space-between;border-bottom:2px solid #144A52;color:#14222B}
+#p49x .p49c h4 span{font-size:15px;color:#144A52}
+#p49x .p49h{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:0;border-top:1px solid #E4E2DC;cursor:pointer;width:100%;background:transparent;font:inherit;text-align:left;color:#14222B}
+#p49x .p49h:first-of-type{border-top:0}
+#p49x .p49h small{display:block;font-size:13px;color:#5B6670;margin-top:2px}#p49x .p49h small b{font-size:13px;color:#14222B}
+#p49x .p49h .r{font-weight:700;white-space:nowrap}#p49x .p49h .r i{font-style:normal;color:#5B6670;margin-left:8px}
+#p49x .p49e{padding:12px;color:#5B6670}
+#p49x .p49n{display:block;width:100%;height:56px;border-radius:6px;font:inherit;font-size:17px;font-weight:700;background:linear-gradient(#18535B,#144A52);color:#fff;border:1px solid #0F3A40;border-bottom-width:2px;box-shadow:0 1px 2px rgba(20,34,43,.14),inset 0 1px 0 rgba(255,255,255,.18);cursor:pointer;text-transform:none}
+.p49t{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--b4-nav,64px) + 14px);background:#1A6A3F;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;font-weight:700;z-index:16;white-space:nowrap}
+/* Παραλαβές · παράθυρο κιλών: όλα τα κουμπιά και πεδία 46px, 12px κάτω από τα τελευταία κουμπιά (ύψος όσο το περιεχόμενο, πάνω στοιχισμένο ώστε το Πίσω να μένει στην ίδια θέση) */
+html body #b30Sh .p39m .p39tgg button,html body #b30Sh .p39m .p39fz .disp,html body #b30Sh .p39m .p39acts button,html body #b30Sh .p39m .p39sv{height:46px!important;min-height:0!important;box-sizing:border-box}
+html body #b30Sh .p39m .p39k3{gap:8px!important;grid-auto-rows:46px!important;grid-template-rows:none!important;flex:none!important}
+html body #b30Sh .p39m .p39k3 button{height:46px!important;min-height:0!important}
+html body #b30Sh{justify-content:flex-start!important}
+html body #b30Sh .p39m{height:auto!important;max-height:100%!important}
+</style>
+<script id="b49xJs">
+(function(){
+  const $$=id=>document.getElementById(id),fmt=n=>Math.round((Number(n)||0)*1000)/1000,kgf=n=>fmt(n).toLocaleString('el-GR',{maximumFractionDigits:3});
+  const ov=document.createElement('div');ov.id='p49Ov';ov.hidden=true;document.body.appendChild(ov);
+  const num=v=>{const x=Number(String(v||'').replace(',','.'));return Number.isFinite(x)?x:0};
+  let X=null,toast='',wh=null,prodItems=[];
+  const forms=()=>{const c=mt.catalog;if(!c)return [];const m=c.materials.find(x=>(x.key||x.id)===X.mat);return c.forms.concat(m&&m.can_bale?[{form:'BALE',label:'Μπάλα',tare:null,asks_tare:true,has_code:true}]:[])};
+  const matOf=()=>mt.catalog.materials.find(m=>(m.key||m.id)===X.mat);
+  const fOf=()=>forms().find(f=>f.form===X.form);
+  const flat=()=>{const r=[];(matHist||[]).forEach(d=>d.items.forEach(x=>r.push(x)));return r};
+  const todayIso=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+  // ---------- λίστα ----------
+  function listHtml(){
+    const days=matHist||[],td=todayIso(),tot=(days.find(d=>d.date===td)||{items:[]}).items.reduce((a,x)=>a+x.net_kg,0);
+    const rows=days.flatMap(d=>d.items.map(x=>({x,today:d.date===td})));
+    const body=rows.length?rows.map(({x,today})=>`<button type="button" class="p49h" data-a="hist" data-id="${x.id}"><div><b>${esc(x.material)}</b><small>${esc(x.form_label+(x.medium_code?' · '+x.medium_code:''))}</small><small>${today?'':esc(String(x.date||'').slice(0,5))+' '}${esc(x.time)}${x.gross_kg?' · <b>Μικτό '+kgf(x.gross_kg)+' kg</b>':''}</small></div><div class="r">${kgf(x.net_kg)} kg<i>›</i></div></button>`).join(''):'<div class="p49e">Καμία εξαγωγή.</div>';
+    return `<div class="p49c"><h4>Εξαγωγές προς αποθήκη<span>${tot?kgf(tot)+' kg':''}</span></h4>${body}</div><button type="button" class="p49n" data-a="new">+ Νέα Εξαγωγή</button>`}
+  function paintList(){const box=$$('matArea');if(!box)return;box.innerHTML='<div id="p49x">'+listHtml()+'</div>';let t=$$('p49Toast');if(toast){if(!t){t=document.createElement('div');t.id='p49Toast';t.className='p49t';document.body.appendChild(t)}t.textContent=toast}else if(t)t.remove()}
+  // ---------- popup ----------
+  const hd=(bk,t,em)=>`<div class="ttl"><button type="button" class="bk" data-a="${bk}">‹ Πίσω</button><div><b>${t}</b>${em?'<em>'+em+'</em>':''}</div></div>`;
+  function step1(){const c=mt.catalog;return hd('close','Εξαγωγή')+`<div class="bd"><div class="lb">Κατηγορίες υλικών</div><div class="g2">${c.categories.map(k=>`<button type="button" class="btn tile" data-a="cat" data-id="${k.id}"><b>${esc(k.name)}</b><small>${k.count} υλικά</small></button>`).join('')||'<div class="lb">Δεν υπάρχουν κατηγορίες αποθήκης.</div>'}</div></div>`}
+  const whKg=m=>{if(!wh||m.sub)return null;const r=wh[m.id];return r==null?null:r};
+  function step2(){const c=mt.catalog,l=c.materials.filter(m=>m.category_id===X.cat&&!m.group_active);
+    return hd('back','Εξαγωγή')+`<div class="bd"><div class="ml">${l.map(m=>{const k=whKg(m);return `<button type="button" class="btn mr" data-a="mat" data-k="${esc(m.key||m.id)}"><b>${esc(m.name)}</b>${k!=null?'<span>'+kgf(k)+' kg</span>':''}</button>`}).join('')||'<div class="lb">Κανένα υλικό.</div>'}</div>`+'</div>'}
+  function calc(){const g=num(X.val),f=fOf();let t=0;if(f){t=f.asks_tare?num(X.tare):(f.tare||0)}
+    const bulk=X.form==='BULK',net=bulk?g:(X.mode==='g'?g-t:g);
+    const tareOk=!f||!f.asks_tare||X.tare!=='';
+    return {g,t,net,ok:!!f&&g>0&&net>0&&tareOk&&!X.busy,bad:!bulk&&X.mode==='g'&&g>0&&net<=0,bulk}}
+  function step3(){const m=matOf(),f=fOf(),c=calc(),fs=forms(),pr=(X.edit?[]:prodItems),H=pr.length?38:46;
+    const code=f&&f.form!=='BULK'?(X.edit?(X.edit.medium_code||''):(mt.nextCode||'')):'';
+    const em=f?esc(f.label)+(code?' · '+esc(code):''):'';
+    const bulk=X.form==='BULK',pal=!!f&&!!f.asks_tare;
+    const fld=(key,lab,val,act,bad)=>`<div class="fld${bad?' bad':(act?' act':'')}" data-a="fld" data-f="${key}" style="height:${H}px"><span>${lab}</span><b>${val?esc(String(val)):''}${act&&!bad&&f?'<u></u>':''} <small>kg</small></b></div>`;
+    const wl=bulk?'Κιλά':(X.mode==='g'?'Μικτό':'Καθαρό');
+    let fields=fld('w',wl,X.val,pal?X.f==='w':true,c.bad);
+    if(pal)fields=fld('t','Απόβαρο',X.tare,X.f==='t',false)+fields;
+    const body=(pr.length?`<div class="lb" style="margin:0">Μέσα με υλικό από την παραγωγή</div>`+pr.map(p=>`<button type="button" class="btn tile" data-a="pmed" data-id="${p.item_id}" style="height:${H}px;padding:2px 8px"><b>${esc(p.medium)}${p.medium_code?' · '+esc(p.medium_code):''} · ${kgf(p.kg)} kg</b><small>${esc(p.department)}</small></button>`).join(''):'')
+     +`<div class="mdg" style="grid-template-columns:repeat(${fs.length},1fr)">${fs.map(x=>`<button type="button" class="btn md${x.form===X.form?' sel':''}" data-a="form" data-f="${x.form}" style="height:${H}px"${X.edit&&x.form!==X.form?' disabled':''}>${esc(x.label)}</button>`).join('')}</div>`
+     +(bulk?'':`<div class="mdg" style="grid-template-columns:1fr 1fr"><button type="button" class="btn md${X.mode==='g'?' sel':''}" data-a="mode" data-m="g" style="height:${H}px">Μικτό</button><button type="button" class="btn md${X.mode==='n'?' sel':''}" data-a="mode" data-m="n" style="height:${H}px">Καθαρό</button></div>`)
+     +`<div class="fz">${fields}</div><div class="inf">${c.bad?'<span class="er">Το μικτό βάρος δεν ξεπερνά το απόβαρο.</span>':(X.err?'<span class="er">'+esc(X.err)+'</span>':'')}</div>`
+     +`<div class="kg" style="grid-template-rows:repeat(4,${H}px)">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" class="btn" data-a="key" data-k="${k}">${k}</button>`).join('')}</div>`
+     ;
+    const acts=`<div class="acts" style="height:${H}px"><button type="button" class="aw btn" data-a="close" style="color:#A52A22">Άκυρο</button><button type="button" class="a3" data-a="go"${c.ok?'':' disabled'}>${X.edit?'Αλλαγή':'Εξαγωγή'}</button></div>`;
+    return hd(X.edit?'close':'back','Εξαγωγή '+esc(m?m.name:''),em)+`<div class="bd" style="gap:9px">${body}</div>`+acts}
+  function viewPop(){const x=X.view;return hd('close','Εξαγωγή '+esc(x.material))+`<div class="bd"><div class="kv"><span>Υλικό</span><b>${esc(x.material)}</b></div><div class="kv"><span>Μέσο</span><b>${esc(x.form_label+(x.medium_code?' · '+x.medium_code:''))}</b></div>${x.gross_kg?`<div class="kv"><span>Μικτό βάρος</span><b>${kgf(x.gross_kg)} kg</b></div>`:''}<div class="kv"><span>Καθαρό υλικό</span><b>${kgf(x.net_kg)} kg</b></div>${x.locked?`<div class="emsg">${esc(x.locked)}</div>`:''}${X.err?`<div class="emsg">${esc(X.err)}</div>`:''}${x.locked?'':`<div class="acts" style="height:50px;margin-top:4px"><button type="button" class="aw btn" data-a="edt" style="color:#14222B">Επεξεργασία</button><button type="button" class="a2" data-a="del"${X.busy?' disabled':''}>Διαγραφή</button></div>`}</div>`}
+  function paintPop(){
+    if(!X){ov.hidden=true;return}
+    try{document.documentElement.style.setProperty('--b39Top',Math.round(document.querySelector('#app .topDark').getBoundingClientRect().bottom)+'px')}catch(_){}
+    const bd=ov.querySelector('.bd'),key=X.step+'|'+(X.view?X.view.id:'')+(X.edit?'e':''),top=bd&&X.lk===key?bd.scrollTop:0;X.lk=key;
+    ov.innerHTML=`<div class="mo${X.step===9?' auto':''}">${X.step===1?step1():X.step===2?step2():X.step===3?step3():viewPop()}</div>`;ov.hidden=false;
+    const n=ov.querySelector('.bd');if(n&&top)n.scrollTop=top}
+  function paint(){paintList();paintPop()}
+  async function loadWh(){try{const d=await api('/mat/warehouse-grouped?include_inventory=false');wh={};d.categories.forEach(c=>c.materials.forEach(m=>{wh[m.material_id]=(wh[m.material_id]||0)+Number(m.total_kg||0)}))}catch(e){wh=null}}
+  async function enterMat(k){X.mat=k;X.form=null;X.val='';X.tare='';X.mode='g';X.f='w';X.err='';X.step=3;prodItems=[];mt.nextCode=null;paintPop();
+    const m=matOf();if(m&&!m.sub){try{prodItems=await api('/mat/production-media?material_id='+encodeURIComponent(m.id))}catch(e){prodItems=[]}}
+    if(X&&X.mat===k)paintPop()}
+  async function pickForm(form){X.form=form;X.err='';if(form==='BULK')X.tare='';
+    mt.nextCode=null;paintPop();
+    if(form!=='BULK'){try{const m=matOf();const r=await api('/mat/next-code?form='+(form==='BALE'?'PALLET':form)+(form==='BALE'?'&bale=1':'')+(m?'&material_id='+encodeURIComponent(m.id):''));if(X&&X.form===form&&!X.edit){mt.nextCode=r.code;paintPop()}}catch(e){}}}
+  async function reloadAll(){try{await mtLoadCatalog()}catch(e){}try{matHist=await api('/mat/exports?days=60')}catch(e){}paint()}
+  function key(k){const f=X.f==='t'?'tare':'val';let v=String(X[f]||'');if(k==='C')v='';else if(k==='⌫')v=v.slice(0,-1);else if(v.length<7&&!(v==='0'&&k==='0'))v=(v+k).replace(/^0+(?=\d)/,'');X[f]=v}
+  async function send(){const c=calc();if(!c.ok)return;X.busy=true;X.err='';paintPop();
+    try{const f=fOf(),m=matOf();let body;
+      if(X.edit){const e=X.edit;
+        if(f.form==='BULK')body={net:c.g};else{body={gross:X.mode==='g'?c.g:c.g+c.t};if(f.asks_tare)body.tare=c.t}
+        await api('/mat/exports/'+e.id,{method:'PUT',body:JSON.stringify(body)});
+        toast=''}
+      else{
+        if(f.form==='BULK')body={material_id:m.id,form:'BULK',net:c.g};
+        else{body={material_id:m.id,form:f.form==='BALE'?'PALLET':f.form,gross:X.mode==='g'?c.g:c.g+c.t};if(f.asks_tare)body.tare=c.t;if(f.form==='BALE')body.is_bale=true}
+        if(m.sub)body.sub_label=m.sub;
+        const d=moveDate();if(d)body.date=d;
+        if(X.fromProd)body.production_item_id=X.fromProd;
+        await api('/mat/export',{method:'POST',body:JSON.stringify(body)});
+        toast='Το υλικό μπήκε στην αποθήκη';setTimeout(()=>{toast='';paintList()},2500)}
+      X=null;await reloadAll()}
+    catch(e){X.busy=false;X.err=e.message||String(e);paintPop()}}
+  function startEdit(x){const f0=x.is_bale?'BALE':x.form;
+    X={step:3,edit:x,mat:(mt.catalog.materials.find(m=>m.id===x.material_id&&((m.sub||null)===(x.sub_label||null)))||{}).key||x.material_id,form:f0,mode:x.gross_kg?'g':'n',val:String(x.gross_kg!=null?x.gross_kg:x.net_kg),tare:(x.form==='PALLET')?String(x.tare_kg!=null?x.tare_kg:0):'',f:'w',err:'',busy:false};
+    paintPop()}
+  document.addEventListener('click',async ev=>{
+    const t=ev.target.closest&&ev.target.closest('#p49x [data-a],#p49Ov [data-a]');if(!t)return;const a=t.dataset.a;
+    if(a==='new'){X={step:1,mode:'g',val:'',tare:'',f:'w',err:'',busy:false};wh=null;paintPop();loadWh().then(()=>{if(X&&X.step===2)paintPop()});return}
+    if(a==='hist'){const x=flat().find(i=>i.id===t.dataset.id);if(!x)return;X={step:9,view:x,err:'',busy:false};paintPop();return}
+    if(!X)return;
+    if(a==='close'){X=null;paintPop();return}
+    else if(a==='cat'){X.cat=t.dataset.id;X.step=2}
+    else if(a==='back'){if(X.step===3){X.step=2;X.form=null;X.val='';prodItems=[]}else if(X.step===2)X.step=1;else{X=null}}
+    else if(a==='mat'){await enterMat(t.dataset.k);return}
+    else if(a==='form'){if(X.edit)return;X.fromProd=null;await pickForm(t.dataset.f);return}
+    else if(a==='pmed'){const p=prodItems.find(i=>i.item_id===t.dataset.id);if(!p)return;X.tare='';await pickForm(p.form);X.val=String(p.kg);X.mode='n';X.f='w';X.fromProd=p.item_id;paintPop();return}
+    else if(a==='mode'){X.mode=t.dataset.m;X.f='w'}
+    else if(a==='fld'){const f=fOf();if(f&&f.asks_tare)X.f=t.dataset.f}
+    else if(a==='key'){if(!X.form)return;key(t.dataset.k)}
+    else if(a==='go'){await send();return}
+    else if(a==='edt'){startEdit(X.view);return}
+    else if(a==='del'){const x=X.view;X.busy=true;X.err='';paintPop();
+      try{await api('/mat/exports/'+x.id,{method:'DELETE'});X=null;toast='Η εξαγωγή διαγράφηκε · τα κιλά αφαιρέθηκαν από την αποθήκη';setTimeout(()=>{toast='';paintList()},3000);await reloadAll()}
+      catch(e){X.busy=false;X.err=e.message||String(e);paintPop()}return}
+    paintPop()});
+  // ---------- σύνδεση με τον υπάρχοντα κώδικα Υλικών ----------
+  const _mtRender=mtRender,_rmh=renderMatHist;
+  mtRender=function(){if(mt.tab==='export'&&!mt.countNew){document.querySelectorAll('.matStart').forEach(x=>x.classList.toggle('on',x.dataset.m===mt.tab));if(mt.catalog)paintList();return}X=null;paintPop();let t=$$('p49Toast');if(t)t.remove();return _mtRender.apply(this,arguments)};
+  renderMatHist=function(){if(mt.tab==='export'&&!mt.countNew){if(mt.catalog)paintList();return}return _rmh.apply(this,arguments)};
+  {const _th=tabHome;tabHome=function(n){X=null;paintPop();return _th.apply(this,arguments)}}
+  document.addEventListener('click',e=>{if(!e.target.closest('#b4Back')||!X)return;e.stopImmediatePropagation();e.preventDefault();X=null;paintPop()},true);
+  {const b4=$$('b4Back'),fix=()=>{if(X&&b4&&b4.disabled)b4.disabled=false};if(b4)new MutationObserver(fix).observe(b4,{attributes:true,attributeFilter:['disabled']});setInterval(fix,150)}
+})();
+(function(){
+  /* B49: κίνηση Παραλαβών → ΠΡΩΤΑ popup (Υλικό, Μέσο, Απόβαρο, Καθαρό υλικό, Επεξεργασία, Διαγραφή) */
+  const $$=id=>document.getElementById(id),fmt=n=>Math.round(Number(n)||0).toLocaleString('el-GR');
+  const ov=document.createElement('div');ov.id='p49Ev';ov.hidden=true;document.body.appendChild(ov);
+  let E=null;
+  function paint(){if(!E){ov.hidden=true;return}
+    const e=E.e,c=cats.find(x=>x.id===e.weee_category_id),m=media.find(x=>x.id===e.collection_medium_id),tare=enTare(e,m);
+    let med=enMedium(e,m);if(e.piece_count)med+=' · '+e.piece_count+' τεμ.';
+    try{document.documentElement.style.setProperty('--b39Top',Math.round(document.querySelector('#app .topDark').getBoundingClientRect().bottom)+'px')}catch(_){}
+    ov.innerHTML=`<div class="mo auto"><div class="ttl"><button type="button" class="bk" data-v="close">‹ Πίσω</button><div><b>${esc(dname(c))}</b></div></div><div class="bd"><div class="kv"><span>Υλικό</span><b>${esc(dname(c))}</b></div><div class="kv"><span>Μέσο</span><b>${esc(med)}</b></div>${tare>0?`<div class="kv"><span>Απόβαρο</span><b>${fmt(tare)} kg</b></div>`:''}<div class="kv"><span>Καθαρό υλικό</span><b>${fmt(enNet(e))} kg</b></div>${E.err?`<div class="emsg">${esc(E.err)}</div>`:''}<div class="acts" style="height:50px;margin-top:4px"><button type="button" class="aw btn" data-v="edit">Επεξεργασία</button><button type="button" class="a2" data-v="del"${E.busy?' disabled':''}>Διαγραφή</button></div></div></div>`;ov.hidden=false}
+  openEnSheet=function(id,entries){const e=entries.find(x=>x.id===id);if(!e)return;E={e,entries,err:'',busy:false};paint()};
+  ov.addEventListener('click',async ev=>{const b=ev.target.closest('[data-v]');if(!b||!E)return;const a=b.dataset.v;
+    if(a==='close'){E=null;paint()}
+    else if(a==='edit'){const {e,entries}=E;E=null;paint();editEntry(e.id,entries)}
+    else if(a==='del'){E.busy=true;E.err='';paint();
+      try{await api('/sorting/entries/'+E.e.id,{method:'DELETE'});E=null;paint();try{await reloadMasters()}catch(_r){}try{await refresh()}catch(e2){$$('work').classList.add('hidden');$$('loads').classList.remove('hidden');cur=null;await loadLoads()}}
+      catch(err){E.busy=false;E.err=err.message||String(err);paint()}}});
+  document.addEventListener('click',e=>{if(!E||!e.target.closest('#b4Back'))return;e.stopImmediatePropagation();e.preventDefault();E=null;paint()},true);
+  {const b4=$$('b4Back'),fix=()=>{if(E&&b4&&b4.disabled)b4.disabled=false};if(b4)new MutationObserver(fix).observe(b4,{attributes:true,attributeFilter:['disabled']});setInterval(fix,150)}
+})();
+</script>
+<script id="b49fitJs">
+(function(){
+  /* B49: οι τίτλοι των παραθύρων χωράνε σε μία γραμμή (μικραίνει το μέγεθος γραμμάτων όσο χρειάζεται) */
+  const SEL='#p49Ov .ttl b,#p49Ov .ttl em,#p49Ev .ttl b,#p42Mat .p39tt b,#b30Form .p39tt b,#b30Form .p39tt em,#b30Sh .p39tt b,#b30Sh .p39tt em,#p45Ov .p39tt b';
+  let q=0;
+  const fit=()=>{q=0;document.querySelectorAll(SEL).forEach(el=>{el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize)||16;while(el.scrollWidth>el.clientWidth+1&&fs>12){fs-=.5;el.style.fontSize=fs+'px'}})};
+  const sched=()=>{if(!q)q=requestAnimationFrame(fit)};
+  ['p49Ov','p49Ev','p42Mat','b30Form','b30Sh','p45Ov'].forEach(id=>{const e=document.getElementById(id);if(e)new MutationObserver(sched).observe(e,{childList:true,subtree:true,characterData:true})});
+  window.addEventListener('resize',sched);
 })();
 </script>
 </body></html>
