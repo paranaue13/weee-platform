@@ -231,6 +231,9 @@ async def lifespan(app: FastAPI):
             pe2 = {c["name"] for c in inspect(engine).get_columns("production_attendance_events")}
             if "unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN unit_ids TEXT"))
             if "prev_unit_ids" not in pe2: conn.execute(text("ALTER TABLE production_attendance_events ADD COLUMN prev_unit_ids TEXT"))
+        if "employees" in tables:
+            em_cols={c["name"] for c in inspect(engine).get_columns("employees")}
+            if "position" not in em_cols: conn.execute(text("ALTER TABLE employees ADD COLUMN position VARCHAR(150)"))
         if "production_placement_intervals" in tables:
             pi_cols = {c["name"] for c in inspect(engine).get_columns("production_placement_intervals")}
             if "org_unit_ids" not in pi_cols: conn.execute(text("ALTER TABLE production_placement_intervals ADD COLUMN org_unit_ids TEXT"))
@@ -1572,11 +1575,20 @@ def _reconcile_unit_sets(db:Session):
         _apply_unit_set(db,emp,[last]+[i for i in ids if i!=emp.default_org_unit_id and i!=last])
     db.add(AppSetting(key=key,value="1")); db.commit()
 
+def _set_emp_position(db,emp,pos):
+    """Η θέση πρέπει να ανήκει σε ένα από τα τμήματα του εργαζομένου, αλλιώς καθαρίζει."""
+    pos=(pos or "").strip() or None
+    if pos:
+        ids=_emp_unit_ids(db,emp)
+        ok=db.scalar(select(OrgUnitPosition.id).where(OrgUnitPosition.org_unit_id.in_(ids or [""]),OrgUnitPosition.name==pos,OrgUnitPosition.active==True))
+        if not ok: pos=None
+    emp.position=pos
+
 def _employee_public(db:Session,e:Employee,p:Person):
     ids=[r[0] for r in db.execute(select(employee_org_units.c.org_unit_id).where(employee_org_units.c.employee_id==e.id)).all()]
     units=db.scalars(select(OrganizationalUnit).where(OrganizationalUnit.id.in_(ids))).all() if ids else []
     names=[u.name_el for u in sorted(units,key=lambda u:u.name_el)]
-    return {"id":e.id,"employee_code":e.employee_code,"full_name":((p.first_name+" "+p.last_name).strip()),"phone":p.phone,"default_org_unit_id":e.default_org_unit_id,"org_unit_ids":ids,"org_unit_names":names,"active":bool(e.active and p.active)}
+    return {"id":e.id,"employee_code":e.employee_code,"full_name":((p.first_name+" "+p.last_name).strip()),"phone":p.phone,"default_org_unit_id":e.default_org_unit_id,"org_unit_ids":ids,"org_unit_names":names,"position":e.position,"active":bool(e.active and p.active)}
 
 def _log_placement_interval(db:Session,employee_id:str,new_org_unit_id:str|None,at:datetime|None=None,unit_ids:list[str]|None=None):
     """Closes any open placement interval for this employee today and opens a new one for
@@ -1621,7 +1633,7 @@ def create_employee(data:schemas.EmployeeCreate, db:Session=Depends(get_db), use
     next_no=(db.scalar(select(text('count(*)')).select_from(Employee)) or 0)+1; code=f"EMP-{next_no:04d}"
     while db.scalar(select(Employee).where(Employee.employee_code==code)): next_no+=1; code=f"EMP-{next_no:04d}"
     emp=Employee(person_id=person.id,employee_code=code); db.add(emp); db.flush()
-    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids)
+    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids); _set_emp_position(db,emp,data.position)
     write_audit(db,user,"employee",emp.id,"CREATE",new=data.model_dump())
     db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)
@@ -1633,7 +1645,7 @@ def update_employee(employee_id:str,data:schemas.EmployeeCreate,db:Session=Depen
     person=db.get(Person,emp.person_id)
     old={"full_name":(person.first_name+" "+person.last_name).strip(),"phone":person.phone,"default_org_unit_id":emp.default_org_unit_id,"org_unit_ids":[r[0] for r in db.execute(select(employee_org_units.c.org_unit_id).where(employee_org_units.c.employee_id==emp.id)).all()]}
     full=data.full_name.strip(); parts=full.split(None,1); person.first_name=parts[0] if parts else full; person.last_name=parts[1] if len(parts)>1 else ""; person.phone=data.phone
-    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids)
+    ids=data.org_unit_ids or ([data.default_org_unit_id] if data.default_org_unit_id else []); _replace_employee_units(db,emp,ids); _set_emp_position(db,emp,data.position)
     write_audit(db,user,"employee",emp.id,"UPDATE",old=old,new=data.model_dump())
     db.commit(); db.refresh(emp)
     return _employee_public(db,emp,person)

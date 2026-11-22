@@ -62,6 +62,7 @@ class Employee(Base, TimestampMixin):
     person_id: Mapped[str] = mapped_column(String(36), ForeignKey("people.id"), unique=True)
     employee_code: Mapped[str] = mapped_column(String(50), unique=True)
     default_org_unit_id: Mapped[str|None] = mapped_column(String(36), ForeignKey("organizational_units.id"), nullable=True)
+    position: Mapped[str|None] = mapped_column(String(150), nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 

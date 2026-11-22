@@ -31,6 +31,7 @@ class EmployeeCreate(BaseModel):
     phone: str|None = None
     default_org_unit_id: str|None = None  # compatibility with older clients
     org_unit_ids: list[str] = []
+    position: str|None = None
 
 class EmployeeOut(EmployeeCreate):
     id: str
