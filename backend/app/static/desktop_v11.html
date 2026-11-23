@@ -14637,15 +14637,19 @@ html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pin
 html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 </style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
-<style id="b58Edge">html::before{content:'';position:fixed;top:0;right:0;width:20px;height:var(--b58H,0px);background:var(--b58Bg,transparent);border-bottom:1px solid var(--b58Ln,transparent);box-sizing:border-box;pointer-events:none;z-index:0}
-html::after{content:'';position:fixed;bottom:0;right:0;width:20px;height:var(--b58Hb,0px);background:var(--b58Bgb,transparent);border-top:1px solid var(--b58Lnb,transparent);box-sizing:border-box;pointer-events:none;z-index:0}</style>
+<style id="b58Edge">html{background-image:var(--b58G,none);background-attachment:fixed;background-size:100% 100%;background-repeat:no-repeat}</style>
 <script id="b58Js">
-/* B58: η επάνω μπάρα φτάνει ως το δεξί άκρο της σελίδας (η δεσμευμένη θέση της μπάρας scroll δεν μένει κενή) */
-(function(){const R=document.documentElement;function syncB(){const z=document.getElementById('zoomBar');if(!z){R.style.setProperty('--b58Hb','0px');return}const c=getComputedStyle(z),r=z.getBoundingClientRect();if(r.width<50||r.bottom<innerHeight-2){R.style.setProperty('--b58Hb','0px');return}R.style.setProperty('--b58Hb',Math.round(innerHeight-r.top)+'px');R.style.setProperty('--b58Bgb',c.backgroundColor);R.style.setProperty('--b58Lnb',c.borderTopColor)}
-  function sync(){syncB();const t=document.querySelector('.topbar');if(!t){R.style.setProperty('--b58H','0px');return}
-  const c=getComputedStyle(t),r=t.getBoundingClientRect();if(r.width<50||r.top>2){R.style.setProperty('--b58H','0px');return}
-  R.style.setProperty('--b58H',Math.round(r.bottom)+'px');R.style.setProperty('--b58Bg',c.backgroundColor);R.style.setProperty('--b58Ln',c.borderBottomColor)}
-  new MutationObserver(sync).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class','data-theme','hidden']});
-  window.addEventListener('resize',sync);setInterval(sync,1000);sync()})();
+/* B58/B59: η δεσμευμένη θέση της μπάρας scroll (δεξιά άκρη) παίρνει τα χρώματα του περιεχομένου δίπλα της, ώστε οι μπάρες/παράθυρα να φτάνουν ως την άκρη */
+(function(){const R=document.documentElement;let tm=0,last='';
+  function col(e){while(e&&e!==document.documentElement){const c=getComputedStyle(e).backgroundColor,m=c.match(/[\d.]+/g);if(m&&m.length>=3&&(m.length<4||+m[3]>=.9))return 'rgb('+m[0]+','+m[1]+','+m[2]+')';e=e.parentElement}return null}
+  function sync(){const x=Math.floor(Math.min(innerWidth,R.getBoundingClientRect().width))-3,H=innerHeight;if(x<10){return}
+    const st=[];let cur=null,from=0;
+    for(let y=0;y<=H;y+=2){const c=y<H?col(document.elementFromPoint(x,Math.min(y,H-1))):null;if(c!==cur){if(cur!==null)st.push([cur,from,y]);cur=c;from=y}}
+    if(cur!==null)st.push([cur,from,H]);
+    const g=st.length?'linear-gradient(to bottom,'+st.map(a=>a[0]+' '+a[1]+'px,'+a[0]+' '+a[2]+'px').join(',')+')':'none';
+    if(g!==last){last=g;R.style.setProperty('--b58G',g)}}
+  function later(){clearTimeout(tm);tm=setTimeout(sync,120)}
+  new MutationObserver(later).observe(document.body,{attributes:true,subtree:true,childList:true,attributeFilter:['class','data-theme','hidden','style']});
+  window.addEventListener('resize',later);setInterval(sync,2000);sync()})();
 </script>
 </body></html>
