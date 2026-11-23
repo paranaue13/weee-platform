@@ -1303,11 +1303,11 @@ function openEnSheet(id,entries){
   };
 }
 (function(){let d=document.createElement('div');d.id='enSheet';d.className='hidden';d.innerHTML='<div class="shBack"></div><div class="shPanel"><div class="shGrab"></div><div id="enSheetBody"></div></div>';document.body.appendChild(d);d.querySelector('.shBack').onclick=closeEnSheet})();
-async function refresh(){let s=await api('/sorting/'+cur.id);$('sum').textContent=kgR(s.sorting_weight)+' kg';sortProgress(s);flEntryCats=[...new Set(s.entries.slice().sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at))).map(e=>e.weee_category_id))];renderQuick();api('/sorting/'+cur.id+'/frequent?limit=6').then(r=>{flFreq=r.map(x=>x.id);renderQuick()}).catch(()=>{});api('/sorting/'+cur.id+'/photos').then(paintPhotos).catch(()=>{});$('sumWrap').classList.toggle('noGo',s.status!=='IN_PROGRESS');$('entries').innerHTML=s.entries.map(e=>{let c=cats.find(x=>x.id===e.weee_category_id),m=media.find(x=>x.id===e.collection_medium_id);let op=s.status==='IN_PROGRESS';return `<div class="entry enItem"${op?` data-open="${e.id}" role="button"`:''}><div class="enL"><b class="enT">${esc(dname(c))}</b><div class="enM">${esc(enMedium(e,m))}${e.piece_count?' · '+e.piece_count+' τεμ.':''}</div>${enTare(e,m)>0?`<div class="enTare">Απόβαρο ${kgR(enTare(e,m))} kg</div>`:''}</div><b class="enKg">${kgR(enNet(e))} kg</b>${op?'<i class="enGo">›</i>':''}</div>`}).join('')||'<div class="muted">Καμία καταχώρηση.</div>';document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openEnSheet(b.dataset.open,s.entries));{const cb=$('confirm'),done=s.status!=='IN_PROGRESS';cb.disabled=done;cb.textContent=done?'ΕΧΕΙ ΥΠΟΒΛΗΘΕΙ':'Ολοκλήρωση Ταξινόμησης';cb.classList.toggle('danger',done);cb.classList.toggle('good',!done);const nb=$('p42New');if(nb)nb.disabled=done}}function editEntry(id,entries){let e=entries.find(x=>x.id===id);cat=cats.find(x=>x.id===e.weee_category_id);editing=id;$('entryTitle').textContent='Edit · '+dname(cat);$('medium').value=e.collection_medium_id||'';$('weight').value=Number(e.raw_weight)?fmtKgIn(roundInt(e.raw_weight)):'';$('wRound').textContent='';$('pieces').value=e.piece_count||'';clearBad();$('entryMsg').textContent='';$('avgHint').textContent='';$('mediumNumberStep').classList.add('hidden');$('weighStep').classList.remove('hidden');$('modeScale').classList.add('hidden');setMode('MEDIUM');$('suggestions').innerHTML='';$('entry').classList.remove('hidden');$('entry').scrollIntoView({behavior:'smooth'})}
+async function refresh(){let s=await api('/sorting/'+cur.id);$('sum').textContent=kgR(s.sorting_weight)+' kg';sortProgress(s);flEntryCats=[...new Set(s.entries.slice().sort((x,y)=>String(y.created_at).localeCompare(String(x.created_at))).map(e=>e.weee_category_id))];renderQuick();api('/sorting/'+cur.id+'/frequent?limit=6').then(r=>{flFreq=r.map(x=>x.id);renderQuick()}).catch(()=>{});api('/sorting/'+cur.id+'/photos').then(paintPhotos).catch(()=>{});$('sumWrap').classList.toggle('noGo',s.status!=='IN_PROGRESS');$('entries').innerHTML=s.entries.map(e=>{let c=cats.find(x=>x.id===e.weee_category_id),m=media.find(x=>x.id===e.collection_medium_id);let op=s.status==='IN_PROGRESS';return `<div class="entry enItem"${op?` data-open="${e.id}" role="button"`:''}><div class="enL"><b class="enT">${esc(dname(c))}</b><div class="enM">${esc(enMedium(e,m))}${e.piece_count?' · '+e.piece_count+' τεμ.':''}${m&&m.is_closed?` · <span class="enFull">${/^Παλέτα/.test(e.medium_type||(types.find(x=>x.id===m.type_id)||{}).name_el||'')?'Γεμάτη':/^Σάκος/.test(e.medium_type||(types.find(x=>x.id===m.type_id)||{}).name_el||'')?'Γεμάτος':'Γεμάτο'}</span>`:''}</div>${enTare(e,m)>0?`<div class="enTare">Απόβαρο ${kgR(enTare(e,m))} kg</div>`:''}</div><b class="enKg">${kgR(enNet(e))} kg</b>${op?'<i class="enGo">›</i>':''}</div>`}).join('')||'<div class="muted">Καμία καταχώρηση.</div>';document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openEnSheet(b.dataset.open,s.entries));{const cb=$('confirm'),done=s.status!=='IN_PROGRESS';cb.disabled=done;cb.textContent=done?'ΕΧΕΙ ΥΠΟΒΛΗΘΕΙ':'Ολοκλήρωση Ταξινόμησης';cb.classList.toggle('danger',done);cb.classList.toggle('good',!done);const nb=$('p42New');if(nb)nb.disabled=done}}function editEntry(id,entries){let e=entries.find(x=>x.id===id);cat=cats.find(x=>x.id===e.weee_category_id);editing=id;$('entryTitle').textContent='Edit · '+dname(cat);$('medium').value=e.collection_medium_id||'';$('weight').value=Number(e.raw_weight)?fmtKgIn(roundInt(e.raw_weight)):'';$('wRound').textContent='';$('pieces').value=e.piece_count||'';clearBad();$('entryMsg').textContent='';$('avgHint').textContent='';$('mediumNumberStep').classList.add('hidden');$('weighStep').classList.remove('hidden');$('modeScale').classList.add('hidden');setMode('MEDIUM');$('suggestions').innerHTML='';$('entry').classList.remove('hidden');$('entry').scrollIntoView({behavior:'smooth'})}
 let ctrl={};
 async function loadCtrl(){try{ctrl=await api('/sorting/'+cur.id+'/metadata');paintFlags();$('ctrlMsg').textContent='';$('photoMsg').textContent=''}catch(e){$('ctrlMsg').className='error';$('ctrlMsg').textContent=e.message}}
 function paintFlags(){document.querySelectorAll('[data-flag]').forEach(b=>b.classList.toggle('on',!!ctrl[b.dataset.flag]));ctrlSumPaint()}
-let phCount=0;function ctrlSumPaint(){let n=document.querySelectorAll('[data-flag].on').length;if($('ctrlSum'))$('ctrlSum').textContent=' · '+(n?n+(n===1?' Επιλογή':' Επιλογές'):'Καμία Επιλογή')+', '+phCount+' Φωτογραφίες'}
+let phCount=0;function ctrlSumPaint(){let n=document.querySelectorAll('[data-flag].on').length;if($('ctrlSum'))$('ctrlSum').textContent=' · '+(n?n+(n===1?' Επιλογή':' Επιλογές'):'Καμία Επιλογή')+', '+phCount+(phCount===1?' Φωτογραφία':' Φωτογραφίες')}
 async function saveCtrl(){await api('/sorting/'+cur.id+'/metadata',{method:'PUT',body:JSON.stringify({foreign_materials:ctrl.foreign_materials||null,foreign_weight:Math.round(Number(ctrl.foreign_weight||0)),special_waste:ctrl.special_waste||null,special_waste_weight:Math.round(Number(ctrl.special_waste_weight||0)),load_pure:!!ctrl.load_pure,check_special:!!ctrl.check_special,check_kday:!!ctrl.check_kday,check_non_integer:!!ctrl.check_non_integer})})}
 document.querySelectorAll('[data-flag]').forEach(b=>b.onclick=async()=>{let k=b.dataset.flag,prev=!!ctrl[k];ctrl[k]=!prev;paintFlags();try{await saveCtrl();$('ctrlMsg').textContent=''}catch(e){ctrl[k]=prev;paintFlags();$('ctrlMsg').className='error';$('ctrlMsg').textContent=e.message}});
 $('ctrlToggle').onclick=()=>{let h=$('ctrlBody').classList.toggle('hidden');$('ctrlArrow').textContent=h?'▼':'▲'};
@@ -2579,7 +2579,7 @@ html{overflow-x:clip}
   const vis=e=>!!e&&!e.classList.contains('hidden')&&getComputedStyle(e).display!=='none';
   function want(){
     if(document.body.classList.contains('b4Deltio')||vis($('deltioPanel'))&&!vis($('prodTransferPanel')))return dlTabs;
-    if(currentSection==='production')return flowBar;
+    if(currentSection==='production')return $('p45Cal')||flowBar;
     if(currentSection==='materials')return matBar;
     if(currentSection==='receiving'&&!vis($('work'))&&document.querySelector('#loadList .b6Mon'))return mon;
     return null;
@@ -2589,7 +2589,7 @@ html{overflow-x:clip}
     const w=want();
     if(w===mon){const l=document.querySelector('#loadList .b6Mon .b6MonL');const t=l?l.textContent:'';const ml=mon.querySelector('.l');if(ml.textContent!==t)ml.textContent=t}
     if(w===shown)return;shown=w;
-    [flowBar,matBar,dlTabs,mon].forEach(x=>{if(x&&x.parentElement===strip)x.classList.add('b10Off')});
+    [flowBar,matBar,dlTabs,mon,$('p45Cal')].forEach(x=>{if(x&&x.parentElement===strip)x.classList.add('b10Off')});
     if(w){if(w.parentElement!==strip)strip.appendChild(w);w.classList.remove('b10Off')}
     strip.classList.toggle('empty',!w);
     if(w===mon)centerDay(days.querySelector('#b6Strip'));
@@ -3116,7 +3116,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     fill('b30dw',S.val?S.val+'<u>kg</u>':'',S.mode==='g'?'Ζυγαριά':S.mode==='n'?'Καθαρό':'Βάρος',S.fld==='w',true);
     const ok=$$('b30ok'),st=step();ok.textContent=st?'Επόμενο':(S.edit?'Αλλαγή':'Αποθήκευση');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
     $$('b30mg').setAttribute('aria-pressed',S.mode==='g');$$('b30mn').setAttribute('aria-pressed',S.mode==='n');
-    const cz=$$('b30cz');cz.style.visibility=S.pick.kind==='bulk'?'hidden':'';cz.setAttribute('aria-pressed',S.cls);cz.firstChild.textContent=ZN[t.name_el]||(isB(t)?'Καλάθι':t.name_el||'Μέσο');cz.lastChild.textContent=S.cls?'Γέμισε':'Με χώρο';
+    const cz=$$('b30cz');cz.style.visibility=S.pick.kind==='bulk'?'hidden':'';cz.setAttribute('aria-pressed',S.cls);cz.firstChild.textContent=ZN[t.name_el]||(isB(t)?'Καλάθι':t.name_el||'Μέσο');{const nm=cz.firstChild.textContent;cz.lastChild.textContent=S.cls?(/^Παλέτα/.test(nm)?'Γεμάτη':/^Σάκος/.test(nm)?'Γεμάτος':'Γεμάτο'):'Με χώρο'};
     {let f='',nv='—';
       if(!S.mode)f='Διάλεξε: Ένδειξη Ζυγαριάς Ή Καθαρό Βάρος';
       else if(isGross()){const tr=tareOf(),ins=insideOf();f='Ζυγαριά '+(S.val?fmt(S.val):'—')+(tr?' − Απόβαρο '+fmt(tr):'')+(ins?' − Ήδη Μέσα '+fmt(ins):'');if(S.val&&net()>0)nv=fmt(net())}
@@ -3737,6 +3737,7 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
   const fmt=n=>Math.round(Number(n)||0).toLocaleString('el-GR');
   const Q={day:iso(new Date()),month:iso(new Date()).slice(0,7),dep:null,mv:[],emp:[],hours:{},att:{},scr:'P',stk:[],P:null,busy:false,toast:'',loaded:false};
   const host=$$('p45');if(!host)return;
+  const cal=document.createElement('div');cal.id='p45Cal';cal.className='b10Rcv';{const st=$$('b10Tabs');if(st){cal.classList.add('b10Off');st.appendChild(cal)}}
   const ov=document.createElement('div');ov.id='p45Ov';ov.hidden=true;document.body.appendChild(ov);
   const units=()=>(typeof prodUnits!=='undefined'?prodUnits:[]).slice().sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
   const emps=()=>typeof prodEmps!=='undefined'?prodEmps:[];
@@ -3772,12 +3773,13 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
     const ids=Q.dep?[Q.dep]:units().map(u=>u.id);let day=0,g='';
     ids.forEach(d=>{const l=listOf(d);if(!l.length)return;const t=l.reduce((a,m)=>a+m.kg,0);day+=t;
       g+=`<div class="p45gh"><span>${esc(uName(d))}</span><b>${fmt(t)} kg</b></div><div class="p45ge"></div>`+l.map(m=>{const dn=done(m,l);
-        return `<div class="p45it" ${m.readonly?'':`data-a="hed" data-i="${m.entry_id}"`}><div><b>${esc(cName(m.category_id))}</b><small>${esc(mvTitle(m))} · ${m.carry_from?'από '+esc(m.carry_from):esc(hhmm(m.at))}${m.employee_id?' · <b class="who">'+esc(eName(m.employee_id))+'</b>':''}${dn&&!m.readonly?' · <em>✓ Ολοκληρώθηκε</em>'+(m.left?' · περίσσεψαν '+fmt(m.left)+' kg':''):''}</small></div><span>${fmt(m.kg)} kg${m.readonly?'':' <i class="cv">›</i>'}</span></div>`}).join('')});
+        return `<div class="p45it" ${m.readonly?'':`data-a="hed" data-i="${m.entry_id}"`}><div><b>${esc(cName(m.category_id))}</b><small>${esc(mvTitle(m))} · ${m.carry_from?'από '+esc(m.carry_from):esc(hhmm(m.at))}${m.employee_id?' · <b class="who">'+esc(eName(m.employee_id))+'</b>':''}${dn&&!m.readonly?' · <em>Ολοκληρώθηκε</em>'+(m.left?' · περίσσεψαν '+fmt(m.left)+' kg':''):''}</small></div><span>${fmt(m.kg)} kg${m.readonly?'':' <i class="cv">›</i>'}</span></div>`}).join('')});
     if(!g)g='<div class="p45it ro"><div><small>Καμία καταχώρηση.</small></div></div>';
     return `<div class="p45card"><h4>${Q.dep?'Σύνολο τμήματος':'Σύνολο ημέρας'}<span>${day?fmt(day)+' kg':''}</span></h4>${g}</div>`}
   function paint(){
     const [y,mo]=Q.month.split('-').map(Number);
-    host.innerHTML=`<div class="b6Mon"><button type="button" data-mon="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="b6MonL">${MN[mo-1]} ${y}</button><button type="button" data-mon="1" aria-label="Επόμενος μήνας">›</button></div><div class="b6Strip" id="p45Strip">${days()}</div>`+
+    cal.innerHTML=`<div class="b10Mon"><button type="button" data-mon="-1" aria-label="Προηγούμενος μήνας">‹</button><button type="button" class="l" data-c="1">${MN[mo-1]} ${y}</button><button type="button" data-mon="1" aria-label="Επόμενος μήνας">›</button></div><div class="b10Days"><div class="b6Strip" id="p45Strip">${days()}</div></div>`;
+    host.innerHTML=
       (Q.scr==='W'?`<div class="p45sc">${wscr()}`+(Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>':`<div class="p45sc"><div class="p39l">Τμήμα</div><div class="p45dg">${units().map(u=>`<button type="button" class="p45dp${u.id===Q.dep?' on':''}" data-a="dep" data-u="${u.id}">${esc(u.name_el||u.code)}</button>`).join('')}</div>`+
       `<button type="button" class="p45btn p45new" ${Q.dep?'data-a="new"':'disabled'}>+ Νέα Καταχώρηση</button><button type="button" class="p45btn p45sh" data-a="shift">Κλείσιμο βάρδιας</button>`+histHtml()+
       (Q.toast?`<div class="p45toast">${esc(Q.toast)}</div>`:'')+'</div>');
@@ -3955,8 +3957,8 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
     if(!ev.target.closest)return;
     const t=ev.target.closest('#p45 [data-a],#p45Ov [data-a]');
     if(t){act(t.dataset.a,t,ev);return}
-    const d=ev.target.closest('#p45 [data-d]');if(d){Q.day=d.dataset.d;Q.month=Q.day.slice(0,7);Q.P=null;loadDay();return}
-    const mo=ev.target.closest('#p45 [data-mon]');if(mo){const [y,m]=Q.month.split('-').map(Number),n=new Date(y,m-1+Number(mo.dataset.mon),1);Q.month=iso(n).slice(0,7);paint()}});
+    const d=ev.target.closest('#p45Cal [data-d]');if(d){Q.day=d.dataset.d;Q.month=Q.day.slice(0,7);Q.P=null;loadDay();return}
+    const mo=ev.target.closest('#p45Cal [data-mon]');if(mo){const [y,m]=Q.month.split('-').map(Number),n=new Date(y,m-1+Number(mo.dataset.mon),1);Q.month=iso(n).slice(0,7);paint()}});
   // ΠΙΣΩ της πάνω μπάρας: κλείνει όλο το popup της Παραγωγής
   document.addEventListener('click',e=>{if(!e.target.closest('#b4Back'))return;const sp=$$('secProduction')&&$$('secProduction').offsetParent;if(!ov.hidden){e.stopImmediatePropagation();e.preventDefault();Q.P=null;paintPop();return}if(Q.scr==='W'&&sp){e.stopImmediatePropagation();e.preventDefault();Q.scr='P';paint()}},true);
   {const b4=$$('b4Back'),fix=()=>{const sp=$$('secProduction');if(b4&&b4.disabled&&sp&&sp.offsetParent&&Q.scr==='W')b4.disabled=false};if(b4)new MutationObserver(fix).observe(b4,{attributes:true,attributeFilter:['disabled']});setInterval(fix,100)}
@@ -4221,6 +4223,20 @@ html body #app #ctrlCard .stampSw.on::after{left:27px}
 #p45Ov .p45g2.one{grid-template-columns:1fr}
 #p45Ov .p45tl.cur{border:2px solid #144A52;border-left-width:4px}
 #p45Ov .p45tl .tm{font-style:normal;color:#144A52;font-weight:700}
+</style>
+<style id="b56Css">
+/* B56: ημερολόγιο Παραγωγής όπως στις Παραλαβές (μέσα στη μπάρα #b10Tabs, πορτοκαλί γραμμή από κάτω) */
+#b10Tabs .b10Days #p45Strip{margin:8px 0 0!important;padding:0 0 2px!important;display:flex;gap:4px;overflow-x:auto}
+#b10Tabs #p45Strip button{flex:1 0 42px;height:52px;min-height:52px;margin:0;padding:0;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;font-weight:700}
+#b10Tabs #p45Strip button small{font-size:10px;font-weight:600}
+html body #app #b10Tabs #p45Strip button.sel{background-color:#144A52!important;background-image:linear-gradient(#18535B,#144A52)!important;border:1px solid #0F3A40!important;color:#fff!important}
+html body #app #b10Tabs #p45Strip button.sel small{color:#fff!important;opacity:.9}
+#p45Cal.b10Off{display:none!important}
+/* Παραλαβές: Στοιχεία Ελέγχου & Φωτογραφίες 16px όπως τα δύο κουμπιά */
+html body #app #ctrlCard .ctrlHead .chT,html body #app #ctrlCard .ctrlHead .chT b,html body #app #ctrlCard .ctrlHead .chT span,html body #app #ctrlCard .ctrlHead i{font-size:16px!important}
+/* «Γεμάτη» */
+html body #b30Sh .p39m .p39acts .tg[aria-pressed=true]{background:#DA6F01!important;border-color:#B25A00!important;color:#fff!important}
+.enM .enFull{color:#DA6F01;font-weight:700}
 </style>
 <script id="b49fitJs">
 (function(){
