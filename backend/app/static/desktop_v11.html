@@ -14637,10 +14637,12 @@ html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pin
 html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 </style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
-<style id="b58Edge">html::before{content:'';position:fixed;top:0;right:0;width:20px;height:var(--b58H,0px);background:var(--b58Bg,transparent);border-bottom:1px solid var(--b58Ln,transparent);box-sizing:border-box;pointer-events:none;z-index:0}</style>
+<style id="b58Edge">html::before{content:'';position:fixed;top:0;right:0;width:20px;height:var(--b58H,0px);background:var(--b58Bg,transparent);border-bottom:1px solid var(--b58Ln,transparent);box-sizing:border-box;pointer-events:none;z-index:0}
+html::after{content:'';position:fixed;bottom:0;right:0;width:20px;height:var(--b58Hb,0px);background:var(--b58Bgb,transparent);border-top:1px solid var(--b58Lnb,transparent);box-sizing:border-box;pointer-events:none;z-index:0}</style>
 <script id="b58Js">
 /* B58: η επάνω μπάρα φτάνει ως το δεξί άκρο της σελίδας (η δεσμευμένη θέση της μπάρας scroll δεν μένει κενή) */
-(function(){const R=document.documentElement;function sync(){const t=document.querySelector('.topbar');if(!t){R.style.setProperty('--b58H','0px');return}
+(function(){const R=document.documentElement;function syncB(){const z=document.getElementById('zoomBar');if(!z){R.style.setProperty('--b58Hb','0px');return}const c=getComputedStyle(z),r=z.getBoundingClientRect();if(r.width<50||r.bottom<innerHeight-2){R.style.setProperty('--b58Hb','0px');return}R.style.setProperty('--b58Hb',Math.round(innerHeight-r.top)+'px');R.style.setProperty('--b58Bgb',c.backgroundColor);R.style.setProperty('--b58Lnb',c.borderTopColor)}
+  function sync(){syncB();const t=document.querySelector('.topbar');if(!t){R.style.setProperty('--b58H','0px');return}
   const c=getComputedStyle(t),r=t.getBoundingClientRect();if(r.width<50||r.top>2){R.style.setProperty('--b58H','0px');return}
   R.style.setProperty('--b58H',Math.round(r.bottom)+'px');R.style.setProperty('--b58Bg',c.backgroundColor);R.style.setProperty('--b58Ln',c.borderBottomColor)}
   new MutationObserver(sync).observe(document.body,{attributes:true,subtree:true,attributeFilter:['class','data-theme','hidden']});
