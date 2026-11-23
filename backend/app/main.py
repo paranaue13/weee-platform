@@ -5224,6 +5224,9 @@ def _consume_weee_stock_for_category(db:Session, unit, category_id:str, weight, 
 
 @app.post('/production/transfers', response_model=schemas.ProductionTransferOut)
 def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
+    r=_create_transfer(db,data,user); db.commit(); return r
+
+def _create_transfer(db:Session,data,user:User):
     unit=db.get(OrganizationalUnit,data.destination_org_unit_id)
     if not unit or not unit.active: raise HTTPException(422,'Άγνωστο ή ανενεργό τμήμα/υποτμήμα')
     if not data.items: raise HTTPException(422,'Δεν επιλέχθηκαν υλικά')
@@ -5252,7 +5255,7 @@ def production_transfer(data:schemas.ProductionTransferCreate, db:Session=Depend
         we=ProductionWorkEntry(created_at=_event_now(),work_date=w.work_date or _event_now_aware(),org_unit_id=unit.id,employee_id=w.employee_id,weee_category_id=w.weee_category_id,weight_kg=w.weight_kg if w.weight_kg is not None else total,source=w.source or "WINDOWS",notes=w.notes,transfer_id=transfer.id,created_by_user_id=user.id)
         db.add(we); db.flush(); we_id=we.id
     write_audit(db,user,'production_transfer',transfer.id,'CREATE',new={'transfer_number':transfer.transfer_number,'destination':unit.code,'items':len(out)})
-    db.commit(); return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out,work_entry_id=we_id)
+    return schemas.ProductionTransferOut(id=transfer.id,transfer_number=transfer.transfer_number,destination_org_unit_id=unit.id,status=transfer.status,items=out,work_entry_id=we_id)
 
 def _reverse_transfer_item(db:Session, ti, qty, unit_id:str|None, user:User, reason:str|None):
     """Επιστρέφει `qty` kg ενός στοιχείου μεταφοράς στο απόθεμα ΑΗΗΕ (αντίστροφο του _consume_lot)."""
@@ -5283,6 +5286,9 @@ def _transfer_items_checked(db:Session, transfer_id:str):
 @app.post('/production/transfers/{transfer_id}/cancel')
 def cancel_production_transfer(transfer_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):
     """Αναίρεση μεταφοράς υλικού: το απόθεμα επιστρέφει στα ίδια μερίδια και η καταχώρηση παραγωγής ακυρώνεται."""
+    r=_cancel_transfer(db,transfer_id,user); db.commit(); return r
+
+def _cancel_transfer(db:Session,transfer_id:str,user:User):
     t=db.get(ProductionTransfer,transfer_id)
     if not t: raise HTTPException(404,'Η μεταφορά δεν βρέθηκε')
     if t.status=='CANCELLED': raise HTTPException(409,'Η μεταφορά έχει ήδη ακυρωθεί')
@@ -5296,7 +5302,33 @@ def cancel_production_transfer(transfer_id:str, db:Session=Depends(get_db), user
     t.status='CANCELLED'
     for e in db.scalars(select(ProductionWorkEntry).where(ProductionWorkEntry.transfer_id==t.id,ProductionWorkEntry.active==True)).all(): e.active=False
     write_audit(db,user,'production_transfer',t.id,'CANCEL',old={'status':'CONFIRMED'},new={'status':'CANCELLED','items':len(items)})
-    db.commit(); return {'ok':True,'transfer_number':t.transfer_number}
+    return {'ok':True,'transfer_number':t.transfer_number}
+
+class ReplaceTransferIn(schemas.BaseModel):
+    destination_org_unit_id: str
+    weee_category_id: str
+    medium_id: str|None = None
+    weight_kg: Decimal
+    employee_id: str|None = None
+    work_date: datetime|None = None
+    notes: str|None = None
+
+@app.post('/production/transfers/{transfer_id}/replace')
+def replace_production_transfer(transfer_id:str,data:ReplaceTransferIn,db:Session=Depends(get_db),user:User=Depends(require_permission('production.move'))):
+    """Αλλαγή κίνησης (όλο ή τίποτα): ακυρώνεται η παλιά και δημιουργείται η νέα στην ΙΔΙΑ συναλλαγή· αν η νέα δεν γίνεται (π.χ. δεν επαρκεί το απόθεμα),
+    ΔΕΝ αλλάζει τίποτα και η παλιά κίνηση μένει όπως ήταν."""
+    _cancel_transfer(db,transfer_id,user); db.flush()
+    q=select(WEEEStockLot).where(WEEEStockLot.weee_category_id==data.weee_category_id,WEEEStockLot.available_weight>0)
+    q=q.where(WEEEStockLot.collection_medium_id==data.medium_id) if data.medium_id else q.where(WEEEStockLot.collection_medium_id.is_(None))
+    rem=Decimal(data.weight_kg); items=[]
+    if rem<=0: raise HTTPException(422,'Τα κιλά πρέπει να είναι μεγαλύτερα από 0')
+    for lot in db.scalars(q.order_by(WEEEStockLot.created_at)).all():
+        if rem<=Decimal('0.0005'): break
+        take=min(Decimal(lot.available_weight),rem)
+        items.append(schemas.ProductionTransferItemCreate(stock_lot_id=lot.id,weight=None if take>=Decimal(lot.available_weight)-Decimal('0.0005') else take.quantize(Decimal('0.001')))); rem-=take
+    if rem>Decimal('0.001'): raise HTTPException(409,'Δεν υπάρχει αρκετό διαθέσιμο απόθεμα για την αλλαγή· η κίνηση έμεινε όπως ήταν')
+    cd=schemas.ProductionTransferCreate(destination_org_unit_id=data.destination_org_unit_id,items=items,notes=data.notes,work_entry=schemas.TransferWorkEntryIn(employee_id=data.employee_id,weee_category_id=data.weee_category_id,weight_kg=data.weight_kg,source='ANDROID',work_date=data.work_date))
+    r=_create_transfer(db,cd,user); db.commit(); return r
 
 @app.put('/production/transfers/{transfer_id}/weight')
 def set_production_transfer_weight(transfer_id:str, data:schemas.TransferWeightIn, db:Session=Depends(get_db), user:User=Depends(require_permission('production.move'))):

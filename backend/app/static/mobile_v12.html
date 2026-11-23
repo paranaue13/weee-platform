@@ -3895,10 +3895,9 @@ html body #app #b10Tabs #flowBar,html body #app #secProduction #flowBar,html bod
       work_entry:{work_date:Q.day+'T'+t,employee_id:who||null,weee_category_id:cat,weight_kg:kg,source:'ANDROID'}})})}
   async function send(){const P=Q.P,x=it(P.sel);if(!x||Q.busy)return;Q.busy=true;P.err='';paintPop();
     try{const kg=x.tcode==='BULK'?Number(P.kg):x.kg;
-      if(P.mode==='edit'){const old=Q.mv.find(m=>m.entry_id===P.eid);
-        await api('/production/transfers/'+old.transfer_id+'/cancel',{method:'POST'});
-        try{await place(P.dep,P.who,x.cat,x.mid,kg)}
-        catch(e){try{await place(old.unit_id,old.employee_id||null,old.category_id,old.medium_id||null,old.kg)}catch(_){}throw e}}
+      if(P.mode==='edit'){const old=Q.mv.find(m=>m.entry_id===P.eid),now=new Date(),t=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+        /* όλο ή τίποτα στον server: αν η αλλαγή δεν γίνεται, η παλιά κίνηση μένει όπως ήταν */
+        await api('/production/transfers/'+old.transfer_id+'/replace',{method:'POST',body:JSON.stringify({destination_org_unit_id:P.dep,weee_category_id:x.cat,medium_id:x.mid||null,weight_kg:kg,employee_id:P.who||null,work_date:Q.day+'T'+t,notes:P.who?('Χειριστής: '+eName(P.who)):null})})}
       else await place(P.dep,P.who,x.cat,x.mid,kg);
       Q.toast=P.mode==='edit'?'Η αλλαγή υποβλήθηκε':'Στάλθηκε στην παραγωγή';Q.P=null;Q.busy=false;await Promise.all([loadDay(),loadStock().catch(()=>{})]);setTimeout(()=>{Q.toast='';paint()},2500)}
     catch(e){Q.busy=false;P.err=e.message||String(e);try{await Promise.all([loadDay(),loadStock().catch(()=>{})])}catch(_){}paintPop()}}
