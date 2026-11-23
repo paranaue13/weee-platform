@@ -3483,6 +3483,10 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     warn=_assign_single_use_code(db,user,e.collection_medium_id,cat) if e.collection_medium_id and e.collection_medium_id!=old['medium_id'] else None
     _sync_entry_stock(db,e,user)
     if old['medium_id'] and old['medium_id']!=e.collection_medium_id: _release_empty_single_use(db,user,old['medium_id'])
+    if 'close_medium' in data.model_fields_set and e.collection_medium_id and data.entry_type!='BULK':      # «Γέμισε» / «Με χώρο» και στην επεξεργασία (μόνο αν το στείλει ο πελάτης)
+        mm=db.get(CollectionMedium,e.collection_medium_id)
+        if mm and bool(mm.is_closed)!=bool(data.close_medium):
+            mm.is_closed=bool(data.close_medium); write_audit(db,user,'collection_medium',mm.id,'CLOSE' if mm.is_closed else 'REOPEN',new={'code':mm.code})
     write_audit(db,user,'sorting_entry',e.id,'EDIT_DRAFT',old=old,new={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count})
     db.commit(); db.refresh(e); e.warning=warn; return e
 

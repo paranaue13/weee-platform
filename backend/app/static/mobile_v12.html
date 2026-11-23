@@ -3071,7 +3071,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const prefill=()=>{const e=S.edit.e,m=e.collection_medium_id?findMed(e.collection_medium_id):null,t=m?tById(m.type_id):null,n=enNet(e),tr=m&&m.tare_weight!=null?Number(m.tare_weight):0;
     S.mode=(m&&m.tare_weight!=null)?'g':'n';
     if(S.mode==='g'){S.val=String(Math.round(n+tr+insideOf()));S.tr=m&&!isB(t)?String(Math.round(tr)):'';S.num=isB(t)?String(code(m)):''}else S.val=String(Math.round(n));
-    S.fld='w'};
+    S.cls=!!(m&&m.is_closed);S.fld='w'};
   function pickNew(t){S.pick={kind:'new',typeId:t.id};rs();if(S.edit&&!S.mode)S.mode='g';
     if(cat)api('/sorting-meta/next-medium-name?weee_category_id='+encodeURIComponent(cat.id)+'&type_id='+encodeURIComponent(t.id)).then(r=>{if(S.pick&&S.pick.kind==='new'){S.nm=r.code||'';renderSheet()}}).catch(()=>{});
     loadSes();renderForm()}
@@ -3192,7 +3192,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     S.busy=true;renderSheet();msg('');
     try{let mid=S.pick.kind==='bulk'?null:(S.pick.mid||null);
       let nmd=null;if(S.pick.kind==='new'){const t=pt();nmd={type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null}}
-      const e0=S.edit.e,body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!noTare(mid))?'SCALE_GROSS':'MEDIUM',raw_weight:roundInt(net()),piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID'};
+      const e0=S.edit.e,body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!noTare(mid))?'SCALE_GROSS':'MEDIUM',raw_weight:roundInt(net()),piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID',close_medium:!!((mid||nmd)&&S.cls)};
       const saved=await api('/sorting/entries/'+S.edit.id,{method:'PUT',body:JSON.stringify(body)});
       endEdit();try{await reloadMasters()}catch(_){}await refresh();if(saved&&saved.warning)$$('workMsg').textContent=saved.warning}
     catch(err){msg(err.message||String(err))}finally{S.busy=false;renderSheet()}}
