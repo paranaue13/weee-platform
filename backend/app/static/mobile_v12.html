@@ -3174,7 +3174,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       if((mid||nmd)&&S.cls)body.close_medium=true;
       const saved=await api('/sorting/'+cur.id+'/entries',{method:'POST',body:JSON.stringify(body)});
       try{await reloadMasters()}catch(_){}await refresh();
-      S.pick=null;S.br=null;rs();renderForm();markQuick();
+      endEdit();markQuick();
       const row=document.querySelector(`#entries [data-open="${saved.id}"]`);if(row){row.classList.add('b30Flash');setTimeout(()=>row.classList.remove('b30Flash'),1700)}
       if(saved&&saved.warning)$$('workMsg').textContent=saved.warning}
     catch(err){msg(err.message||String(err))}finally{S.busy=false;renderSheet()}};
@@ -3275,7 +3275,7 @@ html #app #work>.card:first-child{padding:8px 10px!important}
 #entries .enItem{padding:5px 0;min-height:46px}.enT{font-size:16px!important}.enM{font-size:16px!important}.enKg{font-size:17px!important}.enTare{font-size:14px!important}
 html #app #work .card:has(#entries),html #app #ctrlCard{padding:8px 10px!important}
 .ctrlHead .chT{font-size:17px}.ctrlHead i{font-size:17px}
-#confirm{font-size:20px!important;margin-top:2px!important}
+#confirm{font-size:16px!important;margin-top:2px!important}
 /* κάτω πάνελ */
 #b30Sh{gap:5px;padding:6px 12px}
 #b30Sh .sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:nowrap}
