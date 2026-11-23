@@ -1307,7 +1307,7 @@ async function refresh(){let s=await api('/sorting/'+cur.id);$('sum').textConten
 let ctrl={};
 async function loadCtrl(){try{ctrl=await api('/sorting/'+cur.id+'/metadata');paintFlags();$('ctrlMsg').textContent='';$('photoMsg').textContent=''}catch(e){$('ctrlMsg').className='error';$('ctrlMsg').textContent=e.message}}
 function paintFlags(){document.querySelectorAll('[data-flag]').forEach(b=>b.classList.toggle('on',!!ctrl[b.dataset.flag]));ctrlSumPaint()}
-let phCount=0;function ctrlSumPaint(){let n=document.querySelectorAll('[data-flag].on').length;if($('ctrlSum'))$('ctrlSum').textContent=' · '+(n?n+(n===1?' Επιλογή':' Επιλογές'):'Καμία Επιλογή')+', '+phCount+(phCount===1?' Φωτογραφία':' Φωτογραφίες')}
+let phCount=0;function ctrlSumPaint(){let n=document.querySelectorAll('[data-flag].on').length;if($('ctrlSum')){const pr=[];if(n)pr.push(n+(n===1?' Επιλογή':' Επιλογές'));if(phCount)pr.push(phCount+(phCount===1?' Φωτογραφία':' Φωτογραφίες'));$('ctrlSum').textContent=pr.length?' · '+pr.join(', '):''}}
 async function saveCtrl(){await api('/sorting/'+cur.id+'/metadata',{method:'PUT',body:JSON.stringify({foreign_materials:ctrl.foreign_materials||null,foreign_weight:Math.round(Number(ctrl.foreign_weight||0)),special_waste:ctrl.special_waste||null,special_waste_weight:Math.round(Number(ctrl.special_waste_weight||0)),load_pure:!!ctrl.load_pure,check_special:!!ctrl.check_special,check_kday:!!ctrl.check_kday,check_non_integer:!!ctrl.check_non_integer})})}
 document.querySelectorAll('[data-flag]').forEach(b=>b.onclick=async()=>{let k=b.dataset.flag,prev=!!ctrl[k];ctrl[k]=!prev;paintFlags();try{await saveCtrl();$('ctrlMsg').textContent=''}catch(e){ctrl[k]=prev;paintFlags();$('ctrlMsg').className='error';$('ctrlMsg').textContent=e.message}});
 $('ctrlToggle').onclick=()=>{let h=$('ctrlBody').classList.toggle('hidden');$('ctrlArrow').textContent=h?'▼':'▲'};
@@ -3095,10 +3095,10 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const sh=document.createElement('div');sh.id='b30Sh';document.body.appendChild(sh);
   sh.innerHTML=`<div class="p39m"><div class="p39ttl c"><button type="button" class="p39bk" id="b30bk">‹ Πίσω</button><div class="p39tt"><div class="p39ed" id="b30ed" hidden>Αλλαγή</div><b id="b30s1"></b><em id="b30s2"></em></div></div><div class="inf" id="b30inf" hidden></div>
     <div class="p39tgg"><button type="button" id="b30mg" aria-pressed="false">Ένδειξη ζυγαριάς</button><button type="button" id="b30mn" aria-pressed="false">Καθαρό βάρος</button></div>
-    <div class="p39fz"><div class="disp" id="b30dn"></div><div class="disp" id="b30dt"></div><div class="disp" id="b30dw"></div></div><div class="p39net" id="b30cl"></div>
+    <div class="p39fz"><div class="disp" id="b30dn"></div><div class="disp" id="b30dt"></div><div class="disp" id="b30dw"></div></div><div class="p39net" id="b30cl"></div><div class="msg" id="b30Msg"></div>
     <div class="p39k3" id="b30kp">${['1','2','3','4','5','6','7','8','9','C','0','⌫'].map(k=>`<button type="button" data-k="${k}">${k}</button>`).join('')}</div>
     <div class="p39acts"><button type="button" class="tg" id="b30cz" aria-pressed="false"><span class="a"></span><span class="b"></span></button><button type="button" class="p39sv" id="b30ok" disabled>Αποθήκευση</button></div>
-    <div class="msg" id="b30Msg"></div></div>`;
+</div>`;
   const fixFld=()=>{if(needTare()&&S.tr===''&&S.fld==='w'&&!needNum())S.fld='t';else if(!needTare()&&S.fld==='t')S.fld='w'};
   const step=()=>needNum()&&S.fld==='n'?1:(needTare()&&S.fld==='t'?2:0);
   const can=()=>!!S.mode&&Number(S.val)>0&&net()>0&&(!needNum())&&(!needTare()||S.tr!=='');
@@ -3121,7 +3121,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       if(!S.mode)f='Διάλεξε: Ένδειξη Ζυγαριάς Ή Καθαρό Βάρος';
       else if(isGross()){const tr=tareOf(),ins=insideOf();f='Ζυγαριά '+(S.val?fmt(S.val):'—')+(tr?' − Απόβαρο '+fmt(tr):'')+(ins?' − Ήδη Μέσα '+fmt(ins):'');if(S.val&&net()>0)nv=fmt(net())}
       else{f=(S.pick&&S.pick.kind==='bulk'?'Βάρος ':'Καθαρό ')+(S.val?fmt(S.val):'—');if(S.val&&net()>0)nv=fmt(net())}
-      $$('b30cl').innerHTML='<div><span>Καθαρό Βάρος</span><small>'+f+'</small></div><strong>'+nv+' <em>kg</em></strong>'}
+      if(S.pick.kind==='bulk')$$('b30cl').innerHTML='<div><span>Καθαρό Βάρος</span><small>'+f+'</small></div><strong>'+nv+' <em>kg</em></strong>';
+      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα '+fmt(ins)+' kg':'')+'</small></div><strong>'+(S.val?fmt(S.val):'—')+' <em>kg</em></strong>'}}
 
     requestAnimationFrame(()=>document.documentElement.style.setProperty('--b30ShH',sh.offsetHeight+'px'))}
   sh.addEventListener('click',e=>{if(e.target===sh){window.b30CloseAll();return}const k=e.target.closest('[data-k]');if(k){const K=k.dataset.k,f=S.fld;let v=f==='n'?S.num:f==='t'?S.tr:S.val;
@@ -4255,6 +4256,16 @@ html body #app #meta.b30Pr.b57Over .bar i{background:#A52A22!important;width:100
 #p49Ev .p57acts button{flex:1;height:46px;min-height:0;padding:0;font:inherit;font-size:14.5px;font-weight:700;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center}
 #p49Ev .p57acts .c{background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;color:#14222B}
 #p49Ev .p57acts .d{background:linear-gradient(#B3322A,#A52A22);border:1px solid #7E1F19;border-bottom:2px solid #7E1F19;color:#fff}
+</style>
+<style id="b63Css">
+/* B63: κάρτες ημέρας 107px (mockup), μήνυμα σφάλματος κάτω από το πράσινο πλαίσιο */
+#loadList .b6Open{height:107px;min-height:107px;box-sizing:border-box;align-content:center}
+html body #b30Sh #b30Msg{color:#A52A22;font-size:12.5px;font-weight:700;margin:0 2px}
+html body #b30Sh #b30Msg:empty{display:none}
+/* τίτλος παραθύρου: κουμπί Πίσω και τίτλος στην ίδια σειρά (όχι αναδίπλωση κάτω από το κουμπί) */
+#p42Mat .p39ttl,html body #b30Form .p39ttl,html body #b30Sh .p39ttl,#p45Ov .p39ttl{flex-wrap:nowrap!important}
+#p42Mat .p39tt,html body #b30Form .p39tt,html body #b30Sh .p39tt,#p45Ov .p39tt{flex:1 1 0!important;min-width:0!important}
+#p42Mat .p39tt>b,#p42Mat .p39tt>em,html body #b30Form .p39tt>b,html body #b30Form .p39tt>em,html body #b30Sh .p39tt>b,html body #b30Sh .p39tt>em,#p45Ov .p39tt>b,#p45Ov .p39tt>em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 <script id="b49fitJs">
 (function(){
