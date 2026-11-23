@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="el"><head><meta charset="utf-8"><script>try{var h=document.documentElement,p=localStorage.getItem('weeePalette:last')||'cur';h.dataset.pal=['aut','win','sum'].includes(p)?p:'cur';h.dataset.mode=localStorage.getItem('weeeTheme')==='dark'?'dark':'light'}catch(e){}</script><style id="b41Gutter">html{scrollbar-gutter:stable}</style><style id="b41Hide">html:not(.b41Rdy) body{visibility:hidden!important}</style><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no"><title>WEEE Platform — Windows</title>
+<html lang="el"><head><meta charset="utf-8"><script>try{var h=document.documentElement,p=localStorage.getItem('weeePalette:last')||'cur';h.dataset.pal=['aut','win','sum'].includes(p)?p:'cur';h.dataset.mode=localStorage.getItem('weeeTheme')==='dark'?'dark':'light'}catch(e){}</script><style id="b41Gutter">html{scrollbar-gutter:auto}</style><style id="b41Hide">html:not(.b41Rdy) body{visibility:hidden!important}</style><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="format-detection" content="telephone=no"><title>WEEE Platform — Windows</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap&subset=greek">
 <style>
@@ -14637,19 +14637,4 @@ html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pin
 html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 </style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
-<style id="b58Edge">html{background-image:var(--b58G,none);background-attachment:fixed;background-size:100% 100%;background-repeat:no-repeat}</style>
-<script id="b58Js">
-/* B58/B59: η δεσμευμένη θέση της μπάρας scroll (δεξιά άκρη) παίρνει τα χρώματα του περιεχομένου δίπλα της, ώστε οι μπάρες/παράθυρα να φτάνουν ως την άκρη */
-(function(){const R=document.documentElement;let tm=0,last='';
-  function col(e){while(e&&e!==document.documentElement){const c=getComputedStyle(e).backgroundColor,m=c.match(/[\d.]+/g);if(m&&m.length>=3&&(m.length<4||+m[3]>=.9))return 'rgb('+m[0]+','+m[1]+','+m[2]+')';e=e.parentElement}return null}
-  function sync(){const x=Math.floor(Math.min(innerWidth,R.getBoundingClientRect().width))-3,H=innerHeight;if(x<10){return}
-    const st=[];let cur=null,from=0;
-    for(let y=0;y<=H;y+=2){const c=y<H?col(document.elementFromPoint(x,Math.min(y,H-1))):null;if(c!==cur){if(cur!==null)st.push([cur,from,y]);cur=c;from=y}}
-    if(cur!==null)st.push([cur,from,H]);
-    const g=st.length?'linear-gradient(to bottom,'+st.map(a=>a[0]+' '+a[1]+'px,'+a[0]+' '+a[2]+'px').join(',')+')':'none';
-    if(g!==last){last=g;R.style.setProperty('--b58G',g)}}
-  function later(){clearTimeout(tm);tm=setTimeout(sync,120)}
-  new MutationObserver(later).observe(document.body,{attributes:true,subtree:true,childList:true,attributeFilter:['class','data-theme','hidden','style']});
-  window.addEventListener('resize',later);setInterval(sync,2000);sync()})();
-</script>
 </body></html>
