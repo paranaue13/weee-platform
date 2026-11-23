@@ -726,6 +726,30 @@ def edit_export(lot_id: str, data: ExportEditIn, db: Session = Depends(get_db), 
     return {"id": lot.id, "net": float(lot.net_weight), "counted_kg": float(lot.counted_kg)}
 
 
+def release_empty_single_use(db: Session, med) -> None:
+    """Μέσο μίας χρήσης (σάκος/παλέτα) χωρίς κανένα υλικό μέσα: δεν μένει ως ελεύθερο/ανοιχτό μέσο· γίνεται ανενεργό και ελευθερώνεται ο κωδικός του."""
+    import re, uuid
+    if med is None or not med.active:
+        return
+    t = db.get(CollectionMediumType, med.type_id)
+    if not t or not getattr(t, "single_use", False):
+        return
+    if db.scalar(select(models.SortingEntry.id).where(models.SortingEntry.collection_medium_id == med.id).limit(1)):
+        return
+    if db.scalar(select(models.WEEEStockLot.id).where(models.WEEEStockLot.collection_medium_id == med.id, models.WEEEStockLot.available_weight > 0).limit(1)):
+        return
+    if db.scalar(select(ReadyMaterialLot.id).where(ReadyMaterialLot.collection_medium_id == med.id, ReadyMaterialLot.status != "CANCELLED").limit(1)):
+        return
+    old = med.code
+    med.active = False
+    med.code = "~" + uuid.uuid4().hex[:8]
+    mm = re.match(r"^(\d{2})-(.+)-(\d{4})$", str(old or ""))
+    if mm:
+        row = db.get(models.CodeCounter, (2000 + int(mm.group(1)), mm.group(2)))
+        if row and int(row.last_no or 0) == int(mm.group(3)):
+            row.last_no = int(row.last_no) - 1
+
+
 @router.delete("/exports/{lot_id}")
 def delete_export(lot_id: str, db: Session = Depends(get_db), user: User = Depends(require_permission("production.move"))):
     """Διαγραφή εξαγωγής: η εγγραφή ακυρώνεται (μένει στο ιστορικό αλλαγών), το μέσο μένει ΕΛΕΥΘΕΡΟ για επαναχρησιμοποίηση,
@@ -745,6 +769,9 @@ def delete_export(lot_id: str, db: Session = Depends(get_db), user: User = Depen
     elif med:
         med.status = "AVAILABLE"
     lot.status = "CANCELLED"
+    db.flush()
+    if med and not inv:
+        release_empty_single_use(db, med)
     db.add(ReadyMaterialMovement(lot_id=lot.id, movement_type="EXPORT_CANCELLED", weight=-lot.net_weight, user_id=user.id, reason="Διαγραφή εξαγωγής από Android"))
     write_audit(db, user, "ready_material_lot", lot.id, "UPDATE", old={"status": "AVAILABLE"}, new={"status": "CANCELLED"}, reason="Διαγραφή εξαγωγής" + (" (η απογραφή έγινε ξανά διαθέσιμη)" if inv else ""))
     db.commit()
