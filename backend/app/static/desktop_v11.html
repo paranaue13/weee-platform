@@ -10283,15 +10283,18 @@ const SF=(function(){
     });
   }
   // Το παράθυρο δεν ξεπερνά ποτέ το κάτω άκρο της οθόνης (κυλά το περιεχόμενο) και η λίστα κολλά κάτω από την επικεφαλίδα.
-  function fitPopup(){
-    let sd=$('sortingDetail');if(!sd||sd.classList.contains('hidden'))return;
-    if(sd.classList.contains('popupMax')||sd.classList.contains('popupMin')){sd.style.maxHeight='';return}
-    let bb=sd.querySelector('.sfBubble');sd.style.setProperty('--sfBub',(bb?bb.offsetHeight:0)+'px');if(window.ResizeObserver&&bb&&sd._bbEl!==bb){if(sd._bbRO)sd._bbRO.disconnect();sd._bbEl=bb;sd._bbRO=new ResizeObserver(()=>fitPopup());sd._bbRO.observe(bb)}
-    let top=sd.getBoundingClientRect().top,v=Math.max(260,winWS().b-top)+'px';
-    if(sd.style.maxHeight!==v)sd.style.maxHeight=v;
+  function sfTopSync(sd){
     let h=sd.querySelector('.uHdrWrap')||sd.querySelector('.sortingPopupHeader');if(h){let t=Math.round(h.getBoundingClientRect().height-(parseFloat(getComputedStyle(sd).paddingTop)||0));sd.style.setProperty('--sfTop',Math.max(0,t)+'px')
       // ΑΛΛΑΓΗ ΚΘ: αν η κεφαλίδα του παραθύρου αλλάξει ύψος (μήνυμα, αναδίπλωση κουμπιών), η κεφαλίδα του πίνακα ακολουθεί αμέσως
       if(window.ResizeObserver&&sd._hdEl!==h){if(sd._hdRO)sd._hdRO.disconnect();sd._hdEl=h;sd._hdRO=new ResizeObserver(()=>fitPopup());sd._hdRO.observe(h)}}
+  }
+  function fitPopup(){
+    let sd=$('sortingDetail');if(!sd||sd.classList.contains('hidden'))return;
+    if(sd.classList.contains('popupMax')||sd.classList.contains('popupMin')){sd.style.maxHeight='';if(!sd.classList.contains('popupMin'))sfTopSync(sd);return}   /* B62: και σε μεγιστοποιημένο παράθυρο το --sfTop ακολουθεί το ύψος της κεφαλίδας */
+    let bb=sd.querySelector('.sfBubble');sd.style.setProperty('--sfBub',(bb?bb.offsetHeight:0)+'px');if(window.ResizeObserver&&bb&&sd._bbEl!==bb){if(sd._bbRO)sd._bbRO.disconnect();sd._bbEl=bb;sd._bbRO=new ResizeObserver(()=>fitPopup());sd._bbRO.observe(bb)}
+    let top=sd.getBoundingClientRect().top,v=Math.max(260,winWS().b-top)+'px';
+    if(sd.style.maxHeight!==v)sd.style.maxHeight=v;
+    sfTopSync(sd);
   }
   (function(){
     let sd=document.getElementById('sortingDetail');if(!sd)return;
