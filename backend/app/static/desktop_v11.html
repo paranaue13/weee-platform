@@ -14639,5 +14639,11 @@ html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pin
 html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:first-child{box-shadow:inset 2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pinHotR>td:last-child{box-shadow:inset -2px 2px 0 #144A52,inset 0 -2px 0 #144A52!important}
 </style>
+<style id="b65Css">
+/* B65: Ταξινόμηση — οι στρογγυλές επάνω γωνίες του κολλημένου πλαισίου (kg παραλαβής/ταξινόμησης) καλύπτονται με το χρώμα του παραθύρου, ώστε να μη φαίνονται οι γραμμές του πίνακα από πίσω όταν γίνεται scroll */
+#sortingDetail .sfBubble::before,#sortingDetail .sfBubble::after{content:'';position:absolute;top:-1px;width:8px;height:8px;pointer-events:none;z-index:2}
+#sortingDetail .sfBubble::before{left:-1px;background:radial-gradient(circle at 8px 8px,transparent 7.9px,var(--b65Bg,var(--wBg,#FEFCFF)) 8.4px)}
+#sortingDetail .sfBubble::after{right:-1px;background:radial-gradient(circle at 0 8px,transparent 7.9px,var(--b65Bg,var(--wBg,#FEFCFF)) 8.4px)}
+</style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
 </body></html>
