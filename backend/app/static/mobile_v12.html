@@ -2215,6 +2215,7 @@ body.b4Deltio #flowBar{display:none!important}
     if(!R.month)R.month=R.day.slice(0,7);
     await month(R.month,force);
     if(R.day.slice(0,7)!==R.month)await month(R.day.slice(0,7),force);
+    for(const mo of new Set((R.open||[]).map(o=>o.day.slice(0,7))))if(!R.sum[mo])await month(mo,false);
     R.rows=loadDay?await api('/sorting/day-loads?day='+loadDay):[];   // B10: όλες οι παραλαβές της ημέρας, live κάθε φορά (χωρίς cache)
   }
   const dayInfo=d=>(R.sum[d.slice(0,7)]||{})[d]||null;
@@ -2239,8 +2240,8 @@ body.b4Deltio #flowBar{display:none!important}
       h+=window.b10DayList?b10DayList(R.rows):'';
     }else{
       if(!open[R.day])h+='<div class="muted" style="margin:0 0 10px">Καμία ανοιχτή παραλαβή την επιλεγμένη ημέρα.</div>';
-      h+=`<div class="b6ListT">Ημέρες με ανοιχτές παραλαβές (${R.open.length})</div>`+(R.open.map(o=>{const p=o.kg>0?o.sk/o.kg*100:0;
-        return `<button type="button" class="b6Open" data-open="${o.day}"><span class="t">${esc(loadDayLabel(o.day))}</span><span class="k">${kgS(o.kg)} kg</span><span class="n">${o.n} ${o.n===1?'παραλαβή':'παραλαβές'}</span><span></span><span class="p"><span class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></span><em>${pctS(p)}</em></span></button>`}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
+      h+=`<div class="b6ListT">Ημέρες με ανοιχτές παραλαβές (${R.open.length})</div>`+(R.open.map(o0=>{const x0=dayInfo(o0.day),tt=x0?Object.values(x0.types).reduce((a,v)=>({n:a.n+v.n,kg:a.kg+v.kg,sk:a.sk+v.sk}),{n:0,kg:0,sk:0}):null,o=tt||o0;const p=o.kg>0?o.sk/o.kg*100:0;
+        return `<button type="button" class="b6Open" data-open="${o0.day}"><span class="t">${esc(loadDayLabel(o0.day))}</span><span class="k">${kgS(o.kg)} kg</span><span class="n">${o.n} ${o.n===1?'παραλαβή':'παραλαβές'}</span><span></span><span class="p"><span class="b6Bar"><i style="width:${Math.min(100,p)}%"></i></span><em>${pctS(p)}</em></span></button>`}).join('')||'<div class="muted">Καμία ανοιχτή παραλαβή.</div>');
     }
     box.innerHTML=h;
     const sel=box.querySelector('#b6Strip .sel');if(sel){const s=$('b6Strip'),ctr=()=>{const a=sel.getBoundingClientRect(),b=s.getBoundingClientRect();if(!b.width)return;s.scrollLeft=Math.max(0,s.scrollLeft+(a.left-b.left)-(s.clientWidth-a.width)/2)};ctr();requestAnimationFrame(ctr)}   /* B30: επιλεγμένη ημέρα στο κέντρο της γραμμής */
@@ -4259,7 +4260,7 @@ html body #app #meta.b30Pr.b57Over .bar i{background:#A52A22!important;width:100
 </style>
 <style id="b63Css">
 /* B63: κάρτες ημέρας 107px (mockup), μήνυμα σφάλματος κάτω από το πράσινο πλαίσιο */
-#loadList .b6Open{height:107px;min-height:107px;box-sizing:border-box;align-content:center}
+#loadList .b6Open{height:152px;min-height:152px;box-sizing:border-box;align-content:center}
 html body #b30Sh #b30Msg{color:#A52A22;font-size:12.5px;font-weight:700;margin:0 2px}
 html body #b30Sh #b30Msg:empty{display:none}
 /* τίτλος παραθύρου: κουμπί Πίσω και τίτλος στην ίδια σειρά (όχι αναδίπλωση κάτω από το κουμπί) */
