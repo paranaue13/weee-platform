@@ -9754,7 +9754,7 @@ const SF=(function(){
     let h=`<div class="sfEg h"><span>Καταχωρήσεις (${en.length})</span><span>Απόβαρο</span><span>Μεικτό</span><span>Καθαρό</span><span></span></div>`;
     if(!en.length)h+='<div class="sfEgNone">Καμία καταχώρηση</div>';
     en.forEach(e=>{let t=tareOf(e),g=t>0?entW(e)+t:null;
-      h+=`<div class="sfEg${S.editing[cid]===e.id?' ed':''}" data-sid="${e.id}"><span>${esc2(entLabel(e))}${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}</span><span>${t>0?nf(t):''}</span><span>${g!=null?nf(g):''}</span><span><b>${nf(entW(e))}</b></span><span class="ac">${ro?'':`<button type="button" class="sfMini" data-edit="${e.id}" title="Επεξεργασία">✎</button><button type="button" class="sfMini d" data-del="${e.id}" title="Διαγραφή">🗑</button>`}</span></div>`});
+      h+=`<div class="sfEg${S.editing[cid]===e.id?' ed':''}" data-sid="${e.id}"><span>${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span> ':''}${esc2(entLabel(e))}${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}</span><span>${t>0?nf(t):''}</span><span>${g!=null?nf(g):''}</span><span><b>${nf(entW(e))}</b></span><span class="ac">${ro?'':`<button type="button" class="sfMini" data-edit="${e.id}" title="Επεξεργασία">✎</button><button type="button" class="sfMini d" data-del="${e.id}" title="Διαγραφή">🗑</button>`}</span></div>`});
     return h;
   }
   function panelHead(c){
