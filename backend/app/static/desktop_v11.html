@@ -6406,9 +6406,9 @@ window.docsFolderDialog=function(msg){
   document.getElementById('dfCancel').onclick=()=>ov.remove();
 };
 function sfBubbleInner(net,sorting){
-  let n=Number(net||0),t=Number(sorting||0),diff=n-t,pc=n>0?t/n*100:0,match=Math.abs(diff)<.001;
-  let cls=match?'ok':(t>n?'over':''),txt=match?'Ταιριάζει με το βάρος παραλαβής':(t>n?'Υπέρβαση '+kg(Math.abs(diff)):'Απομένουν '+kg(diff));
-  return `<div class="sfBubSt"><div><small>Καθαρό βάρος παραλαβής</small><b>${kg(n)}</b></div><div><small>Σύνολο ταξινόμησης</small><b>${kg(t)}</b></div><div class="${match?'stockPos':'stockNeg'}"><small>Διαφορά</small><b>${kg(diff)}</b></div><div class="sfPc"><small>Ολοκλήρωση</small><b>${n>0?Math.round(pc)+'%':'—'}</b></div></div><div class="sfBar"${t>n&&n>0?` style="--x:${(n/t*100).toFixed(2)}%"`:''}><i class="${cls}" style="width:${Math.min(100,Math.max(0,pc))}%"></i>${t>n&&n>0?'<span class="sfMark"></span>':''}</div><div class="sfBarTxt ${cls}">${txt}</div>`;
+  let n=Number(net||0),t=Number(sorting||0),diff=n-t,pc=n>0?t/n*100:0,match=Math.abs(diff)<.001,over=t>n&&n>0;
+  let cls=match?'ok':(over?'over':'');
+  return `<div class="sfSum"><span><small>Καθαρό βάρος παραλαβής</small><b>${kg(n)}</b></span><span><small>Σύνολο ταξινόμησης</small><b>${kg(t)}</b></span><span class="${match?'stockPos':'stockNeg'}"><small>${over?'Πλεόνασμα':'Διαφορά'}</small><b>${kg(over?Math.abs(diff):diff)}</b></span><span class="sfPc"><small>Ολοκλήρωση</small><b>${n>0?Math.round(pc)+'%':'—'}</b></span><div class="sfBar${over?' overAll':''}"><i class="${cls}" style="width:${Math.min(100,Math.max(0,pc))}%"></i></div></div>`;
 }
 async function openSortingDetail(loadId,sourceRow=null){
  try{
@@ -6433,7 +6433,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   sd.innerHTML=`<div class="sortingPopupHeader" id="sortingPopupHandle"><div class="sortingPopupTopRow"><div class="sortingPopupTitleBlock"><h2 style="margin-bottom:9px">Φόρμα Ταξινόμησης</h2><h3 style="margin-top:0">Εντολή ${esc(d.order_number||d.receipt_number)} · <span class="dppPlain">ΔΠΠ ${esc(d.dpp_number||'—')}</span> <span class="pill ${stMeta.cls}" style="margin-left:6px">${esc(stMeta.label)}</span></h3><div class="muted" style="margin-top:4px" data-date="${esc(new Date(d.receipt_date).toLocaleDateString('el-GR'))}" data-car="${esc(d.carrier||'')}" data-sup="${esc(d.supplier||'')}">${new Date(d.receipt_date).toLocaleDateString('el-GR')} · ${esc(d.carrier||'')} · ${esc(d.supplier||'')}</div></div><div style="display:flex;gap:7px"><button type="button" class="winCtl" data-win="min" title="Ελαχιστοποίηση"><svg viewBox="0 0 16 16"><path d="M3 8h10"/></svg></button><button type="button" class="winCtl" data-win="max" title="Μεγιστοποίηση"><svg viewBox="0 0 16 16"><rect x="3.5" y="3.5" width="9" height="9" rx=".5"/></svg></button><button type="button" class="winCtl winClose" id="closeSortDetail" title="Κλείσιμο"><svg viewBox="0 0 16 16"><path d="m4 4 8 8m0-8-8 8"/></svg></button></div></div><div class="sortingPopupActions"><button class="btn alt" id="sortReopenBtn" ${canReopenSort||canRevert?'':'disabled'} title="${canReopenSort?'Επιστροφή στο Android για διόρθωση':'Διαθέσιμο όταν η ταξινόμηση είναι προς έλεγχο'}">Προς Ταξινόμηση</button><button class="btn review" id="sortMarkReview" ${canMarkReview||canRevert?'':'disabled'} title="${canMarkReview?'Χαρακτηρισμός ως προς έλεγχο':'Διαθέσιμο μόνο όσο η ταξινόμηση είναι σε εξέλιξη'}">Προς Έλεγχο</button><button class="btn alt" id="sortCorrectionBtn" ${canMarkCorrection||canRevert?'':'disabled'} title="Αλλάζει μόνο την κατάσταση σε «Προς Διόρθωση»">Προς Διόρθωση</button><button class="btn ok" id="sortCompleteBtn" ${canCompleteSort?'':'disabled'} title="${canCompleteSort?'Ολοκλήρωση ταξινόμησης':'Διαθέσιμο μόνο όταν η ταξινόμηση είναι προς έλεγχο'}">Ολοκλήρωση</button>${d.cancelled_at?`<span class="cancelledPill" title="${esc(d.cancel_reason||'')}">Ακυρώθηκε</span>`:`<button type="button" class="btn cancelRcpt" id="cancelReceiptBtn">Ακύρωση παραλαβής</button>`}<span class="exw"><button class="btn alt" id="exportSortDetail" aria-haspopup="true" aria-expanded="false">Εξαγωγή <span aria-hidden="true">▾</span></button><div class="sxMenu" id="sortExportChoices" role="menu"><button type="button" role="menuitem" data-format="xlsx"><img alt="" src="data:image/png;base64,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">Excel</button><button type="button" role="menuitem" data-format="pdf"><img alt="" src="data:image/png;base64,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">PDF</button></div></span></div></div>
   <div class="sfBubble" id="sfBubble">${sfBubbleInner(d.net_weight,d.sorting_weight)}</div>
   
-  ${showTable?SF.cardHtml():''}<div class="card"><b>Στοιχεία ελέγχου ταξινόμησης</b><div class="sortingMetaGrid"><label>Καθαρό βάρος ξένων υλικών (kg)<input id="sortForeignWeight" type="number" step="1" value="${Math.round(Number(d.foreign_weight||0))}"></label><label>Καθαρό βάρος αποβλήτων ειδικής διαχείρισης (kg)<input id="sortSpecialWeight" type="number" step="1" value="${Math.round(Number(d.special_waste_weight||0))}"></label></div><div class="toolbar"><label class="inlineCheck"><input type="checkbox" id="sortCheckSpecial" ${d.check_special?'checked':''}> Ειδικής διαχείρισης</label><label class="inlineCheck"><input type="checkbox" id="sortCheckKday" ${d.check_kday?'checked':''}> ΚΔΑΥ</label><label class="inlineCheck"><input type="checkbox" id="sortCheckNonInteger" ${d.check_non_integer?'checked':''}> Μη ακέραιο</label><label class="inlineCheck"><input type="checkbox" id="sortPure" ${d.load_pure?'checked':''}> Αμιγές</label><label class="inlineCheck" title="Αυτόματο: ενεργό όταν το καθαρό βάρος ξένων υλικών είναι πάνω από 0"><input type="checkbox" id="sortHasForeign" disabled ${Number(d.foreign_weight||0)>0?'checked':''}> Ξένα υλικά</label><span id="sortMetaMsg" style="margin-left:auto"></span></div></div><div class="card" id="sortPhotos"><div class="spHd"><b>Φωτογραφίες φορτίου</b><button type="button" class="spFolder" title="">Άνοιγμα φακέλου</button></div><div class="spBody"><div class="spNone">Φόρτωση…</div></div></div>`;sortPhotosPaint(loadId);
+  <div class="sfGrid${showTable?'':' noTbl'}"><div class="sfLeft">${showTable?SF.cardHtml():''}<div class="card sfCtl"><b>Στοιχεία ελέγχου ταξινόμησης</b><div class="sortingMetaGrid"><label>Καθαρό βάρος ξένων υλικών (kg)<input id="sortForeignWeight" type="number" step="1" value="${Math.round(Number(d.foreign_weight||0))}"></label><label>Καθαρό βάρος αποβλήτων ειδικής διαχείρισης (kg)<input id="sortSpecialWeight" type="number" step="1" value="${Math.round(Number(d.special_waste_weight||0))}"></label></div><div class="toolbar"><label class="inlineCheck"><input type="checkbox" id="sortCheckSpecial" ${d.check_special?'checked':''}> Ειδικής διαχείρισης</label><label class="inlineCheck"><input type="checkbox" id="sortCheckKday" ${d.check_kday?'checked':''}> ΚΔΑΥ</label><label class="inlineCheck"><input type="checkbox" id="sortCheckNonInteger" ${d.check_non_integer?'checked':''}> Μη ακέραιο</label><label class="inlineCheck"><input type="checkbox" id="sortPure" ${d.load_pure?'checked':''}> Αμιγές</label><label class="inlineCheck" title="Αυτόματο: ενεργό όταν το καθαρό βάρος ξένων υλικών είναι πάνω από 0"><input type="checkbox" id="sortHasForeign" disabled ${Number(d.foreign_weight||0)>0?'checked':''}> Ξένα υλικά</label><span id="sortMetaMsg" style="margin-left:auto"></span></div></div></div>${showTable?'<div class="card sfPanelCard" id="sfPanel"></div>':''}</div><div class="card" id="sortPhotos"><div class="spHd"><b>Φωτογραφίες φορτίου</b><button type="button" class="spFolder" title="">Άνοιγμα φακέλου</button></div><div class="spBody"><div class="spNone">Φόρτωση…</div></div></div>`;sortPhotosPaint(loadId);
   const sortWrap=sd.querySelector(':scope > .tablewrap'); if(sortWrap)sortWrap.scrollTop=0;
   if(keepScroll){sd.scrollTop=keepScroll[0];let cw=sd.querySelector('.sortingCatWrap');if(cw)cw.scrollTop=keepScroll[1]}
   makeDraggable(sd,$('sortingPopupHandle'));sd.querySelector('[data-win="max"]')?.addEventListener('click',()=>{sd.classList.remove('popupMin');sd.classList.toggle('popupMax')});sd.querySelector('[data-win="min"]')?.addEventListener('click',()=>toggleMin(sd));
@@ -9729,7 +9729,7 @@ const SF=(function(){
   const catShort=c=>String(descOf(c)||'').split(' / ')[0];
   function medCatNames(m){return Object.entries(m.cats||{}).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).map(x=>{let c=(C.cats||[]).find(y=>y.id===x[0]);return c?catShort(c):''}).filter(Boolean)}
   function numTxt(cid){if(S.bulk[cid]||S.bulkMed[cid])return '';let m=S.rm[cid];return m?numLbl(m)+(S.fresh.has(m.id)?' (νέο)':''):''}
-  const isOpen=cid=>!!(S.open[cid]||S.editing[cid]);
+  const isOpen=cid=>!!(S&&S.sel===cid);
   const rowTare=cid=>{let m=S.rm[cid];return m&&m.tare_weight!=null&&Number(m.tare_weight)>0?Number(m.tare_weight):0};
   const fmtIn=n=>String(rnd(n));
   // μεικτό = καθαρό + απόβαρο μέσου + ό,τι έχει ήδη το μέσο σε αυτή την ταξινόμηση (ίδιος κανόνας με τον server για τη ζύγιση «μεικτού»)
@@ -9738,17 +9738,63 @@ const SF=(function(){
     let t=tareOf(e),g=t>0?entW(e)+t:null,fresh=!!(S.fresh2&&S.fresh2[e.id]);
     return `<tr class="sfSub${fresh?' sfFresh':''}" data-sid="${e.id}"><td></td><td></td><td></td><td class="sfSe">${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span>':''}<span>${esc2(entLabel(e))}</span>${fresh?'<small class="sfNewTag">ΝΕΟ · μόλις τώρα</small>':''}</td><td class="n">${t>0?nf(t):''}</td><td class="n">${e.piece_count||''}</td><td class="n${g!=null&&g<0?' neg':''}">${g!=null?nf(g):''}</td><td class="n${entW(e)<0?' neg':''}"><b>${nf(entW(e))}</b></td><td class="sfAc">${C.ro?'':`<button type="button" class="sfEd" data-edit="${e.id}" title="Διόρθωση"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="sfDl" data-del="${e.id}" title="Διαγραφή"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>`}</td></tr>`;
   }
+  const SEGN=n=>String(n).replace(/\s*\/\s*UN$/,'');
   function newRowHtml(c){
-    if(C.ro)return '';
-    let cid=c.id,ed=S.editing[cid],avg=c.average_weight,t=rowTare(cid),pcsOk=BULK_CATS.has(norm(c.official_code))&&avg!=null;   // «Τεμ.» ΜΟΝΟ στις 9 κατηγορίες που δέχεται ο server με τεμάχια
-    return `<tr class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><td class="sfC1"></td><td class="sfC2"><div class="sfW" data-h="2"><input class="sfT" readonly value="${esc2(typeTxt(cid))}" placeholder="Είδος" title="Είδος μέσου συλλογής" autocomplete="off"></div></td><td class="sfC3"></td><td class="sfC4"><div class="sfW sfQe" data-h="4"><span class="sfNumW"><input class="sfM" value="${esc2(numTxt(cid))}" placeholder="Αριθμός" title="Αριθμός μέσου" autocomplete="off"><button type="button" class="sfNewBtn" title="Νέα παλέτα ή νέος σάκος (όταν δεν ήταν χύμα)">+ Νέο</button></span><label class="sfClose" title="Κλείσιμο καλαθιού: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά"><input type="checkbox" class="sfCl" disabled><span>Κλείσιμο</span></label><input class="sfP" placeholder="${pcsOk?'τεμάχια':''}" inputmode="numeric" autocomplete="off"${pcsOk?'':' disabled'}></div></td><td class="sfC5 n"><span class="sfFld"><input class="sfTr" readonly tabindex="-1" value="${t>0?nf(t):''}" placeholder="auto" title="Απόβαρο μέσου (αυτόματο)" autocomplete="off"></span></td><td class="sfC6"></td><td class="sfC7"><div class="sfW" data-h="7"><span class="sfFld"><input class="sfGr" placeholder="μεικτό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></span></div></td><td class="sfC8"><div class="sfW" data-h="8"><span class="sfFld"><input class="sfK" placeholder="καθαρό" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></span></div></td><td class="sfC9"><div class="sfW" data-h="9"><button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button></div></td></tr>`;
+    let cid=c.id,ed=S.editing[cid],avg=c.average_weight,t=rowTare(cid),pcsOk=BULK_CATS.has(norm(c.official_code))&&avg!=null;
+    let hasBulk=C.outTypes.some(x=>x.code==='BULK'),el=eligibleTypes().slice().sort((a,b)=>String(a.t.name_el).localeCompare(String(b.t.name_el),'el'));
+    let seg=(hasBulk?`<button type="button" class="sfSegB" data-t="BULK" tabindex="-1">Χύμα</button>`:'')+el.map(x=>`<button type="button" class="sfSegB" data-t="${x.t.id}" tabindex="-1">${esc2(SEGN(x.t.name_el))}</button>`).join('');
+    return `<div class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><div class="sfPf"><div class="sfFl">Μέσο</div><div class="sfSeg">${seg}</div><input class="sfT" type="hidden" value="${esc2(typeTxt(cid))}"></div>
+<div class="sfPr2"><div class="sfPf"><div class="sfFl">Αριθμός</div><span class="sfNumW"><input class="sfM" value="${esc2(numTxt(cid))}" autocomplete="off"><button type="button" class="sfNewBtn" tabindex="-1" title="Νέα παλέτα ή νέος σάκος (όταν δεν ήταν χύμα)">+ Νέο</button></span></div><div class="sfPf"><div class="sfFl">&nbsp;</div><label class="sfClose" hidden><input type="checkbox" class="sfCl" disabled></label><button type="button" class="sfFull" tabindex="-1" disabled title="Κλείσιμο μέσου: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά">Γεμάτο</button></div>${pcsOk?`<div class="sfPf"><div class="sfFl">Τεμάχια</div><input class="sfP" inputmode="numeric" autocomplete="off"></div>`:'<input class="sfP" type="hidden" disabled>'}</div>
+<div class="sfNet" hidden><div><span class="sfNetN"></span><small class="sfNetT"></small></div><strong class="sfNetV"></strong></div><div class="sfErr2" hidden></div>
+<div class="sfPr3"><div class="sfPf"><div class="sfFl">Μεικτό (kg)</div><span class="sfFld"><input class="sfGr" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></span></div><div class="sfPf"><div class="sfFl">Απόβαρο</div><span class="sfFld"><input class="sfTr" readonly tabindex="-1" value="${t>0?nf(t):''}" autocomplete="off"></span></div><div class="sfPf"><div class="sfFl">Καθαρό</div><span class="sfFld"><input class="sfK" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></span></div></div>
+<button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button><div id="sortEntryMsg"></div></div>`;
+  }
+  function entsHtml(cid){
+    let en=S.entries.filter(e=>rid(e)===cid).sort(byTime),ro=!!C.ro;
+    let h=`<div class="sfEg h"><span>Καταχωρήσεις (${en.length})</span><span>Απόβαρο</span><span>Μεικτό</span><span>Καθαρό</span><span></span></div>`;
+    if(!en.length)h+='<div class="sfEgNone">Καμία καταχώρηση</div>';
+    en.forEach(e=>{let t=tareOf(e),g=t>0?entW(e)+t:null;
+      h+=`<div class="sfEg${S.editing[cid]===e.id?' ed':''}" data-sid="${e.id}"><span>${esc2(entLabel(e))}${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}</span><span>${t>0?nf(t):''}</span><span>${g!=null?nf(g):''}</span><span><b>${nf(entW(e))}</b></span><span class="ac">${ro?'':`<button type="button" class="sfMini" data-edit="${e.id}" title="Επεξεργασία">✎</button><button type="button" class="sfMini d" data-del="${e.id}" title="Διαγραφή">🗑</button>`}</span></div>`});
+    return h;
+  }
+  function panelHead(c){
+    let avg=c.average_weight;
+    return `<div class="sfPh"><b>${esc2(c.official_code)} · ${esc2(descOf(c))}</b>${avg!=null?` <span>Μέσο βάρος ${esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))} kg</span>`:''}</div>`;
+  }
+  function renderPanel(cid,keepForm){
+    let P=$('sfPanel');if(!P)return;
+    let c=C.rows.find(x=>x.id===cid);if(!c){P.innerHTML='';return}
+    let old=P.querySelector('.sfNr');
+    if(keepForm&&old&&old.dataset.c===cid){let eg=P.querySelector('#sfEnts');if(eg)eg.innerHTML=entsHtml(cid);return}
+    if(C.ro){P.innerHTML=panelHead(c)+`<div class="sfEnts" id="sfEnts">${entsHtml(cid)}</div>`;return}
+    if(!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid]&&!S.rt[cid]){let d=defType(cid);if(d)S.rt[cid]=d}
+    P.innerHTML=panelHead(c)+newRowHtml(c)+`<div class="sfEnts" id="sfEnts">${entsHtml(cid)}</div>`;
+    syncClose(P.querySelector('.sfNr'));
+  }
+  // εμφάνιση πάνελ: επιλεγμένο μέσο, «Γεμάτο», πράσινο πλαίσιο και σφάλμα κάτω από αυτό (μόνο προβολή· οι υπολογισμοί μένουν όπως ήταν)
+  function syncPanel(row){
+    if(!row||!row.querySelector||!row.classList.contains('sfNr'))return;
+    let cid=row.dataset.c,m=S.rm[cid],bk=!!(S.bulk[cid]||S.bulkMed[cid]),tid=m?m.type_id:(S.rt[cid]||null);
+    row.querySelectorAll('.sfSegB').forEach(b=>{let on=b.dataset.t==='BULK'?bk:(!bk&&b.dataset.t===tid);b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});
+    let num=row.querySelector('.sfM'),cl=row.querySelector('.sfCl'),fb=row.querySelector('.sfFull'),nb=row.querySelector('.sfNet'),er=row.querySelector('.sfErr2');
+    let t=tid?C.medTypes.find(x=>x.id===tid):null,tn=t?SEGN(t.name_el):'',typed=num?String(num.value||'').trim():'';
+    if(num)num.disabled=bk||!tid;
+    let nbtn=row.querySelector('.sfNewBtn');if(nbtn)nbtn.hidden=bk;
+    if(fb){fb.disabled=!!(!cl||cl.disabled);fb.classList.toggle('on',!!(cl&&cl.checked));fb.textContent=/^Παλέτα/.test(tn)?'Γεμάτη':/^Σάκος/.test(tn)?'Γεμάτος':'Γεμάτο'}
+    if(nb){
+      if(bk||!tid){nb.hidden=true}
+      else{nb.hidden=false;
+        row.querySelector('.sfNetN').textContent=tn+(m?' · '+numLbl(m):(typed?' Νο '+typed:''));
+        row.querySelector('.sfNetT').textContent='Απόβαρο '+(m?(rowTare(cid)>0?f1(rowTare(cid)):'0'):'—')+' kg';
+        let g=row.querySelector('.sfGr').value.trim();row.querySelector('.sfNetV').innerHTML=(g?esc2(g):'—')+' <em>kg</em>'}
+    }
+    if(er){let bad=!bk&&!!tid&&!m&&typed!==''&&!C.pickable.some(x=>x.type_id===tid&&(norm(x.code)===norm(typed)||numLbl(x)===typed));er.hidden=!bad;er.textContent=bad?('Δεν βρέθηκε ανοιχτό '+tn+' Νο '+typed):''}
   }
   function groupHtml(c){
-    let en=S.entries.filter(e=>rid(e)===c.id).sort(byTime),n=en.length,open=isOpen(c.id);
-    let net=en.reduce((s,e)=>s+entW(e),0),tare=en.reduce((s,e)=>s+tareOf(e),0),pcs=en.reduce((s,e)=>s+(Number(e.piece_count)||0),0),avg=c.average_weight;
-    let main=`<tr class="sfCat${isF(c)?' f':''}${n?' has':''}${open?' open':''}" data-c="${c.id}" title="${open?'Πάτα για κλείσιμο':'Πάτα για άνοιγμα και καταχώρηση'}"><td class="sfCd">${esc2(c.official_code)}</td><td class="sfDs" title="${esc2(descOf(c))}">${esc2(descOf(c))}</td><td class="n sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</td><td class="sfEns">${n?`<b>${n}</b> ${n===1?'καταχώρηση':'καταχωρήσεις'}`:(open?'<span class="sfNone">καμία ακόμα</span>':'')}</td><td class="n">${tare>0?nf(tare):''}</td><td class="n">${pcs||''}</td><td class="n">${n?nf(net+tare):''}</td><td class="n sfSm">${n?'<b>'+nf(net)+'</b>':''}</td><td class="sfAc">${open?`<span class="sfTg"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M2 4h10L7 11z" fill="currentColor"/></svg></span>`:`<span class="sfTg"><svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true"><path d="M4 2v10l7-5z" fill="currentColor"/></svg></span>`}</td></tr>`;
-    if(!open)return `<tbody class="sfBd" data-c="${c.id}">${main}</tbody>`;
-    return `<tbody class="sfBd open" data-c="${c.id}">${main}${en.map(subHtml).join('')}${newRowHtml(c)}</tbody>`;
+    let en=S.entries.filter(e=>rid(e)===c.id),n=en.length,sel=S.sel===c.id;
+    let net=en.reduce((s,e)=>s+entW(e),0),tare=en.reduce((s,e)=>s+tareOf(e),0),avg=c.average_weight;
+    let main=`<tr class="sfCat${isF(c)?' f':''}${n?' has':''}${sel?' sel':''}" data-c="${c.id}"><td class="sfCd">${esc2(c.official_code)}</td><td class="sfDs">${esc2(descOf(c))}</td><td class="n sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</td><td class="sfEns">${n?`<b>${n}</b> ${n===1?'καταχώρηση':'καταχωρήσεις'}`:''}</td><td class="n">${n?nf(net+tare):''}</td><td class="n sfSm">${n?'<b>'+nf(net)+'</b>':''}</td></tr>`;
+    return `<tbody class="sfBd" data-c="${c.id}">${main}</tbody>`;
   }
   function visible(c){
     let q=norm(S.q).trim();
@@ -9757,23 +9803,23 @@ const SF=(function(){
     return true;
   }
   function theadHtml(){
-    return '<thead><tr><th data-wcol="code" data-pin-lock>Κωδικός</th><th data-wcol="desc" data-pin-lock>Περιγραφή</th><th data-wcol="avg" class="n">Μέσο βάρος</th><th data-wcol="ens" data-pin-lock>Καταχωρήσεις</th><th data-wcol="tare" class="n">Απόβαρο</th><th data-wcol="pcs" class="n">Τεμ.</th><th data-wcol="gross" class="n">Μεικτό βάρος</th><th data-wcol="net" class="n" data-pin-lock>Καθαρό βάρος</th><th data-wcol="act" data-pin-lock></th></tr></thead>';
+    return '<thead><tr><th data-wcol="code" data-pin-lock>Κωδικός</th><th data-wcol="desc" data-pin-lock>Περιγραφή</th><th data-wcol="avg" class="n">Μέσο βάρος</th><th data-wcol="ens" data-pin-lock>Καταχωρήσεις</th><th data-wcol="gross" class="n">Μεικτό</th><th data-wcol="net" class="n" data-pin-lock>Καθαρό</th></tr></thead>';
   }
   function listHtml(){
     let vis=C.rows.filter(visible),h='<table class="sfTable" id="sfTable" data-pin-allow data-pin-norows data-stk-skip data-pin-id="sorting-entries">'+theadHtml();
     h+=vis.filter(c=>!isF(c)).map(groupHtml).join('');
     let fr=vis.filter(isF);
-    if(fr.length)h+='<tbody class="sfBd sfSepB"><tr class="sfFsep"><td>Ξένα υλικά <span class="sfTag">ΜΗ ΑΗΗΕ</span></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>'+fr.map(groupHtml).join('');
+    if(fr.length)h+='<tbody class="sfBd sfSepB"><tr class="sfFsep"><td>Ξένα υλικά <span class="sfTag">ΜΗ ΑΗΗΕ</span></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>'+fr.map(groupHtml).join('');
     return h+'</table>';
   }
   // ΠΛΑΤΟΣ = πλάτος παραθύρου: το περίσσευμα πάει στις στήλες που ΔΕΝ έχει αλλάξει ο χρήστης (Περιγραφή, Καταχωρήσεις)· αν δεν χωράνε στο ελάχιστο → οριζόντιο scroll
   // επίπεδα πλάτους παραθύρου: >1180 όλες οι στήλες· 860–1180 κρύβονται Μέσο βάρος/Απόβαρο/Τεμ.· <860 κρύβεται και το Μεικτό και η γραμμή καταχώρησης στοιχίζεται σε ελεύθερη διάταξη
-  function sfLevel(){let sd=$('sortingDetail'),w=sd?sd.getBoundingClientRect().width:9999;return w>1180?0:(w>=800?1:2)}
+  function sfLevel(){return 0}
   function foldRows(t,on){t.querySelectorAll('tr.sfNr').forEach(r=>{let tds=r.children,f=r.dataset.fold==='1';if(on===f||tds.length<9)return;
     if(on){let box=document.createElement('div');box.className='sfFold';[2,4,7,8,9].forEach(i=>{let w=tds[i-1].querySelector('.sfW');if(w)box.appendChild(w)});tds[0].appendChild(box);tds[0].colSpan=9;[...tds].slice(1).forEach(td=>td.hidden=true);r.dataset.fold='1'}
     else{let box=tds[0].querySelector('.sfFold');if(box){[...box.children].forEach(w=>tds[+w.dataset.h-1].appendChild(w));box.remove()}tds[0].colSpan=1;[...tds].slice(1).forEach(td=>td.hidden=false);r.dataset.fold=''}})}
   function applyLevel(){let t=$('sfTable');if(!t)return;let L=sfLevel();t.classList.toggle('sfM1',L===1);t.classList.toggle('sfM2',L===2);t.classList.remove('sfNarrow');foldRows(t,L===2)}
-  function fitSf(){let t=$('sfTable');try{applyLevel()}catch(e){}try{if(t&&window.fitTableWeighted)window.fitTableWeighted(t,sfLevel()===2?{desc:{w:1,min:70}}:(($('sortingDetail').getBoundingClientRect().width<920)?{desc:{w:1,min:90},ens:{w:1.3,min:150}}:{desc:{w:1,min:110},ens:{w:1.6,min:286}}))}catch(e){}}
+  function fitSf(){let t=$('sfTable');try{applyLevel()}catch(e){}try{if(t&&window.fitTableWeighted)window.fitTableWeighted(t,{desc:{w:1.6,min:110},ens:{w:1,min:90}})}catch(e){}}
   (function(){
     let tm=0;const sched=()=>{clearTimeout(tm);tm=setTimeout(fitSf,40)};
     window.addEventListener('resize',sched);window.addEventListener('tableLayoutChanged',e=>{let t=e&&e.detail&&e.detail.table;if(!t||t.id==='sfTable')sched()});
@@ -9798,20 +9844,17 @@ const SF=(function(){
     C.d.sorting_weight=tot;{let sd0=$('sortingDetail');if(sd0&&b)sd0.style.setProperty('--sfBub',b.offsetHeight+'px')}
   }
   function focusNew(cid,sel){
-    let r=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!r)return;
+    let r=document.querySelector(`#sfPanel .sfNr[data-c="${cid}"]`);if(!r)return;
     let f=r.querySelector(sel||'.sfGr');if(f){f.focus({preventScroll:true});if(f.select)f.select();try{f.scrollIntoView({block:'nearest'})}catch(_){}}
   }
   // ξαναζωγραφίζει ΜΙΑ κατηγορία (κεντρική γραμμή + καταχωρήσεις + φόρμα). keepForm: κρατά τη ζωντανή φόρμα (τιμές, focus, λίστα μέσου) όπως είναι
   function redoGroup(cid,focus,keepForm){
     let old=document.querySelector(`#sfList tbody.sfBd[data-c="${cid}"]`),c=C.rows.find(x=>x.id===cid);
     if(!c){return}
-    if(!old){if(visible(c)){if(isF(c)||!insertGroup(c))renderList()}updateBubble();return}
-    if(!visible(c)){old.remove();updateBubble();return}
-    let ae=document.activeElement,hadFocus=keepForm&&ae&&old.contains(ae)?ae:null,sel=hadFocus&&hadFocus.selectionStart!=null?[hadFocus.selectionStart,hadFocus.selectionEnd]:null;
-    let t=document.createElement('table');t.innerHTML=groupHtml(c);let nb=t.tBodies[0];
-    if(keepForm){let oN=old.querySelector('.sfNr'),nN=nb.querySelector('.sfNr');if(oN&&nN)nN.replaceWith(oN)}
-    old.replaceWith(nb);afterRender(nb);
-    if(hadFocus){hadFocus.focus({preventScroll:true});if(sel&&hadFocus.setSelectionRange)try{hadFocus.setSelectionRange(sel[0],sel[1])}catch(_){}}
+    if(!old){if(visible(c)){if(isF(c)||!insertGroup(c))renderList()}}
+    else if(!visible(c)){old.remove()}
+    else{let t=document.createElement('table');t.innerHTML=groupHtml(c);old.replaceWith(t.tBodies[0])}
+    if(S.sel===cid)renderPanel(cid,keepForm);
     updateBubble();
     if(focus)focusNew(cid);
   }
@@ -9831,33 +9874,37 @@ const SF=(function(){
     else if(last.entry_type==='BULK'||last.entry_type==='MEDIUM'){let c=C.rows.find(x=>x.id===cid);if(c&&BULK_CATS.has(norm(c.official_code))&&c.average_weight!=null)S.bulk[cid]=true;else S.bulkMed[cid]=true}
   }
   function defBulk(cid){if(S.editing[cid]||S.rm[cid]||S.bulk[cid]||S.bulkMed[cid])return;let c=C.rows.find(x=>x.id===cid);if(c&&BULK_CATS.has(norm(c.official_code))&&c.average_weight!=null)S.bulk[cid]=true;else S.bulkMed[cid]=true}
-  function openCat(cid,focus){S.open[cid]=true;defBulk(cid);prefillLast(cid);redoGroup(cid,focus!==false)}
+  function openCat(cid,focus){return selectCat(cid).then(()=>{if(focus!==false)focusNew(cid)})}
   // κενή φόρμα;  (σε διόρθωση: ίδια τιμή με την αποθηκευμένη)
   function formDirty(cid){
-    let r=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!r)return false;
+    let r=document.querySelector(`#sfPanel .sfNr[data-c="${cid}"]`);if(!r)return false;
     let g=r.querySelector('.sfGr').value.trim(),k=r.querySelector('.sfK').value.trim(),p=r.querySelector('.sfP').value.trim();
     let ed=S.editing[cid]?S.entries.find(e=>e.id===S.editing[cid]):null;
     if(ed)return k!==fmtIn(entW(ed))||p!==String(ed.piece_count||'');
     return !!(g||k||p);
   }
   // πάτημα σε κλειστή γραμμή την ανοίγει (▾)· πάτημα σε ΑΝΟΙΧΤΗ την κλείνει (▸): οι καταχωρήσεις και η φόρμα της κρύβονται, τα δεδομένα μένουν
-  async function toggleCat(cid){
-    if(isOpen(cid)){
-      if(formDirty(cid)&&!await uiConfirm('Να κλείσει χωρίς αποθήκευση;'))return;
-      S.open[cid]=false;S.editing[cid]=null;S.rm[cid]=null;S.rt[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;msg('');
-      redoGroup(cid,false);
-    }else openCat(cid,true);
+  async function selectCat(cid){
+    if(!S||S.sel===cid)return;
+    if(S.sel&&formDirty(S.sel)&&!await uiConfirm('Να αλλάξει υλικό χωρίς αποθήκευση;'))return;
+    let prev=S.sel;
+    if(prev){S.editing[prev]=null;S.rm[prev]=null;S.rt[prev]=null;S.bulk[prev]=false;S.bulkMed[prev]=false}
+    S.sel=cid;S.open[cid]=true;msg('');defBulk(cid);prefillLast(cid);
+    document.querySelectorAll('#sfList tr.sfCat.sel').forEach(r=>r.classList.remove('sel'));
+    let r=document.querySelector(`#sfList tr.sfCat[data-c="${cid}"]`);
+    if(r){r.classList.add('sel');try{r.scrollIntoView({block:'nearest'})}catch(_){}}else{let c=C.rows.find(x=>x.id===cid);if(c&&visible(c))redoGroup(cid,false)}
+    renderPanel(cid,false);
   }
   // ενημέρωση απόβαρου + υπολογισμός μεικτό ↔ καθαρό (γράφει ο χρήστης το ένα, το άλλο υπολογίζεται και φαίνεται «auto»)
   function calc(row,src){
     let cid=row.dataset.c,b=baseKg(cid),G=row.querySelector('.sfGr'),K=row.querySelector('.sfK'),aG=row.querySelector('[data-for=G]'),aK=row.querySelector('[data-for=K]');
     row.dataset.src=src;
     if(src==='G'){let g=parseKg(G.value);K.value=g==null?'':fmtIn(g<0?g-b:Math.max(0,g-b));K.classList.add('auto');G.classList.remove('auto');aK.hidden=g==null;aG.hidden=true}
-    else{let k=parseKg(K.value);G.value=k==null?'':fmtIn(k+b);G.classList.add('auto');K.classList.remove('auto');aG.hidden=k==null;aK.hidden=true}
+    else{let k=parseKg(K.value);G.value=k==null?'':fmtIn(k+b);G.classList.add('auto');K.classList.remove('auto');aG.hidden=k==null;aK.hidden=true}syncPanel(row);
   }
   function refreshRow(row){
     if(!row)return;let cid=row.dataset.c,t=rowTare(cid),tc=row.querySelector('.sfTr');if(tc)tc.value=t>0?nf(t):'';
-    let src=row.dataset.src;if(src&&(row.querySelector(src==='G'?'.sfGr':'.sfK').value||'').trim()!=='')calc(row,src);
+    let src=row.dataset.src;if(src&&(row.querySelector(src==='G'?'.sfGr':'.sfK').value||'').trim()!=='')calc(row,src);syncPanel(row);
   }
   function moveFrom(cid,d){}
   function ensureRowsFor(list){
@@ -9939,7 +9986,7 @@ const SF=(function(){
       S.editing[cid]=null;S.open[cid]=true;
       if(closed||editId){S.rm[cid]=null;S.rt[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false}   // μετά από «Κλείσιμο» ή διόρθωση: νέα προσυμπλήρωση· αλλιώς το ίδιο μέσο μένει
       msg('');
-      if(wasEmpty){S.busy=false;KEEP={open:Object.assign({},S.open),focus:cid};await C.reload();return true}
+      if(wasEmpty){S.busy=false;KEEP={open:Object.assign({},S.open),focus:cid,sel:cid};await C.reload();return true}
       prefillLast(cid);
       redoGroup(cid,true);
       return true;
@@ -9959,9 +10006,9 @@ const SF=(function(){
   function startEdit(entryId){
     let e=S.entries.find(x=>x.id===entryId);if(!e)return;
     let cid=rid(e);
-    S.editing[cid]=entryId;S.open[cid]=true;S.rm[cid]=C.media.find(m=>m.id===e.collection_medium_id)||null;S.rt[cid]=S.rm[cid]?S.rm[cid].type_id:null;
+    S.editing[cid]=entryId;S.open[cid]=true;S.rm[cid]=C.media.find(m=>m.id===e.collection_medium_id)||null;S.rt[cid]=S.rm[cid]?S.rm[cid].type_id:null;S.bulk[cid]=false;S.bulkMed[cid]=!S.rm[cid];
     redoGroup(cid,false);
-    let row=document.querySelector(`#sfList .sfNr[data-c="${cid}"]`);if(!row)return;
+    let row=document.querySelector(`#sfPanel .sfNr[data-c="${cid}"]`);if(!row)return;
     row.querySelector('.sfK').value=fmtIn(entW(e));row.querySelector('.sfP').value=e.piece_count||'';calc(row,'K');focusNew(cid,'.sfK');
     msg('Διόρθωσε και πάτα Enter (Esc για ακύρωση).',true);
   }
@@ -10181,7 +10228,7 @@ const SF=(function(){
   }
   function markHL(){if(!DD.el)return;DD.el.querySelectorAll('.sfIt').forEach(x=>x.classList.toggle('hl',+x.dataset.i===DD.hl));let h=DD.el.querySelector('.sfIt.hl');if(h)h.scrollIntoView({block:'nearest'})}
   const BULK_CATS=new Set(['4Α2110','4Α2120','4Α2200','4Α1000','1Α1100','1Α1200','1Α2100','1Α2200','1Α3000'].map(x=>norm(x)));
-  function syncClose(row){let c=row&&row.querySelector('.sfCl');if(!c)return;let cid=row.dataset.c,ok=!!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid];c.disabled=!ok;if(!ok)c.checked=false}
+  function syncClose(row){let c=row&&row.querySelector('.sfCl');if(!c)return;let cid=row.dataset.c,ok=!!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid];c.disabled=!ok;if(!ok)c.checked=false;syncPanel(row)}
   function pickBulk(commitToo){
     let inp=DD.input,row=inp&&inp.closest('.sfNr');if(!row)return;
     let cid=row.dataset.c,c=C.rows.find(x=>x.id===cid);
@@ -10204,7 +10251,7 @@ const SF=(function(){
   }
 
   function cardHtml(){
-    return `<div class="card sortEntriesCard" style="background:var(--surface,#fff)"><b>Καταχώρηση ανά κατηγορία ΑΗΗΕ</b><div class="sfTb"><input class="sfQ" id="sfQ" placeholder="Αναζήτηση κωδικού ή περιγραφής… (ελληνικά ή αγγλικά)" autocomplete="off"><span class="sfSw" id="sfSw"><i></i>Μόνο με καταχώρηση</span></div><div class="sortingCatWrap sfList sfWrap" id="sfList"></div><div class="sfHint">Επιτρέπεται αρνητικό βάρος (διόρθωση). Πάτα «Καταχώρηση» για να προστεθεί.</div><div id="sortEntryMsg"></div></div>`;
+    return `<div class="card sortEntriesCard" style="background:var(--surface,#fff)"><div class="sfTb"><b>Κατηγορίες ΑΗΗΕ</b><input class="sfQ" id="sfQ" placeholder="Αναζήτηση κωδικού ή περιγραφής… (ελληνικά ή αγγλικά)" autocomplete="off"><span class="sfSw" id="sfSw"><i></i>Μόνο με καταχώρηση</span></div><div class="sortingCatWrap sfList sfWrap" id="sfList"></div></div>`;
   }
   function bind(ctx){
     closeDD();
@@ -10218,13 +10265,15 @@ const SF=(function(){
     C.pickable=(opts.media||[]).filter(m=>m.active!==false&&m.type_id!==bulkTypeId);   // το Χύμα βγαίνει ΜΙΑ φορά (η επιλογή «Χύμα»), όχι ως BULK-…
     // κατάσταση: διατηρείται μόνο η αναζήτηση/διακόπτης ανάμεσα σε ξαναζωγραφίσματα της ίδιας ταξινόμησης
     let enter=!!window._sfEnter;window._sfEnter=false;let hasEnt=(ctx.d.entries||[]).length>0;let keep=(!enter&&S&&S.loadId===ctx.loadId)?{q:S.q,only:S.only}:{q:'',only:!!ctx.ro||hasEnt},kp=KEEP;KEEP=null;      // μόνο ανάγνωση: ξεκινά με «Μόνο με καταχώρηση»
-    S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},rt:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH,open:(kp&&kp.open)||{},fresh2:{},ver:0};
+    S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},rt:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH,open:(kp&&kp.open)||{},fresh2:{},ver:0,sel:null};
     S.rowOf={};ctx.cats.filter(c=>c.is_internal_subcategory).forEach(c=>{let p=C.rows.find(r=>r.official_code===c.official_code);if(p)S.rowOf[c.id]=p.id});
     C.allCats=ctx.cats;ensureRowsFor(S.entries);
+    {let vis0=C.rows.filter(c=>!isF(c)&&(S.only?S.entries.some(e=>rid(e)===c.id):true));S.sel=(kp&&kp.sel&&C.rows.some(c=>c.id===kp.sel)?kp.sel:null)||(vis0[0]||C.rows[0]||{}).id||null;if(S.sel){S.open[S.sel]=true;if(!(kp&&kp.sel))defBulk(S.sel);prefillLast(S.sel)}}
     Object.keys(S.open).forEach(prefillLast);
     C.have={};api('/inventory/weee/media-content').then(h=>{C.have=h||{}}).catch(()=>{});
     $('sfQ').value=S.q;$('sfSw').classList.toggle('on',S.only);
     renderList();
+    renderPanel(S.sel,false);
     if(kp&&kp.focus)focusNew(kp.focus);
     if(!C.ro)startLive();
     $('sfQ').oninput=e=>{S.q=e.target.value;renderList()};
@@ -10233,7 +10282,8 @@ const SF=(function(){
       let vis=C.rows.filter(visible),c=vis.find(x=>norm(x.official_code)===q)||vis[0];if(!c)return;
       if(!isOpen(c.id))openCat(c.id,true);else focusNew(c.id)};
     $('sfSw').onclick=()=>{S.only=!S.only;$('sfSw').classList.toggle('on',S.only);renderList()};
-    let L=$('sfList');
+    const wire=L=>{
+    L.addEventListener('mousedown',e=>{if(e.target.closest&&e.target.closest('.sfFull,.sfSegB'))e.preventDefault()});   /* τα κουμπιά δεν παίρνουν το focus: ο δείκτης μένει στο πεδίο και το Enter καταχωρεί */
     L.addEventListener('focusin',e=>{let t=e.target;
       if(t.classList.contains('sfM')){t.select();let row=t.closest('.sfNr'),cid=row.dataset.c;if(!S.rt[cid]){let d=defType(cid);if(d){S.rt[cid]=d;row.querySelector('.sfT').value=(C.medTypes.find(x=>x.id===d)||{}).name_el||''}}openDD(t)}
       else if(t.classList.contains('sfT')){let row=t.closest('.sfNr'),cid=row.dataset.c;if(!S.rt[cid]&&!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid]){let d=defType(cid);if(d){S.rt[cid]=d;t.value=(C.medTypes.find(x=>x.id===d)||{}).name_el||''}}openDD(t)}
@@ -10243,7 +10293,7 @@ const SF=(function(){
       if(S.rm[cid]||S.bulk[cid]||S.bulkMed[cid]){S.rm[cid]=null;S.bulk[cid]=false;S.bulkMed[cid]=false;S.rt[cid]=null;row.querySelector('.sfM').value='';t.value='';syncClose(row)}
       if(document.activeElement===t&&!DD.el)openDD(t)});
     L.addEventListener('input',e=>{let t=e.target;
-      if(t.classList.contains('sfM')){let row=t.closest('.sfNr');if(!t.value.trim()){S.rm[row.dataset.c]=null;S.bulk[row.dataset.c]=false;S.bulkMed[row.dataset.c]=false;refreshRow(row)}openDD(t)}
+      if(t.classList.contains('sfM')){let row=t.closest('.sfNr');if(!t.value.trim()){S.rm[row.dataset.c]=null;S.bulk[row.dataset.c]=false;S.bulkMed[row.dataset.c]=false;refreshRow(row)}syncPanel(t.closest('.sfNr'));openDD(t)}
       else if(t.classList.contains('sfP')){let row=t.closest('.sfNr'),avg=Number(row.dataset.avg||0);if(avg>0&&!t.disabled&&t.value!==''&&Number.isFinite(Number(t.value))){row.querySelector('.sfK').value=String(rnd(Number(t.value)*avg));calc(row,'K')}}
       else if(t.classList.contains('sfGr')){let r=t.closest('.sfNr');r.querySelector('.sfP').value='';calc(r,'G')}        // κιλά → το «Τεμ.» μένει κενό
       else if(t.classList.contains('sfK')){let r=t.closest('.sfNr');r.querySelector('.sfP').value='';calc(r,'K')}
@@ -10255,7 +10305,9 @@ const SF=(function(){
       if(d=e.target.closest('.sfEn[data-e]')){startEdit(d.dataset.e);return}
       if(d=e.target.closest('[data-edit]')){startEdit(d.dataset.edit);return}
       if(d=e.target.closest('.sfAdd')){let row=d.closest('.sfNr');if(!row)return;commit(row,true).then(ok=>{if(!ok){let f=row.querySelector('.sfGr');f&&f.focus()}});return}
-      if(d=e.target.closest('tr.sfCat')){toggleCat(d.dataset.c);return}
+      if(d=e.target.closest('.sfSegB')){let row=d.closest('.sfNr');if(!row)return;DD.input=row.querySelector('.sfT');if(d.dataset.t==='BULK')pickBulk(false);else selectType(d.dataset.t);return}
+      if(d=e.target.closest('.sfFull')){let row=d.closest('.sfNr'),cl=row&&row.querySelector('.sfCl');if(cl&&!cl.disabled){cl.checked=!cl.checked;syncPanel(row)}return}
+      if(d=e.target.closest('tr.sfCat')){selectCat(d.dataset.c);return}
     });
     L.addEventListener('keydown',e=>{
       let t=e.target,row=t.closest&&t.closest('.sfNr');if(!row)return;
@@ -10281,6 +10333,12 @@ const SF=(function(){
         commit(row,true).then(ok=>{if(!ok&&!row.querySelector('.sfK').value.trim()&&!row.querySelector('.sfGr').value.trim()&&!row.querySelector('.sfP').value.trim())msg('')});
       }
     });
+    };
+    wire($('sfList'));wire($('sfPanel'));
+    {let sd=$('sortingDetail');if(sd&&!window._sfKeyDoc){window._sfKeyDoc=1;document.addEventListener('keydown',e=>{
+      if(!S||!C||(e.key!=='ArrowDown'&&e.key!=='ArrowUp')||sd.classList.contains('hidden')||sd.classList.contains('popupMin'))return;let t=e.target;if(t&&t.closest&&t.closest('.sfDD,.medPickMenu,.uiDialog,[role=dialog]'))return;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;if(DD.el)return;
+      let rows=[...document.querySelectorAll('#sfList tr.sfCat')];if(!rows.length)return;
+      let i=rows.findIndex(r=>r.dataset.c===S.sel);i=Math.max(0,Math.min(rows.length-1,(i<0?0:i)+(e.key==='ArrowDown'?1:-1)));e.preventDefault();selectCat(rows[i].dataset.c)})}}
   }
   // Το παράθυρο δεν ξεπερνά ποτέ το κάτω άκρο της οθόνης (κυλά το περιεχόμενο) και η λίστα κολλά κάτω από την επικεφαλίδα.
   function sfTopSync(sd){
@@ -12521,6 +12579,98 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
 :is(#sortingDetail,#receiptForm,#floatingEditor) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap):not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap)){zoom:var(--vz,1);--vzi:var(--vz,1)}
 :is(#sortingDetail,#receiptForm,#floatingEditor) table:not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) table){zoom:var(--vz,1)}
 </style>
+<style id="b67Css">
+/* B67: Ταξινόμηση (Windows) — νέα διάταξη όπως στο mockup_taxinomisi_windows: περίληψη σε μία γραμμή, αριστερά λίστα κατηγοριών + στοιχεία ελέγχου, δεξιά πάνελ καταχώρησης */
+#sortingDetail .sfBubble .sfSum{display:flex;gap:34px;align-items:center;padding:9px 16px}
+#sortingDetail .sfBubble .sfSum>span{display:flex;align-items:baseline;gap:6px;white-space:nowrap;background:none!important;padding:0!important;box-shadow:none!important;border:0!important}
+#sortingDetail .sfBubble .sfSum small{display:inline;margin:0;color:var(--muted,#5B6670);font-size:13px}
+#sortingDetail .sfBubble .sfSum b{font-size:16px;display:inline}
+#sortingDetail .sfBubble .sfSum .sfBar{flex:1 1 120px;min-width:80px;margin:0;height:8px}
+#sortingDetail .sfBubble .sfSum .sfBar.overAll i{background:#A52A22!important}
+#sortingDetail .sfBubble .sfSum .stockNeg b{color:#A52A22}
+#sortingDetail .sfGrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(430px,38%);grid-template-rows:minmax(0,1fr);gap:12px;height:var(--b67H,640px);margin:12px 0 0;min-height:0}
+#sortingDetail .sfGrid.noTbl{display:block;height:auto}
+#sortingDetail .sfLeft{display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0}
+#sortingDetail .sfLeft>.sortEntriesCard{flex:1 1 0!important;min-height:0!important;display:flex!important;flex-direction:column;margin:0!important;overflow:hidden!important}
+#sortingDetail .sfLeft .sortEntriesCard .sfTb{display:flex!important;align-items:center;gap:14px;flex:none!important;flex-wrap:nowrap!important;position:static!important;top:auto!important;z-index:auto!important;background:transparent!important;margin:0 0 8px!important;padding:0!important}
+#sortingDetail .sfLeft .sortEntriesCard .sfTb>b{font-size:16px;white-space:nowrap}
+#sortingDetail .sfLeft .sortEntriesCard .sfTb .sfQ{flex:1 1 auto;min-width:120px}
+#sortingDetail .sfLeft .sfWrap{flex:1 1 auto;min-height:0;height:auto!important;max-height:none!important;overflow:auto!important}
+#sortingDetail .sfLeft .sfWrap .sfTable thead th{top:0!important}
+#sortingDetail .sfLeft>.sfCtl{flex:none!important;margin:0!important}
+#sortingDetail .sfPanelCard{margin:0!important;padding:14px 16px;overflow:auto;min-height:0;display:flex;flex-direction:column;gap:10px}
+#sortingDetail .sfTable tr.sfCat{cursor:pointer}
+#sortingDetail .sfTable tbody tr.sfCat:not(.sel) td{background:var(--surface,#fff)!important}
+#sortingDetail .sfTable tbody tr.sfCat:not(.sel):hover td{background:#EEF3F8!important}
+#sortingDetail .sfTable tbody tr.sfCat.sel td,#sortingDetail .sfTable tbody tr.sfCat.sel:hover td{background:#DCE7FA!important}
+#sortingDetail .sfSw{white-space:nowrap}
+#sortingDetail .sfTable td.sfDs{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere;line-height:1.25}
+#sortingDetail .sfTable tr.sfCat td{padding-top:5px;padding-bottom:5px;vertical-align:middle}
+/* πάνελ */
+#sfPanel .sfPh b{font-size:16px}
+#sfPanel .sfPh span{color:#5B6670;font-size:13px;margin-left:8px}
+#sfPanel .sfNr{display:flex;flex-direction:column;gap:10px}
+#sfPanel .sfClose{display:none!important}
+#sfPanel .sfFl{font-size:11.5px;color:#5B6670;margin-bottom:3px;min-height:14px}
+#sfPanel .sfSeg{display:flex;gap:6px;flex-wrap:wrap}
+#sfPanel .sfSegB,#sfPanel .sfFull{height:34px;padding:0 14px;border:1px solid #D6D0C3;border-bottom-width:2px;border-radius:7px;background:linear-gradient(#fff,#F8F6F9);font:600 13.5px/1 inherit;font-family:inherit;color:#3B4A55;cursor:pointer;box-sizing:border-box;white-space:nowrap}
+#sfPanel .sfSegB.on{background:#144A52;border-color:#0F3A40;color:#fff}
+#sfPanel .sfFull{width:100%}
+#sfPanel .sfFull.on{background:#FBF1DF;border-color:#DA6F01;color:#DA6F01}
+#sfPanel .sfFull:disabled{opacity:.45;cursor:default}
+#sfPanel .sfPr2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(90px,.9fr) minmax(0,1fr);gap:8px;align-items:end}
+#sfPanel .sfPr2:not(:has(.sfP:not([type=hidden]))){grid-template-columns:minmax(0,1.6fr) minmax(90px,.9fr)}
+#sfPanel .sfPr3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#sfPanel .sfNumW{display:flex;gap:6px;align-items:center}
+#sfPanel .sfNumW .sfM{flex:1 1 auto;min-width:0}
+#sfPanel .sfNewBtn{flex:none;height:34px;padding:0 10px;border:1.5px solid #144A52;border-radius:6px;background:#fff;color:#144A52;font:700 13px inherit;font-family:inherit;cursor:pointer;white-space:nowrap}
+#sfPanel .sfFld{position:relative;display:block}
+#sfPanel .sfNr input.sfM,#sfPanel .sfNr input.sfGr,#sfPanel .sfNr input.sfK,#sfPanel .sfNr input.sfTr,#sfPanel .sfNr input.sfP{height:34px;width:100%;border:1px solid #B9C2C6;border-radius:6px;padding:0 12px;font:600 15px inherit;font-family:inherit;text-align:right;background:#fff;color:#14222B;box-sizing:border-box;margin:0}
+#sfPanel .sfNr input:focus{outline:2px solid #2F8A90;border-color:#2F8A90}
+#sfPanel .sfNr input:disabled,#sfPanel .sfNr input[readonly]{background:#F4F5F4;color:#6B757C}
+#sfPanel .sfNr input.auto{background:#FBF1DF;border-style:dashed}
+#sfPanel .sfAuto{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:11px;color:#9A6A00;font-style:normal;pointer-events:none}
+#sfPanel .sfAuto[hidden]{display:none}
+#sfPanel .sfNet{display:flex;justify-content:space-between;align-items:center;min-height:62px;border-radius:8px;background:#E3F0E6;border:1px solid #9CC6A8;padding:6px 14px;box-sizing:border-box;gap:10px}
+#sfPanel .sfNet[hidden],#sfPanel .sfErr2[hidden]{display:none}
+#sfPanel .sfNet span{font-weight:700;font-size:15px;color:#1A6A3F;display:block}
+#sfPanel .sfNet small{display:block;font-size:12.5px;color:#3B6B4D;margin-top:2px}
+#sfPanel .sfNet strong{font-size:24px;color:#1A6A3F;white-space:nowrap}
+#sfPanel .sfNet em{font-size:13px;font-style:normal}
+#sfPanel .sfErr2{color:#A52A22;font-size:12.5px;font-weight:700;margin-top:-4px}
+#sfPanel .sfAdd{height:38px;width:100%;background:#144A52;color:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;font:700 14px inherit;font-family:inherit;border:0;border-bottom:2px solid #0B2F35;cursor:pointer}
+#sfPanel .sfAdd:disabled{background:#9AA9AC;cursor:default}
+#sfPanel #sortEntryMsg:empty{display:none}
+#sfPanel .sfEnts{border:1px solid #DAD8D2;border-radius:8px;overflow:hidden;margin-top:2px}
+#sfPanel .sfEg{display:grid;grid-template-columns:minmax(0,1fr) 56px 56px 56px 62px;gap:6px;align-items:center;padding:6px 10px;border-bottom:1px solid #E4E7EB;font-size:13.5px;min-height:36px}
+#sfPanel .sfEg:last-child{border-bottom:0}
+#sfPanel .sfEg.h{font-size:11.5px;color:#5B6670;font-weight:700;background:#F3EEDC;min-height:0}
+#sfPanel .sfEg.ed{background:#FBF1DF}
+#sfPanel .sfEg>span{overflow-wrap:anywhere}
+#sfPanel .sfEg>span:not(:first-child){text-align:right}
+#sfPanel .sfEg .ac{display:flex;gap:4px;justify-content:flex-end}
+#sfPanel .sfMini{width:26px;height:24px;border:1px solid #D6D0C3;border-radius:5px;background:#fff;font-size:12px;cursor:pointer;padding:0}
+#sfPanel .sfMini.d{border-color:#D9A894;color:#A52A22}
+#sfPanel .sfEgNone{padding:12px;color:#9AA3A8;font-size:13px}
+@container sd (max-width:900px){
+  #sortingDetail .sfGrid{grid-template-columns:minmax(0,1fr);height:auto}
+  #sortingDetail .sfLeft .sortEntriesCard{height:420px;flex:none}
+}
+#sortingDetail{container:sd/inline-size}
+</style>
+<script id="b67Js">
+/* B67: ύψος της διάταξης (λίστα + πάνελ) = διαθέσιμο ύψος του παραθύρου κάτω από τις σταθερές γραμμές· αν δεν χωρά, scroll μέσα στη λίστα / στο πάνελ */
+(function(){
+  const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
+  const px=k=>parseFloat(getComputedStyle(sd).getPropertyValue(k))||0;
+  function fit(){q=0;const g=sd.querySelector('.sfGrid');if(!g||sd.classList.contains('hidden'))return;
+    const h=Math.max(440,Math.floor(sd.clientHeight-px('--sfTop')-px('--sfAct')-px('--sfBub')-24))+'px';
+    if(sd.style.getPropertyValue('--b67H')!==h)sd.style.setProperty('--b67H',h)}
+  const req=()=>{if(!q)q=requestAnimationFrame(fit)};
+  if(window.ResizeObserver){new ResizeObserver(req).observe(sd);new MutationObserver(req).observe(sd,{childList:true,attributes:true,attributeFilter:['class','style']})}
+  window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);req();
+})();
+</script>
 <style id="barsA">
 /* Α3: το πρώτο κελί των κολλητών κάτω γραμμών (Σύνολο, Τεμάχια, Αποστολές, Τρέχον απόθεμα…) έχει το ίδιο αδιάφανο χρώμα με την υπόλοιπη γραμμή */
 :is(#production,#ready) .prodTable tfoot tr:not(.corrRow):not(#prodCorrectionRow) td:first-child{background:var(--surface-2)!important}
