@@ -6434,7 +6434,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   document.body.appendChild(sd);
   let wasOpen=!sd.classList.contains('hidden'),keepScroll=wasOpen?[sd.scrollTop,sd.querySelector('.sortingCatWrap')?.scrollTop||0]:null;
   sd.classList.remove('hidden');
-  if(!wasOpen)positionPopupPanel(sd,0.08,1040,44);
+  if(!wasOpen){positionPopupPanel(sd,0.08,1040,44);sd.classList.remove('popupMin');sd.classList.add('popupMax')}   /* B70: η εντολή ανοίγει σε πλήρες παράθυρο */
   let editable=['IN_PROGRESS','SORTING_IN_PROGRESS','READY_FOR_SORTING','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'].includes(String(d.status||'').toUpperCase());
   let st=String(d.status||'').toUpperCase(),showTable=editable||st==='CLOSED';      // ολοκληρωμένη: ο πίνακας φαίνεται μόνο για ανάγνωση
   let canMarkReview=st==='IN_PROGRESS';
@@ -12178,6 +12178,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     U.active=false;U.ctx=null;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
     hideHdr();
     await _orp.apply(this,arguments);
+    {let f0=$('receiptForm');if(f0&&!f0.classList.contains('hidden')){f0.classList.remove('popupMin');f0.classList.add('popupMax')}}   /* B70: πλήρες παράθυρο */
     let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],multi=ls.length>1&&!only,loadId=only?hl:(ls.length===1?ls[0].id:null);
     U.ctx={id,loadId};
     if(multi&&$('receiptFormTitle'))$('receiptFormTitle').textContent='Πολλαπλές παραλαβές';
