@@ -1466,8 +1466,8 @@ body[data-theme="dark"] .uTab.active{color:#9db8ff;border-bottom-color:#8fb0ff}
 /* ΑΛΛΑΓΗ ΙΡ: κουκκίδες κρυμμένων σε ξεχωριστό επίπεδο (πάντα ολόκληρες) + ετικέτα σε ανώτερο επίπεδο */
 .pinMkLayer{position:fixed;left:0;top:0;width:0;height:0;z-index:9400;pointer-events:none}
 .pinMk{position:fixed;width:16px;height:16px;pointer-events:auto;cursor:pointer;user-select:none;box-sizing:border-box;font-size:0}
-.pinMk::before{content:"";position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:#f08a24;box-shadow:0 0 0 2px var(--surface,#fff)}
-.pinMk:hover::before{content:"＋";width:14px;height:14px;margin:-7px 0 0 -7px;background:#c96a0a;color:#fff;font:700 12px/14px Roboto,system-ui,sans-serif;text-align:center}
+.pinMk::before{content:"";position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;background:#DA6F01;opacity:.5;transition:all .12s}
+.pinMk:hover::before{content:"＋";width:18px;height:18px;margin:-9px 0 0 -9px;opacity:1;background:#DA6F01;color:#fff;font:700 13px/18px Roboto,system-ui,sans-serif;text-align:center}
 .pinTip{position:fixed;z-index:9600;display:none;max-width:360px;width:max-content;background:#2b3445;color:#fff;font:400 11.5px/1.35 Roboto,system-ui,sans-serif;padding:4px 8px;border-radius:4px;white-space:normal;overflow-wrap:anywhere;pointer-events:none}
 #receiptForm .uHdrWrap>.uHdr,#sortingDetail .uHdrWrap>.uHdr{cursor:move}
 #receiptForm .uHdrWrap>.uHdr :is(button,.winCtl),#sortingDetail .uHdrWrap>.uHdr :is(button,.winCtl){cursor:pointer}
@@ -7478,7 +7478,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   },true);
 })();
 (function(){
-  const COL_RESIZE_EDGE_PX=6, COL_RESIZE_MIN_PX=70;
+  const COL_RESIZE_EDGE_PX=6, COL_RESIZE_MIN_PX=60;
   const RESIZABLE_TABLE_SELECTOR='.tablewrap table th, .prodTable th, #sfTable th';
   let state=null;
   try{Object.keys(localStorage).filter(k=>k.startsWith('colw:')&&Number(localStorage.getItem(k))<COL_RESIZE_MIN_PX).forEach(k=>localStorage.removeItem(k))}catch(e){}
@@ -7551,7 +7551,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   }
   // ---- Πλέγμα στηλών (σωστό και για πίνακες με colspan/rowspan στις επικεφαλίδες) ----
   const MIN_W=COL_RESIZE_MIN_PX;
-  const minW=t=>t&&t.id==='sfTable'?36:MIN_W;      // πίνακας Ταξινόμησης: στενές στήλες (Τεμ., Απόβαρο) δεν «πηδούν» στα 70px
+  const minW=t=>MIN_W;      // πίνακας Ταξινόμησης: στενές στήλες (Τεμ., Απόβαρο) δεν «πηδούν» στα 70px
   function tableRows(table){
     let rows=[];
     if(table.tHead)rows.push(...table.tHead.rows);
@@ -9205,7 +9205,6 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     if(y<wr.top||y>wr.bottom||x<wr.left||x>wr.right){if(layer&&layer.firstChild)scheduleClear();return}
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
       let item=md.cols.find(c=>c.th===cell);
-      if(item&&item.ok&&eyeFor(t,cell,wr,'c'+item.id,()=>hide(t,'col',item.id),[cell],'pinHotH'))return;
     }
     if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
       let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
@@ -9222,6 +9221,25 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     }
     if(layer&&layer.firstChild)scheduleClear();
   }
+  // ---- B73: μενού δεξιού κλικ σε επικεφαλίδα στήλης: «Απόκρυψη: <στήλη>» (όχι η τελευταία ορατή) και «Εμφάνιση όλων» ----
+  let pinCm=null;
+  function closeCm(){if(pinCm){pinCm.remove();pinCm=null}}
+  on(document,'contextmenu',e=>{
+    let th=e.target.closest&&e.target.closest('th');if(!th)return;
+    let t=th.closest('table');if(!t||!eligibleTable(t)||!t.tHead||th.parentElement.parentElement!==t.tHead)return;
+    let md=t._pinModel=t._pinModel||model(t),item=md.cols.find(c=>c.th===th);
+    if(!item||!item.ok)return;
+    e.preventDefault();closeCm();
+    let v=load(t),visible=md.cols.filter(c=>!v.cols.includes(c.id)).length,anyHidden=v.cols.length>0||Object.keys(v.rows||{}).some(k=>(v.rows[k]||[]).length);
+    let label=(item.label||item.name||th.textContent||'').trim();
+    pinCm=document.createElement('div');pinCm.className='pinCm';
+    pinCm.innerHTML=`<div data-a="hide"${visible<2?' class="dis"':''}>Απόκρυψη: ${String(label).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</div>`+(anyHidden?'<hr><div data-a="all">Εμφάνιση όλων</div>':'');
+    document.body.appendChild(pinCm);
+    pinCm.style.left=Math.max(8,Math.min(e.clientX,innerWidth-pinCm.offsetWidth-8))+'px';pinCm.style.top=Math.max(8,Math.min(e.clientY,innerHeight-pinCm.offsetHeight-8))+'px';
+    pinCm.onclick=ev=>{let d=ev.target.closest('[data-a]');if(!d||d.classList.contains('dis'))return;ev.stopPropagation();closeCm();if(d.dataset.a==='hide')hide(t,'col',item.id);else showAll(t)};
+  });
+  on(document,'mousedown',e=>{if(pinCm&&!(e.target.closest&&e.target.closest('.pinCm')))closeCm()},true);
+  on(document,'keydown',e=>{if(e.key==='Escape')closeCm()},true);on(window,'resize',closeCm);on(document,'scroll',closeCm,true);
   // κλικ σε κουκκίδα: εμφανίζει ΜΟΝΟ το δικό της στοιχείο (πριν από κάθε άλλον χειριστή: κρύβεται από ταξινόμηση/αλλαγή πλάτους στήλης)
   on(window,'click',e=>{
     let m=e.target.closest&&e.target.closest('.pinMk');if(!m)return;
@@ -12686,6 +12704,28 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
   if(window.ResizeObserver){new ResizeObserver(req).observe(sd);new MutationObserver(req).observe(sd,{childList:true,attributes:true,attributeFilter:['class','style']})}
   window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);req();
 })();
+</script>
+<style id="b73Css">
+/* B73-1: κουμπιά ημερών Παραλαβών όπως στο Android (3D, στρογγυλεμένα, 2px κάτω γραμμή, μεγάλος αριθμός + ημέρα από κάτω)· τα χρώματα των ημερών μένουν ως έχουν */
+html body #app #receiptDayStrip{gap:6px!important}
+html body #app #receiptDayStrip .receiptCalendarDay{height:54px!important;border-radius:8px!important;border-width:1px 1px 2px 1px!important;border-style:solid!important;border-color:rgba(20,34,43,.2) rgba(20,34,43,.2) rgba(20,34,43,.32) rgba(20,34,43,.2)!important;background-image:linear-gradient(rgba(255,255,255,.55),rgba(20,34,43,.04))!important;box-shadow:0 1px 2px rgba(20,34,43,.18),inset 0 1px 0 rgba(255,255,255,.8)!important;font-size:17px!important;font-weight:700;line-height:1.1!important;gap:1px!important}
+html body #app #receiptDayStrip .receiptCalendarDay small{font-size:12px!important;font-weight:600!important;opacity:1!important;color:inherit}
+html body #app #receiptDayStrip .receiptCalendarDay.selected,html body #app #receiptDayStrip .receiptCalendarDay.selected[class*="stg-"]{background-image:linear-gradient(rgba(255,255,255,.14),rgba(0,0,0,.14))!important;border-color:rgba(0,0,0,.35)!important;border-bottom-width:2px!important;box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18)!important}
+/* B73-2: ίδια αριστερά/δεξιά όρια: η μπάρα scroll της λίστας είναι στην άκρη του παραθύρου και δεσμεύει πάντα τη θέση της· ημέρες/αναζήτηση αφήνουν το ίδιο πλάτος */
+#receipts #recScrollPane.recPaneOn{overflow-y:scroll!important;margin-right:-24px;padding-right:24px}
+#receipts :is(#receiptDayStrip,.receiptSearchRow){margin-right:var(--b73Sb,15px)}
+/* B73-3: μενού δεξιού κλικ σε στήλη */
+.pinCm{position:fixed;z-index:99999;background:#fff;border:1px solid #CFCAD0;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);padding:5px 0;font-size:13px;min-width:200px;color:#14222B}
+.pinCm div{padding:7px 14px;cursor:pointer}.pinCm div:hover{background:#EEF3F8}.pinCm div.dis{opacity:.4;pointer-events:none}.pinCm hr{border:0;border-top:1px solid #E4E7EB;margin:4px 0}
+/* B73-4: λεπτή κάθετη γραμμή πάντα ορατή στο δεξί άκρο κάθε επικεφαλίδας· έντονη στο πέρασμα του ποντικιού */
+html body :is(.tablewrap table,.prodTable,#sfTable) thead th:not(#b73x){background-image:linear-gradient(#BFB391,#BFB391)!important;background-repeat:no-repeat!important;background-size:1px 70%!important;background-position:right center!important}
+.colResizeLine{width:3px!important;margin-left:-1px;background:#144A52!important;border-radius:2px}
+.colResizeLine.drag{background:#144A52!important}
+</style>
+<script id="b73Js">
+/* B73-2: πλάτος μπάρας scroll της λίστας Παραλαβών → ίδιο δεξί περιθώριο για ημέρες/αναζήτηση */
+(function(){let q=0;function fit(){q=0;const p=document.getElementById('recScrollPane'),r=document.getElementById('receipts');if(!p||!r||!p.offsetParent)return;const w=Math.max(0,p.offsetWidth-p.clientWidth);if(r.style.getPropertyValue('--b73Sb')!==w+'px')r.style.setProperty('--b73Sb',w+'px')}
+const req=()=>{if(!q)q=requestAnimationFrame(fit)};window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,1000);req()})();
 </script>
 <style id="barsA">
 /* Α3: το πρώτο κελί των κολλητών κάτω γραμμών (Σύνολο, Τεμάχια, Αποστολές, Τρέχον απόθεμα…) έχει το ίδιο αδιάφανο χρώμα με την υπόλοιπη γραμμή */
