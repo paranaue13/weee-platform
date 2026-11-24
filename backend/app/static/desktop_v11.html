@@ -5026,8 +5026,24 @@ async function liveRefreshPresence(){
   let v=$('presence');if(!v||v.classList.contains('hidden')||liveBusy(v))return;
   try{clearApiCache();await presRefresh()}catch(e){}
 }
+let liveVBusy=false;
+/* B69: Αρχική / Παραλαβές / Ταξινόμηση (λίστα) ανανεώνονται μόνες τους όταν αλλάζει κάτι από άλλη συσκευή (π.χ. ολοκλήρωση ταξινόμησης από Android)· όχι όσο είναι ανοιχτό παράθυρο ή γράφει ο χρήστης */
+async function liveRefreshViews(topics){
+  let has=(...k)=>!topics||k.some(x=>topics.includes(x));
+  if(!has('sorting','inventory','misc')||liveVBusy||liveBusy(null))return;
+  if(['sortingDetail','receiptForm'].some(id=>{let e=$(id);return e&&!e.classList.contains('hidden')}))return;
+  let v=document.querySelector('.content>.view:not(.hidden)');if(!v)return;
+  liveVBusy=true;
+  try{let y=window.scrollY;clearApiCache();
+    if(v.id==='dashboard')await loadDashboard();
+    else if(v.id==='receipts')await loadReceiptsV2();
+    else if(v.id==='sortingReview')await loadSortingReview();
+    window.scrollTo(0,y)}
+  catch(e){}finally{liveVBusy=false}
+}
 function liveRefreshAll(topics){
   let has=(...k)=>!topics||k.some(x=>topics.includes(x));
+  liveRefreshViews(topics);
   if(topics?has('masters','settings','misc'):!MATDESC.loaded())MATDESC.load();
   if(has('attendance','production','masters','inventory','settings','misc'))liveRefreshDeltio();
   if(has('attendance','masters','settings','misc'))liveRefreshPresence();

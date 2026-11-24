@@ -627,6 +627,7 @@ async function liveRefreshA(topics){
     if($('secProduction')&&$('secProduction').offsetParent&&!ptMode&&!fl.busy&&!fl.kb){
       if(has('production','inventory','masters','misc')){await loadProdToday();if(!fl.medium&&!fl.q){flLoadedAt=0;await flLoad(true)}}
     }
+    if($('secReceiving')&&$('secReceiving').offsetParent&&$('loads')&&!$('loads').classList.contains('hidden')&&has('sorting','inventory','misc'))await loadLoads(true);   /* B69: λίστα Παραλαβών ανανεώνεται μόνη της */
     if($('secMaterials')&&$('secMaterials').offsetParent&&mt.tab==='export'&&!mtDirty()&&has('misc','inventory','production'))await loadMatHist();
     if($('secMaterials')&&$('secMaterials').offsetParent&&mt.tab==='stock'&&has('misc','inventory','production'))await mtStockRender(true);   /* η ανοιχτή λεπτομέρεια (mt.whOpen) μένει */
     window.scrollTo(0,y);
