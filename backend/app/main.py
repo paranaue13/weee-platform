@@ -1,5 +1,6 @@
 import os
 import re
+import threading, functools
 import asyncio, logging, json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
@@ -290,6 +291,7 @@ async def lifespan(app: FastAPI):
         ensure_press_opening_stock_import(db)
         _backfill_dpp_numbers(db)
     ec_task = asyncio.create_task(_electrocycle_loop())
+    threading.Timer(4,_warm_weee).start()
     yield
     ec_task.cancel()
 
@@ -300,6 +302,29 @@ app = FastAPI(title="WEEE Operations Platform API", version="2.5.35", lifespan=l
 # οι οθόνες ξαναφορτώνουν μόνο αυτά. Η ανανέωση ανά 15″ στις οθόνες μένει ως εφεδρική.
 _event_subs:set=set()
 
+# B72: προσωρινή μνήμη για βαριά αναγνωστικά endpoints (Αποθήκη ΑΗΗΕ): ισχύει μέχρι την επόμενη εγγραφή στη βάση (οποιαδήποτε POST/PUT/PATCH/DELETE εκτός σύνδεσης)
+_CACHE:dict={}; _CACHE_VER=[0]; _WARM_BUSY=[False]
+def _cached(fn):
+    @functools.wraps(fn)
+    def w(*a,**kw):
+        key=(fn.__name__,tuple(sorted((k,str(v)) for k,v in kw.items() if k not in ('db','user','request'))),datetime.now().strftime('%Y-%m-%d'))
+        ver=_CACHE_VER[0]; hit=_CACHE.get(key)
+        if hit and hit[0]==ver: return hit[1]
+        res=fn(*a,**kw)
+        if len(_CACHE)>24: _CACHE.clear()
+        _CACHE[key]=(ver,res)       # ver από ΠΡΙΝ τον υπολογισμό: αν έγινε εγγραφή στο μεταξύ, η επόμενη κλήση ξαναϋπολογίζει
+        return res
+    return w
+def _warm_weee():
+    """Προθέρμανση: υπολογίζει την Αποθήκη ΑΗΗΕ του τρέχοντος μήνα στο παρασκήνιο (εκκίνηση server / σύνδεση χρήστη), ώστε η πρώτη εμφάνιση να είναι άμεση."""
+    if _WARM_BUSY[0]: return
+    _WARM_BUSY[0]=True
+    try:
+        n=datetime.now(); first=n.replace(day=1); last=datetime(n.year+(n.month==12),(n.month%12)+1,1)-timedelta(days=1)
+        with SessionLocal() as sdb:
+            weee_dashboard(month=None,day=None,start=first.strftime('%Y-%m-%d'),end=last.strftime('%Y-%m-%d'),db=sdb,user=None)
+    except Exception: pass
+    finally: _WARM_BUSY[0]=False
 def _topics_for_path(path:str)->set:
     p=path.lower(); t=set()
     if p.startswith("/production/attendance") or p.startswith("/production/placement"): t|={"attendance"}
@@ -311,6 +336,7 @@ def _topics_for_path(path:str)->set:
     return t or {"misc"}
 
 def _publish_change(path:str):
+    if not path.lower().startswith('/auth/'): _CACHE_VER[0]+=1
     topics=_topics_for_path(path)
     for q in list(_event_subs):
         for tp in topics:
@@ -467,6 +493,7 @@ def login(req: schemas.LoginRequest, db: Session=Depends(get_db)):
     if not user or not user.active or not verify_password(req.password,user.password_hash):
         raise HTTPException(401,"Λάθος στοιχεία σύνδεσης")
     user.last_login=datetime.now(timezone.utc); db.commit()
+    threading.Timer(3,_warm_weee).start()
     return schemas.Token(access_token=make_token(user))
 
 @app.post("/auth/refresh", response_model=schemas.Token)
@@ -3147,6 +3174,7 @@ def sorting_day_loads(day:str=Query(pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=
     return out
 
 @app.get('/sorting/review-queue')
+@_cached
 def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     # Windows history/review must show every real inbound load, not only submitted sessions.
     # This keeps legacy/older orders visible regardless of their current workflow stage.
@@ -3154,8 +3182,13 @@ def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permis
     # loads) the old N+1 version took several seconds and made the Sorting tab look empty
     # while it was still loading. See weee_dashboard() above for the same pattern.
     CarrierOrg=aliased(Organization)
+    # B71: στήλες αντί για ολόκληρα αντικείμενα ORM + COUNT ανά συνεδρία στη βάση (το αποτέλεσμα είναι ίδιο, πολύ πιο γρήγορα)
     rows=db.execute(
-        select(InboundLoad,InboundTrip,SortingSession,Organization,CarrierOrg)
+        select(InboundLoad.id,InboundLoad.status,InboundLoad.order_number,InboundLoad.dpp_number,InboundLoad.incoming_container_number,InboundLoad.net_weight,
+               InboundTrip.id,InboundTrip.receipt_number,InboundTrip.receipt_type,InboundTrip.receipt_date,InboundTrip.status,InboundTrip.notes,
+               SortingSession.id,SortingSession.status,SortingSession.correction,SortingSession.sorting_confirmed_at,
+               Organization.trade_name,Organization.legal_name,CarrierOrg.trade_name,CarrierOrg.legal_name)
+        .select_from(InboundLoad)
         .join(InboundTrip,InboundLoad.trip_id==InboundTrip.id)
         .outerjoin(SortingSession,SortingSession.inbound_load_id==InboundLoad.id)
         .outerjoin(Organization,Organization.id==InboundLoad.supplier_id)
@@ -3163,21 +3196,21 @@ def sorting_review_queue(db:Session=Depends(get_db), user=Depends(require_permis
         .where(InboundTrip.deleted_at.is_(None))
         .order_by(InboundLoad.created_at.desc())
     ).all()
-    entry_counts={}
-    for sid in db.scalars(select(SortingEntry.session_id)).all(): entry_counts[sid]=entry_counts.get(sid,0)+1
+    entry_counts={sid:n for sid,n in db.execute(select(SortingEntry.session_id,func.count()).group_by(SortingEntry.session_id)).all()}
     out=[]
-    for load,trip,ses,sup,carrier in rows:
-        effective_status=(ses.status if ses else load.status) or trip.status or 'DRAFT'
+    for (l_id,l_status,l_order,l_dpp,l_cont,l_net,t_id,t_num,t_type,t_date,t_status,t_notes,s_id,s_status,s_corr,s_conf,sup_tn,sup_ln,car_tn,car_ln) in rows:
+        effective_status=(s_status if s_id else l_status) or t_status or 'DRAFT'
         if effective_status=='IN_PROGRESS': effective_status='SORTING_IN_PROGRESS'
         # Opening a load starts its session, but it only counts as "in sorting" once at least one entry exists.
-        if effective_status=='SORTING_IN_PROGRESS' and not (ses and entry_counts.get(ses.id)): effective_status='READY_FOR_SORTING'
+        if effective_status=='SORTING_IN_PROGRESS' and not (s_id and entry_counts.get(s_id)): effective_status='READY_FOR_SORTING'
         # «Προς Διόρθωση»: προσωρινή κατάσταση όσο γίνονται διορθώσεις στον έλεγχο (Windows), μέχρι την Ολοκλήρωση
-        if ses and ses.correction and effective_status in ('LOGISTICS_REVIEW','MANAGEMENT_REVIEW','SORTING_CONFIRMED'): effective_status='CORRECTION'
-        out.append({'load_id':load.id,'session_id':ses.id if ses else None,'status':effective_status,'receipt_id':trip.id,'receipt_number':trip.receipt_number,
-          'receipt_type':trip.receipt_type,'receipt_date':trip.receipt_date.isoformat(),'supplier':(sup.trade_name or sup.legal_name) if sup else '', 'carrier':((carrier.trade_name or carrier.legal_name) if carrier else ''),
-          'order_number':load.order_number,'dpp_number':load.dpp_number,'container_number':load.incoming_container_number,'net_weight':float(load.net_weight or 0),
-          'time_known':('\"sourceTimeKnown\":false' not in (trip.notes or '').replace(' ','')),
-          'sorting_confirmed_at':ses.sorting_confirmed_at.isoformat() if ses and ses.sorting_confirmed_at else None})
+        if s_id and s_corr and effective_status in ('LOGISTICS_REVIEW','MANAGEMENT_REVIEW','SORTING_CONFIRMED'): effective_status='CORRECTION'
+        has_sup=(sup_tn is not None or sup_ln is not None); has_car=(car_tn is not None or car_ln is not None)
+        out.append({'load_id':l_id,'session_id':s_id if s_id else None,'status':effective_status,'receipt_id':t_id,'receipt_number':t_num,
+          'receipt_type':t_type,'receipt_date':t_date.isoformat(),'supplier':(sup_tn or sup_ln) if has_sup else '', 'carrier':((car_tn or car_ln) if has_car else ''),
+          'order_number':l_order,'dpp_number':l_dpp,'container_number':l_cont,'net_weight':float(l_net or 0),
+          'time_known':('\"sourceTimeKnown\":false' not in (t_notes or '').replace(' ','')),
+          'sorting_confirmed_at':s_conf.isoformat() if s_id and s_conf else None})
     return out
 
 @app.get('/sorting/month-report')
@@ -4426,6 +4459,7 @@ def _mv_sign(mt):
     return 1 if mt in ('SORTING_IN','CANCEL_TO_PRODUCTION','SORTING_ADJUST') else -1
 
 @app.get('/inventory/weee-dashboard')
+@_cached
 def weee_dashboard(month:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}$'), day:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), start:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), end:str|None=Query(default=None,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('production.view'))):
     now=datetime.now()
     if start and end:
@@ -6424,23 +6458,24 @@ def direct_process(stock_lot_id:str,data:schemas.DirectProcessCreate,db:Session=
 
 @app.get('/dashboard/operations', response_model=schemas.OperationalDashboardOut)
 def operations_dashboard(db:Session=Depends(get_db), user=Depends(require_permission('receipt.view'))):
-    active_trip_ids=select(InboundTrip.id).where(InboundTrip.deleted_at.is_(None)); loads=db.scalars(select(InboundLoad).where(InboundLoad.trip_id.in_(active_trip_ids))).all(); sessions=db.scalars(select(SortingSession).join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).where(InboundLoad.trip_id.in_(active_trip_ids))).all()
-    _sess_with_entries=set(db.scalars(select(SortingEntry.session_id).distinct()).all())
-    weee=db.scalars(select(WEEEStockLot).where(WEEEStockLot.available_weight>0)).all()
-    prod=db.scalars(select(ProductionInputBalance).where(ProductionInputBalance.status=='OPEN')).all()
-    ready=db.scalars(select(ReadyMaterialLot).where(ReadyMaterialLot.status=='AVAILABLE')).all()
-    loadings=db.scalars(select(LoadingOrder).where(LoadingOrder.status=='OPEN')).all()
-    sync=db.scalars(select(SyncEvent).where(SyncEvent.system=='GALAXY',SyncEvent.status.in_(['PENDING','RETRY']))).all()
+    # B71: ίδια αποτελέσματα με πριν, αλλά με COUNT/SUM στη βάση (πριν φορτώνονταν όλες οι εγγραφές Python-side → αργή Αρχική)
+    active_trip_ids=select(InboundTrip.id).where(InboundTrip.deleted_at.is_(None))
+    D=lambda v:Decimal(str(v if v is not None else 0)).quantize(Decimal('0.001'))
+    open_loads=db.scalar(select(func.count()).select_from(InboundLoad).where(InboundLoad.trip_id.in_(active_trip_ids),func.coalesce(InboundLoad.status,'')!='CLOSED')) or 0
+    sess_base=select(func.count()).select_from(SortingSession).join(InboundLoad,SortingSession.inbound_load_id==InboundLoad.id).where(InboundLoad.trip_id.in_(active_trip_ids))
+    # ίδιος κανόνας με τη λίστα Ταξινόμησης: «σε εξέλιξη» μόνο όταν η συνεδρία έχει τουλάχιστον μία καταχώρηση
+    in_prog=db.scalar(sess_base.where(SortingSession.status=='IN_PROGRESS',SortingSession.id.in_(select(SortingEntry.session_id).distinct()))) or 0
+    wl=db.scalar(sess_base.where(SortingSession.status=='LOGISTICS_REVIEW')) or 0
+    wm=db.scalar(sess_base.where(SortingSession.status=='MANAGEMENT_REVIEW')) or 0
+    weee_kg=db.scalar(select(func.sum(WEEEStockLot.available_weight)).where(WEEEStockLot.available_weight>0))
+    prod_kg=db.scalar(select(func.sum(ProductionInputBalance.current_remaining_weight)).where(ProductionInputBalance.status=='OPEN'))
+    ready_kg=db.scalar(select(func.sum(ReadyMaterialLot.net_weight)).where(ReadyMaterialLot.status=='AVAILABLE'))
+    n_loadings=db.scalar(select(func.count()).select_from(LoadingOrder).where(LoadingOrder.status=='OPEN')) or 0
+    n_sync=db.scalar(select(func.count()).select_from(SyncEvent).where(SyncEvent.system=='GALAXY',SyncEvent.status.in_(['PENDING','RETRY']))) or 0
     return schemas.OperationalDashboardOut(
-        open_receipt_loads=sum(x.status!='CLOSED' for x in loads),
-        # ίδιος κανόνας με τη λίστα Ταξινόμησης: «σε εξέλιξη» μόνο όταν η συνεδρία έχει τουλάχιστον μία καταχώρηση
-        sorting_in_progress=sum(x.status=='IN_PROGRESS' and x.id in _sess_with_entries for x in sessions),
-        waiting_logistics=sum(x.status=='LOGISTICS_REVIEW' for x in sessions),
-        waiting_management=sum(x.status=='MANAGEMENT_REVIEW' for x in sessions),
-        weee_stock_kg=sum((x.available_weight for x in weee),Decimal('0')),
-        production_open_kg=sum((x.current_remaining_weight for x in prod),Decimal('0')),
-        ready_stock_kg=sum((x.net_weight for x in ready),Decimal('0')),
-        open_loadings=len(loadings),galaxy_pending=len(sync),**_today_orders_progress(db))
+        open_receipt_loads=open_loads,sorting_in_progress=in_prog,waiting_logistics=wl,waiting_management=wm,
+        weee_stock_kg=D(weee_kg),production_open_kg=D(prod_kg),ready_stock_kg=D(ready_kg),
+        open_loadings=n_loadings,galaxy_pending=n_sync,**_today_orders_progress(db))
 
 def _today_orders_progress(db:Session)->dict:
     """Παραλαβές ημέρας x/y: x = εντολές που παραλήφθηκαν σήμερα, y = x + όσες απομένουν στη ζωντανή ροή (Electrocycle).
@@ -6673,6 +6708,13 @@ for _r in report_generators.router.routes: app.add_api_route(_r.path,_r.endpoint
 def common_search_norm_js():
     """Κοινή κανονικοποίηση αναζήτησης (ελληνικά ≡ λατινικά ομοιόμορφα γράμματα) για Windows και Android."""
     return FileResponse(static_dir / "search_norm.js", media_type="application/javascript", headers={"Cache-Control":"no-store, no-cache, must-revalidate, max-age=0"})
+
+@app.get("/common/fonts/{name}")
+def common_font(name:str):
+    """Γραμματοσειρά Roboto τοπικά (χωρίς εξωτερικό αίτημα στο internet κατά την εκκίνηση)."""
+    allowed={"roboto-latin.woff2","roboto-latin-ext.woff2","roboto-greek.woff2","roboto-greek-ext.woff2"}
+    if name not in allowed: raise HTTPException(404,"Not found")
+    return FileResponse(static_dir / "fonts" / name, media_type="font/woff2", headers={"Cache-Control":"public, max-age=31536000, immutable"})
 
 @app.get("/mobile")
 def mobile_workspace():
