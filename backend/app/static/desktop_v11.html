@@ -12206,7 +12206,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
       let tb=$('uRcTabs');tb.innerHTML=tabsHtml('rec',!!loadId);tb.classList.remove('hidden');
       tb.onclick=e=>{let b=e.target.closest('.uTab');if(b&&b.dataset.ut==='sort'&&U.ctx&&U.ctx.loadId)toSort()};
       // εντολή με ήδη καταχωρημένη ταξινόμηση: ανοίγει κατευθείαν η καρτέλα Ταξινόμηση
-      if(loadId&&!U.noAuto){U.active=true;try{let d0=await api('/sorting/'+loadId+'/detail');if(U.ctx&&U.ctx.loadId===loadId&&(d0.entries||[]).length)await toSort()}catch(e){}}
+      if(loadId&&!U.noAuto){U.active=true;try{if(U.ctx&&U.ctx.loadId===loadId)await toSort()}catch(e){}}   /* B74: κάθε εντολή (και τα μικρά σημεία) ανοίγει κατευθείαν στην Ταξινόμηση */
     }
     U.active=true;
   };
