@@ -1893,9 +1893,6 @@ body[data-theme="dark"] #ecTableWrap tbody tr.ecRow:hover,body[data-theme="dark"
 #receiptForm.receiptPopup .receiptPopupHeader{position:static;flex:none;margin:0!important;cursor:move}
 #receiptForm.receiptPopup>.notice{flex:none;margin:8px 20px 0}
 #receiptForm .recBody{flex:1 1 auto;min-height:0;overflow:auto;padding:12px 20px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin;scrollbar-color:var(--line-strong,#b9bdc9) transparent}
-#receiptForm .recBody::-webkit-scrollbar{width:8px}
-#receiptForm .recBody::-webkit-scrollbar-thumb{background:var(--line-strong,#b9bdc9);border-radius:var(--r-box)}
-#receiptForm .recBody::-webkit-scrollbar-track{background:transparent}
 #receiptForm .recFoot{flex:none;padding:4px 0 0}
 #receiptForm .recFoot #receiptMsg:empty{display:none}
 #receiptForm .recGrp{background:var(--pop-card,#F0F3FA);border-radius:var(--r-box);padding:12px 14px;border:0!important;gap:10px 12px;flex:none}
@@ -12712,8 +12709,6 @@ html body #app #receiptDayStrip .receiptCalendarDay{height:54px!important;border
 html body #app #receiptDayStrip .receiptCalendarDay small{font-size:12px!important;font-weight:600!important;opacity:1!important;color:inherit}
 html body #app #receiptDayStrip .receiptCalendarDay.selected,html body #app #receiptDayStrip .receiptCalendarDay.selected[class*="stg-"]{background-image:linear-gradient(rgba(255,255,255,.14),rgba(0,0,0,.14))!important;border-color:rgba(0,0,0,.35)!important;border-bottom-width:2px!important;box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.18)!important}
 /* B73-2: ίδια αριστερά/δεξιά όρια: η μπάρα scroll της λίστας είναι στην άκρη του παραθύρου και δεσμεύει πάντα τη θέση της· ημέρες/αναζήτηση αφήνουν το ίδιο πλάτος */
-#receipts #recScrollPane.recPaneOn{overflow-y:scroll!important;margin-right:-24px;padding-right:24px}
-#receipts :is(#receiptDayStrip,.receiptSearchRow){margin-right:var(--b73Sb,15px)}
 /* B73-3: μενού δεξιού κλικ σε στήλη */
 .pinCm{position:fixed;z-index:99999;background:#fff;border:1px solid #CFCAD0;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);padding:5px 0;font-size:13px;min-width:200px;color:#14222B}
 .pinCm div{padding:7px 14px;cursor:pointer}.pinCm div:hover{background:#EEF3F8}.pinCm div.dis{opacity:.4;pointer-events:none}.pinCm hr{border:0;border-top:1px solid #E4E7EB;margin:4px 0}
@@ -12726,6 +12721,37 @@ html body :is(.tablewrap table,.prodTable,#sfTable) thead th:not(#b73x){backgrou
 /* B73-2: πλάτος μπάρας scroll της λίστας Παραλαβών → ίδιο δεξί περιθώριο για ημέρες/αναζήτηση */
 (function(){let q=0;function fit(){q=0;const p=document.getElementById('recScrollPane'),r=document.getElementById('receipts');if(!p||!r||!p.offsetParent)return;const w=Math.max(0,p.offsetWidth-p.clientWidth);if(r.style.getPropertyValue('--b73Sb')!==w+'px')r.style.setProperty('--b73Sb',w+'px')}
 const req=()=>{if(!q)q=requestAnimationFrame(fit)};window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,1000);req()})();
+</script>
+<style id="b75Css">
+/* B75: ενιαίες μπάρες scroll — λεπτές (8px), στρογγυλεμένες, γκρι, χωρίς βελάκια· παντού (σελίδες, πίνακες, παράθυρα, λίστες, οριζόντιες/κάθετες) */
+html body *{scrollbar-width:auto!important;scrollbar-color:auto!important}
+html{scrollbar-width:auto!important;scrollbar-color:auto!important;overflow-y:scroll}
+::-webkit-scrollbar{width:14px;height:14px}
+::-webkit-scrollbar-thumb{background:#B8BEC4;border:3px solid transparent;background-clip:padding-box;border-radius:7px;min-height:44px;min-width:44px}
+::-webkit-scrollbar-thumb:hover{background:#9AA2AA;background-clip:padding-box}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-button{display:none;width:0;height:0}
+::-webkit-scrollbar-corner{background:transparent}
+/* η μπάρα της σελίδας: στήλη στην άκρη του παραθύρου, δεσμεύεται πάντα (ορατό κανάλι) */
+html::-webkit-scrollbar-track{background:#F1F1F1;border-left:1px solid #E0E0E0}
+/* Παραλαβές › Καθημερινά: σταθερά (sticky) η γραμμή καρτελών, οι ημέρες και η αναζήτηση· κυλά η σελίδα */
+#receipts:has(#receiptDaysMode.active) :is(.tfBar,#receiptDayStrip,.receiptSearchRow){position:sticky!important;z-index:30;background-color:var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) .tfBar{top:var(--b75T1,59px);box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) #receiptDayStrip{top:var(--b75T2,127px);box-shadow:0 10px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) .receiptSearchRow{top:var(--b75T3,191px);box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) #ecTableWrap thead th{top:var(--b75T4,250px)!important}
+#recScrollPane #ecTableWrap.recWide{overflow:auto!important;max-height:var(--recPaneH,60vh)}
+#recScrollPane #ecTableWrap.recWide thead th{top:0!important}
+</style>
+<script id="b75Js">
+/* B75: θέσεις των sticky (πάνω μπάρα → γραμμή καρτελών → ημέρες → αναζήτηση) και χρώμα φόντου σελίδας */
+(function(){let q=0;
+function fit(){q=0;const r=document.getElementById('receipts');if(!r||!r.offsetParent)return;const R=document.documentElement,tb=document.querySelector('.topbar'),tf=r.querySelector(':scope>.tfBar'),ds=document.getElementById('receiptDayStrip'),sr=r.querySelector(':scope>.receiptSearchRow');
+ const H=e=>e&&e.offsetParent?e.getBoundingClientRect().height:0,M=e=>e&&e.offsetParent?(parseFloat(getComputedStyle(e).marginBottom)||0):0,z=(window.pzOf?pzOf():1)||1;
+ const t1=H(tb),t2=t1+H(tf)+M(tf),t3=t2+H(ds)+M(ds),t4=t3+H(sr)+M(sr);
+ [['--b75T1',t1],['--b75T2',t2],['--b75T3',t3],['--b75T4',t4]].forEach(([k,v])=>{const x=Math.round(v)+'px';if(R.style.getPropertyValue(k)!==x)R.style.setProperty(k,x)});
+ const bg=getComputedStyle(document.querySelector('.main')||document.body).backgroundColor,bg2=(bg&&bg!=='rgba(0, 0, 0, 0)')?bg:getComputedStyle(document.body).backgroundColor;if(R.style.getPropertyValue('--b75Bg')!==bg2)R.style.setProperty('--b75Bg',bg2)}
+const req=()=>{if(!q)q=requestAnimationFrame(fit)};window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,800);req()})();
 </script>
 <style id="barsA">
 /* Α3: το πρώτο κελί των κολλητών κάτω γραμμών (Σύνολο, Τεμάχια, Αποστολές, Τρέχον απόθεμα…) έχει το ίδιο αδιάφανο χρώμα με την υπόλοιπη γραμμή */
@@ -14176,7 +14202,7 @@ html[data-mode] .content :is(#master,#receipts,#weee,#production,#ready,#loading
     const mv=[];let n=sr.nextSibling;while(n){mv.push(n);n=n.nextSibling}sr.after(p);mv.forEach(x=>p.appendChild(x));return p}
   let raf=0;
   function fit(){raf=0;const v=document.getElementById('receipts'),p=setup();if(!p)return;const dm=document.getElementById('receiptDaysMode');
-    const on=!!(v.offsetParent&&dm&&dm.classList.contains('active'));
+    const on=false;   /* B75: κυλά η σελίδα (μία μπάρα στην άκρη του παραθύρου)· ημέρες/αναζήτηση κολλημένες */
     if(!on){if(p.classList.contains('recPaneOn')){p.classList.remove('recPaneOn');p.style.removeProperty('height')}return}
     p.classList.add('recPaneOn');
     const zb=document.getElementById('zoomBar'),bh=zb?zb.offsetHeight:0,rz=(window.pzOf?pzOf():1)||1;
@@ -14255,8 +14281,7 @@ html .main>.content>.view{overflow-clip-margin:var(--b18M,0px)}
   function fit(){q=0;const P=document.getElementById('recScrollPane'),w=document.getElementById('ecTableWrap');if(!P||!w)return;
     const t=w.querySelector('table');if(!t)return;
     if(!P.offsetParent||!w.offsetParent)return;   /* μόνο όταν φαίνονται οι Παραλαβές · δεν αγγίζει τίποτα όσο είναι ανοιχτή άλλη σελίδα */
-    if(!P.classList.contains('recPaneOn')){if(w.classList.contains('recWide'))w.classList.remove('recWide');return}
-    const h=Math.max(160,P.clientHeight)+'px';if(P.style.getPropertyValue('--recPaneH')!==h)P.style.setProperty('--recPaneH',h);
+    {const h=Math.max(220,window.innerHeight-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--b75T4'))||250)-60)+'px';if(P.style.getPropertyValue('--recPaneH')!==h)P.style.setProperty('--recPaneH',h)}
     const wide=t.scrollWidth>w.clientWidth+1;if(w.classList.contains('recWide')!==wide)w.classList.toggle('recWide',wide)}   /* αλλάζει μόνο όταν αλλάζει η κατάσταση (όχι βρόχος ResizeObserver) */
   const req=()=>{if(!q)q=requestAnimationFrame(fit)};
   const go=()=>{const P=document.getElementById('recScrollPane'),w=document.getElementById('ecTableWrap');
