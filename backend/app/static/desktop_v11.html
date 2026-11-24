@@ -2794,7 +2794,7 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <section id="galaxy" class="view hidden"><div class="grid" id="galaxyMetrics"></div><div class="card"><h3>Galaxy Sync Queue</h3><div id="galaxyNote" class="notice"></div><div id="galaxyRows"></div></div></section>
 </div><div id="zoomBar"><button type="button" class="zmMode" id="zmModeT" data-zm="table" title="Πίνακας: ζουμ μόνο στον πίνακα" aria-label="Ζουμ πίνακα"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M3 14h18M9 9v11M15 9v11"/></svg></button><button type="button" class="zmMode" id="zmModeP" data-zm="page" title="Όλη η οθόνη: αναλογικό ζουμ όλης της σελίδας" aria-label="Ζουμ όλης της οθόνης"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h4M7 9v4M17 15h-4M17 15v-4"/></svg></button><span class="zmSep"></span><button type="button" class="zmStep" id="zmMinus" title="Μείωση 10%">−</button><div id="zmTrack"><i id="zmFill"></i><b id="zmKnob"></b></div><button type="button" class="zmStep" id="zmPlus" title="Αύξηση 10%">+</button><button type="button" id="zmPct">100% ▴</button><div id="zmMenu" class="hidden"></div></div></main></div>
 <script src="/common/search-norm.js"></script>
-<script id="vzCore">if(!window.searchNorm){window.searchNorm=function(x){return String(x==null?'':x).toLowerCase()};Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true})};window.vzOf=function(el){if(!el||!el.closest||!el.closest('.content>.view'))return 1;const cs=getComputedStyle(document.documentElement),pz=parseFloat(cs.getPropertyValue('--pz'))||1;return pz*((el.closest('.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap')||el.closest('table'))?(parseFloat(cs.getPropertyValue('--vz'))||1):1)};window.pzOf=function(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pz'))||1};</script>
+<script id="vzCore">if(!window.searchNorm){window.searchNorm=function(x){return String(x==null?'':x).toLowerCase()};Object.defineProperty(String.prototype,'sn',{value:function(){return window.searchNorm(String(this))},configurable:true,writable:true})};window.vzOf=function(el){if(!el||!el.closest)return 1;const W='.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap',w=el.closest('#sortingDetail,#receiptForm,#floatingEditor');if(w){const rc=getComputedStyle(document.documentElement),pz0=el.closest('.content>.view')?(parseFloat(rc.getPropertyValue('--pz'))||1):1;return pz0*((el.closest(W)||el.closest('table'))?(parseFloat(getComputedStyle(w).getPropertyValue('--vz'))||1):1)}if(!el.closest('.content>.view'))return 1;const cs=getComputedStyle(document.documentElement),pz=parseFloat(cs.getPropertyValue('--pz'))||1;return pz*((el.closest(W)||el.closest('table'))?(parseFloat(cs.getPropertyValue('--vz'))||1):1)};window.pzOf=function(){return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--pz'))||1};</script>
 <script>
 let token='',me=null,orgs=[],suppliers=[],carriers=[],containers=[],editingReceiptId=null;const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
 const apiCache=new Map();const API_CACHE_MS=30000;function clearApiCache(prefix=''){for(const k of [...apiCache.keys()])if(!prefix||k.startsWith(prefix))apiCache.delete(k)}/* ===== ΟΥΡΑ ΕΓΓΡΑΦΩΝ (outbox): κάθε εγγραφή μπαίνει σε ουρά με μοναδικό κωδικό, στέλνεται με τη σειρά, ξαναστέλνεται αυτόματα με τον ΙΔΙΟ κωδικό
@@ -12462,7 +12462,10 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
     if(!parts.length){let m=v.querySelector('.receiptMode.active[id]');if(m)parts.push(m.id)}
     return v.id+(parts.length?':'+parts.join('+'):'');
   }
-  function load(k){try{let v=parseInt(localStorage.getItem(SK()+k),10);if(v>=MIN&&v<=MAX)return v}catch(e){}return 100}
+  function load(k,e=eff){try{let v=parseInt(localStorage.getItem((e==='page'?SKP:SKT)+k),10);if(v>=MIN&&v<=MAX)return v}catch(x){}return 100}
+  /* B66: όταν είναι ανοιχτό παράθυρο (Ταξινόμηση / Παραλαβή / επεξεργασία), το ποσοστό μεγέθους ισχύει ΜΟΝΟ για τους πίνακες του παραθύρου (δικό του ποσοστό ανά παράθυρο)· η σελίδα πίσω κρατά το δικό της */
+  const WIDS=['sortingDetail','receiptForm','floatingEditor'];
+  const wEl=()=>{for(const id of WIDS){const e=$z(id);if(e&&!e.classList.contains('hidden')&&!e.classList.contains('popupMin')&&e.getClientRects().length)return e}return null};
   function save(k,p){try{if(p===100)localStorage.removeItem(SK()+k);else localStorage.setItem(SK()+k,String(p))}catch(e){}}
   function paint(){
     let r=(pct-MIN)/(MAX-MIN)*100;
@@ -12473,12 +12476,18 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
     if(mp){mp.classList.toggle('on',eff==='page');mp.setAttribute('aria-pressed',String(eff==='page'))}
   }
   function apply(p){
-    pct=p;const de=document.documentElement;de.style.setProperty('--vz',String(eff==='table'?p/100:1));de.style.setProperty('--pz',String(eff==='page'?p/100:1));paint();
+    pct=p;const de=document.documentElement,w=wEl();
+    WIDS.forEach(id=>{const e=$z(id);if(e&&e!==w){e.style.removeProperty('--vz');e.style.removeProperty('--pz')}});
+    if(w){w.style.setProperty('--vz',String(eff==='table'?p/100:1));w.style.setProperty('--pz','1');
+      const bv=curView(),bk=tabKey(bv),be=(mode==='table'&&viewHasTable(bv))?'table':'page',bp=load(bk,be);
+      de.style.setProperty('--vz',String(be==='table'?bp/100:1));de.style.setProperty('--pz',String(be==='page'?bp/100:1))}
+    else{de.style.setProperty('--vz',String(eff==='table'?p/100:1));de.style.setProperty('--pz',String(eff==='page'?p/100:1))}
+    paint();
     requestAnimationFrame(()=>{try{if(window.fitProdWraps)fitProdWraps()}catch(e){}window.dispatchEvent(new Event('resize'));window.dispatchEvent(new CustomEvent('tableLayoutChanged'))});
   }
   function setP(p){p=Math.max(MIN,Math.min(MAX,Math.round(p)));if(p===pct)return;apply(p);if(key)save(key,p)}
   window.setViewZoom=setP;
-  function sync(force){let v=curView(),k=tabKey(v),ht=viewHasTable(v),e=(mode==='table'&&ht)?'table':'page';if(k&&(k!==key||e!==eff||ht!==hasT||force)){key=k;hasT=ht;eff=e;apply(load(k))}else if(ht!==hasT){hasT=ht;paint()}}
+  function sync(force){let w=wEl(),v=w||curView(),k=w?('win:'+w.id):tabKey(v),ht=viewHasTable(v),e=w?(ht?'table':'page'):((mode==='table'&&ht)?'table':'page');if(k&&(k!==key||e!==eff||ht!==hasT||force)){key=k;hasT=ht;eff=e;apply(load(k))}else if(ht!==hasT){hasT=ht;paint()}}
   // επιλογή λειτουργίας: «Πίνακας» / «Όλη η οθόνη» (αποθηκεύεται στη συσκευή· κάθε λειτουργία έχει το δικό της ποσοστό)
   [['zmModeT','table'],['zmModeP','page']].forEach(([id,m])=>{let b=$z(id);if(b)b.onclick=()=>{if(b.disabled)return;mode=m;try{localStorage.setItem(MK,m)}catch(e){}sync(true)}});
   setInterval(()=>{if(!document.hidden)sync()},1200);   // οι πίνακες φορτώνουν ασύγχρονα: ελέγχεται αν η σελίδα έχει πίνακα
@@ -12502,9 +12511,16 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
   let raf=0;const later=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>sync())};   // B21b: ΟΧΙ requestAnimationFrame(sync) — η ώρα του καρέ περνούσε ως «force» και κάθε αλλαγή κλάσης ξαναεφάρμοζε το μέγεθος → ατέρμονος κύκλος (τρεμόπαιγμα πινάκων)
   document.addEventListener('click',()=>setTimeout(sync,60),true);
   try{new MutationObserver(later).observe(document.querySelector('.content'),{subtree:true,attributes:true,attributeFilter:['class']})}catch(e){}
+  try{WIDS.forEach(id=>{const e=$z(id);if(e)new MutationObserver(later).observe(e,{attributes:true,attributeFilter:['class','style']})})}catch(e){}
   paint();sync();
 })();
 </script>
+<style id="b66Css">
+/* B66: ζουμ πινάκων ΜΟΝΟ μέσα στο ανοιχτό παράθυρο (το --vz ορίζεται πάνω στο ίδιο το παράθυρο) */
+:is(#sortingDetail,#receiptForm,#floatingEditor){--vzi:var(--vz,1)}
+:is(#sortingDetail,#receiptForm,#floatingEditor) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap):not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) :is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap)){zoom:var(--vz,1);--vzi:var(--vz,1)}
+:is(#sortingDetail,#receiptForm,#floatingEditor) table:not(:is(.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap) table){zoom:var(--vz,1)}
+</style>
 <style id="barsA">
 /* Α3: το πρώτο κελί των κολλητών κάτω γραμμών (Σύνολο, Τεμάχια, Αποστολές, Τρέχον απόθεμα…) έχει το ίδιο αδιάφανο χρώμα με την υπόλοιπη γραμμή */
 :is(#production,#ready) .prodTable tfoot tr:not(.corrRow):not(#prodCorrectionRow) td:first-child{background:var(--surface-2)!important}
