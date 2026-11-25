@@ -12756,10 +12756,10 @@ html{scrollbar-width:auto!important;scrollbar-color:auto!important;overflow-y:au
 html::-webkit-scrollbar-track{background:var(--b75Bg,#F1F0EC)}
 /* Παραλαβές › Καθημερινά: σταθερά (sticky) η γραμμή καρτελών, οι ημέρες και η αναζήτηση· κυλά η σελίδα */
 #receipts:has(#receiptDaysMode.active) :is(.tfBar,#receiptDayStrip,.receiptSearchRow){position:sticky!important;z-index:30;background-color:var(--b75Bg,#F1F0EC)}
-#receipts:has(#receiptDaysMode.active) .tfBar{top:var(--b75T1,59px);box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
-#receipts:has(#receiptDaysMode.active) #receiptDayStrip{top:var(--b75T2,127px);box-shadow:0 10px 0 0 var(--b75Bg,#F1F0EC)}
-#receipts:has(#receiptDaysMode.active) .receiptSearchRow{top:var(--b75T3,191px);box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
-#receipts:has(#receiptDaysMode.active) #ecTableWrap thead th{top:var(--b75T4,250px)!important}
+#receipts:has(#receiptDaysMode.active) .tfBar{top:calc(var(--b75T1,59px) - var(--b80H,0px));box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) #receiptDayStrip{top:calc(var(--b75T2,127px) - var(--b80H,0px));box-shadow:0 10px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) .receiptSearchRow{top:calc(var(--b75T3,191px) - var(--b80H,0px));box-shadow:0 14px 0 0 var(--b75Bg,#F1F0EC)}
+#receipts:has(#receiptDaysMode.active) #ecTableWrap thead th{top:calc(var(--b75T4,250px) - var(--b80H,0px))!important}
 #recScrollPane #ecTableWrap.recWide{overflow:auto!important;max-height:var(--recPaneH,60vh)}
 #recScrollPane #ecTableWrap.recWide thead th{top:0!important}
 </style>
@@ -12768,7 +12768,7 @@ html::-webkit-scrollbar-track{background:var(--b75Bg,#F1F0EC)}
 (function(){let q=0;
 function fit(){q=0;const r=document.getElementById('receipts');if(!r||!r.offsetParent)return;const R=document.documentElement,tb=document.querySelector('.topbar'),tf=r.querySelector(':scope>.tfBar'),ds=document.getElementById('receiptDayStrip'),sr=r.querySelector(':scope>.receiptSearchRow');
  const H=e=>e&&e.offsetParent?e.getBoundingClientRect().height:0,M=e=>e&&e.offsetParent?(parseFloat(getComputedStyle(e).marginBottom)||0):0,z=(window.pzOf?pzOf():1)||1;
- const t1=H(tb),t2=t1+H(tf)+M(tf),t3=t2+H(ds)+M(ds),t4=t3+H(sr)+M(sr);
+ const t1=0,t2=t1+H(tf)+M(tf),t3=t2+H(ds)+M(ds),t4=t3+H(sr)+M(sr);
  [['--b75T1',t1],['--b75T2',t2],['--b75T3',t3],['--b75T4',t4]].forEach(([k,v])=>{const x=Math.round(v)+'px';if(R.style.getPropertyValue(k)!==x)R.style.setProperty(k,x)});
  const bg=getComputedStyle(document.querySelector('.main')||document.body).backgroundColor,bg2=(bg&&bg!=='rgba(0, 0, 0, 0)')?bg:getComputedStyle(document.body).backgroundColor;if(R.style.getPropertyValue('--b75Bg')!==bg2)R.style.setProperty('--b75Bg',bg2)}
 const req=()=>{if(!q)q=requestAnimationFrame(fit)};window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,800);req()})();
@@ -15058,6 +15058,53 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap):not(.carr
   const lg=D.getElementById('login');
   if(lg)new MutationObserver(()=>{if(lg.classList.contains('hidden')&&!started){ov.hidden=false;setTimeout(warm,0)}}).observe(lg,{attributes:true,attributeFilter:['class']});
   window.b89Warm=warm;
+})();
+</script>
+<style id="b80Css">
+/* B80: κοινή βάση για ΟΛΕΣ τις σελίδες — κυλά η περιοχή .content: η μπάρα scroll (12px) είναι στην άκρη του παραθύρου, ξεκινά κάτω από την πάνω μπάρα (καρτέλες/κουμπιά) και φτάνει στην κάτω μπάρα· το περιεχόμενο τελειώνει στο ίδιο δεξί σημείο παντού */
+html:has(body:not(.pane)){overflow:hidden!important}
+body:not(.pane) .shell{height:100vh;min-height:0!important;overflow:hidden}
+body:not(.pane) .main{height:100vh;max-height:100vh;min-height:0!important;position:relative;overflow:hidden}
+body:not(.pane) .main>.content{min-height:0;overflow-y:auto;overflow-x:auto;scrollbar-gutter:stable;border-top:20px solid transparent;padding-top:var(--b80H,0px)!important;padding-right:calc(clamp(12px,1.5vw,24px) - 12px)!important}
+html.b80W body:not(.pane) .main>.content{overflow:hidden;padding-right:clamp(12px,1.5vw,24px)!important}
+/* η μπάρα ξεκινά κάτω από την πάνω μπάρα καρτελών */
+body:not(.pane) .main>.content::-webkit-scrollbar-track{margin-top:var(--b80H,0px)}
+/* η πάνω μπάρα καρτελών/κουμπιών μένει σταθερή και η γωνία δίπλα στη μπάρα scroll συμπληρώνεται (λευκό + πορτοκαλί γραμμή ως την άκρη του παραθύρου) */
+html:not(.b80W) body:not(.pane) .main>.content .b80Band{position:sticky!important;top:calc(-1 * var(--b80H,0px));z-index:35}
+html:not(.b80W) body:not(.pane) .main>.content>.view{margin-top:calc(-1 * var(--b80H,0px))}
+/* (το padding-top = ύψος μπάρας: τα κολλημένα κεφαλίδων πινάκων (top:0) κολλούν ακριβώς κάτω από αυτήν) */
+html:not(.b80W) body:not(.pane) .main>.content .b80Band::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--b80Gap,0px);background:var(--b75Bg,#F1F0EC);pointer-events:none}
+body:not(.pane) .main::after{content:"";position:absolute;right:0;top:var(--b80Y,79px);width:12px;height:var(--b80H,0px);background:var(--b80Bg,#fff);border-bottom:var(--b80Lw,2px) solid var(--b80Ln,#DA6F01);box-sizing:border-box;pointer-events:none;z-index:60}
+html.b80W body:not(.pane) .main::after{display:none}
+</style>
+<script id="b80Js">
+/* B80: μέτρηση της πάνω μπάρας της ενεργής σελίδας + ό,τι χρησιμοποιούσε το scroll του παραθύρου πάει στην περιοχή .content */
+(function(){
+  const D=document,R=D.documentElement,C=()=>D.querySelector('.main>.content');let q=0;
+  const set=(k,v)=>{if(R.style.getPropertyValue(k)!==v)R.style.setProperty(k,v)};
+  function sync(){q=0;if(D.body.classList.contains('pane'))return;
+    const w=!!D.querySelector('#weee:not(.hidden)');R.classList.toggle('b80W',w);
+    const c=C();if(!c)return;
+    const v=[...c.children].find(e=>e.classList&&e.classList.contains('view')&&!e.classList.contains('hidden')&&e.offsetParent);
+    const band=v&&!w?(v.querySelector(':scope>.tfBar')||v.querySelector('.tfBar')):null;
+    D.querySelectorAll('.b80Band').forEach(e=>{if(e!==band)e.classList.remove('b80Band')});
+    if(band&&band.offsetParent){band.classList.add('b80Band');
+      const cs=getComputedStyle(band),br=band.getBoundingClientRect(),cr=c.getBoundingClientRect(),z=br.height/(band.offsetHeight||br.height)||1;
+      let bg=cs.backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)')bg='#fff';
+      set('--b80H',Math.round(br.height)+'px');set('--b80Y',Math.round(cr.top+c.clientTop)+'px');set('--b80Bg',bg);
+      const bw=parseFloat(cs.borderBottomWidth)||0;set('--b80Lw',bw+'px');set('--b80Ln',bw?cs.borderBottomColor:'transparent');
+      set('--b80Gap',Math.round((parseFloat(cs.marginBottom)||0)*z)+'px')}
+    else{set('--b80H','0px');set('--b80Lw','0px')}}
+  const req=()=>{if(!q)q=requestAnimationFrame(sync)};
+  window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,500);req();
+  /* το scroll του «παραθύρου» είναι πλέον το scroll της περιοχής .content */
+  try{
+    Object.defineProperty(window,'scrollY',{get:()=>{const c=C();return c?c.scrollTop:0},configurable:true});
+    Object.defineProperty(window,'pageYOffset',{get:()=>{const c=C();return c?c.scrollTop:0},configurable:true});
+    const st=window.scrollTo.bind(window),sb=window.scrollBy.bind(window);
+    window.scrollTo=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollTo(a);else c.scrollTo(a||0,b||0)}else st.apply(window,arguments)};
+    window.scrollBy=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollBy(a);else c.scrollBy(a||0,b||0)}else sb.apply(window,arguments)};
+  }catch(e){}
 })();
 </script>
 </body></html>
