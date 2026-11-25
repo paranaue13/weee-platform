@@ -7921,6 +7921,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
     let cell=e.target.closest(CELL_SELECTOR);
     if(!cell)return;
     if(e.target.closest('thead th'))return;   /* B77: στις επικεφαλίδες στηλών δεξί κλικ = μόνο το μενού απόκρυψης/εμφάνισης */
+    if(window.pinCmCell&&window.pinCmCell(e.target.closest('td,th')))return;   /* B87: το ίδιο στο 1ο κελί γραμμής που κρύβεται */
     e.preventDefault();
     closeCellFmtMenu();
     let targets=(cellSelection.has(cell)&&cellSelection.size>1)?[...cellSelection]:[cell];
@@ -9204,37 +9205,46 @@ if($('whDemoDelete'))$('whDemoDelete').onclick=async()=>{
     if(cell.tagName==='TH'&&cell.parentElement.parentElement===t.tHead){
       let item=md.cols.find(c=>c.th===cell);
     }
-    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
-      let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
-      if(item){
-        if((cell.rowSpan||1)>1){
-          // ομάδα (συγχωνευμένο κελί): κρύβει όλες τις γραμμές της
-          let g=item.owns.find(o=>o.cell===cell),its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
-          if(its.length&&eyeFor(t,cell,wr,'g'+its[0].id,()=>hideRows(t,its.map(q=>q.id)),g.trs,'pinHotR'))return;
-        }else if((cell.colSpan||1)===1&&item.ok){
-          let dc=descCell(t,md,tr)||cell;
-          if(eyeFor(t,dc,wr,'r'+item.id,()=>hide(t,'row',item.id),[tr],'pinHotR'))return;
-        }
-      }
-    }
     if(layer&&layer.firstChild)scheduleClear();
   }
-  // ---- B73: μενού δεξιού κλικ σε επικεφαλίδα στήλης: «Απόκρυψη: <στήλη>» (όχι η τελευταία ορατή) και «Εμφάνιση όλων» ----
+  // ---- μενού δεξιού κλικ: «Απόκρυψη: <στήλη/γραμμή>» και «Εμφάνιση όλων» (ίδιες προϋποθέσεις με το παλιό «μάτι»: ορατό κελί ≥30px, στοιχείο που επιτρέπεται να κρυφτεί) ----
   let pinCm=null;
   function closeCm(){if(pinCm){pinCm.remove();pinCm=null}}
+  const escH=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  // τι κρύβεται με δεξί κλικ σε ένα κελί; (στήλη: επικεφαλίδα · γραμμή: το ΠΡΩΤΟ κελί της γραμμής· ομάδα: συγχωνευμένο κελί) — αλλιώς null
+  function cmTarget(cell){
+    let t=cell&&cell.closest&&cell.closest('table');if(!t||!eligibleTable(t))return null;
+    let md=t._pinModel=t._pinModel||model(t),wr=wrapRect(t),vr=clampR(cell.getBoundingClientRect(),wr);
+    if(vr.width<30||vr.height<14)return null;
+    if(cell.tagName==='TH'&&t.tHead&&cell.parentElement.parentElement===t.tHead){
+      let item=md.cols.find(c=>c.th===cell);if(!item||!item.ok)return null;
+      let v=load(t),visible=md.cols.filter(c=>!v.cols.includes(c.id)).length;
+      return {t,label:(item.label||item.name||cell.textContent||'').trim(),dis:visible<2,fn:()=>hide(t,'col',item.id)};
+    }
+    if(cell.tagName==='TD'&&cell.parentElement.parentElement.tagName==='TBODY'){
+      let tr=cell.parentElement,item=md.rows.find(q=>q.tr===tr)||(t._pinModel=model(t)).rows.find(q=>q.tr===tr);
+      if(!item||tr.cells[0]!==cell)return null;
+      if((cell.rowSpan||1)>1){
+        let g=item.owns.find(o=>o.cell===cell),its=g?g.trs.map(q=>md.rows.find(w=>w.tr===q)).filter(q=>q&&q.ok):[];
+        if(!its.length)return null;
+        return {t,label:cell.textContent.trim(),dis:false,fn:()=>hideRows(t,its.map(q=>q.id))};
+      }
+      if((cell.colSpan||1)===1&&item.ok)return {t,label:cell.textContent.trim(),dis:false,fn:()=>hide(t,'row',item.id)};
+    }
+    return null;
+  }
+  window.pinCmCell=cell=>!!cmTarget(cell);      // το μενού μορφοποίησης κελιού δεν ανοίγει εκεί όπου ανοίγει το μενού απόκρυψης
   on(document,'contextmenu',e=>{
-    let th=e.target.closest&&e.target.closest('th');if(!th)return;
-    let t=th.closest('table');if(!t||!eligibleTable(t)||!t.tHead||th.parentElement.parentElement!==t.tHead)return;
-    let md=t._pinModel=t._pinModel||model(t),item=md.cols.find(c=>c.th===th);
-    if(!item||!item.ok)return;
-    e.preventDefault();closeCm();
-    let v=load(t),visible=md.cols.filter(c=>!v.cols.includes(c.id)).length,anyHidden=v.cols.length>0||Object.keys(v.rows||{}).some(k=>(v.rows[k]||[]).length);
-    let label=(item.label||item.name||th.textContent||'').trim();
+    let cell=e.target.closest&&e.target.closest('th,td');if(!cell)return;
+    let tg=cmTarget(cell);if(!tg)return;
+    let t=tg.t;e.preventDefault();closeCm();
+    let v=load(t),anyHidden=v.cols.length>0||Object.keys(v.rows||{}).some(k=>(v.rows[k]||[]).length);
+    let label=tg.label.length>48?tg.label.slice(0,48)+'…':tg.label;
     pinCm=document.createElement('div');pinCm.className='pinCm';
-    pinCm.innerHTML=`<div data-a="hide"${visible<2?' class="dis"':''}>Απόκρυψη: ${String(label).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}</div>`+(anyHidden?'<hr><div data-a="all">Εμφάνιση όλων</div>':'');
+    pinCm.innerHTML=`<div data-a="hide"${tg.dis?' class="dis"':''}>Απόκρυψη: ${escH(label)}</div>`+(anyHidden?'<hr><div data-a="all">Εμφάνιση όλων</div>':'');
     document.body.appendChild(pinCm);
     pinCm.style.left=Math.max(8,Math.min(e.clientX,innerWidth-pinCm.offsetWidth-8))+'px';pinCm.style.top=Math.max(8,Math.min(e.clientY,innerHeight-pinCm.offsetHeight-8))+'px';
-    pinCm.onclick=ev=>{let d=ev.target.closest('[data-a]');if(!d||d.classList.contains('dis'))return;ev.stopPropagation();closeCm();if(d.dataset.a==='hide')hide(t,'col',item.id);else showAll(t)};
+    pinCm.onclick=ev=>{let d=ev.target.closest('[data-a]');if(!d||d.classList.contains('dis'))return;ev.stopPropagation();closeCm();if(d.dataset.a==='hide')tg.fn();else showAll(t)};
   });
   on(document,'mousedown',e=>{if(pinCm&&!(e.target.closest&&e.target.closest('.pinCm')))closeCm()},true);
   on(document,'keydown',e=>{if(e.key==='Escape')closeCm()},true);on(window,'resize',closeCm);on(document,'scroll',closeCm,true);
