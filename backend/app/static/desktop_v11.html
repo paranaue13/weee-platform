@@ -9829,7 +9829,7 @@ const SF=(function(){
       else{nb.hidden=false;
         row.querySelector('.sfNetN').textContent=tn+(m?' · '+numLbl(m):(typed?' Νο '+typed:''));
         row.querySelector('.sfNetT').textContent='Απόβαρο '+(m?(rowTare(cid)>0?f1(rowTare(cid)):'0'):'—')+' kg';
-        let g=row.querySelector('.sfGr').value.trim();row.querySelector('.sfNetV').innerHTML=(g?esc2(g):'—')+' <em>kg</em>'}
+        let kv=parseKg(row.querySelector('.sfK').value),ex=m?baseKg(cid)-rowTare(cid):0;row.querySelector('.sfNetV').innerHTML=(kv==null?'—':esc2(nf(kv+ex)))+' <em>kg</em>'}
     }
     if(er){let bad=!bk&&!!tid&&!m&&typed!==''&&!C.pickable.some(x=>x.type_id===tid&&(norm(x.code)===norm(typed)||numLbl(x)===typed));er.hidden=!bad;er.textContent=bad?('Δεν βρέθηκε ανοιχτό '+tn+' Νο '+typed):''}
   }
@@ -15105,6 +15105,39 @@ html.b80W body:not(.pane) .main::after{display:none}
     window.scrollTo=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollTo(a);else c.scrollTo(a||0,b||0)}else st.apply(window,arguments)};
     window.scrollBy=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollBy(a);else c.scrollBy(a||0,b||0)}else sb.apply(window,arguments)};
   }catch(e){}
+})();
+</script>
+<style id="b94Css">
+/* B94: στα παράθυρα Παραλαβής/Ταξινόμησης η μπάρα scroll ξεκινά ΚΑΤΩ από την πορτοκαλί γραμμή της πάνω μπάρας και η πάνω μπάρα φτάνει ως την άκρη (κανόνας: ποτέ η μπάρα scroll πάνω από την πορτοκαλί γραμμή) */
+:is(#sortingDetail,#receiptForm)::-webkit-scrollbar-track{margin-top:var(--b94H,0px)}
+.b94Corner{position:fixed;pointer-events:none;box-sizing:border-box}
+.b94Corner[hidden]{display:none}
+</style>
+<script id="b94Js">
+(function(){
+  const D=document,mk=()=>{const e=D.createElement('div');e.className='b94Corner';e.hidden=true;D.body.appendChild(e);return e};
+  const P=['sortingDetail','receiptForm'].map(id=>({id,el:mk()}));
+  function sync(){
+    for(const p of P){
+      const pop=D.getElementById(p.id),c=p.el;
+      let ok=false;
+      if(pop&&!pop.classList.contains('hidden')&&!pop.classList.contains('popupMin')&&pop.offsetParent!==null||(pop&&getComputedStyle(pop).position==='fixed'&&pop.offsetWidth>0&&!pop.classList.contains('hidden')&&!pop.classList.contains('popupMin'))){
+        const wrap=pop.querySelector('.uHdrWrap'),cs=getComputedStyle(pop),bl=parseFloat(cs.borderLeftWidth)||0,br=parseFloat(cs.borderRightWidth)||0,sbw=pop.offsetWidth-pop.clientWidth-bl-br;
+        if(wrap&&wrap.offsetHeight&&sbw>0&&pop.scrollHeight>pop.clientHeight+1&&cs.display!=='none'&&cs.visibility!=='hidden'){
+          const pr=pop.getBoundingClientRect(),wr=wrap.getBoundingClientRect(),H=Math.round(wr.height),tb=wrap.querySelector(':scope>.uTabs:not(.hidden)'),tcs=tb?getComputedStyle(tb):null;
+          let bg=getComputedStyle(wrap).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)')bg=cs.backgroundColor;
+          const bw=tcs?parseFloat(tcs.borderBottomWidth)||0:0;
+          if(pop.style.getPropertyValue('--b94H')!==H+'px')pop.style.setProperty('--b94H',H+'px');
+          c.style.left=Math.round(pr.right-br-sbw)+'px';c.style.top=Math.round(pr.top+(parseFloat(cs.borderTopWidth)||0))+'px';c.style.width=sbw+'px';c.style.height=H+'px';
+          c.style.background=bg;c.style.borderBottom=bw?bw+'px solid '+tcs.borderBottomColor:'0';
+          c.style.zIndex=String((parseInt(cs.zIndex)||100)+1);ok=true;
+        }
+      }
+      if(pop&&!ok&&pop.style.getPropertyValue('--b94H'))pop.style.removeProperty('--b94H');
+      c.hidden=!ok;
+    }
+  }
+  (function loop(){try{sync()}catch(e){}requestAnimationFrame(loop)})();
 })();
 </script>
 </body></html>

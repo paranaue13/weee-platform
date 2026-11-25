@@ -3125,7 +3125,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       else if(isGross()){const tr=tareOf(),ins=insideOf();f='Ζυγαριά '+(S.val?fmt(S.val):'—')+(tr?' − Απόβαρο '+fmt(tr):'')+(ins?' − Ήδη Μέσα '+fmt(ins):'');if(S.val&&net()>0)nv=fmt(net())}
       else{f=(S.pick&&S.pick.kind==='bulk'?'Βάρος ':'Καθαρό ')+(S.val?fmt(S.val):'—');if(S.val&&net()>0)nv=fmt(net())}
       if(S.pick.kind==='bulk')$$('b30cl').innerHTML='<div><span>Καθαρό Βάρος</span><small>'+f+'</small></div><strong>'+nv+' <em>kg</em></strong>';
-      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='n'?Number(S.val)+ins:S.val):'—')+' <em>kg</em></strong>'}}
+      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='g'?Number(S.val)-tr:Number(S.val)+ins):'—')+' <em>kg</em></strong>'}}
 
     requestAnimationFrame(()=>document.documentElement.style.setProperty('--b30ShH',sh.offsetHeight+'px'))}
   sh.addEventListener('click',e=>{if(e.target===sh){window.b30CloseAll();return}const k=e.target.closest('[data-k]');if(k){const K=k.dataset.k,f=S.fld;let v=f==='n'?S.num:f==='t'?S.tr:S.val;
