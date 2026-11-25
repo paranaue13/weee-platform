@@ -22,7 +22,7 @@ TRACKED = {c for c in (
     models.ShipmentHistoryEntry, models.LoadingOrder, models.MaterialShipmentEntry, models.ReadyMaterialLot, models.ReadyMaterialMovement,
     models.OrganizationalUnit, models.Employee, models.ProductionWorkEntry, models.Organization, models.OrganizationRegistryDetail,
     models.CarrierDriver, models.CarrierVehicle, models.WEEECategory, models.Material, models.StorageGroup, models.CollectionMediumType,
-    models.CollectionMedium, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "InventoryYearCorrection", None), getattr(models, "MaterialOpeningStock", None), getattr(models, "PressOpeningStock", None), getattr(models, "ProductionPlacementInterval", None),
+    models.CollectionMedium, models.CodeCounter, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "InventoryYearCorrection", None), getattr(models, "MaterialOpeningStock", None), getattr(models, "PressOpeningStock", None), getattr(models, "ProductionPlacementInterval", None),
 ) if c is not None}
 IGNORE_TABLES = {"audit_events", "action_history"}
 # πίνακες συσχετίσεων που γράφονται «ωμά»: (πίνακας) → (στήλη ιδιοκτήτη, στήλη τιμής, πίνακας ιδιοκτήτη)
@@ -118,7 +118,22 @@ def _obj_snap(obj, old=False):
 
 def _pk(obj):
     m = sa_inspect(type(obj))
-    return str(getattr(obj, m.get_property_by_column(m.primary_key[0]).key))
+    return "|".join(str(getattr(obj, m.get_property_by_column(col).key)) for col in m.primary_key)      # σύνθετο κλειδί: τιμές χωρισμένες με |
+
+
+def _pkexpr(tbl, pk):
+    cols = list(tbl.primary_key.columns)
+    if len(cols) == 1:
+        return cols[0] == pk
+    from sqlalchemy import and_
+    out = []
+    for col, v in zip(cols, str(pk).split("|")):
+        try:
+            v = col.type.python_type(v)
+        except Exception:
+            pass
+        out.append(col == v)
+    return and_(*out)
 
 
 def install(engine):
@@ -166,6 +181,18 @@ def install(engine):
                 for v in flat:
                     if isinstance(v, str) and (t, v) not in sets and conn.execute(_t("select 1 from %s where id=:i" % ot), {"i": v}).first():
                         sets[(t, v)] = sorted(r[0] for r in conn.execute(_t("select %s from %s where %s=:i" % (vc, t, oc)), {"i": v}))
+            elif t == "code_counters":
+                # μετρητής αριθμών μέσων: γράφεται «ωμά» (UPDATE ... last_no+1)· κρατάμε την τιμή ΠΡΙΝ την πρώτη αλλαγή, ώστε η αναίρεση να ελευθερώνει τον αριθμό
+                cc = ctx.setdefault("counters", {})
+                try:
+                    from sqlalchemy import text as _t
+                    flat = list(params.values()) if isinstance(params, dict) else list(params[0] if params and isinstance(params[0], (list, tuple)) else params)
+                    key = (int(flat[0]), str(flat[1]))
+                    if key not in cc:
+                        r0 = conn.execute(_t("select last_no from code_counters where year=:y and code=:c"), {"y": key[0], "c": key[1]}).first()
+                        cc[key] = None if r0 is None else int(r0[0])
+                except Exception:
+                    ctx["bad"].add("code_counters")
             elif t not in IGNORE_TABLES and t not in {c.__tablename__ for c in TRACKED}:
                 ctx["bad"].add(t)
 
@@ -218,6 +245,13 @@ def install(engine):
             now_v = _set_now(session, tn_, oid)
             if now_v != before_v:
                 rows.append({"t": tn_, "pk": oid, "before": {"roles": before_v}, "after": {"roles": now_v}, "op": "update"})
+        for (y_, c_), b_ in (ctx.get("counters") or {}).items():
+            from sqlalchemy import text as _t
+            r1 = session.execute(_t("select last_no from code_counters where year=:y and code=:c"), {"y": y_, "c": c_}).first()
+            n_ = None if r1 is None else int(r1[0])
+            if n_ != b_:
+                rows.append({"t": "code_counters", "pk": "%s|%s" % (y_, c_), "before": (None if b_ is None else {"year": y_, "code": c_, "last_no": b_}),
+                             "after": (None if n_ is None else {"year": y_, "code": c_, "last_no": n_}), "op": ("create" if b_ is None else "update")})
         if not rows:
             return
         # Σύνδεση ταξινόμησης με φορτίο/κατάσταση συνεδρίας (ασφάλεια: αναίρεση μόνο όσο δεν έχει κλείσει)
@@ -328,8 +362,7 @@ def _row(db, t, pk):
     if t in SET_TABLES:
         return {"roles": _set_now(db, t, pk)}
     tbl = _table(t)
-    pkc = list(tbl.primary_key.columns)[0]
-    r = db.execute(select(tbl).where(pkc == pk)).mappings().first()
+    r = db.execute(select(tbl).where(_pkexpr(tbl, pk))).mappings().first()
     return None if r is None else {c.name: _ser(r[c.name]) for c in tbl.columns}
 
 
@@ -372,11 +405,26 @@ def check(db, payload, redo):
         target = r["after"] if redo else r["before"]        # η κατάσταση που θα αποκατασταθεί
         cur = _row(db, r["t"], r["pk"])
         if (cur is None) != (want is None) or (cur is not None and _norm(r["t"], cur) != _norm(r["t"], want)):
+            if r["t"] in ("code_counters", "medium_code_counters"):
+                return "Στο μεταξύ δόθηκε νεότερος αριθμός μέσου (παλέτα / σάκος / κουτί / καλάθι) και ο αριθμός δεν μπορεί να ελευθερωθεί ή να ξαναδοθεί."
             return "Η εγγραφή έχει αλλάξει στο μεταξύ (από άλλον χρήστη ή από άλλη ενέργεια)."
         if target is None and cur is not None and _fk_refs(db, r["t"], r["pk"], ig):
             return "Η εγγραφή χρησιμοποιείται πλέον αλλού και δεν μπορεί να αναιρεθεί."
         if target is not None and cur is None and not _parents_ok(db, r["t"], target, {(x["t"], x["pk"]) for x in rows if (x["after"] if redo else x["before"]) is not None}):
             return "Κάποια εγγραφή από την οποία εξαρτάται έχει διαγραφεί στο μεταξύ."
+    return None
+
+
+def redo_ok(db, payload):
+    """Η Αναίρεση επιτρέπεται μόνο αν, αμέσως μετά από αυτήν, θα μπορούσε να γίνει Επανάληψη. Επιστρέφει None αν ναι, αλλιώς το μήνυμα (ελληνικά)."""
+    rows = payload["rows"]
+    ig = {(r["t"], r["pk"]) for r in rows}
+    # γραμμές που θα υπάρχουν όταν γίνει η Επανάληψη (και άρα μπορούν να είναι γονείς η μία της άλλης)
+    will = {(x["t"], x["pk"]) for x in rows if x["after"] is not None}
+    for r in rows:
+        if r["before"] is None and r["after"] is not None:      # η αναίρεση σβήνει τη γραμμή· η επανάληψη πρέπει να τη ξαναφτιάξει
+            if not _parents_ok(db, r["t"], r["after"], will):
+                return "Η επανάληψη δεν θα μπορούσε να γίνει αμέσως μετά: κάποια εγγραφή από την οποία εξαρτάται έχει διαγραφεί στο μεταξύ."
     return None
 
 
@@ -386,7 +434,6 @@ def apply(db, payload, redo):
     # σειρά: πρώτα διαγραφές παιδιών, μετά εισαγωγές γονέων (αντίστροφη σειρά καταγραφής για αναίρεση)
     for r in seq:
         tbl = None if r["t"] in SET_TABLES else _table(r["t"])
-        pkc = None if tbl is None else list(tbl.primary_key.columns)[0]
         target = r["after"] if redo else r["before"]
         if r["t"] in SET_TABLES:
             from sqlalchemy import text as _t
@@ -396,11 +443,11 @@ def apply(db, payload, redo):
                 db.execute(_t("insert into %s(%s, %s) values(:i, :v)" % (r["t"], oc, vc)), {"i": r["pk"], "v": v})
             continue
         if target is None:
-            db.execute(sa_delete(tbl).where(pkc == r["pk"]))
+            db.execute(sa_delete(tbl).where(_pkexpr(tbl, r["pk"])))
         else:
             vals = {c.name: _de(c, target.get(c.name)) for c in tbl.columns}
             if _row(db, r["t"], r["pk"]) is None:
                 db.execute(insert(tbl).values(**vals))
             else:
-                db.execute(sa_update(tbl).where(pkc == r["pk"]).values(**vals))
+                db.execute(sa_update(tbl).where(_pkexpr(tbl, r["pk"])).values(**vals))
     db.flush()

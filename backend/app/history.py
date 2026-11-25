@@ -61,6 +61,8 @@ def _valid(db: Session, e: ActionHistory, redo: bool) -> bool:
     if e.kind == "rows":
         from . import history_rows as HR
         why = HR.check(db, p, redo)
+        if why is None and not redo:
+            why = HR.redo_ok(db, p)      # ισχύει ο κανόνας: αναίρεση μόνο αν θα μπορούσε αμέσως να γίνει επανάληψη
         _WHY[e.id] = why
         return why is None
     if e.kind in ("mat_corr_add", "mat_corr_del"):
@@ -83,10 +85,6 @@ def _pick(db: Session, user: User, redo: bool):
     """Επιστρέφει (πρώτη εφαρμόσιμη ενέργεια ή None, υπάρχουν_υποψήφιες)."""
     st = "UNDONE" if redo else "DONE"
     q = select(ActionHistory).where(ActionHistory.user_id == user.id, ActionHistory.undoable == True, ActionHistory.status == st)  # noqa: E712
-    # Φραγμός: η υποβολή ταξινόμησης (kind='barrier') δεν αναιρείται ποτέ και η Αναίρεση/Επανάληψη δεν πηγαίνει πιο πίσω από αυτήν
-    bid = db.scalar(select(func.max(ActionHistory.id)).where(ActionHistory.user_id == user.id, ActionHistory.kind == "barrier"))
-    if bid:
-        q = q.where(ActionHistory.id > bid)
     # Αναίρεση: από την πιο πρόσφατη. Επανάληψη: από την πιο παλιά αναιρεμένη (η ενέργεια που αναιρέθηκε πιο πρόσφατα είναι η παλαιότερη των αναιρεμένων)
     rows = db.scalars(q.order_by(ActionHistory.id.desc() if not redo else ActionHistory.id.asc())).all()
     for e in rows:

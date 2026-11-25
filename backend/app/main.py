@@ -3853,7 +3853,7 @@ def sorting_confirm(load_id:str, db:Session=Depends(get_db), user:User=Depends(r
     if not entries: raise HTTPException(422,'Δεν υπάρχουν καταχωρημένα υλικά')
     ses.status='LOGISTICS_REVIEW'; ses.correction=False; ses.sorting_confirmed_at=datetime.now(timezone.utc); ses.sorting_confirmed_by=user.id; load.status='SORTING_CONFIRMED'
     write_audit(db,user,'sorting_session',ses.id,'SORTING_CONFIRM',new={'entries':len(entries)})
-    _hist_record(db,user,'barrier','Υποβολή ταξινόμησης',['load:'+str(load.id)],{},undoable=False)      # η υποβολή δεν αναιρείται και φράζει την Αναίρεση/Επανάληψη
+    _hist_record(db,user,'closing','Υποβολή ταξινόμησης',['load:'+str(load.id)]+['row:sorting_entries:'+str(e_.id) for e_ in entries]+['row:collection_media:'+str(e_.collection_medium_id) for e_ in entries if e_.collection_medium_id],{},undoable=False)      # μετά την υποβολή οι κινήσεις αυτής της ταξινόμησης δεν αναιρούνται· οι υπόλοιπες κινήσεις δεν επηρεάζονται
     db.commit(); return _sorting_payload(db,load,ses)
 
 @app.post('/sorting/entries/{entry_id}/adjust', response_model=schemas.SortingEntryOut)
