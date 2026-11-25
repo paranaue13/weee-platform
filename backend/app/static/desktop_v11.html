@@ -12206,7 +12206,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     hideHdr();
     await _orp.apply(this,arguments);
     {let f0=$('receiptForm');if(f0&&!f0.classList.contains('hidden')){f0.classList.remove('popupMin');f0.classList.add('popupMax')}}   /* B70: πλήρες παράθυρο */
-    let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],multi=ls.length>1&&!only,loadId=only?hl:(ls.length===1?ls[0].id:null);
+    let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],hlOk=!only&&hl&&ls.some(x=>String(x.id)===String(hl)),multi=ls.length>1&&!only&&!hlOk,loadId=only?hl:(hlOk?ls.find(x=>String(x.id)===String(hl)).id:(ls.length===1?ls[0].id:null));
     U.ctx={id,loadId};
     if(multi&&$('receiptFormTitle'))$('receiptFormTitle').textContent='Πολλαπλές παραλαβές';
     if(r){
@@ -15073,7 +15073,7 @@ body:not(.pane) .main>.content::-webkit-scrollbar-track{margin-top:var(--b80H,0p
 html:not(.b80W) body:not(.pane) .main>.content .b80Band{position:sticky!important;top:calc(-1 * var(--b80H,0px));z-index:35}
 html:not(.b80W) body:not(.pane) .main>.content>.view{margin-top:calc(-1 * var(--b80H,0px))}
 /* (το padding-top = ύψος μπάρας: τα κολλημένα κεφαλίδων πινάκων (top:0) κολλούν ακριβώς κάτω από αυτήν) */
-html:not(.b80W) body:not(.pane) .main>.content .b80Band::after{content:"";position:absolute;left:0;right:0;top:100%;height:var(--b80Gap,0px);background:var(--b75Bg,#F1F0EC);pointer-events:none}
+html:not(.b80W) body:not(.pane) .main>.content .b80Band::after{content:"";position:absolute;left:0;right:0;top:calc(100% + var(--b80Lw,0px));height:var(--b80Gap,0px);background:var(--b75Bg,#F1F0EC);pointer-events:none}
 body:not(.pane) .main::after{content:"";position:absolute;right:0;top:var(--b80Y,79px);width:12px;height:var(--b80H,0px);background:var(--b80Bg,#fff);border-bottom:var(--b80Lw,2px) solid var(--b80Ln,#DA6F01);box-sizing:border-box;pointer-events:none;z-index:60}
 html.b80W body:not(.pane) .main::after{display:none}
 </style>
