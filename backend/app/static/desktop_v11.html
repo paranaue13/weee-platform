@@ -7918,6 +7918,7 @@ document.addEventListener('click',e=>{document.querySelectorAll('.receiptMoreMen
   let cellFmtMenu=null;
   function closeCellFmtMenu(){if(cellFmtMenu){cellFmtMenu.remove();cellFmtMenu=null}}
   document.addEventListener('contextmenu',e=>{
+    return;   /* B88: το μενού μορφοποίησης κελιών δεν εμφανίζεται πουθενά πλέον (ο κώδικάς του μένει) */
     let cell=e.target.closest(CELL_SELECTOR);
     if(!cell)return;
     if(e.target.closest('thead th'))return;   /* B77: στις επικεφαλίδες στηλών δεξί κλικ = μόνο το μενού απόκρυψης/εμφάνισης */
