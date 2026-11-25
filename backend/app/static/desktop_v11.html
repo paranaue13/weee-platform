@@ -15056,7 +15056,7 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap):not(.carr
     }finally{ov.hidden=true}
   }
   const lg=D.getElementById('login');
-  if(lg)new MutationObserver(()=>{if(lg.classList.contains('hidden')&&!started){ov.hidden=false;setTimeout(warm,0)}}).observe(lg,{attributes:true,attributeFilter:['class']});
+  /* προς το παρόν: χωρίς οθόνη φόρτωσης/προφόρτωση — η εφαρμογή ανοίγει κατευθείαν· η προφόρτωση τρέχει μόνο με window.b89Warm() */
   window.b89Warm=warm;
 })();
 </script>
