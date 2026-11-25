@@ -9775,9 +9775,9 @@ const SF=(function(){
     let hasBulk=C.outTypes.some(x=>x.code==='BULK'),el=eligibleTypes().slice().sort((a,b)=>String(a.t.name_el).localeCompare(String(b.t.name_el),'el'));
     let seg=(hasBulk?`<button type="button" class="sfSegB" data-t="BULK" tabindex="-1">Χύμα</button>`:'')+el.map(x=>`<button type="button" class="sfSegB" data-t="${x.t.id}" tabindex="-1">${esc2(SEGN(x.t.name_el))}</button>`).join('');
     return `<div class="sfNr${ed?' ed':''}" data-c="${cid}" data-avg="${avg??''}"><div class="sfPf"><div class="sfFl">Μέσο</div><div class="sfSeg">${seg}</div><input class="sfT" type="hidden" value="${esc2(typeTxt(cid))}"></div>
-<div class="sfPr2"><div class="sfPf"><div class="sfFl">Αριθμός</div><span class="sfNumW"><input class="sfM" value="${esc2(numTxt(cid))}" autocomplete="off"><button type="button" class="sfNewBtn" tabindex="-1" title="Νέα παλέτα ή νέος σάκος (όταν δεν ήταν χύμα)">+ Νέο</button></span></div><div class="sfPf"><div class="sfFl">&nbsp;</div><label class="sfClose" hidden><input type="checkbox" class="sfCl" disabled></label><button type="button" class="sfFull" tabindex="-1" disabled title="Κλείσιμο μέσου: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά">Γεμάτο</button></div>${pcsOk?`<div class="sfPf"><div class="sfFl">Τεμάχια</div><input class="sfP" inputmode="numeric" autocomplete="off"></div>`:'<input class="sfP" type="hidden" disabled>'}</div>
+<div class="sfPr2"><div class="sfPf"><div class="sfFl">Αριθμός</div><span class="sfNumW"><input class="sfM" value="${esc2(numTxt(cid))}" autocomplete="off"><button type="button" class="sfNewBtn" tabindex="-1" title="Νέα παλέτα ή νέος σάκος (όταν δεν ήταν χύμα)">+ Νέο</button></span></div><div class="sfPf"><div class="sfFl">Απόβαρο</div><span class="sfFld"><input class="sfTr" readonly tabindex="-1" value="${t>0?nf(t):''}" autocomplete="off"></span></div>${pcsOk?`<div class="sfPf"><div class="sfFl">Τεμάχια</div><input class="sfP" inputmode="numeric" autocomplete="off"></div>`:'<input class="sfP" type="hidden" disabled>'}</div>
 <div class="sfNet" hidden><div><span class="sfNetN"></span><small class="sfNetT"></small></div><strong class="sfNetV"></strong></div><div class="sfErr2" hidden></div>
-<div class="sfPr3"><div class="sfPf"><div class="sfFl">Μεικτό (kg)</div><span class="sfFld"><input class="sfGr" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></span></div><div class="sfPf"><div class="sfFl">Απόβαρο</div><span class="sfFld"><input class="sfTr" readonly tabindex="-1" value="${t>0?nf(t):''}" autocomplete="off"></span></div><div class="sfPf"><div class="sfFl">Καθαρό</div><span class="sfFld"><input class="sfK" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></span></div></div>
+<div class="sfPr3"><div class="sfPf"><div class="sfFl">Χώρος μέσου</div><label class="sfClose" hidden><input type="checkbox" class="sfCl" disabled></label><button type="button" class="sfFull" tabindex="-1" disabled title="Κλείσιμο μέσου: μετά την αποθήκευση δεν θα δέχεται άλλα κιλά">Γεμάτο</button></div><div class="sfPf"><div class="sfFl">Μεικτό (kg)</div><span class="sfFld"><input class="sfGr" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="G" hidden>auto</i></span></div><div class="sfPf"><div class="sfFl">Καθαρό</div><span class="sfFld"><input class="sfK" inputmode="decimal" autocomplete="off"><i class="sfAuto" data-for="K" hidden>auto</i></span></div></div>
 <button type="button" class="sfAdd" title="Καταχώρηση (Enter)">${ed?'Αποθήκευση':'Καταχώρηση'}</button><div id="sortEntryMsg"></div></div>`;
   }
   function entsHtml(cid){
@@ -14901,4 +14901,53 @@ html[data-mode="light"][data-pal="aut"] #production table.prodTable tbody tr.pin
 #sortingDetail .sfBubble::after{right:-1px;background:radial-gradient(circle at 0 8px,transparent 7.9px,var(--b65Bg,var(--wBg,#FEFCFF)) 8.4px)}
 </style>
 <script id="b41Js">(function(){var d=document.documentElement,g=function(){d.classList.add('b41Rdy')};requestAnimationFrame(function(){requestAnimationFrame(g)});setTimeout(g,1500)})();</script>
+<style id="b78Css">
+/* B78: σχήμα/διάταξη — παράθυρα Παραλαβής/Ταξινόμησης, φόρμα καταχώρησης, 3D κάρτες ημέρας και διακόπτες (καμία λειτουργία δεν αλλάζει) */
+/* ημερομηνία στην επάνω μπάρα: μαύρη όπως Προμηθευτής/Μεταφορέας */
+html body :is(#receiptForm,#sortingDetail) .uInfo span.dt b{color:#14222B!important}
+/* επιλεγμένη γραμμή πίνακα: ανοιχτό πετρόλ (όχι μπλε) */
+html body #sortingDetail .sfTable tbody tr.sfCat.sel td,html body #sortingDetail .sfTable tbody tr.sfCat.sel:hover td{background:#DCEBEC!important}
+/* επιλεγμένη ημέρα: σκούρο πετρόλ (το 3D σχήμα μένει) */
+html body #app :is(#receiptDayStrip,#deltioDayStrip) .receiptCalendarDay.selected,html body #app :is(#receiptDayStrip,#deltioDayStrip) .receiptCalendarDay.selected[class*="stg-"]{background-color:#144A52!important;background-image:linear-gradient(#18535B,#144A52)!important;border-color:#0F3A40!important;color:#fff!important}
+/* «Εξαγωγή»: μέσα στην επάνω μπάρα, δεξιά, στη γραμμή των καρτελών (κάτω από τα κουμπιά του παραθύρου, πάνω από την πορτοκαλί γραμμή) */
+html body #sortingDetail #uSoTabs{position:relative}
+html body #sortingDetail #uSoTabs>.exw{position:absolute;right:24px;top:50%;transform:translateY(-50%);margin:0!important;display:block;z-index:40}
+html body #sortingDetail #uSoTabs>.exw>.btn{height:38px;min-height:38px}
+/* «Ακύρωση παραλαβής»: ίδιο στυλ με «Διαγραφή» (περίγραμμα, κόκκινο κείμενο), δεξιά με κενό 24px από τα υπόλοιπα */
+html body #sortingDetail .sortingPopupActions>.b28R{padding-left:14px}
+html body #sortingDetail .btn.cancelRcpt{background:#fff!important;color:#A52A22!important;border:1px solid #D9A894!important;border-bottom-width:2px!important;box-shadow:0 1px 2px rgba(20,34,43,.14)!important;font-weight:600!important}
+html body #sortingDetail .btn.cancelRcpt:hover:not(:disabled){background:#FBEDE9!important;border-color:#D9A894!important}
+/* Παραλαβή: η μπάρα «Καθαρό βάρος · Φορτία» μέσα στην περιοχή, ίδια όρια με τις κάρτες από κάτω */
+html body #receiptBody>#receiptReadInfo{position:sticky;top:0;z-index:3;margin:0 0 8px!important;box-sizing:border-box}
+/* φόρμα καταχώρησης: 1η σειρά Αριθμός·Απόβαρο·Τεμάχια, 2η Γεμάτο·Μεικτό·Καθαρό */
+#sfPanel .sfPr2{grid-template-columns:repeat(3,minmax(0,1fr))}
+#sfPanel .sfPr2:not(:has(.sfP:not([type=hidden]))){grid-template-columns:repeat(2,minmax(0,1fr))}
+#sfPanel .sfPr3{grid-template-columns:100px minmax(0,1fr) minmax(0,1fr);align-items:start}
+#sfPanel .sfPr3 .sfFull{width:100%}
+/* 3D κάρτες ημέρας Παραλαβών (ίδιο μέγεθος και χρώματα) */
+html body #receipts #receiptStats .uK2{background-image:linear-gradient(rgba(255,255,255,.55),rgba(255,255,255,0) 75%)!important;border-bottom:3px solid rgba(20,34,43,.2)!important;box-shadow:0 2px 3px rgba(20,34,43,.18),inset 0 1px 0 #fff!important;box-sizing:border-box}
+/* 3D διακόπτες παντού: βυθισμένη ράγα, ανάγλυφος κύκλος χωρίς σκιά, ίδιο κενό δεξιά/αριστερά (ίδιο μέγεθος με πριν) */
+html body .toggleSwitch .slider{background:linear-gradient(#C3C9CD,#DDE1E4)!important;box-shadow:inset 0 2px 3px rgba(20,34,43,.35),0 1px 0 #fff!important;border:1px solid #AEB5BA;box-sizing:border-box}
+html body .toggleSwitch .slider:before{left:0;top:0;width:19px;height:19px;background:linear-gradient(#FFFFFF,#E9ECEE);border:1px solid #B5BCC1;border-bottom-width:2px;box-shadow:none;box-sizing:border-box}
+html body .toggleSwitch input:checked+.slider{background:linear-gradient(#0F3A40,#18535B)!important;border-color:#0B2D32}
+html body .toggleSwitch input:checked+.slider:before{transform:translateX(15px)}
+html body :is(#weee,#inventory) .weeeSw .trk{background:linear-gradient(#C3C9CD,#DDE1E4)!important;box-shadow:inset 0 2px 3px rgba(20,34,43,.35),0 1px 0 #fff;border:1px solid #AEB5BA;box-sizing:border-box}
+html body :is(#weee,#inventory) .weeeSw .trk::after{top:0;left:0;width:20px;height:20px;background:linear-gradient(#FFFFFF,#E9ECEE);border:1px solid #B5BCC1;border-bottom-width:2px;box-shadow:none;box-sizing:border-box}
+html body :is(#weee,#inventory) .weeeSw input:checked+.trk{background:linear-gradient(#0F3A40,#18535B)!important;border-color:#0B2D32}
+html body :is(#weee,#inventory) .weeeSw input:checked+.trk::after{left:16px}
+html body #sortingDetail .sfSw i{background:linear-gradient(#C3C9CD,#DDE1E4)!important;box-shadow:inset 0 2px 3px rgba(20,34,43,.35),0 1px 0 #fff;border:1px solid #AEB5BA;box-sizing:border-box}
+html body #sortingDetail .sfSw i::after{top:0;left:0;width:18px;height:18px;background:linear-gradient(#FFFFFF,#E9ECEE);border:1px solid #B5BCC1;border-bottom-width:2px;box-shadow:none;box-sizing:border-box}
+html body #sortingDetail .sfSw.on i{background:linear-gradient(#0F3A40,#18535B)!important;border-color:#0B2D32}
+html body #sortingDetail .sfSw.on i::after{left:14px}
+</style>
+<script id="b78Js">
+/* B78: «Εξαγωγή» στη γραμμή καρτελών του παραθύρου Ταξινόμησης· μπάρα «Καθαρό βάρος · Φορτία» μέσα στην περιοχή της Παραλαβής (η λειτουργία των κουμπιών δεν αλλάζει, μετακινούνται τα ίδια στοιχεία) */
+(function(){
+  const sd=document.getElementById('sortingDetail'),rf=document.getElementById('receiptForm');
+  function exp(){if(!sd)return;const t=sd.querySelector('#uSoTabs'),a=sd.querySelector('.sortingPopupActions .exw');if(!t||!a)return;t.querySelectorAll(':scope>.exw').forEach(e=>e.remove());t.appendChild(a)}
+  function rd(){const b=document.getElementById('receiptBody'),n=document.getElementById('receiptReadInfo');if(b&&n&&n.parentNode!==b)b.insertBefore(n,b.firstChild)}
+  if(sd){try{new MutationObserver(exp).observe(sd,{childList:true,subtree:true})}catch(e){}exp()}
+  if(rf){try{new MutationObserver(rd).observe(rf,{childList:true,subtree:true})}catch(e){}rd()}
+})();
+</script>
 </body></html>
