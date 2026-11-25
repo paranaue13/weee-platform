@@ -4283,4 +4283,73 @@ html body #b30Sh #b30Msg:empty{display:none}
   window.addEventListener('resize',sched);
 })();
 </script>
+<style id="b84Css">
+/* B84: Αναίρεση / Επανάληψη (↶ ↷) στην επάνω γραμμή, ανάμεσα στο «admin» και το «SERVER» */
+.topDark{position:relative}
+.topDark .b84Btn{position:absolute;z-index:3;top:8px;width:28px;height:32px;min-height:32px;padding:0;margin:0;border:1px solid #D6D0C3;border-bottom-width:2px;border-radius:8px;background:linear-gradient(#FFFFFF,#F6F4F7);box-shadow:0 1px 2px rgba(0,0,0,.3);color:#14222B;font:700 22px/1 inherit;font-family:inherit;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box}
+.topDark .b84Btn:disabled{opacity:.38;box-shadow:none;cursor:default}
+@media(max-width:380px){.topDark #net{padding:0 6px;font-size:10px;gap:4px}.topDark #refreshBtn{width:34px}}
+.topDark .b84Btn.hid{visibility:hidden}
+#b84Ov{position:fixed;inset:0;z-index:300;background:rgba(20,34,43,.6);display:flex;align-items:center;justify-content:center}
+#b84Ov[hidden]{display:none}
+#b84Ov .d{width:min(440px,90%);box-sizing:border-box;background:#FEFCFF;border:1px solid #D6D0C3;border-radius:14px;padding:14px 16px 16px;box-shadow:0 8px 28px rgba(0,0,0,.4);display:flex;flex-direction:column;gap:12px;color:#14222B}
+#b84Ov h3{margin:0;font-size:17px;color:#14222B;border-bottom:2px solid #DA6F01;padding-bottom:8px}
+#b84Ov p{margin:0;font-size:15px}
+#b84Ov .dd{padding:10px 12px;border:1px solid #D6D0C3;border-radius:8px;background:#F6F4F1;font-size:15px;line-height:1.4}
+#b84Ov .dd b{display:block;font-size:13px;color:#5B6670;font-weight:600;margin-bottom:2px}
+#b84Ov .dd.err{color:#A52A22;border-color:#D9A894;background:#FBEDE9}
+#b84Ov .a{display:flex;gap:8px}
+#b84Ov .a button{flex:1;height:46px;min-height:0;padding:0;font:inherit;font-size:14.5px;font-weight:700;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+#b84Ov .a .c{background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;color:#14222B}
+#b84Ov .a .g{background:linear-gradient(#18535B,#144A52);border:1px solid #0F3A40;border-bottom:2px solid #0F3A40;color:#fff}
+#b84Ov .a button:disabled{opacity:.5}
+#b84Toast{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:310;max-width:90%;background:#22303A;color:#fff;font-size:13px;padding:8px 14px;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#b84Toast[hidden]{display:none}
+#b84Toast.err{background:#A52A22}
+</style>
+<script id="b84Js">
+/* B84: Αναίρεση / Επανάληψη στο Android — ίδια λογική και ίδιο ιστορικό με τα Windows (/history/state, /history/undo, /history/redo)· μία κίνηση κάθε φορά, επιβεβαίωση πριν την εκτέλεση */
+(function(){
+  const D=document,top=D.querySelector('.topDark');if(!top)return;
+  const mk=(id,sym,t)=>{const b=D.createElement('button');b.type='button';b.id=id;b.className='b84Btn';b.setAttribute('aria-label',t);b.title=t;b.textContent=sym;b.disabled=true;return b};
+  const u=mk('b84U','\u21B6','Αναίρεση'),r=mk('b84R','\u21B7','Επανάληψη');top.appendChild(u);top.appendChild(r);
+  let st={can_undo:false,can_redo:false},busy=false;
+  function place(){const w=D.getElementById('who'),n=D.getElementById('net');if(!w||!n||!n.offsetParent){u.classList.add('hid');r.classList.add('hid');return}
+    const T=top.getBoundingClientRect(),wr=w.getBoundingClientRect(),nr=n.getBoundingClientRect(),avail=nr.left-wr.right-6;
+    const gap=avail<50?3:4,bw=Math.max(18,Math.min(30,Math.floor((avail-gap)/2))),total=bw*2+gap,left=wr.right+3+Math.max(0,(avail-total)/2)-T.left,bh=Math.round(nr.height),tp=nr.top-T.top;
+    [u,r].forEach((b,i)=>{b.classList.remove('hid');b.style.width=bw+'px';b.style.height=bh+'px';b.style.minHeight=bh+'px';b.style.left=Math.round(left+i*(bw+gap))+'px';b.style.top=Math.round(tp)+'px'})}
+  function paint(s){st=s||st;u.disabled=!st.can_undo;r.disabled=!st.can_redo;u.title=st.undo_label?('Αναίρεση: '+st.undo_label):(st.undo_msg||'Δεν υπάρχει κίνηση για αναίρεση');r.title=st.redo_label?('Επανάληψη: '+st.redo_label):(st.redo_msg||'Δεν υπάρχει κίνηση για επανάληψη')}
+  async function load(){try{if(typeof token==='undefined'||!token)return;paint(await api('/history/state'))}catch(e){}}
+  // επιβεβαίωση
+  const ov=D.createElement('div');ov.id='b84Ov';ov.hidden=true;D.body.appendChild(ov);
+  const toast=D.createElement('div');toast.id='b84Toast';toast.hidden=true;D.body.appendChild(toast);
+  let tt=0;const note=(t,err)=>{toast.textContent=t;toast.classList.toggle('err',!!err);toast.hidden=false;clearTimeout(tt);tt=setTimeout(()=>{toast.hidden=true},3200)};
+  const esc=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const split=l=>{l=String(l||'');let i=l.indexOf(' · ');if(i>0)return[l.slice(0,i),l.slice(i+3)];i=l.indexOf('«');if(i>0)return[l.slice(0,i).trim(),l.slice(i)];return['Κίνηση',l]};
+  let kind=null;
+  const close=()=>{ov.hidden=true;ov.innerHTML='';kind=null};
+  function open(k){if(busy)return;kind=k;const un=k==='undo',lab=un?st.undo_label:st.redo_label,msg=un?st.undo_msg:st.redo_msg,ttl=un?'Αναίρεση':'Επανάληψη';
+    if(!lab){ov.innerHTML='<div class="d" role="dialog" aria-modal="true"><h3>'+ttl+'</h3><div class="dd err">'+esc(msg||('Δεν υπάρχει κίνηση για '+(un?'αναίρεση':'επανάληψη')))+'</div><div class="a"><button type="button" class="c" data-a="no">Κλείσιμο</button></div></div>';ov.hidden=false;return}
+    const [a,b]=split(lab);
+    ov.innerHTML='<div class="d" role="dialog" aria-modal="true"><h3>'+ttl+'</h3><p>'+(un?'Να αναιρεθεί αυτή η κίνηση;':'Να επαναληφθεί αυτή η κίνηση;')+'</p><div class="dd"><b>'+esc(a)+'</b>'+esc(b)+'</div><div class="a"><button type="button" class="c" data-a="no">Άκυρο</button><button type="button" class="g" data-a="yes">'+ttl+'</button></div></div>';ov.hidden=false}
+  async function run(){const k=kind;if(!k||busy)return;busy=true;const y=ov.querySelector('[data-a=yes]');if(y)y.disabled=true;
+    try{const res=await api('/history/'+k,{method:'POST'});close();note(res.message||'Έγινε',false);paint(res.state);
+      try{const rb=D.getElementById('refreshBtn');if(rb)rb.click()}catch(e){}}
+    catch(e){const m=ov.querySelector('.d');if(m){m.querySelector('p')&&(m.querySelector('p').textContent='Η κίνηση δεν έγινε:');const dd=m.querySelector('.dd');if(dd){dd.className='dd err';dd.textContent=(e&&e.message)?e.message:String(e)}const a=m.querySelector('.a');if(a)a.innerHTML='<button type="button" class="c" data-a="no">Κλείσιμο</button>'}await load()}
+    finally{busy=false}}
+  u.onclick=()=>open('undo');r.onclick=()=>open('redo');
+  ov.addEventListener('click',e=>{if(e.target===ov){close();return}const b=e.target.closest('[data-a]');if(!b)return;if(b.dataset.a==='no')close();else if(b.dataset.a==='yes')run()});
+  // το παράθυρο κλείνει όταν αλλάζει καρτέλα
+  D.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-b4s]'))close()},true);
+  D.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+  // ενημέρωση κατάστασης μετά από κάθε αλλαγή δεδομένων / αλλαγή οθόνης / σύνδεση
+  let tm=0;const later=()=>{clearTimeout(tm);tm=setTimeout(load,400)};
+  try{const _api=api;api=function(path,opt){const p=_api.apply(this,arguments);try{const m=String((opt&&opt.method)||'GET').toUpperCase(),pp=String(path);if(m!=='GET'&&pp.indexOf('/history/')<0&&pp.indexOf('/auth/')<0)Promise.resolve(p).then(later,()=>{})}catch(e){}return p}}catch(e){}
+  D.addEventListener('click',e=>{if(e.target.closest&&e.target.closest('[data-b4s],#refreshBtn'))later()},true);
+  window.addEventListener('resize',place);setInterval(()=>{place();if(!D.hidden)load()},15000);
+  const w=D.getElementById('who');if(w)new MutationObserver(()=>{place();later()}).observe(w,{childList:true,characterData:true,subtree:true});
+  const n=D.getElementById('netTxt');if(n)new MutationObserver(place).observe(n,{childList:true,characterData:true,subtree:true});
+  place();later();window.b84Place=place;
+})();
+</script>
 </body></html>

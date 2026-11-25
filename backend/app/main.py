@@ -3852,7 +3852,9 @@ def sorting_confirm(load_id:str, db:Session=Depends(get_db), user:User=Depends(r
     entries=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
     if not entries: raise HTTPException(422,'Δεν υπάρχουν καταχωρημένα υλικά')
     ses.status='LOGISTICS_REVIEW'; ses.correction=False; ses.sorting_confirmed_at=datetime.now(timezone.utc); ses.sorting_confirmed_by=user.id; load.status='SORTING_CONFIRMED'
-    write_audit(db,user,'sorting_session',ses.id,'SORTING_CONFIRM',new={'entries':len(entries)}); db.commit(); return _sorting_payload(db,load,ses)
+    write_audit(db,user,'sorting_session',ses.id,'SORTING_CONFIRM',new={'entries':len(entries)})
+    _hist_record(db,user,'barrier','Υποβολή ταξινόμησης',['load:'+str(load.id)],{},undoable=False)      # η υποβολή δεν αναιρείται και φράζει την Αναίρεση/Επανάληψη
+    db.commit(); return _sorting_payload(db,load,ses)
 
 @app.post('/sorting/entries/{entry_id}/adjust', response_model=schemas.SortingEntryOut)
 def sorting_adjust(entry_id:str, data:schemas.SortingAdjustmentCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):

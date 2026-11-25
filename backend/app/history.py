@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from sqlalchemy.orm import Session
 from .db import get_db
 from . import models
@@ -83,6 +83,10 @@ def _pick(db: Session, user: User, redo: bool):
     """Επιστρέφει (πρώτη εφαρμόσιμη ενέργεια ή None, υπάρχουν_υποψήφιες)."""
     st = "UNDONE" if redo else "DONE"
     q = select(ActionHistory).where(ActionHistory.user_id == user.id, ActionHistory.undoable == True, ActionHistory.status == st)  # noqa: E712
+    # Φραγμός: η υποβολή ταξινόμησης (kind='barrier') δεν αναιρείται ποτέ και η Αναίρεση/Επανάληψη δεν πηγαίνει πιο πίσω από αυτήν
+    bid = db.scalar(select(func.max(ActionHistory.id)).where(ActionHistory.user_id == user.id, ActionHistory.kind == "barrier"))
+    if bid:
+        q = q.where(ActionHistory.id > bid)
     # Αναίρεση: από την πιο πρόσφατη. Επανάληψη: από την πιο παλιά αναιρεμένη (η ενέργεια που αναιρέθηκε πιο πρόσφατα είναι η παλαιότερη των αναιρεμένων)
     rows = db.scalars(q.order_by(ActionHistory.id.desc() if not redo else ActionHistory.id.asc())).all()
     for e in rows:

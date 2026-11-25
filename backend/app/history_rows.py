@@ -179,7 +179,7 @@ def install(engine):
 
     def _before_commit_inner(session):
         ctx = req_ctx.get()
-        if ctx is None or not ctx["ok"] or ctx["android"]:
+        if ctx is None or not ctx["ok"]:
             session.info.pop("hist", None)
             return
         if not session._is_clean():
@@ -212,8 +212,6 @@ def install(engine):
                 continue
             if before is not None and after is not None and _norm(r["table"], before) == _norm(r["table"], after):
                 continue
-            if getattr(obj, "source", None) == "ANDROID":       # καταχώρηση Android: ποτέ στο ιστορικό
-                return
             op = "create" if before is None else ("delete" if after is None else "update")
             rows.append({"t": r["table"], "pk": _pk(obj), "before": before, "after": after, "op": op, "obj": obj})
         for (tn_, oid), before_v in (ctx.get("sets") or {}).items():
@@ -240,6 +238,11 @@ def install(engine):
         label = "%s %s%s" % (VERB[main["op"]], TABLE_LABEL.get(main["t"], main["t"]), (" «%s»" % name[:60]) if name else "")
         if len(rows) > 1:
             label += " (+%d σχετικές εγγραφές)" % (len(rows) - 1)
+        if ctx.get("android"):
+            try:
+                label = _android_label(session, rows, main) or label
+            except Exception:
+                pass
         label = session.info.pop("hist_label", None) or label
         for rw in rows:
             rw.pop("obj", None)
@@ -249,6 +252,53 @@ def install(engine):
 
 
 _DEBUG_BAD: list = []
+
+
+def _android_label(session, rows, main):
+    """Περιγραφή κίνησης για το Android (απλά ελληνικά, μόνο ονόματα από τα μητρώα): «Τίτλος · λεπτομέρειες»."""
+    snap = main["after"] or main["before"] or {}
+    op = main["op"]
+    if main["t"] == "sorting_entries":
+        cat = session.get(models.WEEECategory, snap.get("weee_category_id"))
+        cname = ((cat.her_description or cat.description_el) if cat and not cat.is_internal_subcategory else (cat.description_el if cat else "")) or "Υλικό"
+        mid = snap.get("collection_medium_id")
+        med = session.get(models.CollectionMedium, mid) if mid else None
+        mt = session.get(models.CollectionMediumType, med.type_id) if med else None
+        parts = [cname, (((mt.name_el if mt else "Μέσο") + " · " + str(med.code)) if med else "Χύμα")]
+        kg = lambda d: (None if not d or d.get("raw_weight") is None else int(round(float(d["raw_weight"]))))
+        if op == "update":
+            title = "Αλλαγή καταχώρησης"
+            b, a = main["before"] or {}, main["after"] or {}
+            ch = []
+            if kg(b) != kg(a):
+                ch.append("%s → %s kg" % (kg(b), kg(a)))
+            if b.get("collection_medium_id") != a.get("collection_medium_id"):
+                ch.append("Άλλο μέσο")
+            if b.get("weee_category_id") != a.get("weee_category_id"):
+                ch.append("Άλλο υλικό")
+            for rw in rows:
+                if rw["t"] == "collection_media" and rw["before"] and rw["after"] and rw["before"].get("is_closed") != rw["after"].get("is_closed"):
+                    ch.append("Με χώρο → Γεμάτο" if rw["after"].get("is_closed") else "Γεμάτο → Με χώρο")
+            parts += ch or ["%s kg" % kg(a)]
+        else:
+            title = "Νέα καταχώρηση" if op == "create" else "Διαγραφή καταχώρησης"
+            parts.append("%s kg" % kg(snap))
+        return title + " · " + " · ".join(parts)
+    if main["t"] == "collection_media":
+        mt = session.get(models.CollectionMediumType, snap.get("type_id"))
+        ch = ""
+        b, a_ = main["before"] or {}, main["after"] or {}
+        if b and a_ and b.get("is_closed") != a_.get("is_closed"):
+            ch = " · " + ("Με χώρο → Γεμάτο" if a_.get("is_closed") else "Γεμάτο → Με χώρο")
+        return "Αλλαγή μέσου συλλογής · %s · %s%s" % ((mt.name_el if mt else "Μέσο"), snap.get("code"), ch)
+    if main["t"] == "production_work_entries":
+        unit = session.get(models.OrganizationalUnit, snap.get("org_unit_id"))
+        cat = session.get(models.WEEECategory, snap.get("weee_category_id"))
+        title = {"create": "Νέα εγγραφή παραγωγής", "update": "Αλλαγή εγγραφής παραγωγής", "delete": "Διαγραφή εγγραφής παραγωγής"}[op]
+        parts = [(unit.name_el if unit and getattr(unit, "name_el", None) else (getattr(unit, "name", None) or "Τμήμα")),
+                 ((cat.her_description or cat.description_el) if cat else "Υλικό"), "%s kg" % int(round(float(snap.get("weight_kg") or 0)))]
+        return title + " · " + " · ".join(str(x) for x in parts if x)
+    return None
 
 
 def _cmp(d):
