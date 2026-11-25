@@ -3082,7 +3082,8 @@ switch(name){
  case 'equipment': loader=loadEquipment; break;
  case 'reports': loader=loadReports; break;
 }
-if(loader) Promise.resolve().then(loader).catch(e=>{console.error('View load failed',name,e);if(name==='receipts'){let h=$('receiptSelectedHead');if(h)h.innerHTML='<span class="error">Σφάλμα φόρτωσης: '+esc(e.message||e)+'</span>'}})
+if(loader&&window.b89Skip&&window.b89Skip(name))loader=null;
+if(loader) window.__showP=Promise.resolve().then(loader).catch(e=>{console.error('View load failed',name,e);if(name==='receipts'){let h=$('receiptSelectedHead');if(h)h.innerHTML='<span class="error">Σφάλμα φόρτωσης: '+esc(e.message||e)+'</span>'}})
 }
 document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>show(b.dataset.view));$('loginBtn').onclick=login;$('refresh').onclick=()=>show(document.querySelector('.nav button.active').dataset.view);
 // ===== Παρουσίες (Αρχική -> κουμπί «Παρουσίες») -- ίδια κοινή αποθήκευση με το Δελτίο ημέρας του Android (/production/attendance) =====
@@ -15012,6 +15013,51 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap):not(.carr
     map.forEach((st,w)=>{if(!seen.has(w)&&!document.contains(w)){st.b.remove();map.delete(w)}})}
   const req=()=>{if(!q)q=requestAnimationFrame(sync)};
   window.addEventListener('resize',req);window.addEventListener('scroll',req,true);window.addEventListener('tableLayoutChanged',req);setInterval(req,400);req();
+})();
+</script>
+<style id="b89Css">
+#b89Load{position:fixed;inset:0;z-index:999990;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#F1F0EC;color:#144A52;font:700 22px Roboto,Segoe UI,Arial,sans-serif}
+#b89Load[hidden]{display:none}
+#b89Load i{width:30px;height:30px;border:3px solid #C9D3D6;border-top-color:#144A52;border-radius:50%;animation:b89sp .8s linear infinite}
+#b89Load small{font:500 14px Roboto,Segoe UI,Arial,sans-serif;color:#5B6670}
+@keyframes b89sp{to{transform:rotate(360deg)}}
+</style>
+<script id="b89Js">
+/* B89: προφόρτωση ΟΛΩΝ των σελίδων (και των καρτελών τους) μετά τη σύνδεση, πίσω από οθόνη φόρτωσης· όταν ανοίγει η εφαρμογή, κάθε σελίδα εμφανίζεται με πλήρη δεδομένα και χωρίς «ξεδίπλωμα» */
+(function(){
+  const D=document;let pending=0,last=Date.now(),started=false;
+  let ver=0;const warmed={};      // ver: αλλάζει σε κάθε αλλαγή δεδομένων (εγγραφή ή ζωντανή ειδοποίηση)· warmed[σελίδα]={ver,t}
+  const f0=window.fetch;window.fetch=function(input,init){pending++;const p=f0.apply(this,arguments);const d=()=>{pending=Math.max(0,pending-1);last=Date.now()};p.then(d,d);
+    try{const m=String((init&&init.method)||(input&&input.method)||'GET').toUpperCase(),u=String((input&&input.url)||input||'');if(m!=='GET'&&u.indexOf('/auth/')<0)p.then(()=>{ver++},()=>{})}catch(e){}return p};
+  try{const _l=window.liveRefreshAll;if(typeof _l==='function'){window.liveRefreshAll=function(){ver++;return _l.apply(this,arguments)}}}catch(e){}
+  window.b89Skip=name=>{const w=warmed[name];if(!w||window.__b89Force)return false;if(w.ver!==ver||Date.now()-w.t>180000){delete warmed[name];return false}return true};
+  const ref=D.getElementById('refresh');if(ref){const o=ref.onclick;ref.onclick=function(){window.__b89Force=true;try{return o&&o.apply(this,arguments)}finally{window.__b89Force=false}}}
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const idle=async(quiet,max)=>{const t0=Date.now();await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));while(Date.now()-t0<max){if(pending===0&&Date.now()-last>=quiet)break;await sleep(40)}};
+  const ov=D.createElement('div');ov.id='b89Load';ov.hidden=true;ov.innerHTML='<span>WEEE Platform</span><i></i><small id="b89Msg">Φόρτωση δεδομένων…</small>';D.body.appendChild(ov);
+  const VIEWS=[['dashboard','Αρχική'],['receipts','Παραλαβές & Ταξινόμηση'],['weee','Αποθήκη ΑΗΗΕ'],['production','Παραγωγή'],['ready','Υλικά'],['loading','Φορτώσεις'],['inventory','Απογραφή'],['galaxy','Galaxy'],['reports','Αναφορές και Στατιστικά'],['master','Μητρώα']];
+  const tabsOf=v=>[...v.querySelectorAll(':scope>.tfBar .tfL button,:scope .tfBar .tfL button,:scope .weeeTabs button')].filter((b,i,a)=>a.indexOf(b)===i&&b.offsetParent&&!b.disabled);
+  async function warm(){
+    if(started)return;started=true;ov.hidden=false;const msg=D.getElementById('b89Msg');const T0=Date.now();
+    try{
+      for(let i=0;i<VIEWS.length;i++){
+        const [id,name]=VIEWS[i],btn=D.querySelector('.nav button[data-view="'+id+'"]'),v=D.getElementById(id);if(!btn||!v)continue;
+        if(Date.now()-T0>20000)break;
+        msg.textContent='Φόρτωση: '+name+' ('+(i+1)+'/'+VIEWS.length+')';
+        const tv=Date.now();window.__warmLog=window.__warmLog||[];
+        try{show(id);try{await window.__showP}catch(e){}await idle(200,5000);warmed[id]={ver,t:Date.now()};window.__warmLog.push(id+' main '+(Date.now()-tv)+'ms');
+          const tabs=tabsOf(v);                                        // και οι καρτέλες της σελίδας (μία φορά η καθεμία)
+          for(const b of tabs.slice(1)){const tt=Date.now();try{b.click()}catch(e){}await idle(150,3500);window.__warmLog.push('  tab '+(b.textContent||'').trim().slice(0,18)+' '+(Date.now()-tt)+'ms')}
+          if(tabs.length>1){try{tabs[0].click()}catch(e){}await idle(150,3000)}
+        }catch(e){console.warn('Προφόρτωση',id,e)}
+      }
+      try{show('dashboard')}catch(e){}
+      try{await window.__showP}catch(e){}await idle(300,6000);
+    }finally{ov.hidden=true}
+  }
+  const lg=D.getElementById('login');
+  if(lg)new MutationObserver(()=>{if(lg.classList.contains('hidden')&&!started){ov.hidden=false;setTimeout(warm,0)}}).observe(lg,{attributes:true,attributeFilter:['class']});
+  window.b89Warm=warm;
 })();
 </script>
 </body></html>
