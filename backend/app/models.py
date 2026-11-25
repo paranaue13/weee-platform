@@ -603,6 +603,8 @@ class SortingEntry(Base, TimestampMixin):
     notes: Mapped[str|None] = mapped_column(Text, nullable=True)
     # Προέλευση της καταχώρησης: 'PC' (Windows) ή 'ANDROID'· NULL = παλαιότερη καταχώρηση χωρίς γνωστή προέλευση (δεν δείχνει εικονίδιο)
     source: Mapped[str|None] = mapped_column(String(10), nullable=True)
+    # Τρόπος ζύγισης της καταχώρησης στο Android: 'g' = ένδειξη ζυγαριάς, 'n' = καθαρό βάρος· NULL = παλαιότερη καταχώρηση (ισχύει ό,τι ίσχυε)
+    weigh_mode: Mapped[str|None] = mapped_column(String(1), nullable=True)
 
 class SortingAdjustment(Base):
     __tablename__ = "sorting_adjustments"

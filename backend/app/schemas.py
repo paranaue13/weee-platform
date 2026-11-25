@@ -437,6 +437,7 @@ class SortingEntryCreate(BaseModel):
     notes: str|None = None
     close_medium: bool = False      # «Κλείσιμο καλαθιού»: μετά την αποθήκευση το μέσο δεν δέχεται άλλα κιλά
     source: str|None = None         # 'PC' (Windows) ή 'ANDROID'
+    weigh_mode: str|None = None     # 'g' ένδειξη ζυγαριάς / 'n' καθαρό βάρος (Android)
     new_medium: MediumCreate|None = None   # νέο μέσο: δημιουργείται ΜΑΖΙ με την καταχώρηση, στην ίδια πράξη (αν αποτύχει η καταχώρηση δεν δημιουργείται τίποτα)
 
 class SortingEntryOut(BaseModel):
@@ -451,6 +452,7 @@ class SortingEntryOut(BaseModel):
     piece_count: int|None
     notes: str|None
     warning: str|None = None      # π.χ. «το μέσο περιέχει ήδη άλλη κατηγορία· ο κωδικός μένει»
+    weigh_mode: str|None = None
     source: str|None = None
 
 class SortingSessionOut(BaseModel):

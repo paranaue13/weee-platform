@@ -3070,10 +3070,11 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     if(S.br){const t=tByName(S.br),ot=t?all.filter(m=>m.type_id===t.id&&!(Number((m.cats||{})[cat.id]||0)>0)):[];
       h+=`<div class="p39l">${esc(S.br)} · ${ot.length?'Ανοιχτά Με Άλλο ΑΗΗΕ':'Κανένα Άλλο Ανοιχτό'}</div>`+ot.map(m=>card(m,false)).join('')+`<button type="button" class="p39b add" data-new="${esc(S.br)}">+ ${esc(NEW[S.br])}</button>`}
     host.innerHTML=h;renderSheet()}
+  const edMode=(e,m)=>(e.weigh_mode==='g'||e.weigh_mode==='n')?e.weigh_mode:((m&&m.tare_weight!=null)?'g':'n');
   const prefill=()=>{const e=S.edit.e,m=e.collection_medium_id?findMed(e.collection_medium_id):null,t=m?tById(m.type_id):null,n=enNet(e),tr=m&&m.tare_weight!=null?Number(m.tare_weight):0;
-    S.mode=(m&&m.tare_weight!=null)?'g':'n';
+    S.mode=edMode(e,m);
     if(S.mode==='g'){S.val=String(Math.round(n+tr+insideOf()));S.tr=m&&!isB(t)?String(Math.round(tr)):'';S.num=isB(t)?String(code(m)):''}else S.val=String(Math.round(n));
-    S.cls=!!(m&&m.is_closed);S.fld='w'};
+    S.cls=!!(m&&m.is_closed);S.fld='w';S.org={mode:S.mode,val:S.val,w:Number(n)}};
   function pickNew(t){S.pick={kind:'new',typeId:t.id};rs();if(S.edit&&!S.mode)S.mode='g';
     if(cat)api('/sorting-meta/next-medium-name?weee_category_id='+encodeURIComponent(cat.id)+'&type_id='+encodeURIComponent(t.id)).then(r=>{if(S.pick&&S.pick.kind==='new'){S.nm=r.code||'';renderSheet()}}).catch(()=>{});
     loadSes();renderForm()}
@@ -3124,7 +3125,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       else if(isGross()){const tr=tareOf(),ins=insideOf();f='Ζυγαριά '+(S.val?fmt(S.val):'—')+(tr?' − Απόβαρο '+fmt(tr):'')+(ins?' − Ήδη Μέσα '+fmt(ins):'');if(S.val&&net()>0)nv=fmt(net())}
       else{f=(S.pick&&S.pick.kind==='bulk'?'Βάρος ':'Καθαρό ')+(S.val?fmt(S.val):'—');if(S.val&&net()>0)nv=fmt(net())}
       if(S.pick.kind==='bulk')$$('b30cl').innerHTML='<div><span>Καθαρό Βάρος</span><small>'+f+'</small></div><strong>'+nv+' <em>kg</em></strong>';
-      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='n'?Number(S.val)+tr+ins:S.val):'—')+' <em>kg</em></strong>'}}
+      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='n'?Number(S.val)+ins:S.val):'—')+' <em>kg</em></strong>'}}
 
     requestAnimationFrame(()=>document.documentElement.style.setProperty('--b30ShH',sh.offsetHeight+'px'))}
   sh.addEventListener('click',e=>{if(e.target===sh){window.b30CloseAll();return}const k=e.target.closest('[data-k]');if(k){const K=k.dataset.k,f=S.fld;let v=f==='n'?S.num:f==='t'?S.tr:S.val;
@@ -3135,8 +3136,9 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       if(d.id==='b30dn'&&S.pick&&S.pick.kind==='basket'&&S.pick.mid){S.pick={typeId:S.edit?S.edit.tid:(pt()||{}).id,kind:'basket'};S.num='';S.fld='n';renderForm();return}
       if(S.edit&&d.id==='b30dt'&&!needTare())return;
       S.fld=d.id==='b30dn'?'n':d.id==='b30dt'?'t':'w';renderSheet()}});
-  $$('b30mg').onclick=()=>{S.mode='g';try{localStorage.setItem('b30Mode','g')}catch(_){}fixFld();renderSheet()};
-  $$('b30mn').onclick=()=>{S.mode='n';try{localStorage.setItem('b30Mode','n')}catch(_){}fixFld();renderSheet()};
+  const modeConv=to=>{if(S.edit&&S.org&&S.pick&&S.pick.mid&&S.mode&&S.mode!==to&&S.mode===S.org.mode&&S.val===S.org.val){const n=S.org.w,v=to==='g'?n+tareOf()+insideOf():n;S.val=String(Math.round(v));S.org={mode:to,val:S.val,w:n}}};
+  $$('b30mg').onclick=()=>{modeConv('g');S.mode='g';try{localStorage.setItem('b30Mode','g')}catch(_){}fixFld();renderSheet()};
+  $$('b30mn').onclick=()=>{modeConv('n');S.mode='n';try{localStorage.setItem('b30Mode','n')}catch(_){}fixFld();renderSheet()};
   $$('b30cz').onclick=()=>{S.cls=!S.cls;renderSheet()};
   $$('b30bk').onclick=()=>{S.pick=null;rs();renderForm()};
 
@@ -3173,7 +3175,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     if(!can())return;if(S.edit){await submitEdit();return}S.busy=true;renderSheet();msg('');
     try{let mid=S.pick.mid||null;
       let nmd=null;if(S.pick.kind==='new'){const t=pt();nmd={type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null}}   // το μέσο δημιουργείται ΜΑΖΙ με την καταχώρηση (τελική κίνηση), όχι πριν
-      const nt=noTare(mid),body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!nt)?'SCALE_GROSS':'MEDIUM',raw_weight:nt?roundInt(net()):roundInt(Number(S.val)),piece_count:null,source:'ANDROID'};
+      const nt=noTare(mid),body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!nt)?'SCALE_GROSS':'MEDIUM',raw_weight:nt?roundInt(net()):roundInt(Number(S.val)),piece_count:null,source:'ANDROID',weigh_mode:S.mode||null};
       if((mid||nmd)&&S.cls)body.close_medium=true;
       const saved=await api('/sorting/'+cur.id+'/entries',{method:'POST',body:JSON.stringify(body)});
       try{await reloadMasters()}catch(_){}await refresh();
@@ -3190,12 +3192,12 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const codeOfCat=id=>{const c=cats.find(x=>x.id===id);return c?(c.official_code||c.code):''};
   const bulkKind=c=>{if(!c)return null;const o=[c.official_code,c.code],has=d=>d.pairs.some(p=>o.includes(p[0][0])||o.includes(p[1][0]))||d.single.some(x=>o.includes(x[0]));return has(washDefs)?'wash':has(fridgeDefs)?'fridge':null};
   window.b30CloseAll=function(){if(S.edit){endEdit();return}S.pick=null;S.br=null;rs();$$('closeEntry').click()};
-  function endEdit(){S.edit=null;S.pick=null;S.br=null;rs();editing=null;ent.classList.add('hidden');sh.classList.remove('on');try{sortRestoreScroll()}catch(_){}}
+  function endEdit(){S.edit=null;S.org=null;S.pick=null;S.br=null;rs();editing=null;ent.classList.add('hidden');sh.classList.remove('on');try{sortRestoreScroll()}catch(_){}}
   async function submitEdit(){
     S.busy=true;renderSheet();msg('');
     try{let mid=S.pick.kind==='bulk'?null:(S.pick.mid||null);
       let nmd=null;if(S.pick.kind==='new'){const t=pt();nmd={type_id:t.id,code:'',tare_weight:(t.tare_fixed||S.mode!=='g')?null:Number(S.tr),linked_loading_order_id:null}}
-      const e0=S.edit.e,body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!noTare(mid))?'SCALE_GROSS':'MEDIUM',raw_weight:roundInt(net()),piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID',close_medium:!!((mid||nmd)&&S.cls)};
+      const e0=S.edit.e,same=!!(S.org&&S.org.mode===S.mode&&S.org.val===S.val),body={weee_category_id:cat.id,collection_medium_id:mid,new_medium:nmd,entry_type:((mid||nmd)&&S.mode==='g'&&!noTare(mid))?'SCALE_GROSS':'MEDIUM',raw_weight:same?roundInt(S.org.w):roundInt(net()),weigh_mode:S.mode||null,piece_count:e0.piece_count||null,notes:e0.notes||null,source:'ANDROID',close_medium:!!((mid||nmd)&&S.cls)};
       const saved=await api('/sorting/entries/'+S.edit.id,{method:'PUT',body:JSON.stringify(body)});
       endEdit();try{await reloadMasters()}catch(_){}await refresh();if(saved&&saved.warning)$$('workMsg').textContent=saved.warning}
     catch(err){msg(err.message||String(err))}finally{S.busy=false;renderSheet()}}
@@ -3206,7 +3208,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     if(k){editBulk(k,e,entries);return}
     _ed0(id,entries);
     const m=e.collection_medium_id?(media.find(x=>x.id===e.collection_medium_id)||openMedia().find(x=>x.id===e.collection_medium_id)):null;
-    S.edit={id:e.id,e,tid:m?m.type_id:null};S.pick=null;S.br=null;S.mode=(m&&m.tare_weight!=null)?'g':'n';
+    S.edit={id:e.id,e,tid:m?m.type_id:null};S.pick=null;S.br=null;S.org=null;S.mode=edMode(e,m);
     rs();$$('entryTitle').textContent='Αλλαγή';renderForm();loadSes()};
   function editBulk(k,e,entries){
     const defs=k==='wash'?washDefs:fridgeDefs,pid=k==='wash'?'bulkWash':'bulkFridge',tm=Date.parse(e.created_at)||0;

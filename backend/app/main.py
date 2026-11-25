@@ -101,6 +101,8 @@ async def lifespan(app: FastAPI):
             se_cols={c["name"] for c in inspect(engine).get_columns("sorting_entries")}
             if "source" not in se_cols:
                 conn.execute(text("ALTER TABLE sorting_entries ADD COLUMN source VARCHAR(10)"))
+            if "weigh_mode" not in se_cols:
+                conn.execute(text("ALTER TABLE sorting_entries ADD COLUMN weigh_mode VARCHAR(1)"))
         if "sorting_sessions" in tables:
             sort_cols={c["name"] for c in inspect(engine).get_columns("sorting_sessions")}
             for col,sqltype in [("foreign_materials","VARCHAR(200)"),("foreign_weight","NUMERIC(14,3)"),("special_waste","VARCHAR(200)"),("special_waste_weight","NUMERIC(14,3)"),("load_pure","BOOLEAN DEFAULT 0"),("check_special","BOOLEAN DEFAULT 0"),("check_kday","BOOLEAN DEFAULT 0"),("check_non_integer","BOOLEAN DEFAULT 0")]:
@@ -3481,7 +3483,8 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
     raw=_round_kg(raw)      # ΑΚΕΡΑΙΑ kg ανά καταχώρηση (και τεμάχια × μέσο βάρος, και μεικτό − απόβαρο)
     obj=SortingEntry(session_id=ses.id,weee_category_id=data.weee_category_id,collection_medium_id=data.collection_medium_id,
       entry_type=data.entry_type,raw_weight=raw,piece_count=data.piece_count,created_by=user.id,notes=data.notes,
-      source=(data.source.upper() if data.source and data.source.upper() in ('PC','ANDROID') else None))
+      source=(data.source.upper() if data.source and data.source.upper() in ('PC','ANDROID') else None),
+      weigh_mode=(data.weigh_mode if data.weigh_mode in ('g','n') else None))
     db.add(obj); db.flush()
     warn=_assign_single_use_code(db,user,data.collection_medium_id,cat)
     _sync_entry_stock(db,obj,user); write_audit(db,user,'sorting_entry',obj.id,'CREATE',new={'load_id':load_id,'category':cat.code,'weight':str(raw),'pieces':data.piece_count,'close_medium':bool(data.close_medium)})
@@ -3508,6 +3511,7 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     old={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count}
     e.weee_category_id=data.weee_category_id; e.collection_medium_id=data.collection_medium_id; e.entry_type=data.entry_type
     e.raw_weight=data.raw_weight; e.piece_count=data.piece_count; e.notes=data.notes
+    if 'weigh_mode' in data.model_fields_set and data.weigh_mode in ('g','n'): e.weigh_mode=data.weigh_mode      # μόνο αν το στείλει ο πελάτης (Android)
     if data.entry_type=='BULK' and data.piece_count is not None:
         if cat.average_weight is None: raise HTTPException(422,'Δεν υπάρχει μέσο βάρος για το χύμα υλικό')
         e.raw_weight=Decimal(data.piece_count)*cat.average_weight
