@@ -2661,7 +2661,7 @@ body[data-theme="dark"] #weee .stockTable tbody tr.weeeCatTot td{background:#223
 <div class="periodPickerDropdown hidden" id="weeePeriodDropdown"><div class="periodPickerYears" id="weeePeriodYears"></div><div class="periodPickerGrid" id="weeePeriodMonths"><button type="button" data-m="01">Ιαν</button><button type="button" data-m="02">Φεβ</button><button type="button" data-m="03">Μαρ</button><button type="button" data-m="04">Απρ</button><button type="button" data-m="05">Μαι</button><button type="button" data-m="06">Ιουν</button><button type="button" data-m="07">Ιουλ</button><button type="button" data-m="08">Αυγ</button><button type="button" data-m="09">Σεπ</button><button type="button" data-m="10">Οκτ</button><button type="button" data-m="11">Νοε</button><button type="button" data-m="12">Δεκ</button></div><div class="periodPickerGrid hidden" id="weeePeriodQuarters"><button type="button" data-q="1">1ο τρίμηνο</button><button type="button" data-q="2">2ο τρίμηνο</button><button type="button" data-q="3">3ο τρίμηνο</button><button type="button" data-q="4">4ο τρίμηνο</button></div></div><div id="weeeKpis" class="grid weeeKpisCompact"></div></div>
 <div id="weeeStockPane"><div class="weeeSec"><div class="weeeSecHd"><div class="weeeSecRow"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία</h3><label class="weeeSw"><input type="checkbox" id="weeeSwTot"><span class="trk"></span>Σύνολα κατηγοριών</label><label class="weeeSw"><input type="checkbox" id="weeeSwSub"><span class="trk"></span>Υποκατηγορίες</label></div></div>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeProcessTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς επεξεργασία</th><th data-wcol="done">Επεξεργασία</th><th class="hermesCol" data-wcol="herm">Επεξεργασία HERMES</th><th data-wcol="stock">Απόθεμα προς επεξεργασία</th></tr></thead><tbody id="weeeProcessRows"></tbody></table></div></div>
-<div class="weeeSec"><div class="weeeSecHd"><h3 class="weeeSecTitle">Απόθεμα προς αποστολή</h3></div>
+<div class="weeeSec"><div class="weeeSecHd"><div class="weeeSecRow"><h3 class="weeeSecTitle">Απόθεμα προς αποστολή</h3><label class="weeeSw"><input type="checkbox" id="weeeSwTot2"><span class="trk"></span>Σύνολα κατηγοριών</label><label class="weeeSw"><input type="checkbox" id="weeeSwSub2"><span class="trk"></span>Υποκατηγορίες</label></div></div>
 <div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeShipTable" data-stk-skip><thead><tr><th data-wcol="code">Κωδικός</th><th class="weeeDescHeader" data-wcol="desc">Περιγραφή</th><th data-wcol="open">Απόθεμα έναρξης</th><th class="weeeRcvTh" data-wcol="rcv">Παραλαβές μήνα</th><th data-wcol="todo">Προς αποστολή</th><th data-wcol="done">Αποστολές</th><th data-wcol="stock">Απόθεμα προς αποστολή</th></tr></thead><tbody id="weeeShipRows"></tbody></table></div></div></div><div id="weeeMediaPane" class="hidden"><div class="weeeSec"><div class="weeeSecHd"><h3 class="weeeSecTitle">Απόθεμα προς επεξεργασία ανά μέσο συλλογής</h3><div class="toggleRow" id="weeeMediaOnlyWrap" style="margin-bottom:12px"><label class="toggleSwitch"><input type="checkbox" id="weeeMediaStockOnly"><span class="slider"></span></label><span>Μόνο με διαθέσιμο απόθεμα</span></div></div><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeMediaTable" data-stk-skip><thead id="weeeMediaHead"></thead><tbody id="weeeMediaRows"></tbody></table></div></div></div><div id="weeeNonPane" class="hidden"><h3 class="weeeSecTitle">Υλικά ΜΗ ΑΗΗΕ</h3><div class="tablewrap sectionTableWrap"><table class="stockTable" id="weeeNonTable" data-stk-skip><thead id="weeeNonHead"></thead><tbody id="weeeNonRows"></tbody></table></div></div>
 </section>
 <section id="production" class="view hidden">
@@ -14706,6 +14706,7 @@ html body #receiptForm .recFoot>.floatPanelActions{margin:0!important;padding:0!
     B.querySelectorAll('table.snapT>tbody>tr>td:first-child').forEach(c=>{if(!c.offsetParent)return;
       const pad=parseFloat(getComputedStyle(c).scrollMarginTop)||0,r=c.getBoundingClientRect(),d=(r.top-top)-pad;   // d = πόσο πρέπει να κυλήσει για να έρθει ακριβώς κάτω από την κεφαλίδα
       if(Math.abs(d)<Math.abs(bd)){bd=d;best=c}});
+    if(Math.abs(st)<Math.abs(bd)){bd=-st;best=B}      /* B79: πιο κοντά στην κορυφή παρά σε γραμμή → μένει στην κορυφή (κάρτες ορατές) */
     const max=B.scrollHeight-B.clientHeight;
     if(best&&Math.abs(bd)>0.5&&!(st>=max-1&&bd>0))B.scrollTo({top:Math.max(0,Math.min(max,st+bd)),behavior:'smooth'});
     setTimeout(()=>B.classList.remove('b24Free'),400);
@@ -14940,6 +14941,13 @@ html body #sortingDetail .sfSw i::after{top:0;left:0;width:18px;height:18px;back
 html body #sortingDetail .sfSw.on i{background:linear-gradient(#0F3A40,#18535B)!important;border-color:#0B2D32}
 html body #sortingDetail .sfSw.on i::after{left:14px}
 </style>
+<script id="b79Js">
+/* B79: οι διακόπτες «Σύνολα κατηγοριών» / «Υποκατηγορίες» φαίνονται και στον τίτλο «Απόθεμα προς αποστολή»· λειτουργούν ως οι αρχικοί (ίδια κατάσταση) */
+(function(){const g=i=>document.getElementById(i);
+  [['weeeSwTot','weeeSwTot2'],['weeeSwSub','weeeSwSub2']].forEach(([a,b])=>{const A=g(a),B=g(b);if(!A||!B)return;
+    B.addEventListener('change',()=>{A.checked=B.checked;A.dispatchEvent(new Event('change'))});
+    const sync=()=>{if(B.checked!==A.checked)B.checked=A.checked};A.addEventListener('change',sync);setInterval(sync,300);sync()})})();
+</script>
 <script id="b78Js">
 /* B78: «Εξαγωγή» στη γραμμή καρτελών του παραθύρου Ταξινόμησης· μπάρα «Καθαρό βάρος · Φορτία» μέσα στην περιοχή της Παραλαβής (η λειτουργία των κουμπιών δεν αλλάζει, μετακινούνται τα ίδια στοιχεία) */
 (function(){
