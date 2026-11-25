@@ -4305,7 +4305,7 @@ function fitWeee(){let v=document.getElementById('weee');if(!v||!v.offsetParent)
   secs.forEach(sec=>{let hd=sec.querySelector('.weeeSecHd'),o2=H(hd);sec.style.setProperty('--o2',o2.toFixed(2)+'px');need=Math.max(need,o2+H(sec.querySelector('thead')))});
   if(!secs.length){let th=[...v.querySelectorAll('.stockTable thead')].find(t=>t.offsetParent);need=H(th)}
   // όριο: αν τα σταθερά (καρτέλες+κάρτες+τίτλος+ειδοποίηση+κεφαλίδα) πιάνουν πάνω από το μισό ύψος του παραθύρου, δεν κολλά τίποτα
-  v.style.setProperty('--vw',((sc&&!v.classList.contains('weeeNoStick')?sc:v).clientWidth).toFixed(2)+'px');
+  v.style.setProperty('--vw',((sc&&!v.classList.contains('weeeNoStick')?sc.clientWidth-(parseFloat(getComputedStyle(sc).paddingRight)||0):v.clientWidth)).toFixed(2)+'px');
   let avail=Math.min(v.clientHeight||1e9,hh),noStick=hh<260||(sc?((hh-o1)<200||need>(hh-o1)/2):((o1+need)>avail/2));v.classList.toggle('weeeNoStick',noStick);if(sc&&noStick){v.style.setProperty('--o1',o1.toFixed(2)+'px');v.style.setProperty('--vw',v.clientWidth.toFixed(2)+'px')}      // όριο: τα σταθερά πιάνουν πάνω από το μισό ύψος του παραθύρου → δεν κολλά τίποτα
   {let ss=secs;ss.forEach((sec,i)=>{sec.style.minHeight=(i===ss.length-1&&hh>=260&&!noStick)?Math.max(0,sc?sc.clientHeight:v.clientHeight-o1)+'px':''})}      // ο τελευταίος πίνακας μπορεί να ανέβει ως το τέρμα: ο τίτλος και η κεφαλίδα του κολλούν στη θέση τους
   v.querySelectorAll('tr.tFill').forEach(f=>{if(f.parentNode)f.style.display='none'});      // κενή γραμμή συμπλήρωσης στον τελευταίο πίνακα: γεμίζει το κενό ως το κάτω άκρο της ενότητας
@@ -12722,6 +12722,12 @@ html body :is(.tablewrap table,.prodTable,#sfTable) thead th:not(#b73x){backgrou
 (function(){let q=0;function fit(){q=0;const p=document.getElementById('recScrollPane'),r=document.getElementById('receipts');if(!p||!r||!p.offsetParent)return;const w=Math.max(0,p.offsetWidth-p.clientWidth);if(r.style.getPropertyValue('--b73Sb')!==w+'px')r.style.setProperty('--b73Sb',w+'px')}
 const req=()=>{if(!q)q=requestAnimationFrame(fit)};window.addEventListener('resize',req);window.addEventListener('tableLayoutChanged',req);setInterval(req,1000);req()})();
 </script>
+<style id="b76Css">
+/* B76: Αποθήκη ΑΗΗΕ — η μπάρα του κυλιόμενου πλαισίου πάει στη στήλη της άκρης του παραθύρου (η σελίδα δεν έχει δική της)· το περιεχόμενο τελειώνει στο ίδιο σημείο με τις κάρτες */
+html:has(#weee:not(.hidden)){overflow-y:hidden!important}
+html body .main>.content>#weee:not(.weeeNoStick){padding-right:calc((var(--b18R,0px) + 14px) / var(--pz,1))!important}
+html body #weee:not(.weeeNoStick)>#weeeBody{margin-right:calc(-1 * (var(--b18R,0px) + 14px) / var(--vzi,1));padding-right:calc(var(--b18R,0px) / var(--vzi,1))}
+</style>
 <style id="b75Css">
 /* B75: ενιαίες μπάρες scroll — λεπτές (8px), στρογγυλεμένες, γκρι, χωρίς βελάκια· παντού (σελίδες, πίνακες, παράθυρα, λίστες, οριζόντιες/κάθετες) */
 html body *{scrollbar-width:auto!important;scrollbar-color:auto!important}
