@@ -22,9 +22,9 @@ TRACKED = {c for c in (
     models.ShipmentHistoryEntry, models.LoadingOrder, models.MaterialShipmentEntry, models.ReadyMaterialLot, models.ReadyMaterialMovement,
     models.OrganizationalUnit, models.Employee, models.ProductionWorkEntry, models.Organization, models.OrganizationRegistryDetail,
     models.CarrierDriver, models.CarrierVehicle, models.WEEECategory, models.Material, models.StorageGroup, models.CollectionMediumType,
-    models.CollectionMedium, models.CodeCounter, models.ContainerAsset, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "InventoryYearCorrection", None), getattr(models, "MaterialOpeningStock", None), getattr(models, "PressOpeningStock", None), getattr(models, "ProductionPlacementInterval", None),
+    models.CollectionMedium, models.CodeCounter, models.ContainerAsset, models.ProductionTransfer, models.ProductionTransferItem, models.ProductionInputBalance, models.MaterialInventoryEntry, models.WEEEStockLot, models.SortingEntry, getattr(models, "MaterialTab", None), getattr(models, "StockMovement", None), getattr(models, "OrgUnitPosition", None), getattr(models, "Person", None), getattr(models, "InventoryYearCorrection", None), getattr(models, "MaterialOpeningStock", None), getattr(models, "PressOpeningStock", None), getattr(models, "ProductionPlacementInterval", None),
 ) if c is not None}
-IGNORE_TABLES = {"audit_events", "action_history"}
+IGNORE_TABLES = {"audit_events", "action_history", "idempotency_keys"}
 # πίνακες συσχετίσεων που γράφονται «ωμά»: (πίνακας) → (στήλη ιδιοκτήτη, στήλη τιμής, πίνακας ιδιοκτήτη)
 SET_TABLES = {"organization_roles": ("organization_id", "role", "organizations"), "employee_org_units": ("employee_id", "org_unit_id", "employees")}
 
@@ -40,6 +40,11 @@ ROUTES = [
     (("POST", "PUT"), re.compile(r"^/mat/tabs(-order|/[^/]+)?$")),
     (("PUT",), re.compile(r"^/loading/da/\d+/[^/]+$")),
     (("POST",), re.compile(r"^/loading/da/\d+/[^/]+/cancel$")),
+    (("POST",), re.compile(r"^/production/transfers$")),                       # μεταφορά στην παραγωγή
+    (("POST",), re.compile(r"^/production/transfers/[^/]+/(cancel|replace)$")),
+    (("PUT",), re.compile(r"^/production/transfers/[^/]+/weight$")),
+    (("POST",), re.compile(r"^/mat/export$")),                                  # εξαγωγή υλικού
+    (("PUT", "DELETE"), re.compile(r"^/mat/exports/[^/]+$")),
     (("PUT",), re.compile(r"^/inventory/year-corrections$")),
 ]
 NEVER = re.compile(r"/(merge|purge|permanent|bulk-[a-z]+|move)$")
@@ -292,6 +297,46 @@ def _android_label(session, rows, main):
     """Περιγραφή κίνησης για το Android (απλά ελληνικά, μόνο ονόματα από τα μητρώα): «Τίτλος · λεπτομέρειες»."""
     snap = main["after"] or main["before"] or {}
     op = main["op"]
+    n0 = lambda v: int(round(float(v or 0)))
+    items = [r for r in rows if r["t"] == "production_transfer_items"]
+    if items or any(r["t"] == "production_transfers" for r in rows):      # μεταφορά στην παραγωγή
+        trow = next((r for r in rows if r["t"] == "production_transfers"), None)
+        tid = (trow["after"] or trow["before"])["id"] if trow else (items[0]["after"] or items[0]["before"])["transfer_id"]
+        tr = session.get(models.ProductionTransfer, tid)
+        unit = session.get(models.OrganizationalUnit, tr.destination_org_unit_id) if tr else None
+        parts = [unit.name_el if unit else "Τμήμα"]
+        names = []
+        for it in items[:2]:
+            sn = it["after"] or it["before"] or {}
+            lot = session.get(models.WEEEStockLot, sn.get("stock_lot_id"))
+            cat = session.get(models.WEEECategory, lot.weee_category_id) if lot else None
+            med = session.get(models.CollectionMedium, lot.collection_medium_id) if lot and lot.collection_medium_id else None
+            names.append(((cat.her_description or cat.description_el) if cat else "Υλικό") + ((" · " + str(med.code)) if med else " · Χύμα"))
+        if names:
+            parts.append(", ".join(names) + ((" (+%d)" % (len(items) - 2)) if len(items) > 2 else ""))
+        if trow and trow["op"] == "create":
+            parts.append("%d kg" % sum(n0((r["after"] or {}).get("weight")) for r in items))
+            return "Μεταφορά στην παραγωγή · " + " · ".join(parts)
+        if trow and (trow["after"] or {}).get("status") != (trow["before"] or {}).get("status") and "CANCEL" in str((trow["after"] or {}).get("status") or "").upper():
+            k_ = sum(n0((r["before"] or {}).get("weight")) for r in items)
+            if k_:
+                parts.append("%d kg" % k_)
+            return "Ακύρωση μεταφοράς στην παραγωγή · " + " · ".join(parts)
+        b_ = sum(n0((r["before"] or {}).get("weight")) for r in items)
+        a_ = sum(n0((r["after"] or {}).get("weight")) for r in items)
+        parts.append("%d → %d kg" % (b_, a_))
+        return "Αλλαγή μεταφοράς στην παραγωγή · " + " · ".join(parts)
+    if main["t"] == "ready_material_lots" or any(r["t"] == "ready_material_lots" for r in rows):      # εξαγωγή υλικού
+        rl = next(r for r in rows if r["t"] == "ready_material_lots")
+        sn, b_, a_ = (rl["after"] or rl["before"] or {}), (rl["before"] or {}), (rl["after"] or {})
+        mat = session.get(models.Material, sn.get("material_id"))
+        med = session.get(models.CollectionMedium, sn.get("collection_medium_id")) if sn.get("collection_medium_id") else None
+        parts = [(mat.internal_name if mat else "Υλικό"), (str(med.code) if med else "Χύμα")]
+        if rl["op"] == "create":
+            return "Εξαγωγή υλικού · " + " · ".join(parts + ["%d kg" % n0(sn.get("net_weight"))])
+        if a_.get("status") == "CANCELLED" and b_.get("status") != "CANCELLED":
+            return "Διαγραφή εξαγωγής υλικού · " + " · ".join(parts + ["%d kg" % n0(sn.get("net_weight"))])
+        return "Αλλαγή εξαγωγής υλικού · " + " · ".join(parts + ["%d → %d kg" % (n0(b_.get("net_weight")), n0(a_.get("net_weight")))])
     if main["t"] == "sorting_entries":
         cat = session.get(models.WEEECategory, snap.get("weee_category_id"))
         cname = ((cat.her_description or cat.description_el) if cat and not cat.is_internal_subcategory else (cat.description_el if cat else "")) or "Υλικό"
