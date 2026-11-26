@@ -12264,6 +12264,10 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   openReceiptPopup=async function(id,hl=null,only=false){
     U.active=false;U.ctx=null;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
     hideHdr();
+    /* B121: αν η εντολή ανοίγει κατευθείαν στην Ταξινόμηση, η φόρμα Παραλαβής δεν εμφανίζεται ΚΑΘΟΛΟΥ (κρύβεται μέχρι να ανοίξει η Ταξινόμηση) */
+    let _hf=$('receiptForm'),_pre=false;
+    try{let r0=(receiptRowsAll||[]).find(x=>x.id===id),ls0=(r0&&r0.loads)||[];_pre=!U.noAuto&&!!(only?hl:((hl&&ls0.some(x=>String(x.id)===String(hl)))?hl:(ls0.length===1?ls0[0].id:null)));if(_pre&&_hf)_hf.style.visibility='hidden'}catch(e){_pre=false}
+    try{
     await _orp.apply(this,arguments);
     {let f0=$('receiptForm');if(f0&&!f0.classList.contains('hidden')){f0.classList.remove('popupMin');f0.classList.add('popupMax')}}   /* B70: πλήρες παράθυρο */
     let r=(receiptRowsAll||[]).find(x=>x.id===id),ls=(r&&r.loads)||[],hlOk=!only&&hl&&ls.some(x=>String(x.id)===String(hl)),multi=ls.length>1&&!only&&!hlOk,loadId=only?hl:(hlOk?ls.find(x=>String(x.id)===String(hl)).id:(ls.length===1?ls[0].id:null));
@@ -12279,6 +12283,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
       if(loadId&&!U.noAuto){U.active=true;try{if(U.ctx&&U.ctx.loadId===loadId)await toSort()}catch(e){}}   /* B74: κάθε εντολή (και τα μικρά σημεία) ανοίγει κατευθείαν στην Ταξινόμηση */
     }
     U.active=true;
+    }finally{if(_hf&&_pre)_hf.style.visibility=''}
   };
   // νέα παραλαβή (δεν έχει ακόμα εντολή): χωρίς chip / στοιχεία / καρτέλες
   const _pnr=prepareNewReceiptPopup;
