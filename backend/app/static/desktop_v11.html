@@ -3422,8 +3422,8 @@ function homeChkPaint(){
   let m=document.getElementById('metrics');if(!m)return;let card=m.children[1];if(!card)return;
   let c=window.__homeChk||{lg:0,cr:0},old=card.querySelector(':scope>.b110Cs');
   if(!c.lg&&!c.cr){if(old)old.remove();delete card.dataset.b110;return}
-  card.dataset.b110=c.lg?'2':'1';
-  let slot=(n,t,k)=>`<div class="b110S">${n?`<span class="b110L">${t}</span><span class="b110C ${k}"><b>${n}</b></span>`:''}</div>`;
+  card.dataset.b110='2';
+  let slot=(n,t,k)=>n?`<div class="b110S"><span class="b110L">${t}</span><span class="b110C ${k}"><b>${n}</b></span></div>`:'';
   let html=slot(c.lg,'Για έλεγχο','b110O')+slot(c.cr,'Για διόρθωση','b110R');
   if(old){if(old.innerHTML!==html)old.innerHTML=html}else{let n=document.createElement('div');n.className='b110Cs';n.innerHTML=html;card.appendChild(n)}
 }
@@ -15313,4 +15313,32 @@ html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.ovCardSel{border:2p
 <script id="b110Js">
 (function(){const m=document.getElementById('metrics');if(!m)return;let t=0;new MutationObserver(()=>{if(t)return;t=setTimeout(()=>{t=0;try{homeChkPaint()}catch(e){}},60)}).observe(m,{childList:true,subtree:true})})();
 </script>
+<style id="b122Css">
+/* B122 · Αρχική: 3 κάρτες ακριβώς όπως στο mockup (ύψος 93px, περιεχόμενο 28px από το αριστερό άκρο, τίτλοι 16px semi-bold, αριθμοί 30px) */
+html body #app #metrics .card.homeKpi{height:93px!important;min-height:0!important;box-sizing:border-box!important;padding:14px 20px 14px 28px!important;align-items:center}
+html body #app #metrics .card.homeKpi .sortingKpiText small{font-size:16px!important;font-weight:600!important;line-height:20px!important;color:var(--fg,#14222B)}
+html body #app #metrics .card.homeKpi .sortingKpiText b{font-size:30px!important;font-weight:500!important;line-height:38px!important;margin-top:4px!important;display:block}
+#metrics .b110Cs{position:absolute;right:20px;top:50%;transform:translateY(-50%);display:flex;gap:14px;width:238px;justify-content:center}
+#metrics .b110L{font-size:16px!important;font-weight:600!important;line-height:20px}
+#metrics .b110C{margin-top:4px;height:38px;padding:0 18px}
+#metrics .b110C b{font-size:16px!important;font-weight:600}
+html body #metrics>[data-b110] .sortingKpiText{padding-right:0!important}
+html body #metrics>[data-b110] .sortingKpiText small{white-space:nowrap!important}
+@media (max-width:1850px){
+#metrics .b110Cs{width:202px;gap:10px}
+#metrics .b110S{width:96px}
+}
+@media (max-width:1500px){
+#metrics .b110Cs{width:134px;gap:6px}
+#metrics .b110S{width:64px}
+#metrics .b110L{font-size:11.5px!important;line-height:14px}
+#metrics .b110C{padding:0 6px!important;min-width:36px!important;height:32px}
+#metrics .b110C b{font-size:14px!important}
+html body #app #metrics .card.homeKpi{padding-left:20px!important;padding-right:14px!important}
+html body #app #metrics .card.homeKpi .sortingKpiIcon{width:36px!important;height:36px!important}
+html body #metrics>[data-b110] .sortingKpiText{padding-right:146px!important}
+html body #app #metrics .card.homeKpi .sortingKpiText small{white-space:normal!important;font-size:13px!important;line-height:15px!important}
+html body #app #metrics .card.homeKpi .sortingKpiText b{font-size:26px!important;line-height:30px!important}
+}
+</style>
 </body></html>
