@@ -12363,7 +12363,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     // Πάει στην οθόνη «Παραλαβές & Ταξινόμηση», στην πιο παλιά ΗΜΕΡΑ με ανοιχτή (μη ολοκληρωμένη) ταξινόμηση. Δεν ανοίγει καμία φόρμα.
     clearApiCache('/sorting/review-queue');
     let rq=[];try{rq=await api('/sorting/review-queue')}catch(e){}
-    let open=rq.filter(r=>r.status==='SORTING_IN_PROGRESS').sort((a,b)=>String(a.receipt_date).localeCompare(String(b.receipt_date)))[0];
+    const oldest=f=>rq.filter(f).sort((a,b)=>String(a.receipt_date).localeCompare(String(b.receipt_date)))[0];
+    let open=oldest(r=>stageStatus(r.status)==='LOGISTICS_REVIEW')||oldest(r=>r.status==='SORTING_IN_PROGRESS');      /* B117: πρώτα η πιο παλιά ημέρα με ταξινόμηση «Προς Έλεγχο»· αλλιώς όπως πριν */
     if(!open){show('receipts');return}
     let day=String(open.receipt_date).slice(0,10);
     receiptNav.day=day;receiptNav.year=+day.slice(0,4);receiptNav.month=+day.slice(5,7);receiptCalCursor=new Date(receiptNav.year,receiptNav.month-1,1);
