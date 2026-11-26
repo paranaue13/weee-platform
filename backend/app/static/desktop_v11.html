@@ -14984,7 +14984,7 @@ html body #app #dashboard .pbtn{background-color:#fff!important;background-image
 </style>
 <style id="b83Css">
 /* B83: Απογραφή / Μητρώα — η κάθετη μπάρα κύλισης του πίνακα βγαίνει ΕΞΩ από το πλαίσιο, δεξιά, στην άκρη του παραθύρου (όπως στην Αποθήκη ΑΗΗΕ)· ο πίνακας κυλά όπως πριν */
-html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap):not(.carrCtrWrap)::-webkit-scrollbar:vertical{width:0;height:0}
+html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap,#recAnalysis .raL .prodTableWrap):not(.carrCtrWrap)::-webkit-scrollbar:vertical{width:0;height:0}
 .b83Bar{position:fixed;z-index:40;width:12px;background:transparent;user-select:none;touch-action:none}
 .b83Bar.off{display:none}
 .b83Bar>i{position:absolute;left:3px;right:1px;border-radius:6px;background:#BDBDBD;cursor:default}
@@ -14993,7 +14993,7 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap):not(.carr
 <script id="b83Js">
 /* B83: μπάρα κύλισης δεξιά από τον πίνακα (στην άκρη του παραθύρου), συγχρονισμένη με το scroll του πίνακα */
 (function(){
-  const SEL='#invTableWrap,#invTableWrapS,#master .registryTableWrap:not(.carrCtrWrap)';
+  const SEL='#invTableWrap,#invTableWrapS,#master .registryTableWrap:not(.carrCtrWrap),#recAnalysis .raL .prodTableWrap';
   const map=new Map();let q=0;
   function mk(w){const b=document.createElement('div');b.className='b83Bar off';b.innerHTML='<i></i>';document.body.appendChild(b);const t=b.firstChild,st={b,t};map.set(w,st);
     w.addEventListener('scroll',()=>req(),{passive:true});
