@@ -9808,7 +9808,7 @@ const SF=(function(){
     let P=$('sfPanel');if(!P)return;
     let c=C.rows.find(x=>x.id===cid);if(!c){P.innerHTML='';return}
     let old=P.querySelector('.sfNr');
-    if(keepForm&&old&&old.dataset.c===cid){let eg=P.querySelector('#sfEnts');if(eg)eg.innerHTML=entsHtml(cid);return}
+    if(keepForm&&old&&old.dataset.c===cid){let eg=P.querySelector('#sfEnts');if(eg)morphHtml(eg,entsHtml(cid));return}
     if(C.ro){P.innerHTML=panelHead(c)+`<div class="sfEnts" id="sfEnts">${entsHtml(cid)}</div>`;return}
     if(!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid]&&!S.rt[cid]){let d=defType(cid);if(d)S.rt[cid]=d}
     P.innerHTML=panelHead(c)+newRowHtml(c)+`<div class="sfEnts" id="sfEnts">${entsHtml(cid)}</div>`;
@@ -9881,9 +9881,22 @@ const SF=(function(){
     fitSf();
     if(!L.querySelector('.sfCat'))L.insertAdjacentHTML('beforeend','<div class="sfEmpty">Δεν βρέθηκαν κατηγορίες.</div>');
   }
+  // B102: ζωντανή ενημέρωση χωρίς flicker — το υπάρχον στοιχείο ενημερώνεται επιτόπου (κείμενο/ιδιότητες) αντί να αντικαθίσταται
+  function morphKids(a,b){
+    const ak=[...a.childNodes],bk=[...b.childNodes],n=Math.min(ak.length,bk.length);
+    for(let i=0;i<n;i++){const x=ak[i],y=bk[i];
+      if(x.nodeType!==y.nodeType||(x.nodeType===1&&x.tagName!==y.tagName)){x.replaceWith(y.cloneNode(true));continue}
+      if(x.nodeType===3||x.nodeType===8){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
+      for(const at of [...x.attributes])if(!y.hasAttribute(at.name))x.removeAttribute(at.name);
+      for(const at of y.attributes)if(x.getAttribute(at.name)!==at.value)x.setAttribute(at.name,at.value);
+      morphKids(x,y)}
+    for(let i=ak.length-1;i>=n;i--)ak[i].remove();
+    for(let i=n;i<bk.length;i++)a.appendChild(bk[i].cloneNode(true));
+  }
+  function morphHtml(el,html){const t=document.createElement('template');t.innerHTML=html;morphKids(el,t.content)}
   function updateBubble(){
     let tot=S.entries.reduce((s,e)=>s+entW(e),0);
-    let b=$('sfBubble');if(b)b.innerHTML=sfBubbleInner(C.d.net_weight,tot);
+    let b=$('sfBubble');if(b)morphHtml(b,sfBubbleInner(C.d.net_weight,tot));
     C.d.sorting_weight=tot;{let sd0=$('sortingDetail');if(sd0&&b)sd0.style.setProperty('--sfBub',b.offsetHeight+'px')}
   }
   function focusNew(cid,sel){
@@ -9896,7 +9909,7 @@ const SF=(function(){
     if(!c){return}
     if(!old){if(visible(c)){if(isF(c)||!insertGroup(c))renderList()}}
     else if(!visible(c)){old.remove()}
-    else{let t=document.createElement('table');t.innerHTML=groupHtml(c);old.replaceWith(t.tBodies[0])}
+    else{let t=document.createElement('table');t.innerHTML=groupHtml(c);let nb=t.tBodies[0];if(old.className===nb.className&&old.dataset.c===nb.dataset.c)morphKids(old,nb);else old.replaceWith(nb)}
     if(S.sel===cid)renderPanel(cid,keepForm);
     updateBubble();
     if(focus)focusNew(cid);
