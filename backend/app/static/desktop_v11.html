@@ -10053,6 +10053,18 @@ const SF=(function(){
     if(k!=null)k=rnd(k);      // ΑΚΕΡΑΙΑ kg ανά καταχώρηση
     if(k==null||k===0){msg('Συμπλήρωσε βάρος ή τεμάχια (με υπαρκτό μέσο βάρος)',false);return false}
     let editId=S.editing[cid],old=editId?S.entries.find(e=>e.id===editId):null;
+    {      /* B119: έλεγχος αρνητικού συνόλου — ΚΑΤΗΓΟΡΙΑ: δεν επιτρέπεται· ΥΠΟΚΑΤΗΓΟΡΙΑ: ερώτηση επιβεβαίωσης */
+      let catId=old?old.weee_category_id:((S.subSel&&S.subSel[cid])||cid),oldW=old?entW(old):0;
+      let famCur=S.entries.filter(e=>rid(e)===cid).reduce((a,e)=>a+entW(e),0),famNew=famCur-oldW+k;
+      if(famNew<-0.0005&&famNew<famCur-0.0005){msg('Δεν επιτρέπεται: το σύνολο της κατηγορίας θα γίνει αρνητικό ('+nf(famNew)+' kg).',false);return false}
+      if(catId!==cid){
+        let subCur=S.entries.filter(e=>e.weee_category_id===catId).reduce((a,e)=>a+entW(e),0),subNew=subCur-oldW+k;
+        if(subNew<-0.0005&&subNew<subCur-0.0005){
+          let sb=(C.allCats||[]).find(x=>x.id===catId),nm=sb?(sb.display_name||sb.her_description||sb.official_description||sb.code):'';
+          if(!await uiConfirm('Το σύνολο της υποκατηγορίας «'+nm+'» θα γίνει αρνητικό ('+nf(subNew)+' kg). Να γίνει η καταχώρηση;'))return false;
+        }
+      }
+    }
     // μεικτό (ζύγιση) → ο server αφαιρεί αποβαρό + ήδη καταχωρημένο· καθαρό → απευθείας
     let useScale=!editId&&src==='G'&&g!=null&&g>0&&rowTare(cid)>0&&!!S.rm[cid]&&!S.bulk[cid]&&!S.bulkMed[cid]&&!(pcs&&!(parseKg(row.querySelector('.sfK').value)>0));
     let body={weee_category_id:old?old.weee_category_id:((S.subSel&&S.subSel[cid])||cid),collection_medium_id:(S.rm[cid]||{}).id||null,entry_type:useScale?'SCALE_GROSS':((old&&old.entry_type==='BULK')?'BULK':'MEDIUM'),raw_weight:useScale?g:k,piece_count:pcs,notes:null,source:'PC',close_medium:!editId&&!S.bulk[cid]&&!S.bulkMed[cid]&&!!(S.rm[cid]&&row.querySelector('.sfCl:checked'))};
