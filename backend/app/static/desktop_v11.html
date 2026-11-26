@@ -15081,27 +15081,30 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap,#recAnalys
 </script>
 <style id="b80Css">
 /* B80: κοινή βάση για ΟΛΕΣ τις σελίδες — κυλά η περιοχή .content: η μπάρα scroll (12px) είναι στην άκρη του παραθύρου, ξεκινά κάτω από την πάνω μπάρα (καρτέλες/κουμπιά) και φτάνει στην κάτω μπάρα· το περιεχόμενο τελειώνει στο ίδιο δεξί σημείο παντού */
-html:has(body:not(.pane)){overflow:hidden!important}
-body:not(.pane) .shell{height:100vh;min-height:0!important;overflow:hidden}
-body:not(.pane) .main{height:100vh;max-height:100vh;min-height:0!important;position:relative;overflow:hidden}
-body:not(.pane) .main>.content{min-height:0;overflow-y:auto;overflow-x:auto;scrollbar-gutter:stable;border-top:20px solid transparent;padding-top:var(--b80H,0px)!important;padding-right:calc(clamp(12px,1.5vw,24px) - 12px)!important}
-html.b80W body:not(.pane) .main>.content{overflow:hidden;scrollbar-gutter:auto;padding-right:clamp(12px,1.5vw,24px)!important}
+html:has(body){overflow:hidden!important}
+body .shell{height:100vh;min-height:0!important;overflow:hidden}
+body .main{height:100vh;max-height:100vh;min-height:0!important;position:relative;overflow:hidden}
+body .main>.content{min-height:0;overflow-y:auto;overflow-x:auto;scrollbar-gutter:stable;border-top:20px solid transparent;padding-top:var(--b80H,0px)!important;padding-right:calc(clamp(12px,1.5vw,24px) - 12px)!important}
+html.b80W body .main>.content{overflow:hidden;scrollbar-gutter:auto;padding-right:clamp(12px,1.5vw,24px)!important}
 /* η μπάρα ξεκινά κάτω από την πάνω μπάρα καρτελών */
-body:not(.pane) .main>.content::-webkit-scrollbar-track{margin-top:var(--b80H,0px)}
+body .main>.content::-webkit-scrollbar-track{margin-top:var(--b80H,0px)}
 /* η πάνω μπάρα καρτελών/κουμπιών μένει σταθερή και η γωνία δίπλα στη μπάρα scroll συμπληρώνεται (λευκό + πορτοκαλί γραμμή ως την άκρη του παραθύρου) */
-html:not(.b80W) body:not(.pane) .main>.content .b80Band{position:sticky!important;top:calc(-1 * var(--b80H,0px));z-index:35}
-html:not(.b80W) body:not(.pane) .main>.content>.view{margin-top:calc(-1 * var(--b80H,0px))}
+html:not(.b80W) body .main>.content .b80Band{position:sticky!important;top:calc(-1 * var(--b80H,0px));z-index:35}
+html:not(.b80W) body .main>.content>.view{margin-top:calc(-1 * var(--b80H,0px))}
 /* (το padding-top = ύψος μπάρας: τα κολλημένα κεφαλίδων πινάκων (top:0) κολλούν ακριβώς κάτω από αυτήν) */
-html:not(.b80W) body:not(.pane) .main>.content .b80Band::after{content:"";position:absolute;left:0;right:0;top:calc(100% + var(--b80Lw,0px));height:var(--b80Gap,0px);background:var(--b75Bg,#F1F0EC);pointer-events:none}
-body:not(.pane) .main::after{content:"";position:absolute;right:0;top:var(--b80Y,79px);width:12px;height:var(--b80H,0px);background:var(--b80Bg,#fff);border-bottom:var(--b80Lw,2px) solid var(--b80Ln,#DA6F01);box-sizing:border-box;pointer-events:none;z-index:60}
-html.b80W body:not(.pane) .main::after{display:none}
+html:not(.b80W) body .main>.content .b80Band::after{content:"";position:absolute;left:0;right:0;top:calc(100% + var(--b80Lw,0px));height:var(--b80Gap,0px);background:var(--b75Bg,#F1F0EC);pointer-events:none}
+body .main::after{content:"";position:absolute;right:0;top:var(--b80Y,79px);width:12px;height:var(--b80H,0px);background:var(--b80Bg,#fff);border-bottom:var(--b80Lw,2px) solid var(--b80Ln,#DA6F01);box-sizing:border-box;pointer-events:none;z-index:60}
+html.b80W body .main::after{display:none}
+/* B108: πολλαπλή οθόνη (παράθυρα .pane) — ίδια διάταξη: η μπάρα scroll ξεκινά κάτω από την πορτοκαλί γραμμή, η πάνω μπάρα full */
+body.pane .main>.content{border-top-width:12px}
+html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 </style>
 <script id="b80Js">
 /* B80: μέτρηση της πάνω μπάρας της ενεργής σελίδας + ό,τι χρησιμοποιούσε το scroll του παραθύρου πάει στην περιοχή .content */
 (function(){
   const D=document,R=D.documentElement,C=()=>D.querySelector('.main>.content');let q=0;
   const set=(k,v)=>{if(R.style.getPropertyValue(k)!==v)R.style.setProperty(k,v)};
-  function sync(){q=0;if(D.body.classList.contains('pane'))return;
+  function sync(){q=0;
     const w=!!D.querySelector('#weee:not(.hidden)');R.classList.toggle('b80W',w);
     const c=C();if(!c)return;
     const v=[...c.children].find(e=>e.classList&&e.classList.contains('view')&&!e.classList.contains('hidden')&&e.offsetParent);
@@ -15121,8 +15124,8 @@ html.b80W body:not(.pane) .main::after{display:none}
     Object.defineProperty(window,'scrollY',{get:()=>{const c=C();return c?c.scrollTop:0},configurable:true});
     Object.defineProperty(window,'pageYOffset',{get:()=>{const c=C();return c?c.scrollTop:0},configurable:true});
     const st=window.scrollTo.bind(window),sb=window.scrollBy.bind(window);
-    window.scrollTo=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollTo(a);else c.scrollTo(a||0,b||0)}else st.apply(window,arguments)};
-    window.scrollBy=function(a,b){const c=C();if(c&&!D.body.classList.contains('pane')){if(a&&typeof a==='object')c.scrollBy(a);else c.scrollBy(a||0,b||0)}else sb.apply(window,arguments)};
+    window.scrollTo=function(a,b){const c=C();if(c){if(a&&typeof a==='object')c.scrollTo(a);else c.scrollTo(a||0,b||0)}else st.apply(window,arguments)};
+    window.scrollBy=function(a,b){const c=C();if(c){if(a&&typeof a==='object')c.scrollBy(a);else c.scrollBy(a||0,b||0)}else sb.apply(window,arguments)};
   }catch(e){}
 })();
 </script>
