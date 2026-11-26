@@ -3529,6 +3529,16 @@ def sorting_edit_entry(entry_id:str, data:schemas.SortingEntryCreate, db:Session
     write_audit(db,user,'sorting_entry',e.id,'EDIT_DRAFT',old=old,new={'category_id':e.weee_category_id,'medium_id':e.collection_medium_id,'weight':str(e.raw_weight),'pieces':e.piece_count})
     db.commit(); db.refresh(e); e.warning=warn; return e
 
+@app.put('/sorting/media/{medium_id}/full')
+def sorting_medium_full(medium_id:str, full:bool=Query(), db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
+    """Android › Υλικά › Προς επεξεργασία: ένδειξη «Γεμάτο» μέσου = η ίδια κατάσταση is_closed που βάζει η ταξινόμηση («Γέμισε» / «Με χώρο»)."""
+    mm=db.get(CollectionMedium,medium_id)
+    if not mm: raise HTTPException(404,'Το μέσο δεν βρέθηκε')
+    if bool(mm.is_closed)!=bool(full):
+        mm.is_closed=bool(full); write_audit(db,user,'collection_medium',mm.id,'CLOSE' if mm.is_closed else 'REOPEN',new={'code':mm.code})
+        db.commit()
+    return {'id':mm.id,'code':mm.code,'full':bool(mm.is_closed)}
+
 @app.get('/sorting/{load_id}/medium-type-suggestions')
 def sorting_medium_type_suggestions(load_id:str, weee_category_id:str, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.perform'))):
     from sqlalchemy import func
@@ -4968,7 +4978,7 @@ def weee_media_remaining(official_code:str, end:str=Query(pattern=r'^\d{4}-\d{2}
         if not m or m.type_id not in show or (type_key and m.type_id!=type_key): continue
         ev=trip.receipt_date if mv.movement_type=='SORTING_IN' else mv.created_at
         if ev>=end_dt: continue
-        d=per.setdefault(m.id,{'medium_id':m.id,'type_key':m.type_id,'type':show[m.type_id].name_el,'code':m.code,'kg':0.0,'moves':0,'lots':{}})
+        d=per.setdefault(m.id,{'medium_id':m.id,'type_key':m.type_id,'type':show[m.type_id].name_el,'code':m.code,'full':bool(m.is_closed),'kg':0.0,'moves':0,'lots':{}})
         w=_mv_sign(mv.movement_type)*float(mv.weight or 0)
         d['kg']+=w; d['moves']+=1
         if load.supplier_id and load.supplier_id not in sups:

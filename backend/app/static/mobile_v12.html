@@ -4356,4 +4356,90 @@ html body #b30Sh #b30Msg:empty{display:none}
   place();later();window.b84Place=place;
 })();
 </script>
+<style id="b111Css">
+/* B111: Υλικά › ΑΠΟΘΗΚΗ — διακόπτης «Προς επεξεργασία» / «Προς αποστολή»· λίστα υλικών προς επεξεργασία και popup με τα μέσα */
+.b111Seg{display:flex;gap:8px;margin:0 0 10px}
+.b111Seg button{flex:1;height:46px;min-height:0;padding:0 6px;border-radius:10px;border:1px solid #D6D0C3;border-bottom:3px solid #C9C1B2;background:linear-gradient(#fff,#F6F4F7);font:inherit;font-size:15px;font-weight:600;color:#14222B;box-shadow:0 1px 3px rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+.b111Seg button.on{background:linear-gradient(#1D5A63,#144A52);color:#fff;border-color:#0E3A41}
+.b111Ls{background:#fff;border:1px solid #E1DDD3;border-radius:10px;overflow:hidden}
+.b111Gh{min-height:42px;background:#EEF3F4;display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:700;border-bottom:1px solid #E1DDD3}
+.b111It{min-height:48px;border-bottom:2px solid #E4DFD0;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 14px;font-size:16px;cursor:pointer;box-sizing:border-box}
+.b111It:last-child{border-bottom:0}
+.b111It>b{font-weight:600}.b111It>span{white-space:nowrap}.b111It>span b{font-weight:600}
+#b111Ov,#b111Cf{position:fixed;inset:0;z-index:300;background:rgba(20,34,43,.55);display:flex;align-items:center;justify-content:center}
+#b111Cf{z-index:310;background:rgba(20,34,43,.45)}
+#b111Ov[hidden],#b111Cf[hidden]{display:none}
+#b111Ov .d,#b111Cf .d{width:min(520px,92%);max-height:88%;overflow:auto;background:#FEFCFF;border:1px solid #D6D0C3;border-radius:14px;padding:14px 16px 16px;box-shadow:0 8px 28px rgba(0,0,0,.4);box-sizing:border-box;color:#14222B}
+.b111Hd{display:flex;gap:12px;align-items:center;padding-bottom:12px;border-bottom:2px solid #DA6F01}
+.b111Hd .p39bk{height:40px;display:flex;align-items:center;justify-content:center;flex:none}
+.b111Hd .t,.b111Hd .k{font-size:17px;font-weight:700}.b111Hd .k{margin-left:auto;white-space:nowrap}
+.b111N{margin:12px 0 2px;font-size:15px;font-weight:700;color:#3B4A55}
+.b111Ty{font-size:13.5px;color:#5B6670;margin:0 0 8px}
+.b111M{display:flex;align-items:center;gap:10px;min-height:46px;background:#F6F4F1;border-radius:10px;padding:0 12px;margin-bottom:6px;font-size:16px;box-sizing:border-box}
+.b111M.tap{cursor:pointer}
+.b111M .pl{margin-left:auto;padding:3px 12px;border-radius:14px;font-size:13px;font-weight:700;background:#DDEFE4;color:#1F7547}
+.b111M .kg{font-weight:600;white-space:nowrap;margin-left:auto}.b111M .pl+.kg{margin-left:0}
+#b111Cf .q{font-size:18px;font-weight:700;line-height:1.35;margin:4px 0 18px}
+#b111Cf .a{display:flex;gap:10px}
+#b111Cf .a button{flex:1;height:48px;min-height:0;padding:0;font:inherit;font-size:15px;font-weight:700;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
+#b111Cf .a .c{background:linear-gradient(#FFFFFF,#F8F6F9);border:1px solid #D6D0C3;border-bottom:2px solid #D6D0C3;color:#14222B}
+#b111Cf .a .g{background:linear-gradient(#18535B,#144A52);border:1px solid #0F3A40;border-bottom:2px solid #0F3A40;color:#fff}
+#b111Cf .a button:disabled{opacity:.5}
+</style>
+<script id="b111Js">
+(function(){
+  const D=document;let mode='proc',busy=false,cur=null,rows=[];
+  const num=n=>Number(n||0).toLocaleString('el-GR',{maximumFractionDigits:2});
+  const E=x=>String(x==null?'':x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const seg=()=>'<div class="b111Seg"><button type="button" data-b111m="proc" class="'+(mode==='proc'?'on':'')+'">Προς επεξεργασία</button><button type="button" data-b111m="ship" class="'+(mode==='ship'?'on':'')+'">Προς αποστολή</button></div>';
+  {const ma=D.getElementById('matArea');if(ma)new MutationObserver(()=>{if(mode==='ship'&&mt.tab==='stock'&&ma.firstElementChild&&!ma.querySelector('.b111Seg'))ma.insertAdjacentHTML('afterbegin',seg())}).observe(ma,{childList:true})}      /* «Προς αποστολή»: ο διακόπτης μπαίνει πάνω από την υπάρχουσα αποθήκη */
+  const _render=mtStockRender;
+  mtStockRender=async function(silent){if(mode==='proc'){await procRender(silent);return}return _render.apply(this,arguments)};
+  async function procRender(silent){
+    const box=D.getElementById('matArea');if(!box)return;
+    if(!silent&&!rows.length)box.innerHTML=seg()+'<div class="muted">Φόρτωση…</div>';
+    let d;try{const n=new Date();d=await api('/inventory/weee-dashboard?month='+n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0'))}catch(e){box.innerHTML=seg()+'<div class="error">Σφάλμα φόρτωσης: '+E(e&&e.message||e)+'</div>';return}
+    if(mode!=='proc'||mt.tab!=='stock')return;
+    rows=(d.to_process||[]).filter(r=>Number(r.current_stock)>0.0005&&!/^\d{6}$/.test(String(r.official_code||''))).sort((a,b)=>String(a.official_code).localeCompare(String(b.official_code),'el',{numeric:true}));
+    box.innerHTML=seg()+'<div class="b111Ls"><div class="b111Gh">Απόθεμα προς επεξεργασία</div>'+(rows.map((r,i)=>'<div class="b111It" data-b111c="'+i+'"><b>'+E(r.her_description||r.description)+'</b><span><b>'+num(r.current_stock)+' kg</b> &nbsp;›</span></div>').join('')||'<div class="muted" style="padding:10px 14px">Δεν υπάρχει απόθεμα προς επεξεργασία.</div>')+'</div>';
+  }
+  // popup
+  const ov=D.createElement('div');ov.id='b111Ov';ov.hidden=true;D.body.appendChild(ov);
+  const cf=D.createElement('div');cf.id='b111Cf';cf.hidden=true;D.body.appendChild(cf);
+  const closeAll=()=>{ov.hidden=true;ov.innerHTML='';cf.hidden=true;cf.innerHTML='';cur=null};
+  async function loadPopup(){
+    if(!cur)return;const r=cur.row,n=new Date(),end=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+    let d;try{d=await api('/inventory/weee/media-remaining?official_code='+encodeURIComponent(r.official_code)+'&end='+end)}catch(e){ov.innerHTML='<div class="d"><div class="b111Hd"><button type="button" class="p39bk" data-b111x="1">‹ Πίσω</button></div><div class="error" style="margin-top:12px">Σφάλμα φόρτωσης: '+E(e&&e.message||e)+'</div></div>';return}
+    cur.media=d.media||[];paintPopup();
+  }
+  function paintPopup(){
+    if(!cur)return;const r=cur.row,m=cur.media,total=Number(r.current_stock),sum=m.reduce((a,x)=>a+Number(x.kg||0),0),bulk=Math.round((total-sum)*1000)/1000;
+    const types={},order=[];m.forEach(x=>{if(!(x.type in types)){types[x.type]=0;order.push(x.type)}types[x.type]++});
+    ov.innerHTML='<div class="d"><div class="b111Hd"><button type="button" class="p39bk" data-b111x="1">‹ Πίσω</button><div class="t">'+E(r.her_description||r.description)+'</div><div class="k">'+num(total)+' kg</div></div>'
+      +'<div class="b111N">'+m.length+(m.length===1?' μέσο':' μέσα')+'</div>'+(order.length?'<div class="b111Ty">'+order.map(t=>E(t)+': '+types[t]).join(' · ')+'</div>':'')
+      +m.map((x,i)=>'<div class="b111M tap" data-b111m2="'+i+'"><span>'+E(x.type)+' · '+E(x.code)+'</span>'+(x.full?'<span class="pl">Γεμάτο</span>':'')+'<span class="kg">'+num(x.kg)+' kg</span></div>').join('')
+      +(bulk>0.0005?'<div class="b111M"><span>Χύμα</span><span class="kg">'+num(bulk)+' kg</span></div>':'')+'</div>';
+    ov.hidden=false;
+  }
+  function askFull(i){
+    const x=cur&&cur.media[i];if(!x)return;const nm=x.type+' · '+x.code;
+    cf.innerHTML='<div class="d"><div class="q">'+(x.full?'Να αφαιρεθεί από το μέσο '+E(nm)+' η ένδειξη γεμάτο;':'Να αλλάξει η ένδειξη του μέσου '+E(nm)+' σε γεμάτο;')+'</div><div class="a"><button type="button" class="c" data-b111n="1">Άκυρο</button><button type="button" class="g" data-b111ok="'+i+'">Επιβεβαίωση</button></div></div>';cf.hidden=false;
+  }
+  async function doFull(i){
+    const x=cur&&cur.media[i];if(!x||busy)return;busy=true;const b=cf.querySelector('[data-b111ok]');if(b)b.disabled=true;
+    try{await api('/sorting/media/'+encodeURIComponent(x.medium_id)+'/full?full='+(!x.full),{method:'PUT'});cf.hidden=true;cf.innerHTML='';await loadPopup()}
+    catch(e){const q=cf.querySelector('.q');if(q)q.textContent='Η αλλαγή δεν έγινε: '+(e&&e.message||e);const a=cf.querySelector('.a');if(a)a.innerHTML='<button type="button" class="c" data-b111n="1">Κλείσιμο</button>'}
+    finally{busy=false}
+  }
+  D.addEventListener('click',e=>{
+    const t=e.target;if(!t.closest)return;
+    const m=t.closest('[data-b111m]');if(m&&D.getElementById('matArea')&&D.getElementById('matArea').contains(m)){const k=m.dataset.b111m;if(k===mode)return;mode=k;if(typeof mtStockRender==='function')mtStockRender();return}
+    const c=t.closest('[data-b111c]');if(c){cur={row:rows[+c.dataset.b111c],media:[]};ov.innerHTML='<div class="d"><div class="muted">Φόρτωση…</div></div>';ov.hidden=false;loadPopup();return}
+    if(cf.contains(t)||t===cf){const ok=t.closest('[data-b111ok]');if(ok){doFull(+ok.dataset.b111ok);return}if(t===cf||t.closest('[data-b111n]')){cf.hidden=true;cf.innerHTML=''}return}
+    if(ov.contains(t)||t===ov){if(t.closest('[data-b111x]')||t===ov){closeAll();return}const mm=t.closest('[data-b111m2]');if(mm){askFull(+mm.dataset.b111m2)}return}
+    if(t.closest('[data-b4s]'))closeAll();
+  },true);
+  D.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll()});
+})();
+</script>
 </body></html>

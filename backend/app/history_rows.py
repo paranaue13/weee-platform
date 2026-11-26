@@ -46,6 +46,7 @@ ROUTES = [
     (("POST",), re.compile(r"^/mat/export$")),                                  # εξαγωγή υλικού
     (("PUT", "DELETE"), re.compile(r"^/mat/exports/[^/]+$")),
     (("PUT",), re.compile(r"^/inventory/year-corrections$")),
+    (("PUT",), re.compile(r"^/sorting/media/[^/]+/full$")),                  # ένδειξη «Γεμάτο» μέσου (Android › Υλικά)
 ]
 NEVER = re.compile(r"/(merge|purge|permanent|bulk-[a-z]+|move)$")
 
