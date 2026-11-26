@@ -9856,7 +9856,7 @@ const SF=(function(){
     let vis=C.rows.filter(visible),h='<table class="sfTable" id="sfTable" data-pin-allow data-pin-norows data-stk-skip data-pin-id="sorting-entries">'+theadHtml();
     h+=vis.filter(c=>!isF(c)).map(groupHtml).join('');
     let fr=vis.filter(isF);
-    if(fr.length)h+='<tbody class="sfBd sfSepB"><tr class="sfFsep"><td>Ξένα υλικά <span class="sfTag">ΜΗ ΑΗΗΕ</span></td><td></td><td></td><td></td><td></td><td></td></tr></tbody>'+fr.map(groupHtml).join('');
+    if(fr.length)h+='<tbody class="sfBd sfSepB"><tr class="sfFsep"><td>Ξένα υλικά</td><td></td><td></td><td></td><td></td><td></td></tr></tbody>'+fr.map(groupHtml).join('');
     return h+'</table>';
   }
   // ΠΛΑΤΟΣ = πλάτος παραθύρου: το περίσσευμα πάει στις στήλες που ΔΕΝ έχει αλλάξει ο χρήστης (Περιγραφή, Καταχωρήσεις)· αν δεν χωράνε στο ελάχιστο → οριζόντιο scroll
@@ -9876,13 +9876,22 @@ const SF=(function(){
     root.querySelectorAll('.sfNr').forEach(syncClose);
     try{applyLevel()}catch(e){}
   }
+  // B109: οι γραμμές των στηλών τραβάνε μέχρι κάτω στο πλαίσιο του πίνακα (ακολουθούν τα πλάτη των στηλών)
+  function sfColLines(){
+    let L=$('sfList'),t=L&&L.querySelector('table.sfTable');if(!t||!t.tHead||!t.tHead.rows[0])return;
+    let ths=[...t.tHead.rows[0].cells].filter(th=>th.offsetParent),lr=L.getBoundingClientRect(),bl=parseFloat(getComputedStyle(L).borderLeftWidth)||0,xs=ths.slice(0,-1).map(th=>Math.round(th.getBoundingClientRect().right-lr.left-bl-1+L.scrollLeft));
+    let img=xs.map(()=>'linear-gradient(#E4E7EB,#E4E7EB)').join(','),pos=xs.map(x=>x+'px 0').join(','),size=xs.map(()=>'1px 100%').join(',');
+    if(L.dataset.cl===pos)return;L.dataset.cl=pos;
+    L.style.backgroundImage=img;L.style.backgroundPosition=pos;L.style.backgroundSize=size;L.style.backgroundRepeat='no-repeat';L.style.backgroundAttachment='local';
+  }
+  setInterval(()=>{if(document.getElementById('sortingDetail')&&!document.getElementById('sortingDetail').classList.contains('hidden')){try{sfColLines()}catch(e){}}},700);
   function renderList(){
     let L=$('sfList');if(!L)return;
     let sd=$('sortingDetail'),st=sd?sd.scrollTop:0;
     L.innerHTML=listHtml();
     if(sd)sd.scrollTop=st;
     afterRender(L);
-    fitSf();
+    fitSf();sfColLines();
     if(!L.querySelector('.sfCat'))L.insertAdjacentHTML('beforeend','<div class="sfEmpty">Δεν βρέθηκαν κατηγορίες.</div>');
   }
   // B102: ζωντανή ενημέρωση χωρίς flicker — το υπάρχον στοιχείο ενημερώνεται επιτόπου (κείμενο/ιδιότητες) αντί να αντικαθίσταται
@@ -10311,7 +10320,7 @@ const SF=(function(){
   }
 
   function cardHtml(){
-    return `<div class="card sortEntriesCard" style="background:var(--surface,#fff)"><div class="sfTb"><b>Κατηγορίες ΑΗΗΕ</b><input class="sfQ" id="sfQ" placeholder="Αναζήτηση κωδικού ή περιγραφής… (ελληνικά ή αγγλικά)" autocomplete="off"><span class="sfSw" id="sfSw"><i></i>Μόνο με καταχώρηση</span></div><div class="sortingCatWrap sfList sfWrap" id="sfList"></div></div>`;
+    return `<div class="card sortEntriesCard" style="background:var(--surface,#fff)"><div class="sfTb"><b>Κατηγορίες ΑΗΗΕ</b><input class="sfQ" id="sfQ" placeholder="Αναζήτηση κωδικού ή περιγραφής… (ελληνικά ή αγγλικά)" autocomplete="off"><span class="sfSw" id="sfSw"><i></i>Μόνο με καταχώρηση</span><span class="sfSw" id="sfSw2"><i></i>Υποκατηγορίες</span></div><div class="sortingCatWrap sfList sfWrap" id="sfList"></div></div>`;
   }
   function bind(ctx){
     closeDD();
@@ -10342,6 +10351,7 @@ const SF=(function(){
       let vis=C.rows.filter(visible),c=vis.find(x=>norm(x.official_code)===q)||vis[0];if(!c)return;
       if(!isOpen(c.id))openCat(c.id,true);else focusNew(c.id)};
     $('sfSw').onclick=()=>{S.only=!S.only;$('sfSw').classList.toggle('on',S.only);renderList()};
+    $('sfSw2').onclick=()=>$('sfSw2').classList.toggle('on');      /* B109: μόνο διάταξη και διακόπτης (χωρίς λειτουργία) */
     const wire=L=>{
     L.addEventListener('mousedown',e=>{if(e.target.closest&&e.target.closest('.sfFull,.sfSegB'))e.preventDefault()});   /* τα κουμπιά δεν παίρνουν το focus: ο δείκτης μένει στο πεδίο και το Enter καταχωρεί */
     L.addEventListener('focusin',e=>{let t=e.target;
@@ -15198,4 +15208,26 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
     d.set.call(this,h)}});
 })();
 </script>
+<style id="b109Css">
+/* B109 · Ξένα υλικά: ίδιο tick box και ίδιο κείμενο με τα υπόλοιπα (δεν εμφανίζεται «σβησμένο») */
+#sortingDetail #sortHasForeign:disabled{opacity:1!important}
+#sortingDetail label.inlineCheck:has(#sortHasForeign){opacity:1!important;color:inherit!important}
+#sortingDetail .sortEntriesCard .sfTb{gap:8px 24px!important;flex-wrap:wrap!important}
+#sortingDetail .sortEntriesCard .sfTb .sfQ{min-width:140px;flex:1 1 140px}
+#sortingDetail .sortEntriesCard .sfTb .sfSw{font-size:12px!important}
+#sortingDetail .sortEntriesCard .sfTb .sfSw{white-space:nowrap;flex:none}
+/* B109 · Συγκεντρωτικά: κουμπιά και κάρτες 3D (ίδιο στυλ με την Αρχική)· το χρώμα μένει μέσα στο περίγραμμα */
+html body #receipts #uniSubRow .uniSub{height:40px;padding:0 16px;font-size:13px;font-weight:700;border:1px solid #D6D0C3;border-bottom-width:2px;border-radius:8px;background:linear-gradient(#fff,#F8F6F9);color:#14222B;box-shadow:inset 0 1px 0 #fff,0 2px 3px rgba(20,34,43,.14);background-clip:padding-box}
+html body #receipts #uniSubRow .uniSub.active{background:linear-gradient(#1F6169,#144A52);color:#fff;border-color:#0F3A40;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 3px rgba(20,34,43,.18)}
+html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard{background-clip:padding-box!important;border-style:solid!important;border-width:1px 1px 2px 1px!important;box-shadow:inset 0 1px 0 #fff,0 2px 3px rgba(20,34,43,.14)!important}
+html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.k1,html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.k4{background-image:linear-gradient(#FDF4E3,#FBE7C2)!important;border-color:#F3B85E #F3B85E #B9AE9A #F3B85E!important}
+html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.k2{background-image:linear-gradient(#FAEDE5,#F4D9C6)!important;border-color:#D9A27C #D9A27C #B7A598 #D9A27C!important}
+html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.k3{background-image:linear-gradient(#F5F2E4,#E9E2C4)!important;border-color:#C2B77E #C2B77E #AFAA8A #C2B77E!important}
+html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.ovCardSel{border:2px solid #DA6F01!important}
+/* B109 · Ταξινόμηση › Κατηγορίες ΑΗΗΕ: όρια κελιών και επικεφαλίδας, γραμμές στηλών ως κάτω, κιλά σε μία γραμμή */
+#sortingDetail table.sfTable thead th{border-right:1px solid #E3D9BF}
+#sortingDetail table.sfTable thead th:last-child,#sortingDetail table.sfTable>tbody>tr>td:last-child{border-right:0}
+#sortingDetail table.sfTable>tbody>tr>td{border-right:1px solid #E4E7EB}
+#sortingDetail table.sfTable td.sfMw{white-space:nowrap}
+</style>
 </body></html>
