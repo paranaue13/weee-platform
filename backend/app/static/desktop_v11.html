@@ -5033,13 +5033,13 @@ async function liveRefreshViews(topics){
   if(!has('sorting','inventory','misc')||liveVBusy||liveBusy(null))return;
   if(['sortingDetail','receiptForm'].some(id=>{let e=$(id);return e&&!e.classList.contains('hidden')}))return;
   let v=document.querySelector('.content>.view:not(.hidden)');if(!v)return;
-  liveVBusy=true;
+  liveVBusy=true;window.__liveMorph=true;
   try{let y=window.scrollY;clearApiCache();
     if(v.id==='dashboard')await loadDashboard();
     else if(v.id==='receipts')await loadReceiptsV2();
     else if(v.id==='sortingReview')await loadSortingReview();
     window.scrollTo(0,y)}
-  catch(e){}finally{liveVBusy=false}
+  catch(e){}finally{liveVBusy=false;setTimeout(()=>{if(!liveVBusy)window.__liveMorph=false},2500)}
 }
 function liveRefreshAll(topics){
   let has=(...k)=>!topics||k.some(x=>topics.includes(x));
@@ -15167,4 +15167,30 @@ html.b80W body:not(.pane) .main::after{display:none}
 /* B104: Ταξινόμηση › Κατηγορίες ΑΗΗΕ — φαίνονται τα όρια του πίνακα (πλαίσιο γύρω από όλη την περιοχή του πίνακα, και κάτω από τις γραμμές) */
 #sortingDetail .sfList.sortingCatWrap{border:1px solid var(--line-strong,#B9BDC9)!important;border-radius:var(--r-box,8px);box-sizing:border-box}
 </style>
+<script id="b106Js">
+/* B106: ζωντανή ανανέωση (π.χ. κίνηση από Android) χωρίς flicker — όσο τρέχει η αυτόματη ανανέωση οθόνης, οι αλλαγές περιεχομένου γίνονται ΕΠΙΤΟΠΟΥ (ενημερώνονται μόνο ό,τι άλλαξε) αντί να αντικαθίστανται όλα τα στοιχεία */
+(function(){
+  const d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');if(!d||!d.set)return;
+  function morphKids(a,b){
+    const ak=[...a.childNodes],bk=[...b.childNodes],n=Math.min(ak.length,bk.length);
+    for(let i=0;i<n;i++){const x=ak[i],y=bk[i];
+      if(x.nodeType!==y.nodeType||(x.nodeType===1&&x.tagName!==y.tagName)){x.replaceWith(y.cloneNode(true));continue}
+      if(x.nodeType===3||x.nodeType===8){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
+      if(/^(INPUT|TEXTAREA|SELECT|SCRIPT|STYLE)$/.test(x.tagName)){if(x.outerHTML!==y.outerHTML)x.replaceWith(y.cloneNode(true));continue}
+      const DEC=/^data-(b\d|kc)/;      /* ιδιότητες που προσθέτουν άλλα scripts (εικονίδια/χρώματα καρτών) μένουν ως έχουν */
+      for(const at of [...x.attributes])if(!y.hasAttribute(at.name)&&!DEC.test(at.name)&&at.name!=='class')x.removeAttribute(at.name);
+      for(const at of y.attributes){let v=at.value;if(at.name==='class'){const keep=[...x.classList].filter(c=>/^k[1-5]$/.test(c)&&!y.classList.contains(c));v=(v+' '+keep.join(' ')).trim()}
+        if(x.getAttribute(at.name)!==v)x.setAttribute(at.name,v)}
+      if(x.classList.contains('sortingKpiIcon'))continue;      /* το εικονίδιο το ζωγραφίζει άλλο script */
+      morphKids(x,y)}
+    for(let i=ak.length-1;i>=n;i--)ak[i].remove();
+    for(let i=n;i<bk.length;i++)a.appendChild(bk[i].cloneNode(true));
+  }
+  Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:d.enumerable,get:d.get,set:function(h){
+    if(window.__liveMorph===true&&this.isConnected&&this.nodeType===1&&!/^(SCRIPT|STYLE|TEXTAREA|SELECT|OPTION)$/.test(this.tagName)&&!this.closest('#sortingDetail,#receiptForm,#floatingEditor,.modal')){
+      try{const t=document.createElement('template');d.set.call(t,h);morphKids(this,t.content);return}catch(e){}
+    }
+    d.set.call(this,h)}});
+})();
+</script>
 </body></html>
