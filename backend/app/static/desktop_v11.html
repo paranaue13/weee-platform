@@ -6436,7 +6436,7 @@ window.docsFolderDialog=function(msg){
 function sfBubbleInner(net,sorting){
   let n=Number(net||0),t=Number(sorting||0),diff=n-t,pc=n>0?t/n*100:0,match=Math.abs(diff)<.001,over=t>n&&n>0;
   let cls=match?'ok':(over?'over':'');
-  return `<div class="sfSum"><span><small>Καθαρό βάρος παραλαβής</small><b>${kg(n)}</b></span><span><small>Σύνολο ταξινόμησης</small><b>${kg(t)}</b></span><span class="${match?'stockPos':'stockNeg'}"><small>${over?'Πλεόνασμα':'Διαφορά'}</small><b>${kg(over?Math.abs(diff):diff)}</b></span><span class="sfPc"><small>Ολοκλήρωση</small><b>${n>0?Math.round(pc)+'%':'—'}</b></span><div class="sfBar${over?' overAll':''}"><i class="${cls}" style="width:${Math.min(100,Math.max(0,pc))}%"></i></div></div>`;
+  return `<div class="sfSum"><span><small>Καθαρό βάρος παραλαβής</small><b>${kg(n)}</b></span><span><small>Σύνολο ταξινόμησης</small><b>${kg(t)}</b></span><span class="${match?'stockPos':'stockNeg'}"><small>${over?'Πλεόνασμα':'Διαφορά'}</small><b>${kg(over?Math.abs(diff):diff)}</b></span><span class="sfPc"><small>Ολοκλήρωση</small><b>${n>0?(match?100:Math.min(99.9,Math.floor(pc*10)/10)).toLocaleString('el-GR',{minimumFractionDigits:1,maximumFractionDigits:1})+'%':'—'}</b></span><div class="sfBar${over?' overAll':''}"><i class="${cls}" style="width:${Math.min(100,Math.max(0,pc))}%"></i></div></div>`;
 }
 async function openSortingDetail(loadId,sourceRow=null){
  try{
