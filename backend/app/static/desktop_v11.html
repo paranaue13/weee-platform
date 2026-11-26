@@ -5036,7 +5036,8 @@ async function liveRefreshViews(topics){
   liveVBusy=true;window.__liveMorph=true;
   try{let y=window.scrollY;clearApiCache();
     if(v.id==='dashboard')await loadDashboard();
-    else if(v.id==='receipts')await loadReceiptsV2();
+    else if(v.id==='receipts'){if(typeof receiptMode!=='undefined'&&receiptMode==='analysis'){if(window.recAnalysisRefresh)await window.recAnalysisRefresh()}      /* B107: στην Ανάλυση παραλαβών δεν ξαναφορτώνεται όλη η σελίδα (προκαλούσε flicker)· ανανεώνεται μόνο η Ανάλυση */
+      else await loadReceiptsV2()}
     else if(v.id==='sortingReview')await loadSortingReview();
     window.scrollTo(0,y)}
   catch(e){}finally{liveVBusy=false;setTimeout(()=>{if(!liveVBusy)window.__liveMorph=false},2500)}
@@ -13100,6 +13101,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
     return r;
   };
   modeBtn.onclick=()=>setReceiptMode('analysis');
+  window.recAnalysisRefresh=()=>visible?load(true):Promise.resolve();
   // ανανέωση σε πραγματικό χρόνο: κάθε αλλαγή δεδομένων (παραλαβή, ταξινόμηση, παραγωγή, αποστολή) ξαναφορτώνει την καρτέλα
   const _apiRa=api;
   api=async function(path,opt){
@@ -15022,11 +15024,11 @@ html body :is(#invTableWrap,#invTableWrapS,#master .registryTableWrap,#recAnalys
     return st}
   function sync(){q=0;const seen=new Set();
     document.querySelectorAll(SEL).forEach(w=>{seen.add(w);const st=map.get(w)||mk(w),r=w.getBoundingClientRect(),vis=!!w.offsetParent&&r.height>40,over=w.scrollHeight>w.clientHeight+1;
-      if(!vis||!over){st.b.classList.add('off');return}
+      if(!vis||!over){if(!st.b.classList.contains('off'))st.b.classList.add('off');return}
       const right=document.documentElement.clientWidth;
-      st.b.classList.remove('off');st.b.style.left=(right-12)+'px';st.b.style.top=Math.round(r.top)+'px';st.b.style.height=Math.round(r.height)+'px';
+      if(st.b.classList.contains('off'))st.b.classList.remove('off');const sv=(k,v)=>{if(st.b.style[k]!==v)st.b.style[k]=v};sv('left',(right-12)+'px');sv('top',Math.round(r.top)+'px');sv('height',Math.round(r.height)+'px');
       const H=r.height,ratio=w.clientHeight/w.scrollHeight,th=Math.max(44,Math.round(H*ratio)),max=w.scrollHeight-w.clientHeight,pos=max>0?w.scrollTop/max*(H-th):0;
-      st.t.style.height=th+'px';st.t.style.top=Math.round(pos)+'px'});
+      {const a=th+'px',b2=Math.round(pos)+'px';if(st.t.style.height!==a)st.t.style.height=a;if(st.t.style.top!==b2)st.t.style.top=b2}});
     map.forEach((st,w)=>{if(!seen.has(w)&&!document.contains(w)){st.b.remove();map.delete(w)}})}
   const req=()=>{if(!q)q=requestAnimationFrame(sync)};
   window.addEventListener('resize',req);window.addEventListener('scroll',req,true);window.addEventListener('tableLayoutChanged',req);setInterval(req,400);req();
@@ -15145,13 +15147,13 @@ html.b80W body:not(.pane) .main::after{display:none}
           let bg=getComputedStyle(wrap).backgroundColor;if(!bg||bg==='rgba(0, 0, 0, 0)')bg=cs.backgroundColor;
           const bw=tcs?parseFloat(tcs.borderBottomWidth)||0:0;
           if(pop.style.getPropertyValue('--b94H')!==H+'px')pop.style.setProperty('--b94H',H+'px');
-          c.style.left=Math.round(pr.right-br-sbw)+'px';c.style.top=Math.round(pr.top+(parseFloat(cs.borderTopWidth)||0))+'px';c.style.width=sbw+'px';c.style.height=H+'px';
-          c.style.background=bg;c.style.borderBottom=bw?bw+'px solid '+tcs.borderBottomColor:'0';
-          c.style.zIndex=String((parseInt(cs.zIndex)||100)+1);ok=true;
+          const sv=(k,v)=>{if(c.style[k]!==v)c.style[k]=v};sv('left',Math.round(pr.right-br-sbw)+'px');sv('top',Math.round(pr.top+(parseFloat(cs.borderTopWidth)||0))+'px');sv('width',sbw+'px');sv('height',H+'px');
+          sv('background',bg);sv('borderBottom',bw?bw+'px solid '+tcs.borderBottomColor:'0');
+          sv('zIndex',String((parseInt(cs.zIndex)||100)+1));ok=true;
         }
       }
       if(pop&&!ok&&pop.style.getPropertyValue('--b94H'))pop.style.removeProperty('--b94H');
-      c.hidden=!ok;
+      if(c.hidden!==!ok)c.hidden=!ok;
     }
   }
   (function loop(){try{sync()}catch(e){}requestAnimationFrame(loop)})();
