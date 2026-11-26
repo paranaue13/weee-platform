@@ -10324,7 +10324,7 @@ const SF=(function(){
     S={loadId:ctx.loadId,entries:(ctx.d.entries||[]).slice(),rm:{},rt:{},bulk:{},bulkMed:{},editing:{},q:keep.q,only:keep.only,lastType:null,busy:false,fresh:FRESH,open:(kp&&kp.open)||{},fresh2:{},ver:0,sel:null};
     S.rowOf={};ctx.cats.filter(c=>c.is_internal_subcategory).forEach(c=>{let p=C.rows.find(r=>r.official_code===c.official_code);if(p)S.rowOf[c.id]=p.id});
     C.allCats=ctx.cats;ensureRowsFor(S.entries);
-    {let vis0=C.rows.filter(c=>!isF(c)&&(S.only?S.entries.some(e=>rid(e)===c.id):true));S.sel=(kp&&kp.sel&&C.rows.some(c=>c.id===kp.sel)?kp.sel:null)||(vis0[0]||C.rows[0]||{}).id||null;if(S.sel){S.open[S.sel]=true;if(!(kp&&kp.sel))defBulk(S.sel);prefillLast(S.sel)}}
+    {let vis0=C.rows.filter(c=>!isF(c)&&(S.only?S.entries.some(e=>rid(e)===c.id):true));S.sel=(kp&&kp.sel&&C.rows.some(c=>c.id===kp.sel)?kp.sel:null);      /* B103: στο άνοιγμα δεν επιλέγεται καμία κατηγορία (μόνο ό,τι ήταν ήδη επιλεγμένο σε ξαναζωγράφισμα) */if(S.sel){S.open[S.sel]=true;if(!(kp&&kp.sel))defBulk(S.sel);prefillLast(S.sel)}}
     Object.keys(S.open).forEach(prefillLast);
     C.have={};api('/inventory/weee/media-content').then(h=>{C.have=h||{}}).catch(()=>{});
     $('sfQ').value=S.q;$('sfSw').classList.toggle('on',S.only);
@@ -15154,4 +15154,12 @@ html.b80W body:not(.pane) .main::after{display:none}
   (function loop(){try{sync()}catch(e){}requestAnimationFrame(loop)})();
 })();
 </script>
+<style id="b103Css">
+/* B103: Ζωντανή ροή (Παραλαβές › Καθημερινά) — όταν ο πίνακας κυλά μέσα στο πλαίσιό του (recWide), η κεφαλίδα μένει στο πάνω μέρος του πλαισίου (top:0), όχι χαμηλότερα μέσα στις γραμμές */
+#receipts:has(#receiptDaysMode.active) #recScrollPane #ecTableWrap.recWide thead th{top:0!important}
+</style>
+<style id="b104Css">
+/* B104: Ταξινόμηση › Κατηγορίες ΑΗΗΕ — φαίνονται τα όρια του πίνακα (πλαίσιο γύρω από όλη την περιοχή του πίνακα, και κάτω από τις γραμμές) */
+#sortingDetail .sfList.sortingCatWrap{border:1px solid var(--line-strong,#B9BDC9)!important;border-radius:var(--r-box,8px);box-sizing:border-box}
+</style>
 </body></html>
