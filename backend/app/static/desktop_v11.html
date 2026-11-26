@@ -3007,8 +3007,11 @@ async function loadElectrocycle(){
    ecOrders.forEach((o,i)=>byType[detectReceiptTypeFromOrder(o)].push(i));
    let groupsHtml=ECT_ORDER.map(t=>byType[t].map(i=>ecRow(ecOrders[i],i)).join('')).filter(Boolean);
    let emptyLabel=targetDay===todayIso?'Καμία εντολή σήμερα.':'Καμία εντολή αυτή την ημέρα.';
-   $('ecOrderRows').innerHTML=groupsHtml.join('<tr class="ecTypeGap"><td colspan="6"></td></tr>')||`<tr><td colspan="6" class="muted">${emptyLabel}</td></tr>`;
-   $('ecOrderRows').querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>openEcOrderMenu(ecOrders[Number(tr.dataset.i)],e));
+   {let h=groupsHtml.join('<tr class="ecTypeGap"><td colspan="6"></td></tr>')||`<tr><td colspan="6" class="muted">${emptyLabel}</td></tr>`,rows=$('ecOrderRows');
+    if(rows.dataset.h!==h){      /* B105: ξαναζωγραφίζεται ΜΟΝΟ αν άλλαξε το περιεχόμενο (η ζωντανή ανανέωση δεν προκαλεί flicker στη Ζωντανή ροή) */
+     rows.innerHTML=h;rows.dataset.h=h;
+     rows.querySelectorAll('.ecRow').forEach(tr=>tr.onclick=(e)=>openEcOrderMenu(ecOrders[Number(tr.dataset.i)],e));
+    }}
   }
   // TAB Φορτώσεις: the inverse filter -- only ΠΡ00959, the sender the Παραλαβές feed above hides --
   // and always for today, independent of whatever day is selected in the Παραλαβές calendar.
@@ -15157,6 +15160,8 @@ html.b80W body:not(.pane) .main::after{display:none}
 <style id="b103Css">
 /* B103: Ζωντανή ροή (Παραλαβές › Καθημερινά) — όταν ο πίνακας κυλά μέσα στο πλαίσιό του (recWide), η κεφαλίδα μένει στο πάνω μέρος του πλαισίου (top:0), όχι χαμηλότερα μέσα στις γραμμές */
 #receipts:has(#receiptDaysMode.active) #recScrollPane #ecTableWrap.recWide thead th{top:0!important}
+/* ο πίνακας κυλά ο ίδιος μέσα στο πλαίσιό του (overflow:auto): η κεφαλίδα κολλά στο πάνω μέρος του πλαισίου, όχι χαμηλότερα (πριν έμπαινε μέσα στις γραμμές) */
+#receipts:has(#receiptDaysMode.active):not(:has(#recScrollPane.recPaneOn)) #ecTableWrap thead th{top:0!important}
 </style>
 <style id="b104Css">
 /* B104: Ταξινόμηση › Κατηγορίες ΑΗΗΕ — φαίνονται τα όρια του πίνακα (πλαίσιο γύρω από όλη την περιοχή του πίνακα, και κάτω από τις γραμμές) */
