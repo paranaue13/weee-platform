@@ -9852,7 +9852,14 @@ const SF=(function(){
     let en=S.entries.filter(e=>rid(e)===c.id),n=en.length,sel=S.sel===c.id;
     let net=en.reduce((s,e)=>s+entW(e),0),tare=en.reduce((s,e)=>s+tareOf(e),0),avg=c.average_weight;
     let main=`<tr class="sfCat${isF(c)?' f':''}${n?' has':''}${sel?' sel':''}" data-c="${c.id}"><td class="sfCd">${esc2(c.official_code)}</td><td class="sfDs">${esc2(descOf(c))}</td><td class="n sfMw">${avg!=null?esc2(Number(avg).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</td><td class="sfEns">${n?`<b>${n}</b> ${n===1?'καταχώρηση':'καταχωρήσεις'}`:''}</td><td class="n">${n?nf(net+tare):''}</td><td class="n sfSm">${n?'<b>'+nf(net)+'</b>':''}</td></tr>`;
-    return `<tbody class="sfBd" data-c="${c.id}">${main}</tbody>`;
+    let subs='';
+    if(sfSubOn){
+      const nf2=v=>nf(v);
+      subs=(C.allCats||[]).filter(x=>x.is_internal_subcategory&&x.active!==false&&String(x.parent_code||x.official_code)===String(c.official_code)).map(x=>{
+        let es=S.entries.filter(e=>e.weee_category_id===x.id),k=es.length,nt=es.reduce((a,e)=>a+entW(e),0),tr=es.reduce((a,e)=>a+tareOf(e),0),avg2=x.average_weight;
+        return `<tr class="sfSubR" data-c="${c.id}"><td class="sfCd"></td><td class="sfDs">${esc2(x.display_name||x.her_description||x.official_description||x.code)}</td><td class="n sfMw">${avg2!=null?esc2(Number(avg2).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</td><td class="sfEns">${k?`<b>${k}</b> ${k===1?'καταχώρηση':'καταχωρήσεις'}`:''}</td><td class="n">${k?nf2(nt+tr):''}</td><td class="n sfSm">${k?'<b>'+nf2(nt)+'</b>':''}</td></tr>`}).join('');
+    }
+    return `<tbody class="sfBd" data-c="${c.id}">${main}${subs}</tbody>`;
   }
   function visible(c){
     let q=norm(S.q).trim();
@@ -9998,7 +10005,7 @@ const SF=(function(){
     return added;
   }
   // ---- ζωντανή ενημέρωση: ό,τι καταχωρεί το Android (ή άλλος υπολογιστής) εμφανίζεται μόνο του· η φόρμα που πληκτρολογεί ο χρήστης μένει ανέγγιχτη ----
-  let liveT=null,toastT=0;
+  let liveT=null,toastT=0,sfSubOn=false;      // B114: διακόπτης «Υποκατηγορίες»
   function stopLive(){if(liveT){clearInterval(liveT);liveT=null}}
   function startLive(){stopLive();liveT=setInterval(liveTick,4000)}
   function sfToast(txt){
@@ -10362,7 +10369,7 @@ const SF=(function(){
       let vis=C.rows.filter(visible),c=vis.find(x=>norm(x.official_code)===q)||vis[0];if(!c)return;
       if(!isOpen(c.id))openCat(c.id,true);else focusNew(c.id)};
     $('sfSw').onclick=()=>{S.only=!S.only;$('sfSw').classList.toggle('on',S.only);renderList()};
-    $('sfSw2').onclick=()=>$('sfSw2').classList.toggle('on');      /* B109: μόνο διάταξη και διακόπτης (χωρίς λειτουργία) */
+    sfSubOn=false;$('sfSw2').onclick=()=>{sfSubOn=!sfSubOn;$('sfSw2').classList.toggle('on',sfSubOn);renderList()};      /* B114: ανοιχτός = φαίνονται οι υποκατηγορίες κάτω από κάθε κατηγορία */
     const wire=L=>{
     L.addEventListener('mousedown',e=>{if(e.target.closest&&e.target.closest('.sfFull,.sfSegB'))e.preventDefault()});   /* τα κουμπιά δεν παίρνουν το focus: ο δείκτης μένει στο πεδίο και το Enter καταχωρεί */
     L.addEventListener('focusin',e=>{let t=e.target;
@@ -10388,7 +10395,7 @@ const SF=(function(){
       if(d=e.target.closest('.sfAdd')){let row=d.closest('.sfNr');if(!row)return;commit(row,true).then(ok=>{if(!ok){let f=row.querySelector('.sfGr');f&&f.focus()}});return}
       if(d=e.target.closest('.sfSegB')){let row=d.closest('.sfNr');if(!row)return;DD.input=row.querySelector('.sfT');if(d.dataset.t==='BULK')pickBulk(false);else selectType(d.dataset.t);return}
       if(d=e.target.closest('.sfFull')){let row=d.closest('.sfNr'),cl=row&&row.querySelector('.sfCl');if(cl&&!cl.disabled){cl.checked=!cl.checked;syncPanel(row)}return}
-      if(d=e.target.closest('tr.sfCat')){selectCat(d.dataset.c);return}
+      if(d=e.target.closest('tr.sfCat,tr.sfSubR')){selectCat(d.dataset.c);return}
     });
     L.addEventListener('keydown',e=>{
       let t=e.target,row=t.closest&&t.closest('.sfNr');if(!row)return;
@@ -15223,6 +15230,10 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 })();
 </script>
 <style id="b109Css">
+#sortingDetail .sfLeft .sortEntriesCard .sfTb{flex-wrap:wrap!important;row-gap:8px}
+#sortingDetail .sfLeft .sortEntriesCard .sfTb .sfQ{flex:1 1 0!important;width:0;min-width:140px!important}
+#sortingDetail tr.sfSubR td{background:#FAF9F4;color:#5B6670;font-size:12.5px;cursor:pointer}
+#sortingDetail tr.sfSubR td.sfDs{padding-left:26px}
 /* B109 · Ανάλυση παραλαβών: 2 διακόπτες σε σειρά πάνω από τον 1ο πίνακα (δεξιά), 3D όπως στην Αποθήκη ΑΗΗΕ */
 #recAnalysis .raR{margin-top:36px}
 #recAnalysis .raTg{display:flex;justify-content:flex-end;align-items:center;gap:28px;height:32px;margin:0 0 4px;font-size:13px;font-weight:600}
