@@ -3474,6 +3474,8 @@ def sorting_add_entry(load_id:str, data:schemas.SortingEntryCreate, db:Session=D
         # Current known content of the medium inside this open sorting session.
         existing=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id,SortingEntry.collection_medium_id==med.id)).all()
         existing_net=sum((x.approved_weight if x.approved_weight is not None else x.raw_weight or Decimal('0')) for x in existing)
+        lots_net=db.scalar(select(func.coalesce(func.sum(WEEEStockLot.available_weight),0)).where(WEEEStockLot.collection_medium_id==med.id,WEEEStockLot.available_weight>0)) or Decimal('0')
+        existing_net=max(existing_net,Decimal(str(lots_net)))      # το μέσο περιέχει ήδη κιλά και από άλλες ταξινομήσεις
         raw=Decimal(data.raw_weight)-Decimal(med.tare_weight)-existing_net
         if raw<=0: raise HTTPException(422,f'Η ένδειξη ζυγαριάς δεν δίνει θετική νέα ποσότητα (υπάρχον καθαρό {existing_net} kg, απόβαρο {med.tare_weight} kg)')
     if data.entry_type=='BULK' and data.piece_count is not None:
