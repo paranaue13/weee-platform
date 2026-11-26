@@ -5042,16 +5042,17 @@ async function liveRefreshViews(topics){
   if(!has('sorting','inventory','misc')||liveVBusy||liveBusy(null))return;
   if(['sortingDetail','receiptForm'].some(id=>{let e=$(id);return e&&!e.classList.contains('hidden')}))return;
   let v=document.querySelector('.content>.view:not(.hidden)');if(!v)return;
-  liveVBusy=true;window.__liveMorph=true;
+  liveVBusy=true;
   try{let y=window.scrollY;clearApiCache();
     if(v.id==='dashboard')await loadDashboard();
     else if(v.id==='receipts'){if(typeof receiptMode!=='undefined'&&receiptMode==='analysis'){if(window.recAnalysisRefresh)await window.recAnalysisRefresh()}      /* B107: στην Ανάλυση παραλαβών δεν ξαναφορτώνεται όλη η σελίδα (προκαλούσε flicker)· ανανεώνεται μόνο η Ανάλυση */
       else await loadReceiptsV2()}
     else if(v.id==='sortingReview')await loadSortingReview();
     window.scrollTo(0,y)}
-  catch(e){}finally{liveVBusy=false;setTimeout(()=>{if(!liveVBusy)window.__liveMorph=false},2500)}
+  catch(e){}finally{liveVBusy=false}
 }
 function liveRefreshAll(topics){
+  window.__liveMorph=true;clearTimeout(window.__lmT);window.__lmT=setTimeout(()=>{window.__liveMorph=false},5000);      /* B112: όσο τρέχει αυτόματη ανανέωση, καμία αντικατάσταση στοιχείων (χωρίς flicker/αναδιάταξη) */
   let has=(...k)=>!topics||k.some(x=>topics.includes(x));
   liveRefreshViews(topics);
   if(topics?has('masters','settings','misc'):!MATDESC.loaded())MATDESC.load();
@@ -15211,7 +15212,10 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
     for(let i=n;i<bk.length;i++)a.appendChild(bk[i].cloneNode(true));
   }
   Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:d.enumerable,get:d.get,set:function(h){
-    if(window.__liveMorph===true&&this.isConnected&&this.nodeType===1&&!/^(SCRIPT|STYLE|TEXTAREA|SELECT|OPTION)$/.test(this.tagName)&&!this.closest('#sortingDetail,#receiptForm,#floatingEditor,.modal')){
+    const live=window.__liveMorph===true&&this.isConnected&&this.nodeType===1&&!/^(SCRIPT|STYLE|TEXTAREA|SELECT|OPTION)$/.test(this.tagName)&&!this.closest('#sortingDetail,#receiptForm,#floatingEditor,.modal');
+    if(live&&this.__lh===h)return;
+    this.__lh=h;
+    if(live){
       try{const t=document.createElement('template');d.set.call(t,h);morphKids(this,t.content);return}catch(e){}
     }
     d.set.call(this,h)}});
