@@ -2608,6 +2608,8 @@ html{overflow-x:clip}
     // B11: χωρίς κωδικό μητρώου «(ΠΡ…)/(ΠΕ…)/(πρ…)» στα ονόματα, χωρίς «—» όπου δεν υπάρχει τιμή
     const nm=v=>esc(String(v||'').replace(/\s*\((?:ΠΡ|ΠΕ|Πρ|Πε|πρ|πε)\s*\d+\)/g,'').trim());
     const o=x=>esc(x.order_number||x.receipt_number||''),go=x=>window.b26Stat(x);
+    /* B95: σειρά λίστας: Ταξινομείται → Έτοιμη για ταξινόμηση → Προς Διόρθωση/Έλεγχο → Ολοκληρώθηκε (στο τέλος)· μέσα σε κάθε ομάδα μένει η σειρά που ήταν */
+    {const rk=x=>{const t=String(go(x)).replace(/<[^>]*>/g,'');return /^Ταξινομείται/.test(t)?0:/^Έτοιμη/.test(t)?1:/^Ολοκληρώθηκε/.test(t)?3:2};rows=rows.map((x,i)=>[x,i]).sort((p,q)=>rk(p[0])-rk(q[0])||p[1]-q[1]).map(p=>p[0])}
     if(tablet())return '<div class="b10TblWrap"><table class="b10Tbl"><thead><tr><th>Εντολή</th><th>Αποστολέας</th><th>Μεταφορέας</th><th>Μέσο συλλογής</th><th></th></tr></thead><tbody>'
       +rows.map(x=>`<tr data-id="${x.load_id}" class="b26Row"><td><b>${o(x)}</b></td><td>${nm(x.sender||x.supplier)}</td><td>${nm(x.carrier)}</td><td>${esc(x.collection_medium||'')}</td><td class="b">${go(x)}${window.b26Bar(x)}</td></tr>`).join('')+'</tbody></table></div>';
     return rows.map(x=>`<div class="b10Card" data-id="${x.load_id}" role="button" tabindex="0"><span class="o">${o(x)}</span><span class="s">${nm(x.sender||x.supplier)}</span>${x.collection_medium?`<span class="m">${esc(x.collection_medium)}</span>`:''}<span class="go">${go(x)}</span>${window.b26Bar(x)}</div>`).join('');
@@ -3029,6 +3031,8 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
   const curMed=()=>S.pick&&S.pick.mid?findMed(S.pick.mid):null;
   const tareOf=()=>{const m=curMed();if(m)return Number(m.tare_weight||0)||(isB(tById(m.type_id))?0:Number(S.tr||0));if(S.pick&&S.pick.kind==='new'){const t=pt()||{};return t.tare_fixed?Number(t.default_tare_weight||0):Number(S.tr||0)}return 0};
   const insideOf=()=>{const m=curMed();if(!m||!S.ses)return 0;return (S.ses.entries||[]).filter(e=>e.collection_medium_id===m.id&&!(S.edit&&e.id===S.edit.id)).reduce((a,e)=>a+Number(e.approved_weight!=null?e.approved_weight:e.raw_weight||0),0)};
+  /* B95: μόνο για την ΕΜΦΑΝΙΣΗ (πράσινο πεδίο): ό,τι καθαρό έχει ήδη το μέσο (όλες οι ταξινομήσεις), χωρίς την καταχώρηση που αλλάζω */
+  const insideShow=()=>{const m=curMed();if(!m)return 0;if(m.cats&&Object.keys(m.cats).length){let t=Object.values(m.cats).reduce((x,y)=>x+(Number(y)||0),0);if(S.edit&&S.ses){const e=(S.ses.entries||[]).find(q=>q.id===S.edit.id&&q.collection_medium_id===m.id);if(e)t-=Number(e.approved_weight!=null?e.approved_weight:e.raw_weight||0)}return Math.max(0,t)}return insideOf()};
   const isGross=()=>S.mode==='g'&&!!S.pick&&S.pick.kind!=='bulk';
   const net=()=>isGross()?(Number(S.val)-tareOf()-insideOf()):Number(S.val);
   const msg=t=>{const e=$$('b30Msg');if(e)e.textContent=t||''};
@@ -3125,7 +3129,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
       else if(isGross()){const tr=tareOf(),ins=insideOf();f='Ζυγαριά '+(S.val?fmt(S.val):'—')+(tr?' − Απόβαρο '+fmt(tr):'')+(ins?' − Ήδη Μέσα '+fmt(ins):'');if(S.val&&net()>0)nv=fmt(net())}
       else{f=(S.pick&&S.pick.kind==='bulk'?'Βάρος ':'Καθαρό ')+(S.val?fmt(S.val):'—');if(S.val&&net()>0)nv=fmt(net())}
       if(S.pick.kind==='bulk')$$('b30cl').innerHTML='<div><span>Καθαρό Βάρος</span><small>'+f+'</small></div><strong>'+nv+' <em>kg</em></strong>';
-      else{const tr=tareOf(),ins=insideOf();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='g'?Number(S.val)-tr:Number(S.val)+ins):'—')+' <em>kg</em></strong>'}}
+      else{const tr=tareOf(),ins=insideShow();$$('b30cl').innerHTML='<div><span>'+esc($$('b30s2').textContent||'')+'</span><small>Απόβαρο '+fmt(tr)+' kg'+(ins?' · Ήδη μέσα <b>'+fmt(ins)+' kg</b>':'')+'</small></div><strong>'+(S.val?fmt(S.mode==='g'?Number(S.val)-tr:Number(S.val)+ins):'—')+' <em>kg</em></strong>'}}
 
     requestAnimationFrame(()=>document.documentElement.style.setProperty('--b30ShH',sh.offsetHeight+'px'))}
   sh.addEventListener('click',e=>{if(e.target===sh){window.b30CloseAll();return}const k=e.target.closest('[data-k]');if(k){const K=k.dataset.k,f=S.fld;let v=f==='n'?S.num:f==='t'?S.tr:S.val;
