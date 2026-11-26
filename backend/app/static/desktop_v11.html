@@ -9855,7 +9855,7 @@ const SF=(function(){
     let subs='';
     if(sfSubOn){
       const nf2=v=>nf(v);
-      subs=(C.allCats||[]).filter(x=>x.is_internal_subcategory&&x.active!==false&&String(x.parent_code||x.official_code)===String(c.official_code)).map(x=>{
+      subs=(C.allCats||[]).filter(x=>x.is_internal_subcategory&&x.active!==false&&String(x.parent_code||x.official_code)===String(c.official_code)&&(!S.only||S.entries.some(e=>e.weee_category_id===x.id))).map(x=>{
         let es=S.entries.filter(e=>e.weee_category_id===x.id),k=es.length,nt=es.reduce((a,e)=>a+entW(e),0),tr=es.reduce((a,e)=>a+tareOf(e),0),avg2=x.average_weight;
         return `<tr class="sfSubR" data-c="${c.id}"><td class="sfCd"></td><td class="sfDs">${esc2(x.display_name||x.her_description||x.official_description||x.code)}</td><td class="n sfMw">${avg2!=null?esc2(Number(avg2).toLocaleString('el-GR',{maximumFractionDigits:2}))+' kg':''}</td><td class="sfEns">${k?`<b>${k}</b> ${k===1?'καταχώρηση':'καταχωρήσεις'}`:''}</td><td class="n">${k?nf2(nt+tr):''}</td><td class="n sfSm">${k?'<b>'+nf2(nt)+'</b>':''}</td></tr>`}).join('');
     }
