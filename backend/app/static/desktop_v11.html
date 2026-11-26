@@ -3418,13 +3418,22 @@ $('presBody').onclick=async e=>{
   try{await api('/production/attendance',{method:'PUT',body:JSON.stringify(body)});await presRefresh()}catch(err){await presRefresh();$('presMsg').textContent=err?.message||String(err)}
 };
 function paintHomeDate(){let d=new Date(),w=new Intl.DateTimeFormat('el-GR',{weekday:'long'}).format(d);$('homeDate').textContent=w.charAt(0).toUpperCase()+w.slice(1)+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
+function homeChkPaint(){
+  let m=document.getElementById('metrics');if(!m)return;let card=m.children[1];if(!card)return;
+  let c=window.__homeChk||{lg:0,mg:0},old=card.querySelector(':scope>.b110Cs'),h='';
+  if(c.lg)h+=`<span class="b110C b110O"><b>${c.lg}</b></span>`;if(c.mg)h+=`<span class="b110C b110R"><b>${c.mg}</b></span>`;
+  if(!h){if(old)old.remove();return}
+  let html=`<span class="b110L">Για έλεγχο</span><div class="b110P">${h}</div>`;
+  if(old){if(old.innerHTML!==html)old.innerHTML=html}else{let n=document.createElement('div');n.className='b110Cs';n.innerHTML=html;card.appendChild(n)}
+}
 async function loadDashboard(){paintHomeDate();loadPresenceCounts();let d=await api('/dashboard/operations');let arr=[['Παραλαβές ημέρας',`${d.today_received||0}/${(d.today_received||0)+(d.today_remaining||0)}`],[d.sorting_in_progress===1?'Ταξινόμηση σε εξέλιξη':'Ταξινομήσεις σε εξέλιξη',d.sorting_in_progress],['Προγραμματισμένες φορτώσεις',d.open_loadings]];$('metrics').innerHTML=arr.map(x=>`<div class="card metric" style="cursor:pointer" role="link" tabindex="0"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('');
   // Σύνδεσμοι: Παραλαβές ημέρας -> Παραλαβές (σημερινή ημέρα) · Ταξινόμηση σε εξέλιξη -> Ταξινόμηση · Προγραμματισμένες φορτώσεις -> Φορτώσεις
   const goTo=[()=>{let d=new Date();receiptNav.day=localISODate(d);receiptNav.year=d.getFullYear();receiptNav.month=d.getMonth()+1;receiptCalCursor=new Date(d.getFullYear(),d.getMonth(),1);show('receipts')},()=>(window.uniOpenOldestSorting?window.uniOpenOldestSorting():show('sortingReview')),()=>show('loading')];
   $('metrics').querySelectorAll('.metric').forEach((c,i)=>{c.onclick=goTo[i];c.onkeydown=e=>{if(e.key==='Enter')goTo[i]()}});let rq=[];try{rq=await api('/sorting/review-queue')}catch(e){}
   let byDay={};rq.forEach(r=>{let st=stageStatus(r.status);if(st!=='CORRECTION'&&st!=='LOGISTICS_REVIEW')return;let day=String(r.receipt_date||'').slice(0,10);if(!day)return;let o=byDay[day]||(byDay[day]={fix:0,check:0});if(st==='CORRECTION')o.fix++;else o.check++});
   // Μόνο ημέρες με εντολές «Προς Έλεγχο» ή «Προς Διόρθωση»· κόκκινο αν υπάρχει έστω μία προς διόρθωση, αλλιώς κεχριμπάρι
-  let openDays=Object.keys(byDay).sort().reverse();$('dashboardDayStatus').classList.toggle('hidden',!openDays.length);
+  {let lg=new Set(),mg=new Set();rq.forEach(r=>{let x=String(r.status||'').toUpperCase(),day=String(r.receipt_date||'').slice(0,10);if(!day)return;if(x==='MANAGEMENT_REVIEW')mg.add(day);else if(x==='LOGISTICS_REVIEW'||x==='SORTING_CONFIRMED')lg.add(day)});window.__homeChk={lg:lg.size,mg:mg.size};try{homeChkPaint()}catch(e){}}
+  let openDays=Object.keys(byDay).sort().reverse();$('dashboardDayStatus').classList.add('hidden');
   $('dayTabs').innerHTML=openDays.map(day=>{let o=byDay[day],cls=o.fix?'stg-correct':'stg-review',n=o.fix+o.check;return `<button class="dchip dayDrill" data-day="${day}" title="${o.fix?o.fix+' προς διόρθωση':''}${o.fix&&o.check?' · ':''}${o.check?o.check+' προς έλεγχο':''}"><span class="dd ${cls}">${day}</span><span class="dcount">${n}</span></button>`}).join('');
   document.querySelectorAll('.dayDrill').forEach(b=>b.onclick=()=>{let day=b.dataset.day;sortingNav.day=day;sortingNav.year=+day.slice(0,4);sortingNav.month=+day.slice(5,7);sortingCalCursor=new Date(sortingNav.year,sortingNav.month-1,1);show('sortingReview')})}
 document.querySelectorAll('#dashboardShortcuts [data-shortcut]').forEach(b=>b.onclick=()=>{
@@ -13028,7 +13037,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
   $('raPrev').onclick=()=>{shift(-1);paintPeriod();loadSoon()};
   $('raNext').onclick=()=>{shift(1);paintPeriod();loadSoon()};
   // ---- πίνακες ----
-  host.insertAdjacentHTML('afterend',`<div id="recAnalysis" class="hidden"><div class="raL"><div class="prodTableWrap"><table class="prodTable" id="raLeftTbl" data-datefill><thead><tr><th>Κωδικός</th><th>Περιγραφή</th><th class="raN" id="raLeftHd">Παραλαβές</th></tr></thead><tbody id="raLeftRows"></tbody><tfoot id="raLeftFoot"></tfoot></table></div></div><div class="raR"><div class="prodTableWrap"><table class="prodTable" id="raRightTbl" data-datefill><thead><tr><th id="raRightHd1">Ημερομηνία</th><th class="raN">Ημερήσια παραλαβή</th><th class="raN">Προς επεξεργασία</th><th class="raN">Προς αποστολή</th></tr></thead><tbody id="raRightRows"></tbody><tfoot id="raRightFoot"></tfoot></table></div></div></div>`);
+  host.insertAdjacentHTML('afterend',`<div id="recAnalysis" class="hidden"><div class="raL"><div class="raTg"><label class="weeeSw"><input type="checkbox" id="raSwTot"><span class="trk"></span>Σύνολα κατηγοριών</label><label class="weeeSw"><input type="checkbox" id="raSwSub"><span class="trk"></span>Υποκατηγορίες</label></div><div class="prodTableWrap"><table class="prodTable" id="raLeftTbl" data-datefill><thead><tr><th>Κωδικός</th><th>Περιγραφή</th><th class="raN" id="raLeftHd">Παραλαβές</th></tr></thead><tbody id="raLeftRows"></tbody><tfoot id="raLeftFoot"></tfoot></table></div></div><div class="raR"><div class="prodTableWrap"><table class="prodTable" id="raRightTbl" data-datefill><thead><tr><th id="raRightHd1">Ημερομηνία</th><th class="raN">Ημερήσια παραλαβή</th><th class="raN">Προς επεξεργασία</th><th class="raN">Προς αποστολή</th></tr></thead><tbody id="raRightRows"></tbody><tfoot id="raRightFoot"></tfoot></table></div></div></div>`);
   // γραμμές αριστερού πίνακα: ίδιες με της Αποθήκης ΑΗΗΕ (ένα ανά επίσημο κωδικό, ΑΗΗΕ προς επεξεργασία + προς αποστολή), τιμή = ίδια «Παραλαβές» της περιόδου
   function leftModel(d){
     let by=new Map();
@@ -15209,6 +15218,15 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 })();
 </script>
 <style id="b109Css">
+/* B109 · Ανάλυση παραλαβών: 2 διακόπτες σε σειρά πάνω από τον 1ο πίνακα (δεξιά), 3D όπως στην Αποθήκη ΑΗΗΕ */
+#recAnalysis .raR{margin-top:36px}
+#recAnalysis .raTg{display:flex;justify-content:flex-end;align-items:center;gap:28px;height:32px;margin:0 0 4px;font-size:13px;font-weight:600}
+#recAnalysis .raTg .weeeSw{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;position:relative;white-space:nowrap}
+#recAnalysis .raTg .weeeSw input{position:absolute;opacity:0;width:0;height:0}
+#recAnalysis .raTg .trk{width:38px;height:22px;border-radius:11px;background:linear-gradient(#C3C9CD,#DDE1E4);box-shadow:inset 0 2px 3px rgba(20,34,43,.35),0 1px 0 #fff;border:1px solid #AEB7BC;position:relative;flex:none;box-sizing:border-box}
+#recAnalysis .raTg .trk::after{content:"";box-sizing:border-box;position:absolute;top:0;left:0;width:20px;height:20px;border-radius:50%;background:linear-gradient(#fff,#E9ECEE);border:1px solid #B5BCC1;border-bottom-width:2px}
+#recAnalysis .raTg input:checked+.trk{background:linear-gradient(#0F3A40,#18535B);border-color:#0B2D32}
+#recAnalysis .raTg input:checked+.trk::after{left:16px}
 /* B109 · Ξένα υλικά: ίδιο tick box και ίδιο κείμενο με τα υπόλοιπα (δεν εμφανίζεται «σβησμένο») */
 #sortingDetail #sortHasForeign:disabled{opacity:1!important}
 #sortingDetail label.inlineCheck:has(#sortHasForeign){opacity:1!important;color:inherit!important}
@@ -15230,4 +15248,19 @@ html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.ovCardSel{border:2p
 #sortingDetail table.sfTable>tbody>tr>td{border-right:1px solid #E4E7EB}
 #sortingDetail table.sfTable td.sfMw{white-space:nowrap}
 </style>
+<style id="b110Css">
+/* B110 · Αρχική: η «Κατάσταση ημερών» μπαίνει στο κουμπί «Ταξινομήσεις σε εξέλιξη» (πορτοκαλί = περιμένει Logistics, κόκκινο = περιμένει Διοίκηση) */
+#dashboardDayStatus{display:none!important}
+#metrics>:nth-child(2){position:relative}
+#metrics .b110Cs{display:flex;flex-direction:column;align-items:center;width:122px;flex:none;margin-left:auto;margin-right:2px}
+#metrics .b110L{font-size:16px;font-weight:600;line-height:20px;color:var(--fg,#14222B)}
+#metrics .b110P{display:flex;gap:10px;margin-top:4px;justify-content:center}
+#metrics .b110C{height:38px;border-radius:19px;border:1px solid;display:flex;align-items:center;justify-content:center;padding:0 18px;min-width:56px;font-weight:600;font-size:15px;box-sizing:border-box}
+#metrics .b110C b{font-size:19px;font-weight:600}
+#metrics .b110O{background:#FDE6BD;border-color:#F0CE8E;color:#6B4510}
+#metrics .b110R{background:#F8D4D0;border-color:#D96A60;color:#8C1F18}
+</style>
+<script id="b110Js">
+(function(){const m=document.getElementById('metrics');if(!m)return;let t=0;new MutationObserver(()=>{if(t)return;t=setTimeout(()=>{t=0;try{homeChkPaint()}catch(e){}},60)}).observe(m,{childList:true,subtree:true})})();
+</script>
 </body></html>
