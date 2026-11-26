@@ -12964,6 +12964,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
 #recAnalysis td.raDate{white-space:nowrap}
 #recAnalysis #raLeftTbl tbody tr:not(.raCat) td:nth-child(2),#recAnalysis #raLeftTbl thead th:nth-child(2){text-align:left}
 #raPeriod.hidden{display:none}
+#recAnalysis.raDay .raR{display:none}      /* ημέρα ως διάστημα: χωρίς δεξί πινακάκι */
 </style>
 <script id="recAnalysisJs">
 (function(){
@@ -12994,7 +12995,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
   let anchor=$('soOvPeriod')||$('recOvPeriod');
   if(anchor)anchor.insertAdjacentHTML('afterend',pHtml);else document.querySelector('#receipts .receiptTopActions').insertAdjacentHTML('beforeend',pHtml);
   let navTimer=0;const loadSoon=()=>{clearTimeout(navTimer);navTimer=setTimeout(()=>load(false),250)};
-  const paintPeriod=()=>{document.querySelectorAll('#raPeriod [data-rap]').forEach(b=>b.classList.toggle('active',b.dataset.rap===st.period));$('raTitle').textContent=range().label};
+  const paintPeriod=()=>{document.querySelectorAll('#raPeriod [data-rap]').forEach(b=>b.classList.toggle('active',b.dataset.rap===st.period));{let ra=$('recAnalysis');if(ra){ra.classList.toggle('raDay',st.period==='day');try{window.fitProdWraps&&fitProdWraps()}catch(e){}}}$('raTitle').textContent=range().label};
   document.querySelectorAll('#raPeriod [data-rap]').forEach(b=>b.onclick=()=>{st.period=b.dataset.rap;paintPeriod();loadSoon()});
   {let rpb=$('raTitle').parentElement;rpb.onclick=e=>{e.stopPropagation();if(!window.PeriodPop)return;PeriodPop.open(rpb,{mode:st.period,date:st.cursor,onPick:d=>{st.cursor=d;paintPeriod();loadSoon()}})}}
   $('raPrev').onclick=()=>{shift(-1);paintPeriod();loadSoon()};
