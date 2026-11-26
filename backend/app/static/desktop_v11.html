@@ -3420,10 +3420,11 @@ $('presBody').onclick=async e=>{
 function paintHomeDate(){let d=new Date(),w=new Intl.DateTimeFormat('el-GR',{weekday:'long'}).format(d);$('homeDate').textContent=w.charAt(0).toUpperCase()+w.slice(1)+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear()}
 function homeChkPaint(){
   let m=document.getElementById('metrics');if(!m)return;let card=m.children[1];if(!card)return;
-  let c=window.__homeChk||{lg:0,mg:0},old=card.querySelector(':scope>.b110Cs'),h='';
-  if(c.lg)h+=`<span class="b110C b110O"><b>${c.lg}</b></span>`;if(c.mg)h+=`<span class="b110C b110R"><b>${c.mg}</b></span>`;
-  if(!h){if(old)old.remove();return}
-  let html=`<span class="b110L">Για έλεγχο</span><div class="b110P">${h}</div>`;
+  let c=window.__homeChk||{lg:0,cr:0},old=card.querySelector(':scope>.b110Cs');
+  if(!c.lg&&!c.cr){if(old)old.remove();delete card.dataset.b110;return}
+  card.dataset.b110=c.lg?'2':'1';
+  let slot=(n,t,k)=>`<div class="b110S">${n?`<span class="b110L">${t}</span><span class="b110C ${k}"><b>${n}</b></span>`:''}</div>`;
+  let html=slot(c.lg,'Για έλεγχο','b110O')+slot(c.cr,'Για διόρθωση','b110R');
   if(old){if(old.innerHTML!==html)old.innerHTML=html}else{let n=document.createElement('div');n.className='b110Cs';n.innerHTML=html;card.appendChild(n)}
 }
 async function loadDashboard(){paintHomeDate();loadPresenceCounts();let d=await api('/dashboard/operations');let arr=[['Παραλαβές ημέρας',`${d.today_received||0}/${(d.today_received||0)+(d.today_remaining||0)}`],[d.sorting_in_progress===1?'Ταξινόμηση σε εξέλιξη':'Ταξινομήσεις σε εξέλιξη',d.sorting_in_progress],['Προγραμματισμένες φορτώσεις',d.open_loadings]];$('metrics').innerHTML=arr.map(x=>`<div class="card metric" style="cursor:pointer" role="link" tabindex="0"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('');
@@ -3432,7 +3433,7 @@ async function loadDashboard(){paintHomeDate();loadPresenceCounts();let d=await 
   $('metrics').querySelectorAll('.metric').forEach((c,i)=>{c.onclick=goTo[i];c.onkeydown=e=>{if(e.key==='Enter')goTo[i]()}});let rq=[];try{rq=await api('/sorting/review-queue')}catch(e){}
   let byDay={};rq.forEach(r=>{let st=stageStatus(r.status);if(st!=='CORRECTION'&&st!=='LOGISTICS_REVIEW')return;let day=String(r.receipt_date||'').slice(0,10);if(!day)return;let o=byDay[day]||(byDay[day]={fix:0,check:0});if(st==='CORRECTION')o.fix++;else o.check++});
   // Μόνο ημέρες με εντολές «Προς Έλεγχο» ή «Προς Διόρθωση»· κόκκινο αν υπάρχει έστω μία προς διόρθωση, αλλιώς κεχριμπάρι
-  {let lg=new Set(),mg=new Set();rq.forEach(r=>{let x=String(r.status||'').toUpperCase(),day=String(r.receipt_date||'').slice(0,10);if(!day)return;if(x==='MANAGEMENT_REVIEW')mg.add(day);else if(x==='LOGISTICS_REVIEW'||x==='SORTING_CONFIRMED')lg.add(day)});window.__homeChk={lg:lg.size,mg:mg.size};try{homeChkPaint()}catch(e){}}
+  {let lg=0,cr=0;rq.forEach(r=>{let st=stageStatus(r.status);if(st==='LOGISTICS_REVIEW')lg++;else if(st==='CORRECTION')cr++});window.__homeChk={lg,cr};try{homeChkPaint()}catch(e){}}
   let openDays=Object.keys(byDay).sort().reverse();$('dashboardDayStatus').classList.add('hidden');
   $('dayTabs').innerHTML=openDays.map(day=>{let o=byDay[day],cls=o.fix?'stg-correct':'stg-review',n=o.fix+o.check;return `<button class="dchip dayDrill" data-day="${day}" title="${o.fix?o.fix+' προς διόρθωση':''}${o.fix&&o.check?' · ':''}${o.check?o.check+' προς έλεγχο':''}"><span class="dd ${cls}">${day}</span><span class="dcount">${n}</span></button>`}).join('');
   document.querySelectorAll('.dayDrill').forEach(b=>b.onclick=()=>{let day=b.dataset.day;sortingNav.day=day;sortingNav.year=+day.slice(0,4);sortingNav.month=+day.slice(5,7);sortingCalCursor=new Date(sortingNav.year,sortingNav.month-1,1);show('sortingReview')})}
@@ -15256,10 +15257,22 @@ html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.ovCardSel{border:2p
 /* B110 · Αρχική: η «Κατάσταση ημερών» μπαίνει στο κουμπί «Ταξινομήσεις σε εξέλιξη» (πορτοκαλί = περιμένει Logistics, κόκκινο = περιμένει Διοίκηση) */
 #dashboardDayStatus{display:none!important}
 #metrics>:nth-child(2){position:relative}
-#metrics .b110Cs{display:flex;flex-direction:column;align-items:center;width:122px;flex:none;margin-left:auto;margin-right:2px}
-#metrics .b110L{font-size:16px;font-weight:600;line-height:20px;color:var(--fg,#14222B)}
-#metrics .b110P{display:flex;gap:10px;margin-top:4px;justify-content:center}
-#metrics .b110C{height:38px;border-radius:19px;border:1px solid;display:flex;align-items:center;justify-content:center;padding:0 18px;min-width:56px;font-weight:600;font-size:15px;box-sizing:border-box}
+#metrics .b110Cs{position:absolute;right:20px;top:15px;display:flex;gap:14px}      /* έξω από τη ροή: δεν αλλάζει το ύψος της κάρτας */
+#metrics>[data-b110]{height:99px;box-sizing:border-box}      /* το ύψος της κάρτας δεν αλλάζει· ο τίτλος παίρνει περιθώριο δεξιά ώστε να μη μπαίνει κάτω από τα pill */
+#metrics>[data-b110="2"] .sortingKpiText{padding-right:258px}
+#metrics>[data-b110="1"] .sortingKpiText{padding-right:132px}
+#metrics .b110S{width:112px;display:flex;flex-direction:column;align-items:center}
+@media (max-width:1500px){
+#metrics .b110Cs{right:12px;gap:6px}
+#metrics .b110S{width:78px}
+#metrics .b110L{font-size:12.5px!important}
+#metrics .b110C{padding:0 10px!important;min-width:46px!important}
+#metrics>[data-b110="2"] .sortingKpiText{padding-right:172px}
+#metrics>[data-b110="1"] .sortingKpiText{padding-right:92px}
+#metrics>[data-b110] .sortingKpiText small{font-size:12.5px;line-height:1.15}
+}
+#metrics .b110L{font-size:16px;font-weight:600;line-height:20px;white-space:nowrap;color:var(--fg,#14222B)}
+#metrics .b110C{margin-top:4px;height:38px;border-radius:19px;border:1px solid;display:flex;align-items:center;justify-content:center;padding:0 18px;min-width:56px;font-weight:600;font-size:15px;box-sizing:border-box}
 #metrics .b110C b{font-size:19px;font-weight:600}
 #metrics .b110O{background:#FDE6BD;border-color:#F0CE8E;color:#6B4510}
 #metrics .b110R{background:#F8D4D0;border-color:#D96A60;color:#8C1F18}
