@@ -3118,7 +3118,7 @@ body:has(#b30Sh.on) .wrap{padding-bottom:calc(var(--b4-nav,64px) + var(--b30ShH,
     $$('b30s2').textContent=m?(t.name_el||'')+' · '+dcode(m):(t.name_el||'')+(S.pick.kind==='basket'?(S.num?' · Νο '+S.num:''):S.pick.kind==='new'?' · '+(S.nm||'…'):'');
         const inf=$$('b30inf'),bo=S.pick.kind==='basket'&&m&&Number(m.kg)>0;inf.hidden=!bo;
     inf.innerHTML=bo?`<b>Νο ${esc(dcode(m))} έχει ήδη:</b> `+Object.entries(m.cats||{}).filter(x=>x[1]>0).map(x=>esc(catName(x[0]))+' '+fmt(x[1])+' kg').join(' · '):'';
-    fill('b30dn',S.num,'Αριθμός',S.fld==='n',needNum()||S.pick.kind==='basket');
+    fill('b30dn',(S.num===''&&m&&S.pick.kind==='basket')?String(code(m)):S.num,'Αριθμός',S.fld==='n',needNum()||S.pick.kind==='basket');   /* B96: μέσο που επιλέχθηκε από τη λίστα εμφανίζει τον αριθμό του στο πεδίο */
     fill('b30dt',S.tr!==''?S.tr+'<u>kg</u>':'','Απόβαρο',S.fld==='t',needTare()||(!!S.edit&&S.pick.kind==='existing'&&S.mode==='g'&&S.tr!==''));
     fill('b30dw',S.val?S.val+'<u>kg</u>':'',S.mode==='g'?'Ζυγαριά':S.mode==='n'?'Καθαρό':'Βάρος',S.fld==='w',true);
     const ok=$$('b30ok'),st=step();ok.textContent=st?'Επόμενο':(S.edit?'Αλλαγή':'Αποθήκευση');ok.classList.toggle('nx',!!st);ok.disabled=S.busy||(st===1?!S.num:st===2?S.tr==='':!can());
