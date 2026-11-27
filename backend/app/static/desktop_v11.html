@@ -400,7 +400,7 @@ input[type="date"],input[type="time"],input[type="datetime-local"],input[type="m
 .receiptMetricMini b{font-size:19px;margin-top:7px}
 #receiptDailyTable{border-radius:var(--r-box)}
 #receiptDailyTable table{min-width:800px}
-#receiptDailyTable tbody td:first-child b{color:#0069d9}
+#receiptDailyTable tbody td:first-child b{color:#144a52}
 .receiptSideCard{padding:14px 14px 15px;border-radius:var(--r-box);margin-bottom:14px}
 .receiptSideCard h3{font-size:18px;margin-bottom:12px}
 .receiptCalendarNav{grid-template-columns:36px 1fr 36px;margin-bottom:10px}
@@ -1447,8 +1447,8 @@ tr.pinHotR>td,tr.pinHotR>th,td.pinHotR{background:#f3f6fc!important}
 #receiptForm:not(.popupMin) .uHdr .winCtl,#sortingDetail:not(.popupMin) .uHdr .winCtl{height:64px!important}
 #receiptForm .uHdrWrap>.uTabs,#sortingDetail .uHdrWrap>.uTabs{display:flex;align-items:flex-end;gap:22px;height:44px;box-sizing:border-box;padding:0 20px;margin:0;border-bottom:1px solid var(--line,#e3e5ec)}
 #receiptForm .uHdrWrap>.uTabs.hidden,#sortingDetail .uHdrWrap>.uTabs.hidden{display:none}
-.uTab{height:44px;padding:0 2px;border:0;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:#677680;cursor:pointer;box-sizing:border-box}
-.uTab.active{color:#1e3f9e;border-bottom-color:#2f5bd6}
+.uTab{height:44px;padding:0 2px;border:0;border-bottom:3px solid transparent;background:transparent;font-size:14px;font-weight:700;color:#44474f;cursor:pointer;box-sizing:border-box}
+.uTab.active{color:#144a52;border-bottom-color:#144a52}
 #sortingDetail .uHdrWrap+.sortingPopupActions{margin-top:0}
 .popupMin>.uHdrWrap{display:block!important;margin:0!important;position:static!important}
 .popupMin .uHdrWrap>.uHdr{display:flex!important;align-items:center!important;height:auto!important;min-height:0!important;padding:8px 0 8px 12px!important;margin:0!important;border:0!important}
@@ -15488,5 +15488,10 @@ html body #app #metrics .card.homeKpi{container-type:inline-size}
  html body #app #metrics .b110C{min-width:44px!important;height:36px!important;padding:0 8px!important}
  html body #app #metrics .b110C b{font-size:15px!important}
 }
+</style>
+<style id="b140Css">
+/* B140 · υπογράμμιση ενεργής καρτέλας του παραθύρου εντολής ακριβώς πάνω στην πορτοκαλί γραμμή (2px), χωρίς να μετακινηθεί το κείμενο */
+#receiptForm .uHdrWrap>.uTabs>.uTab,#sortingDetail .uHdrWrap>.uTabs>.uTab{height:46px;border-bottom-width:2px;padding-bottom:3px;margin-bottom:-2px}
+html body :is(#receiptForm,#sortingDetail) .uHdrWrap>.uTabs>.uTab:not(.active):not(.on):hover::before{bottom:1px!important}
 </style>
 </body></html>
