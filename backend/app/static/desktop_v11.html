@@ -13041,7 +13041,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
   const MONTHS=['Ιανουάριος','Φεβρουάριος','Μάρτιος','Απρίλιος','Μάιος','Ιούνιος','Ιούλιος','Αύγουστος','Σεπτέμβριος','Οκτώβριος','Νοέμβριος','Δεκέμβριος'];
   const CUM=['3μηνο (αθροιστικά)','6μηνο (αθροιστικά)','9μηνο (αθροιστικά)','12μηνο (αθροιστικά)'];
   const st={period:'month',cursor:new Date()};
-  let data=null,seq=0,visible=false,timer=0,pollId=0;
+  let data=null,seq=0,visible=false,timer=0,pollId=0,swTot=false,swSub=false;      // διακόπτες «Σύνολα κατηγοριών» / «Υποκατηγορίες» (όπως στην Αποθήκη ΑΗΗΕ)
   const iso=d=>localISODate(d);
   const pad=n=>String(n).padStart(2,'0');
   const fmt=v=>{v=Math.round(Number(v||0));return v?v.toLocaleString('el-GR'):''};
@@ -13072,7 +13072,9 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
   function leftModel(d){
     let by=new Map();
     const acc=x=>{let key=x.official_code||x.code||x.id;if(/^\d{6}$/.test(String(key)))return;
-      let r=by.get(key);if(!r){r={code:key,desc:x.description||x.official_description||'',her:x.her_description||'',rcv:0};by.set(key,r)}
+      let r=by.get(key);if(!r){r={code:key,desc:x.description||x.official_description||'',her:x.her_description||'',rcv:0,subs:[]};by.set(key,r)}
+      if(x.sub_code){let ex=r.subs.find(q=>q.code===x.sub_code);if(ex){ex.rcv=Math.max(ex.rcv,Number(x.classification_month||0))}else{r.subs.push({code:x.sub_code,desc:x.description||'',rcv:Number(x.classification_month||0)})}}      // υποκατηγορία: φαίνεται όταν ο διακόπτης «Υποκατηγορίες» είναι ανοιχτός
+      else{r.desc=x.description||x.official_description||r.desc;r.her=x.her_description||r.her}
       r.rcv+=Number(x.classification_month||0)};
     (d.to_process||[]).forEach(acc);(d.to_ship||[]).forEach(acc);
     return [...by.values()].sort((a,b)=>String(a.code).localeCompare(String(b.code),'el',{numeric:true}));
@@ -13080,10 +13082,14 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
   function leftRender(rows,rg){
     $('raLeftHd').textContent='Παραλαβές '+rg.genit;
     let html='',grp=null,sum=0,all=0;
-    const flush=()=>{if(grp!==null)html+=`<tr class="raCat"><td></td><td>Σύνολο κατηγορίας ${esc(grp)}</td><td class="raN">${fmt(sum)}</td></tr>`;sum=0};
+    const flush=()=>{if(grp!==null&&swTot)html+=`<tr class="raCat"><td></td><td>Σύνολο κατηγορίας ${esc(grp)}</td><td class="raN">${fmt(sum)}</td></tr>`;sum=0};
     rows.forEach(x=>{let g=String(x.code).charAt(0);if(grp!==null&&g!==grp)flush();grp=g;sum+=x.rcv;all+=x.rcv;
       let desc=(typeof weeeDescModeFor==='function'&&weeeDescModeFor('weee')==='her'&&x.her)?x.her:x.desc;
-      html+=`<tr><td><b>${esc(x.code)}</b></td><td>${esc(desc)}</td><td class="raN">${fmt(x.rcv)}</td></tr>`});
+      if(swSub&&x.subs&&x.subs.length){      // οι υποκατηγορίες αντικαθιστούν τη γραμμή της κατηγορίας· το υπόλοιπο μπαίνει ως «Χωρίς υποκατηγορία» ώστε τα σύνολα να βγαίνουν σωστά
+        let ss=x.subs.slice().sort((p,q)=>String(p.code).localeCompare(String(q.code))),rest=x.rcv-ss.reduce((a,q)=>a+q.rcv,0);
+        ss.forEach(q=>{html+=`<tr class="raSubR"><td><b>${esc(q.code)}</b></td><td>${esc(q.desc)}</td><td class="raN">${fmt(q.rcv)}</td></tr>`});
+        if(Math.abs(rest)>=0.5)html+=`<tr class="raSubR"><td><b>${esc(x.code)}</b></td><td>Χωρίς υποκατηγορία</td><td class="raN">${fmt(rest)}</td></tr>`;
+      }else html+=`<tr><td><b>${esc(x.code)}</b></td><td>${esc(desc)}</td><td class="raN">${fmt(x.rcv)}</td></tr>`});
     flush();
     $('raLeftRows').innerHTML=html||'<tr><td colspan="3" class="muted">Δεν υπάρχουν κωδικοί.</td></tr>';
     $('raLeftFoot').innerHTML=`<tr><td></td><td style="text-align:right">Σύνολο</td><td class="raN">${fmt(all)}</td></tr>`;
@@ -13150,6 +13156,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
     return r;
   };
   modeBtn.onclick=()=>setReceiptMode('analysis');
+  {const a=$('raSwTot'),b=$('raSwSub');if(a)a.onchange=()=>{swTot=a.checked;paintAll()};if(b)b.onchange=()=>{swSub=b.checked;paintAll()}}
   window.recAnalysisRefresh=()=>visible?load(true):Promise.resolve();
   // ανανέωση σε πραγματικό χρόνο: κάθε αλλαγή δεδομένων (παραλαβή, ταξινόμηση, παραγωγή, αποστολή) ξαναφορτώνει την καρτέλα
   const _apiRa=api;
@@ -15232,7 +15239,7 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
       if(x.nodeType===3||x.nodeType===8){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
       if(/^(INPUT|TEXTAREA|SELECT|SCRIPT|STYLE)$/.test(x.tagName)){if(x.outerHTML!==y.outerHTML)x.replaceWith(y.cloneNode(true));continue}
       const DEC=/^data-(b\d|kc)/;      /* ιδιότητες που προσθέτουν άλλα scripts (εικονίδια/χρώματα καρτών) μένουν ως έχουν */
-      for(const at of [...x.attributes])if(!y.hasAttribute(at.name)&&!DEC.test(at.name)&&at.name!=='class')x.removeAttribute(at.name);
+      for(const at of [...x.attributes])if(!y.hasAttribute(at.name)&&!DEC.test(at.name)){if(at.name==='class'){const kp=[...x.classList].filter(c=>/^k[1-5]$/.test(c));if(kp.length)x.setAttribute('class',kp.join(' '));else x.removeAttribute('class')}else x.removeAttribute(at.name)}
       for(const at of y.attributes){let v=at.value;if(at.name==='class'){const keep=[...x.classList].filter(c=>/^k[1-5]$/.test(c)&&!y.classList.contains(c));v=(v+' '+keep.join(' ')).trim()}
         if(x.getAttribute(at.name)!==v)x.setAttribute(at.name,v)}
       if(x.classList.contains('sortingKpiIcon'))continue;      /* το εικονίδιο το ζωγραφίζει άλλο script */
@@ -15251,6 +15258,10 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 })();
 </script>
 <style id="b109Css">
+/* B124 · hover καρτελών: ίδια σκιά/πλαίσιο, γωνίες ~12px (μόνο στο hover, ποτέ στην ενεργή καρτέλα) */
+html body :is(.receiptMode,.receiptViewTabs button,.tfL button,.uTab,.weeeTabBtn,.weeeTabs button,.readyGroupTab,.productionTab,.profileTabBtn,.mtab):not(.active):not(.on):hover{border-radius:12px!important}
+/* καρτέλες σελίδων: το ίδιο πλαίσιο hover με τις καρτέλες του παραθύρου εντολής (σκιά) */
+html body :is(.receiptMode,.receiptViewTabs button,.tfL button,.weeeTabBtn,.weeeTabs button,.readyGroupTab,.productionTab,.profileTabBtn,.mtab):not(.active):not(.on):hover{background:var(--surface,#fff)!important;box-shadow:0 7px 18px rgba(54,82,98,.16)!important}
 /* B123 · Ταξινόμηση › Καταχωρήσεις: εικονίδια ενεργειών (μολύβι / κάδος) καθαρής γραμμής — μόνο το σχέδιο και τα χρώματα· ίδιο μέγεθος και θέση κουμπιών */
 #sfPanel .sfEg .sfMini{display:flex;align-items:center;justify-content:center;border-color:#D5CDB9;color:#144A52;line-height:0}
 #sfPanel .sfEg .sfMini svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
