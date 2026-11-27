@@ -12670,10 +12670,11 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
 (function(){
   const bar=document.getElementById('zoomBar');if(!bar)return;
   try{localStorage.removeItem('invZoomPct');localStorage.removeItem('dyZoomPct')}catch(e){}
-  const MIN=60,MAX=140,STEP=10,PRE=[60,70,80,90,100,110,125,140],SKT='viewZoom:',SKP='viewZoomP:',MK='viewZoomMode',TABK=['weeetab','prodtab','readygroup','lsub','reptab','mtab'];
+  const MIN=50,MAX=140,STEP=10,PRE=[50,60,70,80,90,100,110,125,140],AUTO_W0=1500,AMIN=50,AMAX=100,SKT='viewZoom:',SKP='viewZoomP:',MK='viewZoomMode2',TABK=['weeetab','prodtab','readygroup','lsub','reptab','mtab'];
   const $z=id=>document.getElementById(id);
-  let pct=100,key='',mode='table',eff='table',hasT=true;
-  try{if(localStorage.getItem(MK)==='page')mode='page'}catch(e){}
+  let pct=100,key='',mode='page',eff='page',hasT=true,az=100,manual=false;      /* B139: az = αυτόματο ζουμ σελίδας από το διαθέσιμο πλάτος (50–100%) */
+  const autoPct=()=>{let c=document.querySelector('.main>.content')||document.querySelector('.content'),w=c?c.getBoundingClientRect().width:innerWidth;return Math.max(AMIN,Math.min(AMAX,Math.floor(w/AUTO_W0*100/5)*5))};
+  try{const m0=localStorage.getItem(MK);if(m0==='table'||m0==='page')mode=m0}catch(e){}      /* B139: προεπιλογή «Όλη η οθόνη» (αυτόματο ζουμ)· η παλιά επιλογή αγνοείται (νέο κλειδί) */
   const SK=()=>eff==='page'?SKP:SKT;
   const TBL='.prodTableWrap,.tablewrap,.registryTableWrap,.sfWrap,.tableWrap,table';
   const viewHasTable=v=>!!v&&[...v.querySelectorAll(TBL)].some(e=>e.offsetParent&&e.getBoundingClientRect().height>20);
@@ -12703,14 +12704,15 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
     WIDS.forEach(id=>{const e=$z(id);if(e&&e!==w){e.style.removeProperty('--vz');e.style.removeProperty('--pz')}});
     if(w){w.style.setProperty('--vz',String(eff==='table'?p/100:1));w.style.setProperty('--pz','1');
       const bv=curView(),bk=tabKey(bv),be=(mode==='table'&&viewHasTable(bv))?'table':'page',bp=load(bk,be);
-      de.style.setProperty('--vz',String(be==='table'?bp/100:1));de.style.setProperty('--pz',String(be==='page'?bp/100:1))}
-    else{de.style.setProperty('--vz',String(eff==='table'?p/100:1));de.style.setProperty('--pz',String(eff==='page'?p/100:1))}
+      de.style.setProperty('--vz',String(be==='table'?bp/100:1));de.style.setProperty('--pz',String(az/100))}
+    else{de.style.setProperty('--vz',String(eff==='table'?p/100:1));de.style.setProperty('--pz',String(eff==='page'?p/100:az/100))}
     paint();
     requestAnimationFrame(()=>{try{if(window.fitProdWraps)fitProdWraps()}catch(e){}window.dispatchEvent(new Event('resize'));window.dispatchEvent(new CustomEvent('tableLayoutChanged'))});
   }
-  function setP(p){p=Math.max(MIN,Math.min(MAX,Math.round(p)));if(p===pct)return;apply(p);if(key)save(key,p)}
+  function setP(p){p=Math.max(MIN,Math.min(MAX,Math.round(p)));if(p===pct)return;if(eff==='page')manual=true;apply(p);if(key&&eff!=='page')save(key,p)}      /* το ζουμ «Όλη η οθόνη» είναι αυτόματο· χειροκίνητη αλλαγή ισχύει μέχρι την επόμενη αλλαγή μεγέθους */
   window.setViewZoom=setP;
-  function sync(force){let w=wEl(),v=w||curView(),k=w?('win:'+w.id):tabKey(v),ht=viewHasTable(v),e=w?(ht?'table':'page'):((mode==='table'&&ht)?'table':'page');if(k&&(k!==key||e!==eff||ht!==hasT||force)){key=k;hasT=ht;eff=e;apply(load(k))}else if(ht!==hasT){hasT=ht;paint()}}
+  function sync(force){let a=autoPct(),ch=false;if(a!==az){az=a;manual=false;ch=true}
+    let w=wEl(),v=w||curView(),k=w?('win:'+w.id):tabKey(v),ht=viewHasTable(v),e=w?(ht?'table':'page'):((mode==='table'&&ht)?'table':'page');if(k&&(k!==key||e!==eff||ht!==hasT||force||ch)){if(k!==key)manual=false;key=k;hasT=ht;eff=e;apply((eff==='page'&&!manual&&!w)?az:load(k))}else if(ht!==hasT){hasT=ht;paint()}}
   // επιλογή λειτουργίας: «Πίνακας» / «Όλη η οθόνη» (αποθηκεύεται στη συσκευή· κάθε λειτουργία έχει το δικό της ποσοστό)
   [['zmModeT','table'],['zmModeP','page']].forEach(([id,m])=>{let b=$z(id);if(b)b.onclick=()=>{if(b.disabled)return;mode=m;try{localStorage.setItem(MK,m)}catch(e){}sync(true)}});
   setInterval(()=>{if(!document.hidden)sync()},1200);   // οι πίνακες φορτώνουν ασύγχρονα: ελέγχεται αν η σελίδα έχει πίνακα
@@ -12734,6 +12736,7 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
   let raf=0;const later=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>sync())};   // B21b: ΟΧΙ requestAnimationFrame(sync) — η ώρα του καρέ περνούσε ως «force» και κάθε αλλαγή κλάσης ξαναεφάρμοζε το μέγεθος → ατέρμονος κύκλος (τρεμόπαιγμα πινάκων)
   document.addEventListener('click',()=>setTimeout(sync,60),true);
   try{new MutationObserver(later).observe(document.querySelector('.content'),{subtree:true,attributes:true,attributeFilter:['class']})}catch(e){}
+  window.addEventListener('resize',later);try{if(window.ResizeObserver){const mc=document.querySelector('.main>.content')||document.querySelector('.content');if(mc)new ResizeObserver(later).observe(mc)}}catch(e){}      /* B139: νέος υπολογισμός όταν αλλάζει το μέγεθος παραθύρου ή ανοίγει/κλείνει το πλαϊνό μενού */
   try{WIDS.forEach(id=>{const e=$z(id);if(e)new MutationObserver(later).observe(e,{attributes:true,attributeFilter:['class','style']})})}catch(e){}
   paint();sync();
 })();
@@ -15454,4 +15457,36 @@ window.RP={
   }
 };
 </script>
+<style id="b139Css">
+/* B139-2 · Παραλαβές: hover στις γραμμές μικρών σημείων = ίδιο γκρι-μπλε με τις κύριες γραμμές */
+html body tr.childPointRow:hover>td{background:var(--hover,#E7EAEE)!important}
+/* B139-3 · στρογγυλεμένες πάνω γωνίες στη σταθερή κεφαλίδα των πινάκων (και μετά από scroll) */
+:is(.tablewrap,.prodTableWrap,.registryTableWrap,.sectionTableWrap,.sfWrap,.shipHistWrap) table>thead>tr:first-child>th:first-child{border-top-left-radius:8px}
+table:is(.dcT,.carrTbl)>thead>tr:first-child>th:first-child{border-top-left-radius:8px}
+:is(.tablewrap,.prodTableWrap,.registryTableWrap,.sectionTableWrap,.sfWrap,.shipHistWrap) table>thead>tr:first-child>th:last-child{border-top-right-radius:8px}
+table:is(.dcT,.carrTbl)>thead>tr:first-child>th:last-child{border-top-right-radius:8px}
+/* B139-4 · επιλογέας μήνα: το κεντρικό κομμάτι έχει το ίδιο ύψος και κενό 3px με τα βελάκια */
+html body .prodPeriodNav>.periodPickerBtn{height:34px!important;align-self:center!important}
+/* B139-5 · πλαϊνό μενού: τα 5 κουμπιά διάταξης και η γραμμή πάνω τους στα ίδια όρια με τις άλλες γραμμές */
+body:not([data-menupos]):not(.sideAuto):not(.pane) aside.side>.sideFooter,body.sideAuto:not([data-menupos]) aside.side:hover>.sideFooter{border-top:0;position:relative}
+body:not([data-menupos]):not(.sideAuto):not(.pane) aside.side>.sideFooter::before,body.sideAuto:not([data-menupos]) aside.side:hover>.sideFooter::before{content:"";position:absolute;top:0;left:8px;right:8px;height:1px;background:rgba(255,255,255,.12)}
+body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick,body.sideAuto:not([data-menupos]) .side:hover .sideQuick{margin:0!important;gap:4px;justify-content:space-between}
+body:not([data-menupos]):not(.sideAuto):not(.pane) .sideQuick button,body.sideAuto:not([data-menupos]) .side:hover .sideQuick button{flex:1 1 0;width:auto;min-width:0}
+body.sideAuto:not([data-menupos]) .side:not(:hover) .sideQuick button{width:40px;min-width:40px}
+.sideQuick button svg path{stroke-linecap:butt}
+/* B139-6 · Αρχική: στενή κάρτα (≤340px) — κρύβεται το εικονίδιο, κείμενα 14px, ο τίτλος σε δύο γραμμές χωρίς να ακουμπά τα «Για…» */
+html body #app #metrics .card.homeKpi{container-type:inline-size}
+@container (max-width:340px){
+ html body #app #metrics .card.homeKpi>.sortingKpiIcon{display:none!important}
+ html body #app #metrics .card.homeKpi .sortingKpiText{margin-left:-8px}
+ html body #app #metrics .card.homeKpi .sortingKpiText small{font-size:14px!important;line-height:18px!important;white-space:normal!important}
+ html body #app #metrics .card.homeKpi .sortingKpiText b{font-size:28px!important}
+ html body #app #metrics .card.homeKpi[data-b110="2"] .sortingKpiText{padding-right:176px!important}
+ html body #app #metrics .b110Cs{width:172px!important;gap:4px!important;right:20px!important}
+ html body #app #metrics .b110S{width:84px!important}
+ html body #app #metrics .b110L{font-size:14px!important;line-height:18px!important}
+ html body #app #metrics .b110C{min-width:44px!important;height:36px!important;padding:0 8px!important}
+ html body #app #metrics .b110C b{font-size:15px!important}
+}
+</style>
 </body></html>
