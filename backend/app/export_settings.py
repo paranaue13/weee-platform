@@ -34,13 +34,16 @@ def get_export_settings(db: Session) -> dict:
         return dict(DEFAULT_EXPORT_SETTINGS)
 
 
-def archive_export_copy(db: Session, tmp_path, filename: str, when: date) -> None:
+def archive_export_copy(db: Session, tmp_path, filename: str, when: date, recl=None) -> None:
     """Best-effort copy of a just-generated report into the configured export folder
     (year/<NN - Μήνας> subfolders when grouping is on). Never raises: the browser
     download this runs alongside must still succeed even if the folder is briefly
     unreachable (removable drive unplugged, network share down, ...)."""
     from . import docs_storage
-    docs_storage.save_report(tmp_path, filename)   # Έγγραφα\WEEE Platform\Αναφορές\YYYY-MM (αν δεν γράφεται: καθαρό σφάλμα)
+    if recl:
+        docs_storage.save_receipts_report(tmp_path, filename, recl[0], recl[1])      # Αναφορές\ΠΑΡΑΛΑΒΕΣ Α.Η.Η.Ε\ΑΝΑΦΟΡΕΣ\έτος\ΜΜ.ΜΗΝΑΣ
+    else:
+        docs_storage.save_report(tmp_path, filename)   # Έγγραφα\WEEE Platform\Αναφορές\YYYY-MM (αν δεν γράφεται: καθαρό σφάλμα)
     cfg = get_export_settings(db)
     if not cfg.get("path"):
         return

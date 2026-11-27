@@ -82,17 +82,17 @@ def _insert_rows(ws, at: int, n: int, style_row: int, merge_ranges=()):
             ws.merge_cells(start_row=row, end_row=row, start_column=c1, end_column=c2)
 
 
-def _response(wb, filename: str, db: Session | None = None, when=None):
+def _response(wb, filename: str, db: Session | None = None, when=None, recl=None):
     tmp = NamedTemporaryFile(delete=False, suffix=".xlsx")
     tmp.close()
     wb.save(tmp.name)
     if db is not None and when is not None:
-        archive_export_copy(db, tmp.name, filename, when)
+        archive_export_copy(db, tmp.name, filename, when, recl)
     return FileResponse(tmp.name, media_type=XLSX, filename=filename, background=BackgroundTask(os.unlink, tmp.name))
 
 
 @router.get("/reports/generate/daily-summary")
-def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), db: Session = Depends(get_db), user=Depends(require_permission("sorting.review"))):
+def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), recl: str | None = Query(default=None), db: Session = Depends(get_db), user=Depends(require_permission("sorting.review"))):
     """Ημερήσιο Συγκεντρωτικό: μία γραμμή ανά φορτίο, κιλά παραλαβής ΑΗΗΕ / ΜΗ ΑΗΗΕ ανά τύπο προμηθευτή."""
     from .main import _sorting_export_data
     d = datetime.fromisoformat(day)
@@ -128,7 +128,8 @@ def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), db: Ses
         wb.calculation.fullCalcOnLoad = True
     except Exception:
         pass
-    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx", db, start.date())
+    from . import docs_storage
+    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx", db, start.date(), docs_storage.parse_recl(day, recl))
 
 
 @router.get("/reports/generate/non-weee-by-supplier")

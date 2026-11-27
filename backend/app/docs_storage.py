@@ -167,6 +167,45 @@ def unique_path(d: Path, name: str) -> Path:
     return p
 
 
+RECEIPTS_REPORTS = ("ΠΑΡΑΛΑΒΕΣ Α.Η.Η.Ε", "ΑΝΑΦΟΡΕΣ")
+MONTHS_UPPER = ["ΙΑΝΟΥΑΡΙΟΣ", "ΦΕΒΡΟΥΑΡΙΟΣ", "ΜΑΡΤΙΟΣ", "ΑΠΡΙΛΙΟΣ", "ΜΑΙΟΣ", "ΙΟΥΝΙΟΣ", "ΙΟΥΛΙΟΣ", "ΑΥΓΟΥΣΤΟΣ", "ΣΕΠΤΕΜΒΡΙΟΣ", "ΟΚΤΩΒΡΙΟΣ", "ΝΟΕΜΒΡΙΟΣ", "ΔΕΚΕΜΒΡΙΟΣ"]
+
+
+def receipts_report_dir(when, level: str) -> Path:
+    """Έγγραφα\\WEEE Platform\\Αναφορές\\ΠΑΡΑΛΑΒΕΣ Α.Η.Η.Ε\\ΑΝΑΦΟΡΕΣ\\<έτος>\\<ΜΜ.ΜΗΝΑΣ> (ημερήσιες και μηνιαίες αναφορές) ή ...\\<έτος> (τριμηνιαίες, ετήσιες)."""
+    d = documents_dir() / APP_DIR / REPORTS / RECEIPTS_REPORTS[0] / RECEIPTS_REPORTS[1] / str(when.year)
+    if level in ("day", "month"):
+        d = d / f"{when.month:02d}.{MONTHS_UPPER[when.month - 1]}"
+    try:
+        d.mkdir(parents=True, exist_ok=True)
+        probe = d / ".write_test"
+        probe.write_bytes(b"")
+        probe.unlink()
+    except OSError as e:
+        raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής.")
+    return d
+
+
+def save_receipts_report(tmp_path, filename: str, when, level: str) -> Path:
+    d = receipts_report_dir(when, level)
+    dest = unique_path(d, "".join(c for c in filename if c not in '<>:"/\\|?*') or "report")
+    try:
+        shutil.copyfile(str(tmp_path), str(dest))
+    except OSError as e:
+        raise HTTPException(507, f"Δεν μπόρεσα να αποθηκεύσω την αναφορά στο «{dest}» ({e.strerror or e}).")
+    return dest
+
+
+def parse_recl(day_or_none, level):
+    """('YYYY-MM-DD' ή None, 'day'|'month'|'quarter'|'year') -> (date, level) ή None."""
+    if not level or level not in ("day", "month", "quarter", "year") or not day_or_none:
+        return None
+    try:
+        return datetime.fromisoformat(str(day_or_none)[:10]).date(), level
+    except Exception:
+        return None
+
+
 def save_report(tmp_path, filename: str, when=None) -> Path:
     """Αντίγραφο ενός αρχείου που παρήγαγε η εφαρμογή (Excel, PDF…) στο Αναφορές\\<μήνας>."""
     d = month_dir(REPORTS, when if isinstance(when, (date, datetime)) else None)

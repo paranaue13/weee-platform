@@ -3378,10 +3378,11 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
       'history':[{'action':a.action,'reason':a.reason,'created_at':a.created_at.isoformat()} for a in audits if a.entity_id in ({ses.id} if ses else set()) | {e.id for e in entries}]}
 
 @app.get('/sorting/daily-export')
-def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
+def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), recl:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Daily workbook: one sorting per worksheet plus final 'Σύνολο Μέρας', matching the imported daily workbook structure."""
+    from . import docs_storage
     d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day)
-    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx')
+    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx',recl=docs_storage.parse_recl(day,recl))
 
 def _copy_print_setup(src,dst):
     """copy_worksheet δεν μεταφέρει περιοχή εκτύπωσης, κλίμακα, προβολή σελίδας και διακοπές σελίδας της φόρμας."""
@@ -3393,7 +3394,7 @@ def _copy_print_setup(src,dst):
     dst.sheet_view.view=src.sheet_view.view; dst.sheet_view.zoomScale=src.sheet_view.zoomScale; dst.sheet_view.zoomScaleNormal=src.sheet_view.zoomScaleNormal; dst.sheet_view.zoomScalePageLayoutView=src.sheet_view.zoomScalePageLayoutView
     dst.row_breaks=copy(src.row_breaks); dst.col_breaks=copy(src.col_breaks)
 
-def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str):
+def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str, recl=None):
     from openpyxl import load_workbook
     from copy import copy
     from tempfile import NamedTemporaryFile
@@ -3441,7 +3442,7 @@ def _received_workbook_response(db:Session, start:datetime, end:datetime, summar
     try: wb.calculation.fullCalcOnLoad=True;wb.calculation.forceFullCalc=True;wb.calculation.calcMode='auto'
     except Exception: pass
     tmp=NamedTemporaryFile(delete=False,suffix='.xlsx');tmp.close();wb.save(tmp.name)
-    archive_export_copy(db,tmp.name,filename,start.date())
+    archive_export_copy(db,tmp.name,filename,start.date(),recl)
     return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=filename,background=BackgroundTask(os.unlink,tmp.name))
 
 @app.get('/sorting/{load_id}', response_model=schemas.SortingSessionOut)
@@ -3814,7 +3815,7 @@ def reports_tables(data:dict, user:User=Depends(current_user)):
                 ws.column_dimensions[get_column_letter(ci)].width=min(60,max(10,w+2))
             ws.freeze_panes='A4'
         tmp=NamedTemporaryFile(delete=False,suffix='.xlsx'); tmp.close(); wb.save(tmp.name)
-        _save_report_copy(tmp.name,fname+'.xlsx')
+        _save_report_copy(tmp.name,fname+'.xlsx',data.get('recl'))
         return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=fname+'.xlsx',background=BackgroundTask(os.unlink,tmp.name))
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
@@ -3844,7 +3845,7 @@ def reports_tables(data:dict, user:User=Depends(current_user)):
     def footer(c,d):
         c.saveState(); c.setFont(font,8); c.drawRightString(landscape(A4)[0]-28,16,f'Σελίδα {d.page}'); c.restoreState()
     doc.build(story,onFirstPage=footer,onLaterPages=footer)
-    _save_report_copy(tmp.name,fname+'.pdf')
+    _save_report_copy(tmp.name,fname+'.pdf',data.get('recl'))
     return FileResponse(tmp.name,media_type='application/pdf',filename=fname+'.pdf',background=BackgroundTask(os.unlink,tmp.name))
 
 @app.get('/sorting/{load_id}/export')
@@ -4003,8 +4004,11 @@ def management_approve(load_id:str, db:Session=Depends(get_db), user:User=Depend
     _hist_record(db,user,'closing','Κλείσιμο ταξινόμησης (έγκριση Διοίκησης)',['receipt:'+str(load.trip_id),'load:'+str(load.id)],{},undoable=False)
     db.commit(); return _sorting_payload(db,load,ses)
 
-def _save_report_copy(tmp_path,filename):
-    from . import docs_storage; docs_storage.save_report(tmp_path,filename,docs_storage._now())
+def _save_report_copy(tmp_path,filename,recl=None):
+    from . import docs_storage
+    rc=docs_storage.parse_recl((recl or {}).get('date'),(recl or {}).get('level')) if isinstance(recl,dict) else None
+    if rc: docs_storage.save_receipts_report(tmp_path,filename,rc[0],rc[1])      # Αναφορές\ΠΑΡΑΛΑΒΕΣ Α.Η.Η.Ε\ΑΝΑΦΟΡΕΣ\έτος\ΜΜ.ΜΗΝΑΣ
+    else: docs_storage.save_report(tmp_path,filename,docs_storage._now())
 
 STAMP_LOGO=Path(__file__).parent/'static'/'logo_KEPA.png'
 def _stamp_photo(im,now):

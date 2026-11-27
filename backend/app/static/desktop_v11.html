@@ -12330,8 +12330,8 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   // ---- «Αναφορά»: πλαίσιο κάτω από το κουμπί, με τικ κομματιών και κουμπιά Excel / PDF ----
   // Για να προστεθεί νέο κομμάτι αναφοράς αργότερα: μία γραμμή στη λίστα REPORT_PARTS· sheets(ctx) επιστρέφει [{name,columns,rows,total}]
   const REPORT_PARTS=[
-    {key:'recA',sec:'rec',days:true,label:'Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ',file:day=>'/sorting/daily-export?day='+day},
-    {key:'recB',sec:'rec',days:true,label:'Ημερήσιο Συγκεντρωτικό',file:day=>'/reports/generate/daily-summary?day='+day},
+    {key:'recA',sec:'rec',days:true,label:'Ημερήσια Αναφορά Παραληφθέντων ΑΗΗΕ',file:day=>'/sorting/daily-export?recl=day&day='+day},
+    {key:'recB',sec:'rec',days:true,label:'Ημερήσιο Συγκεντρωτικό',file:day=>'/reports/generate/daily-summary?recl=day&day='+day},
     {key:'rec',sec:'own',label:'Συγκεντρωτικά παραλαβών',sheets:ctx=>OVST.rec.sheets(ctx.rg,ctx.useF,receiptRowsAll)},
     {key:'so',sec:'own',label:'Συγκεντρωτικά ταξινόμησης',sheets:async ctx=>OVST.so.sheets(ctx.rg,ctx.useF,await api('/sorting/review-queue'))},
     {key:'tbl',sec:'own',days:true,label:'Πίνακας παραλαβών',sheets:ctx=>{let rows=selectedReceiptRows(receiptRowsAll),tot=0,out=rows.map(r=>{let sups=[...new Set((r.loads||[]).map(l=>orgName(orgs.find(o=>o.id===l.supplier_id)||{})).filter(Boolean))].join(', '),dpps=[...new Set((r.loads||[]).map(l=>l.dpp_number).filter(Boolean))].join(', '),kg=Math.round(receiptNet(r));tot+=kg;return [((r.loads||[]).map(l=>l.order_number).filter(Boolean).join(', ')||r.receipt_number||''),dpps,sups,typeLabel(r.receipt_type),orgName(orgs.find(o=>o.id===r.carrier_id)||{}),kg]});return [{name:'Πίνακας παραλαβών',columns:['Αριθμός Εντολής','Αριθμός ΔΠΠ','Προμηθευτής','Τύπος φορτίου','Μεταφορέας','Καθαρό Βάρος kg'],rows:out,total:['Σύνολο','','','','',tot]}]}}
@@ -12344,8 +12344,9 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   let repPop=null;
   function repClose(){if(repPop){repPop.remove();repPop=null}document.removeEventListener('mousedown',repOutside,true)}
   function repOutside(e){if(repPop&&!repPop.contains(e.target)&&!(e.target.closest&&e.target.closest('#uniReportBtn')))repClose()}
+  const reclOf=ctx=>{let p=receiptMode==='months'?(OVST[U.sub].st.period||'month'):'day';return {level:['day','month','quarter','year'].includes(p)?p:'year',date:ctx.rg.startISO}};      // φάκελος: Αναφορές\ΠΑΡΑΛΑΒΕΣ Α.Η.Η.Ε\ΑΝΑΦΟΡΕΣ\έτος\ΜΜ.ΜΗΝΑΣ
   async function repDownload(fmt,ctx,sheets){
-    const body={format:fmt,title:'Παραλαβές & Ταξινόμηση',subtitle:'Περίοδος: '+ctx.label,filename:'Παραλαβές & Ταξινόμηση · '+ctx.label,sheets};
+    const body={format:fmt,title:'Παραλαβές & Ταξινόμηση',subtitle:'Περίοδος: '+ctx.label,filename:'Παραλαβές & Ταξινόμηση · '+ctx.label,sheets,recl:reclOf(ctx)};
     let r=await fetch('/reports/tables',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
     if(!r.ok){let d={};try{d=await r.json()}catch(e){}if(r.status===507&&window.docsFolderDialog)window.docsFolderDialog(d.detail);throw new Error(d.detail||('Σφάλμα '+r.status))}
     let blob=await r.blob(),name='report.'+fmt,cd=r.headers.get('content-disposition')||'',m=cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^;"]+)/i);
@@ -13175,7 +13176,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
     return out;
   }
   async function download(fmtName,label,sh){
-    const body={format:fmtName,title:'Παραλαβές & Ταξινόμηση · Ανάλυση παραλαβών',subtitle:'Περίοδος: '+label,filename:'Ανάλυση παραλαβών · '+label,sheets:sh};
+    const body={format:fmtName,title:'Παραλαβές & Ταξινόμηση · Ανάλυση παραλαβών',subtitle:'Περίοδος: '+label,filename:'Ανάλυση παραλαβών · '+label,sheets:sh,recl:{level:st.period,date:range().startISO}};
     let r=await fetch('/reports/tables',{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body)});
     if(!r.ok){let d={};try{d=await r.json()}catch(e){}if(r.status===507&&window.docsFolderDialog)window.docsFolderDialog(d.detail);throw new Error(d.detail||('Σφάλμα '+r.status))}
     let blob=await r.blob(),name='report.'+fmtName,cd=r.headers.get('content-disposition')||'',m=cd.match(/filename\*=UTF-8''([^;]+)|filename="?([^;"]+)/i);
