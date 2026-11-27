@@ -5053,6 +5053,7 @@ async function liveRefreshViews(topics){
   catch(e){}finally{liveVBusy=false}
 }
 function liveRefreshAll(topics){
+  try{if(window.sfLiveTick&&(!topics||topics.includes('sorting')||topics.includes('misc')))window.sfLiveTick()}catch(e){}      /* B130: ανοιχτή φόρμα ταξινόμησης: άμεση ενημέρωση με το σήμα του server */
   window.__liveMorph=true;clearTimeout(window.__lmT);window.__lmT=setTimeout(()=>{window.__liveMorph=false},5000);      /* B112: όσο τρέχει αυτόματη ανανέωση, καμία αντικατάσταση στοιχείων (χωρίς flicker/αναδιάταξη) */
   let has=(...k)=>!topics||k.some(x=>topics.includes(x));
   liveRefreshViews(topics);
@@ -6455,6 +6456,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   let canMarkCorrection=canReopenSort&&!d.correction;
   let canRevert=st==='CLOSED'&&!!(me&&Array.isArray(me.roles)&&me.roles.includes('MANAGEMENT'));      // μόνο Διοίκηση/admin: επιστροφή από «Ολοκληρώθηκε»
   let stMeta=statusMeta(d.correction&&(st==='LOGISTICS_REVIEW'||st==='MANAGEMENT_REVIEW')?'CORRECTION':(st==='IN_PROGRESS'&&!(d.entries||[]).length?'READY_FOR_SORTING':st));
+  sd.dataset.stKey=st+'|'+(d.correction?1:0);      // B130: για να φαίνεται αμέσως όταν η κατάσταση αλλάζει από άλλη συσκευή
   let diff=Number(d.net_weight||0)-Number(d.sorting_weight||0);
   const NO_MEDIUM_LABEL='— χωρίς μέσο —';
   let medLabel=m=>m?esc(m.code)+(m.tare_weight!=null?' · '+Math.round(Number(m.tare_weight))+' kg':''):NO_MEDIUM_LABEL;
@@ -10009,7 +10011,7 @@ const SF=(function(){
   // ---- ζωντανή ενημέρωση: ό,τι καταχωρεί το Android (ή άλλος υπολογιστής) εμφανίζεται μόνο του· η φόρμα που πληκτρολογεί ο χρήστης μένει ανέγγιχτη ----
   let liveT=null,toastT=0,sfSubOn=false;      // B114: διακόπτης «Υποκατηγορίες»
   function stopLive(){if(liveT){clearInterval(liveT);liveT=null}}
-  function startLive(){stopLive();liveT=setInterval(liveTick,4000)}
+  function startLive(){stopLive();liveT=setInterval(liveTick,2000)}
   function sfToast(txt){
     let t=document.getElementById('sfToast');if(!t){t=document.createElement('div');t.id='sfToast';t.className='sfToast';document.body.appendChild(t)}
     t.textContent=txt;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),6000);
@@ -10021,7 +10023,16 @@ const SF=(function(){
     try{clearApiCache('/sorting/'+lid+'/detail');d=await api('/sorting/'+lid+'/detail')}catch(e){return}
     if(!S||S.loadId!==lid||S.ver!==ver||S.busy)return;      // άλλαξε κάτι τοπικά όσο ερχόταν η απάντηση: αγνοείται (θα ξαναδιαβαστεί)
     mergeRemote(d.entries||[]);try{sortPhotosPaint(lid)}catch(e){}
+    {      /* B130: αλλαγή κατάστασης από άλλη συσκευή (π.χ. ολοκλήρωση από Android) → η φόρμα ξαναχτίζεται αμέσως· αν ο χρήστης έχει ανεπιβεβαίωτες τιμές στα πεδία, μόνο ειδοποίηση */
+      let key=String(d.status||'').toUpperCase()+'|'+(d.correction?1:0);
+      if(sd.dataset.stKey&&sd.dataset.stKey!==key){
+        let typing=[...sd.querySelectorAll('.sfK,.sfGr,.sfP')].some(i=>String(i.value||'').trim()!==''&&!i.readOnly&&!i.disabled);
+        if(typing){if(!sd.dataset.stWarn){sd.dataset.stWarn='1';sfToast('Η κατάσταση της ταξινόμησης άλλαξε από άλλη συσκευή· ολοκλήρωσε ή σβήσε την τρέχουσα καταχώρηση και θα ανανεωθεί.')}}
+        else{delete sd.dataset.stWarn;try{await openSortingDetail(lid)}catch(e){}}
+      }else delete sd.dataset.stWarn;
+    }
   }
+  window.sfLiveTick=liveTick;
   function mergeRemote(list){
     let cur=new Map(S.entries.map(e=>[e.id,e])),seen=new Set(),addN=[],touched=new Set();
     list.forEach(e=>{seen.add(e.id);let o=cur.get(e.id);
