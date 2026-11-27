@@ -12775,11 +12775,8 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
 #sfPanel .sfMini{width:26px;height:24px;border:1px solid #D6D0C3;border-radius:5px;background:#fff;font-size:12px;cursor:pointer;padding:0}
 #sfPanel .sfMini.d{border-color:#D9A894;color:#A52A22}
 #sfPanel .sfEgNone{padding:12px;color:#9AA3A8;font-size:13px}
-@container sd (max-width:900px){
-  #sortingDetail .sfGrid{grid-template-columns:minmax(0,1fr);height:auto}
-  #sortingDetail .sfLeft>.sortEntriesCard{height:420px!important;flex:none!important}      /* B131: στενό παράθυρο — ο πίνακας ταξινόμησης δεν καταρρέει */
-  #sortingDetail .sfPanelCard:empty{display:none}
-}
+/* B132: η διάταξη της φόρμας ταξινόμησης μένει ίδια με της αρχικής οθόνης· αν το παράθυρο είναι στενό εμφανίζονται scrollbars (δεν γίνεται αναδιάταξη) */
+#sortingDetail .sfGrid:not(.noTbl){min-width:1080px}
 #sortingDetail{container:sd/inline-size}
 </style>
 <script id="b67Js">
