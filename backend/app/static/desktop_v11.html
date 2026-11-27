@@ -9940,7 +9940,7 @@ const SF=(function(){
   // B109: οι γραμμές των στηλών τραβάνε μέχρι κάτω στο πλαίσιο του πίνακα (ακολουθούν τα πλάτη των στηλών)
   function sfColLines(){
     let L=$('sfList'),t=L&&L.querySelector('table.sfTable');if(!t||!t.tHead||!t.tHead.rows[0])return;
-    let ths=[...t.tHead.rows[0].cells].filter(th=>th.offsetParent),lr=L.getBoundingClientRect(),bl=parseFloat(getComputedStyle(L).borderLeftWidth)||0,xs=ths.slice(0,-1).map(th=>Math.round(th.getBoundingClientRect().right-lr.left-bl-1+L.scrollLeft));
+    let ths=[...t.tHead.rows[0].cells].filter(th=>th.offsetParent),lr=L.getBoundingClientRect(),bl=parseFloat(getComputedStyle(L).borderLeftWidth)||0,zk=(L.offsetWidth&&lr.width/L.offsetWidth)||1,xs=ths.slice(0,-1).map(th=>Math.round((th.getBoundingClientRect().right-lr.left)/zk-bl-1+L.scrollLeft));      /* B143: οι γραμμές στηλών ακολουθούν το ζουμ του πίνακα */
     let img=xs.map(()=>'linear-gradient(#C9CFD6,#C9CFD6)').join(','),pos=xs.map(x=>x+'px 0').join(','),size=xs.map(()=>'1px 100%').join(',');
     if(L.dataset.cl===pos)return;L.dataset.cl=pos;
     L.style.backgroundImage=img;L.style.backgroundPosition=pos;L.style.backgroundSize=size;L.style.backgroundRepeat='no-repeat';L.style.backgroundAttachment='local';
