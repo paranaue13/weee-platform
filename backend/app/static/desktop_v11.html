@@ -15254,8 +15254,9 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 /* B125 · hover καρτελών: γκρι #ECEEEF με γωνίες 6px, χωρίς σκιά, χωρίς λευκό κουτί (ποτέ στην ενεργή καρτέλα) */
 /* B126 · το γκρι του hover έχει ύψος 38px (όσο τα κουμπιά δεξιά), με κενό πάνω από την πορτοκαλί γραμμή· η υπογράμμιση της ενεργής καρτέλας δεν αλλάζει */
 html body :is(.receiptMode,.receiptViewTabs button,.tfL button,.uTab,.weeeTabBtn,.weeeTabs button,.readyGroupTab,.productionTab,.profileTabBtn,.mtab):not(.active):not(.on):hover{background:transparent!important;box-shadow:none!important;border-radius:6px!important;position:relative;z-index:2}
-html body :is(.receiptMode,.receiptViewTabs button,.tfL button,.uTab,.weeeTabBtn,.weeeTabs button,.readyGroupTab,.productionTab,.profileTabBtn,.mtab):not(.active):not(.on):hover::before{content:"";position:absolute;left:0;right:0;bottom:5px;height:38px;background:#ECEEEF;border-radius:6px;z-index:-1;pointer-events:none}
-html body .uTab:not(.active):hover::before{bottom:2px}
+html body :is(.receiptMode,.receiptViewTabs button,.tfL button,.uTab,.weeeTabBtn,.weeeTabs button,.readyGroupTab,.productionTab,.profileTabBtn,.mtab):not(.active):not(.on):hover::before{content:"";position:absolute;left:0;right:0;bottom:2px;height:38px;background:#ECEEEF;border-radius:6px;z-index:-1;pointer-events:none}
+html body :is(.mtab,#ready .readyGroupTab):not(.active):not(.on):hover::before{bottom:1px!important}
+html body .uTab:not(.active):not(.on):hover::before{bottom:-1px!important}
 /* επιλογέας μήνα/έτους (‹ περίοδος ›): κάθε κομμάτι γεμίζει ολόκληρο με το ίδιο γκρι, γωνίες 6px, χωρίς θολό κύκλο/σκιά */
 html body .prodPeriodNav>button:hover{background:#ECEEEF!important;box-shadow:none!important;border-radius:6px!important;filter:none!important}
 html body .prodPeriodNav>button::before,html body .prodPeriodNav>button::after{box-shadow:none!important}
