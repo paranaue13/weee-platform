@@ -3913,6 +3913,13 @@ def sorting_adjust(entry_id:str, data:schemas.SortingAdjustmentCreate, db:Sessio
 @app.post('/sorting/{load_id}/logistics-review', response_model=schemas.SortingSessionOut)
 def logistics_review(load_id:str, data:schemas.LogisticsReviewCreate, db:Session=Depends(get_db), user:User=Depends(require_permission('sorting.review'))):
     load,ses=_session_for_load(db,load_id,False)
+    if ses and ses.status=='IN_PROGRESS':      # B138: απευθείας «Ολοκλήρωση» από «Ταξινομείται» (περνά αυτόματα το βήμα «Προς Έλεγχο»)
+        entries=db.scalars(select(SortingEntry).where(SortingEntry.session_id==ses.id)).all()
+        if not entries: raise HTTPException(422,'Δεν υπάρχουν καταχωρημένα υλικά')
+        ses.status='LOGISTICS_REVIEW'; ses.correction=False; ses.sorting_confirmed_at=datetime.now(timezone.utc); ses.sorting_confirmed_by=user.id; load.status='SORTING_CONFIRMED'
+        write_audit(db,user,'sorting_session',ses.id,'SORTING_CONFIRM',new={'entries':len(entries),'via':'direct_complete'})
+        _hist_record(db,user,'closing','Υποβολή ταξινόμησης',['load:'+str(load.id)]+['row:sorting_entries:'+str(e_.id) for e_ in entries]+['row:collection_media:'+str(e_.collection_medium_id) for e_ in entries if e_.collection_medium_id],{},undoable=False)
+        db.flush()
     if not ses or ses.status!='LOGISTICS_REVIEW': raise HTTPException(409,'Η ταξινόμηση δεν περιμένει έλεγχο Logistics')
     payload=_sorting_payload(db,load,ses)
     # final accounting weight: preserve exact entry values; round only aggregate when .5 or greater fraction exists

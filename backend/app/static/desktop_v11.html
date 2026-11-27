@@ -6458,7 +6458,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   let editable=['IN_PROGRESS','SORTING_IN_PROGRESS','READY_FOR_SORTING','LOGISTICS_REVIEW','MANAGEMENT_REVIEW'].includes(String(d.status||'').toUpperCase());
   let st=String(d.status||'').toUpperCase(),showTable=editable||st==='CLOSED';      // ολοκληρωμένη: ο πίνακας φαίνεται μόνο για ανάγνωση
   let canMarkReview=st==='IN_PROGRESS';
-  let canCompleteSort=st==='LOGISTICS_REVIEW';
+  let canCompleteSort=st==='LOGISTICS_REVIEW'||(st==='IN_PROGRESS'&&(d.entries||[]).length>0);      /* B138: Ολοκλήρωση και απευθείας από «Ταξινομείται» */
   let canReopenSort=st==='LOGISTICS_REVIEW'||st==='MANAGEMENT_REVIEW';
   let canMarkCorrection=canReopenSort&&!d.correction;
   let canRevert=st==='CLOSED'&&!!(me&&Array.isArray(me.roles)&&me.roles.includes('MANAGEMENT'));      // μόνο Διοίκηση/admin: επιστροφή από «Ολοκληρώθηκε»
