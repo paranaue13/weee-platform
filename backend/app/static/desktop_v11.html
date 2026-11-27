@@ -1120,7 +1120,7 @@ body.sideAuto .side:hover #settingsMenu{left:208px!important}
 body.sideAuto .shell{grid-template-columns:56px minmax(0,1fr)!important}
 /* B1-1: το μενού εικονιδίων μένει στενή στήλη 56px σε ΟΛΑ τα πλάτη (παλιότερα κάτω από 980px η σελίδα έπεφτε κάτω από το μενού: λευκή σελίδα / τρεμόπαιγμα στο όριο) */
 body.sideAuto .side{width:56px;overflow:hidden;padding-left:8px;padding-right:8px;transition:width .15s ease;z-index:60}
-body.sideAuto .side:hover{width:200px;margin-right:-144px;box-shadow:6px 0 24px rgba(0,0,0,.28)}
+body.sideAuto .side:hover{width:200px;margin-right:-144px;box-shadow:6px 0 24px rgba(0,0,0,.28);z-index:300}      /* B137: το ανοιχτό πλαϊνό μενού μπαίνει πάνω από τα παράθυρα */
 #splitHost{display:none;height:calc(100vh - 58px);padding:8px;box-sizing:border-box;position:relative}
 body.splitOn #splitHost{display:block}
 body.splitOn .main>.content{display:none}
@@ -12309,7 +12309,10 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
   function closeAll(){let sd=$('sortingDetail'),f=$('receiptForm');U.active=false;if(sd)sd.classList.add('hidden');if(f){f.style.display='';f.classList.add('hidden');try{resetReceipt()}catch(e){}}}
   // μετάβαση στην Ταξινόμηση: το παράθυρο Ταξινόμησης στήνεται ΠΡΙΝ κρυφτεί η Παραλαβή (δες openSortingDetail) ώστε να μην αναβοσβήνει τίποτα
   async function toSort(){U.toSort=true;try{await openSortingDetail(U.ctx.loadId)}finally{U.toSort=false}}
-  function toRec(){let sd=$('sortingDetail'),f=$('receiptForm');if(sd){let rc=sd.getBoundingClientRect();f.style.left=rc.left+'px';f.style.top=rc.top+'px';f.style.width=rc.width+'px';f.style.height=rc.height+'px';uwsBase(f);sd.classList.add('hidden')}f.style.display=''}
+  function toRec(){let sd=$('sortingDetail'),f=$('receiptForm');if(sd){if(sd.classList.contains('popupMax')){      /* B137: η ταξινόμηση ήταν μεγιστοποιημένη → και η παραλαβή μεγιστοποιημένη, με δικό της κανονικό μέγεθος (ώστε η σμίκρυνση να δουλεύει) */
+    f.classList.remove('popupMin');f.classList.add('popupMax');let ws=winWS();if(!f.style.width||parseFloat(f.style.width)>=ws.w-4){f.style.width='';f.style.height='';f.style.left='';f.style.top='';try{positionReceiptPopup(f,0.08)}catch(e){}f.classList.add('popupMax')}}
+    else{let rc=sd.getBoundingClientRect();f.style.left=rc.left+'px';f.style.top=rc.top+'px';f.style.width=rc.width+'px';f.style.height=rc.height+'px';f.classList.remove('popupMax')}
+    uwsBase(f);sd.classList.add('hidden')}f.style.display=''}
   const _orp=openReceiptPopup;
   openReceiptPopup=async function(id,hl=null,only=false){
     U.active=false;U.ctx=null;let sd0=$('sortingDetail');if(sd0)sd0.classList.add('hidden');if($('receiptForm'))$('receiptForm').style.display='';
@@ -14486,7 +14489,8 @@ html #receiptForm :is(.comboAction,.comboAction1){height:44px!important;min-heig
 /* ===== B19 (2): κουμπιά σταθερά κάτω · λωρίδα, πλαίσια και κουμπιά τελειώνουν στην ίδια ευθεία δεξιά (χώρος για το scrollbar και στα τρία, scrollbar στην άκρη του παραθύρου) ===== */
 #receiptForm .recBody{scrollbar-gutter:stable;padding-bottom:0!important}
 #receiptForm>:is(#receiptReadInfo,#supplierSourceNote){margin-right:30px!important;box-sizing:border-box}
-#receiptForm .recBody>.recFoot{position:sticky;bottom:0;z-index:7;margin-top:0!important;padding:10px 0 14px!important;background:var(--wBg,var(--surface,#fff))}
+#receiptForm .recBody>.recFoot{position:sticky;bottom:0;z-index:7;margin-top:auto!important;      /* B137: κουμπιά πάντα στο κάτω μέρος του παραθύρου */
+  padding:10px 0 14px!important;background:var(--wBg,var(--surface,#fff))}
 #receiptForm .recBody>.recFoot .floatPanelActions{margin-top:0!important}
 /* ===== B19 (3): Ταξινόμηση — σταθερά, το ένα ακριβώς κάτω από το άλλο, με γεμάτο φόντο: κουμπιά ενεργειών → σύνολα → αναζήτηση → κεφαλίδα πίνακα ===== */
 #sortingDetail .sortingPopupActions{position:sticky!important;top:var(--sfTop,0px)!important;z-index:8!important;margin-top:0!important;margin-bottom:0!important;padding-top:12px!important;padding-bottom:8px!important;background:var(--wBg,var(--surface,#fff))!important}

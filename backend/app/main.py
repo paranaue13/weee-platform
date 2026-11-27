@@ -2885,8 +2885,7 @@ def update_receipt(receipt_id:str, data:schemas.ReceiptCreate, db:Session=Depend
     trip=db.get(InboundTrip,receipt_id)
     if not trip: raise HTTPException(404,"Η παραλαβή δεν βρέθηκε")
     sessions=db.scalars(select(models.SortingSession).join(InboundLoad,models.SortingSession.inbound_load_id==InboundLoad.id).where(InboundLoad.trip_id==receipt_id)).all()
-    if any(x.status not in ("NOT_STARTED",) for x in sessions):
-        raise HTTPException(409,"Η ταξινόμηση έχει ξεκινήσει. Η παραλαβή δεν μπορεί πλέον να τροποποιηθεί από αυτή την καρτέλα.")
+    started_ids={x.inbound_load_id for x in sessions if x.status not in ("NOT_STARTED",)}      # B137: διόρθωση παραλαβής επιτρέπεται και μετά την έναρξη ταξινόμησης (τα φορτία ενημερώνονται επιτόπου, η ταξινόμηση μένει ως έχει)
     if data.receipt_type not in RECEIPT_TYPES: raise HTTPException(422,"Μη έγκυρος τύπος παραλαβής")
     for load in data.loads:
         for w in (load.gross_weight, load.tare_weight):
@@ -2901,6 +2900,31 @@ def update_receipt(receipt_id:str, data:schemas.ReceiptCreate, db:Session=Depend
     old_dpp_by_order={x.order_number:x.dpp_number for x in existing if x.order_number and x.dpp_number}
     old_dpp_by_seq={x.load_sequence:x.dpp_number for x in existing if x.dpp_number}
     old_ids={x.id for x in existing}
+    if started_ids:
+        by_seq={x.load_sequence:x for x in existing}
+        for x in existing:
+            if x.load_sequence>len(data.loads) and x.id in started_ids:
+                raise HTTPException(409,"Δεν μπορεί να αφαιρεθεί φορτίο του οποίου η ταξινόμηση έχει ξεκινήσει.")
+        for i,ld in enumerate(data.loads,1):
+            if not db.get(Organization,ld.supplier_id): raise HTTPException(422,f"Άγνωστος προμηθευτής στη γραμμή {i}")
+            outgoing=db.get(ContainerAsset,ld.outgoing_container_id) if ld.outgoing_container_id else None
+            if data.receipt_type=="CONTAINER":
+                if not ld.incoming_container_number: raise HTTPException(422,"Απαιτείται αριθμός εισερχόμενου container")
+                if ld.incoming_container_tare is None: raise HTTPException(422,"Απαιτείται απόβαρο εισερχόμενου container")
+                if not outgoing and ld.outgoing_container_tare is None: raise HTTPException(422,"Απαιτείται κάδος εξόδου ή Προσαρμοσμένο απόβαρο")
+            net=_compute_net(data.receipt_type,ld,outgoing)
+            _check_load_weights(ld,net,i)
+            ex=by_seq.get(i)
+            vals=dict(supplier_id=ld.supplier_id,order_number=ld.order_number,incoming_container_number=ld.incoming_container_number,incoming_container_tare=ld.incoming_container_tare,outgoing_container_id=ld.outgoing_container_id,outgoing_container_tare=(outgoing.tare_weight if outgoing else ld.outgoing_container_tare),gross_weight=ld.gross_weight,tare_weight=ld.tare_weight,net_weight=net,notes=ld.notes,weighbridge_number=ld.weighbridge_number,dispatch_note_number=ld.dispatch_note_number,seal_number=ld.seal_number)
+            if ex:
+                for k,v in vals.items(): setattr(ex,k,v)
+                if ld.dpp_number: ex.dpp_number=ld.dpp_number
+            else:
+                dpp=ld.dpp_number or _next_dpp_numbers(db,data.receipt_date.year,1,exclude_load_ids=old_ids)[0]
+                db.add(InboundLoad(trip_id=trip.id,load_sequence=i,status="READY_FOR_SORTING" if trip.status=="READY_FOR_SORTING" else "DRAFT",ready_for_sorting_at=datetime.now(timezone.utc) if trip.status=="READY_FOR_SORTING" else None,dpp_number=dpp,**vals))
+        for x in existing:
+            if x.load_sequence>len(data.loads): db.delete(x)
+        write_audit(db,user,"receipt",trip.id,"UPDATE",old=old,new={"type":data.receipt_type,"loads":len(data.loads),"after_sorting_started":True}); _sync_receipt_visitor(db,trip,user); db.commit(); db.refresh(trip); return _receipt_out(db,trip)
     for x in existing: db.delete(x)
     db.flush()
     auto_pool=_next_dpp_numbers(db,data.receipt_date.year,len(data.loads),exclude_load_ids=old_ids)
