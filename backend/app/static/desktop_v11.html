@@ -9813,7 +9813,7 @@ const SF=(function(){
     let h=`<div class="sfEg h"><span>Καταχωρήσεις (${en.length})</span><span>Απόβαρο</span><span>Μεικτό</span><span>Καθαρό</span><span></span></div>`;
     if(!en.length)h+='<div class="sfEgNone">Καμία καταχώρηση</div>';
     en.forEach(e=>{let t=tareOf(e),g=t>0?entW(e)+t:null;
-      h+=`<div class="sfEg${S.editing[cid]===e.id?' ed':''}" data-sid="${e.id}"><span>${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span> ':''}${esc2(entLabel(e))}${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}</span><span>${t>0?nf(t):''}</span><span>${g!=null?nf(g):''}</span><span><b>${nf(entW(e))}</b></span><span class="ac">${ro?'':`<button type="button" class="sfMini" data-edit="${e.id}" title="Επεξεργασία">✎</button><button type="button" class="sfMini d" data-del="${e.id}" title="Διαγραφή">🗑</button>`}</span></div>`});
+      h+=`<div class="sfEg${S.editing[cid]===e.id?' ed':''}" data-sid="${e.id}"><span>${e.source==='PC'?'<span class="sfIc" title="Καταχώρηση από PC">💻</span> ':''}${esc2(entLabel(e))}${e.piece_count?` · <small>${e.piece_count} τεμ.</small>`:''}</span><span>${t>0?nf(t):''}</span><span>${g!=null?nf(g):''}</span><span><b>${nf(entW(e))}</b></span><span class="ac">${ro?'':`<button type="button" class="sfMini" data-edit="${e.id}" title="Επεξεργασία"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14 8l3 3"/></svg></button><button type="button" class="sfMini d" data-del="${e.id}" title="Διαγραφή"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg></button>`}</span></div>`});
     return h;
   }
   function panelHead(c){
@@ -15251,6 +15251,12 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
 })();
 </script>
 <style id="b109Css">
+/* B123 · Ταξινόμηση › Καταχωρήσεις: εικονίδια ενεργειών (μολύβι / κάδος) καθαρής γραμμής — μόνο το σχέδιο και τα χρώματα· ίδιο μέγεθος και θέση κουμπιών */
+#sfPanel .sfEg .sfMini{display:flex;align-items:center;justify-content:center;border-color:#D5CDB9;color:#144A52;line-height:0}
+#sfPanel .sfEg .sfMini svg{width:15px;height:15px;display:block;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#sfPanel .sfEg .sfMini:hover{background:#E8F1F2;border-color:#9DBFC3}
+#sfPanel .sfEg .sfMini.d{color:#A52A22;border-color:#E3B2A9;background:#fff}
+#sfPanel .sfEg .sfMini.d:hover{background:#FBE9E6;border-color:#D96A60}
 #sortingDetail tr.sfSubR.sel td{background:#DCEBEC!important}
 #sortingDetail .sfLeft .sortEntriesCard .sfTb{flex-wrap:wrap!important;row-gap:8px}
 #sortingDetail .sfLeft .sortEntriesCard .sfTb .sfQ{flex:1 1 0!important;width:0;min-width:140px!important}
