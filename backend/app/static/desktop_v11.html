@@ -2531,6 +2531,13 @@ body.pane #receiptRows td:nth-child(3),body.pane #receiptRows td:nth-child(5){ov
 #winDock .wChip small{font-size:12px;color:#566075;line-height:1.2;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #winDock .wChip.a{background:#d5e3fe;border-color:#2f5fc4;border-bottom-width:3px}
 #winDock .wChip.m{opacity:.72;border-style:dashed}
+#winDock .wChip.p{opacity:.85}
+#winDock .wChip.gp{position:relative;flex:0 0 150px;width:150px}
+#winDock .wChip.gp i{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;font-weight:700;background:#2F5FC4;color:#fff;border-radius:9px;padding:0 7px;line-height:18px}
+.winFly{position:fixed;z-index:100000;background:#fff;border:1px solid #CFCAD0;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.25);padding:5px;display:flex;flex-direction:column;gap:3px;max-height:60vh;overflow:auto;min-width:240px}
+.winFly button{display:flex;flex-direction:column;align-items:flex-start;border:1px solid #d5dcea;border-radius:6px;background:#eff2f7;padding:4px 10px;cursor:pointer;font-family:inherit;text-align:left}
+.winFly button:hover{background:#d5e3fe}
+.winFly b{font-size:13.5px}.winFly small{font-size:12px;color:#566075}
 #winDock .wChip:focus-visible{outline:2px solid #2f5fc4;outline-offset:2px}
 body[data-theme="dark"] #winDock .wChip{background:#232a3b;border-color:#364060;color:#e6eaf3}
 body[data-theme="dark"] #winDock .wChip small{color:#9aa4b8}
@@ -6456,6 +6463,7 @@ async function openSortingDetail(loadId,sourceRow=null){
   let canMarkCorrection=canReopenSort&&!d.correction;
   let canRevert=st==='CLOSED'&&!!(me&&Array.isArray(me.roles)&&me.roles.includes('MANAGEMENT'));      // μόνο Διοίκηση/admin: επιστροφή από «Ολοκληρώθηκε»
   let stMeta=statusMeta(d.correction&&(st==='LOGISTICS_REVIEW'||st==='MANAGEMENT_REVIEW')?'CORRECTION':(st==='IN_PROGRESS'&&!(d.entries||[]).length?'READY_FOR_SORTING':st));
+  sd.dataset.loadId=loadId;sd.dataset.receiptId=d.receipt_id||'';
   sd.dataset.stKey=st+'|'+(d.correction?1:0);      // B130: για να φαίνεται αμέσως όταν η κατάσταση αλλάζει από άλλη συσκευή
   let diff=Number(d.net_weight||0)-Number(d.sorting_weight||0);
   const NO_MEDIUM_LABEL='— χωρίς μέσο —';
@@ -6731,12 +6739,35 @@ function winClamp(p){if(!p||p.classList.contains('popupMax')||p.classList.contai
     ord(){let sd=g('sortingDetail'),f=g('receiptForm');if(sd&&!sd.classList.contains('hidden'))return sd;if(f&&f.parentElement===document.body&&!f.classList.contains('hidden')&&(f.style.display!=='none'||f.classList.contains('popupMin')))return f;return null},
     edit(){let p=g('floatingEditor');return p&&!p.classList.contains('hidden')?p:null}
   };
-  let order=[],zc=0,zOf={ord:0,edit:0},dock=null,sig='';
+  let order=[],zc=0,zOf={ord:0,edit:0},dock=null,sig='',P=[],prev=null,fly=null;
+  const MAXW=15;      // B136: έως 15 παράθυρα (1 ανοιχτό + 14 «παρκαρισμένα»)· όταν γεμίσει η μπάρα ομαδοποιούνται ανά είδος, όπως στα Windows
+  const sameW=(a,b)=>a.rid===b.rid&&(a.kind!==b.kind||a.loadId===b.loadId);
+  function ident(){let sd=g('sortingDetail'),f=g('receiptForm');
+    if(sd&&!sd.classList.contains('hidden'))return {kind:'sort',rid:String(sd.dataset.receiptId||''),loadId:String(sd.dataset.loadId||''),el:sd};
+    if(f&&f.parentElement===document.body&&!f.classList.contains('hidden')&&(f.style.display!=='none'||f.classList.contains('popupMin')))return {kind:'rec',rid:String((typeof editingReceiptId!=='undefined'&&editingReceiptId)||''),loadId:'',el:f};
+    return null}
+  function track(){let id=ident();if(!id){prev=null;return}
+    if(prev&&id.rid&&prev.rid&&!sameW(prev,id)){      // άνοιξε άλλη εντολή στο ίδιο παράθυρο: η προηγούμενη μένει στη μπάρα
+      P=P.filter(x=>!sameW(x,prev));P.push(prev);while(P.length>MAXW-1)P.shift();id.el.classList.remove('popupMin');sig=''}
+    if(id.rid){let n=P.length;P=P.filter(x=>!sameW(x,id));if(P.length!==n)sig=''}
+    let inf=info('ord',id.el);prev={kind:id.kind,rid:id.rid,loadId:id.loadId,t:inf.t,s:inf.s}}
+  async function reopen(x){P=P.filter(y=>y!==x);sig='';
+    try{if(x.kind==='sort')await openSortingDetail(x.loadId);else await openReceiptPopup(x.rid)}catch(e){P.push(x)}
+    sync()}
+  function flyClose(){if(fly){fly.remove();fly=null}document.removeEventListener('mousedown',flyOut,true)}
+  function flyOut(e){if(fly&&!fly.contains(e.target)&&!(e.target.closest&&e.target.closest('.wChip.gp')))flyClose()}
+  function flyOpen(btn,kind){flyClose();
+    let list=P.filter(x=>x.kind===kind);fly=document.createElement('div');fly.className='winFly autoCloseMenu';
+    fly.innerHTML=list.map(x=>`<button type="button" data-pi="${P.indexOf(x)}"><b>${esc(x.t)}</b><small>${esc(x.s)}</small></button>`).join('');
+    document.body.appendChild(fly);let r=btn.getBoundingClientRect();fly.style.left=Math.max(4,Math.min(innerWidth-fly.offsetWidth-4,r.left))+'px';fly.style.bottom=(innerHeight-r.top+6)+'px';
+    fly.addEventListener('click',e=>{let b=e.target.closest('[data-pi]');if(!b)return;let x=P[+b.dataset.pi];flyClose();if(x)reopen(x)});
+    document.addEventListener('mousedown',flyOut,true)}
   function ensureDock(){if(dock&&dock.isConnected)return dock;let zb=g('zoomBar');if(!zb)return null;dock=document.createElement('div');dock.id='winDock';zb.insertBefore(dock,zb.firstChild);dock.addEventListener('click',onChip);return dock}
   function info(k,el){
     if(k==='edit')return {t:(g('floatingEditorTitle')||{}).textContent||'Παράθυρο',s:''};
     let h=el.querySelector('.uHdT h3,.uHdT h2,.sortingPopupTitleBlock h2,.receiptPopupHeader h3,h2,h3'),sp=el.querySelector('.uInfo span:nth-child(2) b');
-    return {t:(h?h.textContent:'Εντολή').trim(),s:(sp?sp.textContent:'').replace(/^—$/,'').trim()};
+    let tx=(el.innerText||'').slice(0,600),m1=tx.match(/Εντολή\s+\S+(?:\s*·\s*ΔΠΠ\s*\S+)?/),m2=tx.match(/\d{1,2}\/\d{1,2}\/\d{4}\s*·\s*([^·\n]+)/);
+    return {t:(m1?m1[0]:(h?h.textContent:'Εντολή')).trim(),s:((sp?sp.textContent:'')||(m2?m2[1]:'')).replace(/^—$/,'').trim()};
   }
   const isMin=el=>el.classList.contains('popupMin');
   const zi=el=>parseInt(getComputedStyle(el).zIndex)||0;
@@ -6746,12 +6777,20 @@ function winClamp(p){if(!p||p.classList.contains('popupMax')||p.classList.contai
     let d=ensureDock();if(!d)return;
     let items=order.map(k=>{let el=cur[k]();return el?{k,el,min:isMin(el),...info(k,el)}:null}).filter(Boolean);
     let top=items.filter(x=>!x.min).sort((a,b)=>zOf[b.k]-zOf[a.k])[0];
-    let s=items.map(x=>[x.k,x.t,x.s,x.min?1:0,top&&top.k===x.k?1:0].join('|')).join('¦');
-    if(s===sig)return;sig=s;
-    d.innerHTML=items.map(x=>`<button type="button" class="wChip${top&&top.k===x.k?' a':''}${x.min?' m':''}" data-k="${x.k}" title="${esc(x.t+(x.s?' · '+x.s:''))}"><b>${esc(x.t)}</b><small>${esc(x.s)||'&nbsp;'}</small></button>`).join('');
+    let cap=Math.max(2,Math.floor((d.clientWidth||700)/118)),grouped=items.length+P.length>cap;
+    let s=items.map(x=>[x.k,x.t,x.s,x.min?1:0,top&&top.k===x.k?1:0].join('|')).join('¦')+'§'+P.map(x=>[x.kind,x.rid,x.loadId,x.t,x.s].join('|')).join('¦')+'§'+(grouped?1:0);
+    let cnt=items.length+(grouped?[...new Set(P.map(x=>x.kind))].length:P.length);
+    if(s===sig&&d.children.length===cnt)return;sig=s;
+    let h=items.map(x=>`<button type="button" class="wChip${top&&top.k===x.k?' a':''}${x.min?' m':''}" data-k="${x.k}" title="${esc(x.t+(x.s?' · '+x.s:''))}"><b>${esc(x.t)}</b><small>${esc(x.s)||'&nbsp;'}</small></button>`).join('');
+    if(!grouped)h+=P.map((x,i)=>`<button type="button" class="wChip p" data-p="${i}" title="${esc(x.t+(x.s?' · '+x.s:''))}"><b>${esc(x.t)}</b><small>${esc(x.s)||'&nbsp;'}</small></button>`).join('');
+    else h+=[['sort','Ταξινομήσεις'],['rec','Παραλαβές']].map(([k,l])=>{let n=P.filter(x=>x.kind===k).length;return n?`<button type="button" class="wChip gp" data-g="${k}"><b>${l}</b><small>${n} παράθυρα</small><i>${n}</i></button>`:''}).join('');
+    d.innerHTML=h;
   }
   function onChip(e){
-    let b=e.target.closest&&e.target.closest('.wChip');if(!b)return;let k=b.dataset.k,el=cur[k]();if(!el)return;
+    let b=e.target.closest&&e.target.closest('.wChip');if(!b)return;
+    if(b.dataset.p!==undefined){let x=P[+b.dataset.p];if(x)reopen(x);return}
+    if(b.dataset.g){flyOpen(b,b.dataset.g);return}
+    let k=b.dataset.k,el=cur[k]();if(!el)return;
     let top=order.filter(x=>cur[x]()&&!isMin(cur[x]())).sort((a,c)=>zOf[c]-zOf[a])[0];
     if(isMin(el)){el.classList.remove('popupMin');front(k);requestAnimationFrame(()=>winClamp(el))}
     else if(top===k)el.classList.add('popupMin');
@@ -6759,7 +6798,7 @@ function winClamp(p){if(!p||p.classList.contains('popupMax')||p.classList.contai
     sync();
   }
   function sync(){
-    winVars();
+    winVars();track();
     let open={};KEYS.forEach(k=>open[k]=cur[k]());
     order=order.filter(k=>open[k]);
     KEYS.forEach(k=>{if(open[k]&&!order.includes(k)){order.push(k);zOf[k]=++zc;winCenterSoon(open[k])}});
@@ -6770,14 +6809,14 @@ function winClamp(p){if(!p||p.classList.contains('popupMax')||p.classList.contai
   window.winSync=sync;
   function init(){
     ['floatingEditor','receiptForm','sortingDetail'].forEach(i=>{let p=g(i);if(!p)return;
-      new MutationObserver(sync).observe(p,{attributes:true,attributeFilter:['class','style']});
+      new MutationObserver(sync).observe(p,{attributes:true,attributeFilter:['class','style','data-load-id','data-receipt-id']});
       if(window.ResizeObserver)new ResizeObserver(()=>{if(Date.now()<(p._cent||0)&&!p._moved&&!p.classList.contains('popupMax')&&!p.classList.contains('popupMin')&&!p.classList.contains('hidden'))winCenter(p)}).observe(p);
       p.addEventListener('pointerdown',e=>{let r=p.getBoundingClientRect();if(e.clientX>r.right-24&&e.clientY>r.bottom-24)p._moved=true;let k=i==='floatingEditor'?'edit':'ord';if(order.includes(k)){front(k);render()}},true);
     });
     window.addEventListener('resize',()=>{winVars();['floatingEditor','receiptForm','sortingDetail'].forEach(i=>winClamp(g(i)));render()});
     let m=document.querySelector('main.main'),zb=g('zoomBar');
     if(window.ResizeObserver){let ro=new ResizeObserver(()=>{winVars();['floatingEditor','receiptForm','sortingDetail'].forEach(i=>winClamp(g(i)))});if(m)ro.observe(m);if(zb)ro.observe(zb)}
-    setInterval(()=>{try{render()}catch(e){}},800);
+    setInterval(()=>{try{track();render()}catch(e){}},800);
     winVars();sync();
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
