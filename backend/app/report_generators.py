@@ -82,17 +82,27 @@ def _insert_rows(ws, at: int, n: int, style_row: int, merge_ranges=()):
             ws.merge_cells(start_row=row, end_row=row, start_column=c1, end_column=c2)
 
 
-def _response(wb, filename: str, db: Session | None = None, when=None, recl=None):
+def _response(wb, filename: str, db: Session | None = None, when=None, recl=None, fmt: str = "xlsx"):
     tmp = NamedTemporaryFile(delete=False, suffix=".xlsx")
     tmp.close()
     wb.save(tmp.name)
+    if fmt == "pdf":
+        from .xlsx_pdf import xlsx_to_pdf
+        pdf = NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.close()
+        xlsx_to_pdf(tmp.name, pdf.name)
+        os.unlink(tmp.name)
+        filename = filename[:-5] + ".pdf"
+        if db is not None and when is not None:
+            archive_export_copy(db, pdf.name, filename, when, recl)
+        return FileResponse(pdf.name, media_type="application/pdf", filename=filename, background=BackgroundTask(os.unlink, pdf.name))
     if db is not None and when is not None:
         archive_export_copy(db, tmp.name, filename, when, recl)
     return FileResponse(tmp.name, media_type=XLSX, filename=filename, background=BackgroundTask(os.unlink, tmp.name))
 
 
 @router.get("/reports/generate/daily-summary")
-def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), recl: str | None = Query(default=None), db: Session = Depends(get_db), user=Depends(require_permission("sorting.review"))):
+def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), recl: str | None = Query(default=None), fmt: str = Query(default="xlsx", pattern="^(xlsx|pdf)$"), db: Session = Depends(get_db), user=Depends(require_permission("sorting.review"))):
     """Ημερήσιο Συγκεντρωτικό: μία γραμμή ανά φορτίο, κιλά παραλαβής ΑΗΗΕ / ΜΗ ΑΗΗΕ ανά τύπο προμηθευτή."""
     from .main import _sorting_export_data
     d = datetime.fromisoformat(day)
@@ -129,7 +139,7 @@ def daily_summary(day: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"), recl: s
     except Exception:
         pass
     from . import docs_storage
-    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx", db, start.date(), docs_storage.parse_recl(day, recl))
+    return _response(wb, "Ημερήσιο Συγκεντρωτικό " + d.strftime("%d.%m.%Y") + ".xlsx", db, start.date(), docs_storage.parse_recl(day, recl), fmt)
 
 
 @router.get("/reports/generate/non-weee-by-supplier")

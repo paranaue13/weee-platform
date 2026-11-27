@@ -3378,11 +3378,11 @@ def sorting_detail(load_id:str, db:Session=Depends(get_db), user=Depends(require
       'history':[{'action':a.action,'reason':a.reason,'created_at':a.created_at.isoformat()} for a in audits if a.entity_id in ({ses.id} if ses else set()) | {e.id for e in entries}]}
 
 @app.get('/sorting/daily-export')
-def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), recl:str|None=Query(default=None), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
+def sorting_daily_export(day:str=Query(...,pattern=r'^\d{4}-\d{2}-\d{2}$'), recl:str|None=Query(default=None), fmt:str=Query(default='xlsx',pattern='^(xlsx|pdf)$'), db:Session=Depends(get_db), user=Depends(require_permission('sorting.review'))):
     """Daily workbook: one sorting per worksheet plus final 'Σύνολο Μέρας', matching the imported daily workbook structure."""
     from . import docs_storage
     d=datetime.fromisoformat(day); start=datetime(d.year,d.month,d.day)
-    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx',recl=docs_storage.parse_recl(day,recl))
+    return _received_workbook_response(db,start,start+timedelta(days=1),'Σύνολο Μέρας',d.strftime('%d.%m.%Y')+'.xlsx',recl=docs_storage.parse_recl(day,recl),fmt=fmt)
 
 def _copy_print_setup(src,dst):
     """copy_worksheet δεν μεταφέρει περιοχή εκτύπωσης, κλίμακα, προβολή σελίδας και διακοπές σελίδας της φόρμας."""
@@ -3394,7 +3394,7 @@ def _copy_print_setup(src,dst):
     dst.sheet_view.view=src.sheet_view.view; dst.sheet_view.zoomScale=src.sheet_view.zoomScale; dst.sheet_view.zoomScaleNormal=src.sheet_view.zoomScaleNormal; dst.sheet_view.zoomScalePageLayoutView=src.sheet_view.zoomScalePageLayoutView
     dst.row_breaks=copy(src.row_breaks); dst.col_breaks=copy(src.col_breaks)
 
-def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str, recl=None):
+def _received_workbook_response(db:Session, start:datetime, end:datetime, summary_title:str, filename:str, recl=None, fmt:str='xlsx'):
     from openpyxl import load_workbook
     from copy import copy
     from tempfile import NamedTemporaryFile
@@ -3442,6 +3442,11 @@ def _received_workbook_response(db:Session, start:datetime, end:datetime, summar
     try: wb.calculation.fullCalcOnLoad=True;wb.calculation.forceFullCalc=True;wb.calculation.calcMode='auto'
     except Exception: pass
     tmp=NamedTemporaryFile(delete=False,suffix='.xlsx');tmp.close();wb.save(tmp.name)
+    if fmt=='pdf':
+        from .xlsx_pdf import xlsx_to_pdf
+        pdf=NamedTemporaryFile(delete=False,suffix='.pdf');pdf.close();xlsx_to_pdf(tmp.name,pdf.name);os.unlink(tmp.name)
+        filename=filename[:-5]+'.pdf';archive_export_copy(db,pdf.name,filename,start.date(),recl)
+        return FileResponse(pdf.name,media_type='application/pdf',filename=filename,background=BackgroundTask(os.unlink,pdf.name))
     archive_export_copy(db,tmp.name,filename,start.date(),recl)
     return FileResponse(tmp.name,media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',filename=filename,background=BackgroundTask(os.unlink,tmp.name))
 
