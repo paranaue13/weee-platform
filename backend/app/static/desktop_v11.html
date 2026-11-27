@@ -12777,7 +12777,8 @@ body[data-theme="dark"] #zoomBar .zmMode.on{color:#9db8ff;border-color:#33466e;b
 #sfPanel .sfEgNone{padding:12px;color:#9AA3A8;font-size:13px}
 @container sd (max-width:900px){
   #sortingDetail .sfGrid{grid-template-columns:minmax(0,1fr);height:auto}
-  #sortingDetail .sfLeft .sortEntriesCard{height:420px;flex:none}
+  #sortingDetail .sfLeft>.sortEntriesCard{height:420px!important;flex:none!important}      /* B131: στενό παράθυρο — ο πίνακας ταξινόμησης δεν καταρρέει */
+  #sortingDetail .sfPanelCard:empty{display:none}
 }
 #sortingDetail{container:sd/inline-size}
 </style>
