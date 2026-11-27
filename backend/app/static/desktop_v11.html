@@ -15491,4 +15491,13 @@ html body #app #metrics .card.homeKpi{container-type:inline-size}
 #receiptForm .uHdrWrap>.uTabs>.uTab,#sortingDetail .uHdrWrap>.uTabs>.uTab{height:46px;border-bottom-width:2px;padding-bottom:3px;margin-bottom:-2px}
 html body :is(#receiptForm,#sortingDetail) .uHdrWrap>.uTabs>.uTab:not(.active):not(.on):hover::before{bottom:1px!important}
 </style>
+<style id="b144Css">
+/* B144 · Ταξινόμηση: με οριζόντιο scroll του παραθύρου η κεφαλίδα, τα κουμπιά ενεργειών και η περίληψη μένουν καρφωμένα αριστερά (δεν φεύγουν ούτε αφήνουν κενό) */
+#sortingDetail :is(.uHdrWrap,.sortingPopupActions,.sfBubble){transform:translateX(var(--sdSL,0px))}
+</style>
+<script id="b144Js">
+(function(){const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
+  sd.addEventListener('scroll',()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;const v=sd.scrollLeft+'px';if(sd.style.getPropertyValue('--sdSL')!==v)sd.style.setProperty('--sdSL',v)})},{passive:true});
+})();
+</script>
 </body></html>
