@@ -67,15 +67,24 @@ def _now() -> datetime:
         return datetime.now()
 
 
+def _probe(d: Path) -> None:
+    """Έλεγχος εγγραφής στον φάκελο με μοναδικό όνομα αρχείου (παράλληλα αιτήματα/antivirus δεν συγκρούονται)· αποτυχία διαγραφής του δοκιμαστικού αρχείου δεν είναι σφάλμα."""
+    import uuid
+    probe = d / f".write_test_{uuid.uuid4().hex[:8]}"
+    probe.write_bytes(b"")
+    try:
+        probe.unlink()
+    except OSError:
+        pass
+
+
 def month_dir(kind: str, when=None) -> Path:
     """Έγγραφα\\WEEE Platform\\<kind>\\YYYY-MM — δημιουργείται μόνος του· αν δεν γράφεται, καθαρό μήνυμα."""
     when = when or _now()
     d = documents_dir() / APP_DIR / kind / f"{when.year}-{when.month:02d}"
     try:
         d.mkdir(parents=True, exist_ok=True)
-        probe = d / ".write_test"
-        probe.write_bytes(b"")
-        probe.unlink()
+        _probe(d)
     except OSError as e:
         raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). "
                                  f"Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής, ή επίλεξε άλλον φάκελο αποθήκευσης.")
@@ -91,9 +100,7 @@ def photos_root() -> Path:
     d = documents_dir() / APP_DIR / PHOTOS
     try:
         d.mkdir(parents=True, exist_ok=True)
-        probe = d / ".write_test"
-        probe.write_bytes(b"")
-        probe.unlink()
+        _probe(d)
     except OSError as e:
         raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). "
                                  f"Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής, ή επίλεξε άλλον φάκελο αποθήκευσης.")
@@ -178,9 +185,7 @@ def receipts_report_dir(when, level: str) -> Path:
         d = d / f"{when.month:02d}.{MONTHS_UPPER[when.month - 1]}"
     try:
         d.mkdir(parents=True, exist_ok=True)
-        probe = d / ".write_test"
-        probe.write_bytes(b"")
-        probe.unlink()
+        _probe(d)
     except OSError as e:
         raise HTTPException(507, f"Δεν μπορώ να γράψω στον φάκελο «{d}» ({e.strerror or e}). Έλεγξε ότι ο φάκελος είναι προσβάσιμος και ότι υπάρχει δικαίωμα εγγραφής.")
     return d
