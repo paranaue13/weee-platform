@@ -9961,8 +9961,10 @@ const SF=(function(){
     for(let i=0;i<n;i++){const x=ak[i],y=bk[i];
       if(x.nodeType!==y.nodeType||(x.nodeType===1&&x.tagName!==y.tagName)){x.replaceWith(y.cloneNode(true));continue}
       if(x.nodeType===3||x.nodeType===8){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
-      for(const at of [...x.attributes])if(!y.hasAttribute(at.name))x.removeAttribute(at.name);
-      for(const at of y.attributes)if(x.getAttribute(at.name)!==at.value)x.setAttribute(at.name,at.value);
+      const pk=x._pinKey||x._pinRowOn,pc=pk?[...x.classList].filter(c=>/^pin(ColHide|RowHideCell|RowHide)$/.test(c)):[];      /* B142: κελιά κρυμμένα από τον χρήστη (Απόκρυψη στήλης) μένουν κρυμμένα όταν η γραμμή ανανεώνεται επιτόπου */
+      for(const at of [...x.attributes]){if(pk&&at.name==='style')continue;if(!y.hasAttribute(at.name))x.removeAttribute(at.name)}
+      for(const at of y.attributes){if(pk&&at.name==='style')continue;let v=at.value;if(pc.length&&at.name==='class')v=(v+' '+pc.join(' ')).trim();if(x.getAttribute(at.name)!==v)x.setAttribute(at.name,v)}
+      if(pc.length)pc.forEach(c=>x.classList.add(c));
       morphKids(x,y)}
     for(let i=ak.length-1;i>=n;i--)ak[i].remove();
     for(let i=n;i<bk.length;i++)a.appendChild(bk[i].cloneNode(true));
@@ -12372,13 +12374,7 @@ document.addEventListener('mousedown',e=>{if(!e.target.closest||!e.target.closes
     return r;
   };
   ['closeReceiptTop','cancelReceipt'].forEach(id=>$(id)&&$(id).addEventListener('click',()=>{U.active=false;let sd=$('sortingDetail');if(sd)sd.classList.add('hidden')},true));
-  // κλικ έξω από το παράθυρο (στη σελίδα Παραλαβές & Ταξινόμηση) το κλείνει
-  document.addEventListener('mousedown',e=>{
-    if(!U.active)return;let t=e.target;if(!t||!t.closest)return;
-    if(t.closest('#receiptForm,#sortingDetail,.autoCloseMenu,#floatingEditor,.modal,.floatPanel,.ovFilterMenu'))return;
-    if(!t.closest('#receipts .receiptWorkspace,#receipts .receiptTopActions,#receipts .uniSubRow,.side'))return;
-    closeAll();
-  },true);
+  // B141: τα παράθυρα εντολής (Παραλαβή / Ταξινόμηση) κλείνουν ΜΟΝΟ με το X (ή «Κλείσιμο»)· όχι με κλικ έξω, στο πλαϊνό μενού ή στα κουμπιά διάταξης
 
   // ---- «Αναφορά»: πλαίσιο κάτω από το κουμπί, με τικ κομματιών και κουμπιά Excel / PDF ----
   // Για να προστεθεί νέο κομμάτι αναφοράς αργότερα: μία γραμμή στη λίστα REPORT_PARTS· sheets(ctx) επιστρέφει [{name,columns,rows,total}]
@@ -15288,8 +15284,9 @@ html:not(.b80W) body.pane .main>.content{padding-bottom:0!important}
       if(x.nodeType===3||x.nodeType===8){if(x.nodeValue!==y.nodeValue)x.nodeValue=y.nodeValue;continue}
       if(/^(INPUT|TEXTAREA|SELECT|SCRIPT|STYLE)$/.test(x.tagName)){if(x.outerHTML!==y.outerHTML)x.replaceWith(y.cloneNode(true));continue}
       const DEC=/^data-(b\d|kc)/;      /* ιδιότητες που προσθέτουν άλλα scripts (εικονίδια/χρώματα καρτών) μένουν ως έχουν */
-      for(const at of [...x.attributes])if(!y.hasAttribute(at.name)&&!DEC.test(at.name)){if(at.name==='class'){const kp=[...x.classList].filter(c=>/^k[1-5]$/.test(c));if(kp.length)x.setAttribute('class',kp.join(' '));else x.removeAttribute('class')}else x.removeAttribute(at.name)}
-      for(const at of y.attributes){let v=at.value;if(at.name==='class'){const keep=[...x.classList].filter(c=>/^k[1-5]$/.test(c)&&!y.classList.contains(c));v=(v+' '+keep.join(' ')).trim()}
+      const pk=x._pinKey||x._pinRowOn,pc=pk?[...x.classList].filter(c=>/^pin(ColHide|RowHideCell|RowHide)$/.test(c)):[];      /* B142: κρυμμένες στήλες/γραμμές του χρήστη μένουν κρυμμένες στην ανανέωση */
+      for(const at of [...x.attributes])if(!y.hasAttribute(at.name)&&!DEC.test(at.name)&&!(pk&&at.name==='style')){if(at.name==='class'){const kp=[...x.classList].filter(c=>/^k[1-5]$/.test(c)||pc.includes(c));if(kp.length)x.setAttribute('class',kp.join(' '));else x.removeAttribute('class')}else x.removeAttribute(at.name)}
+      for(const at of y.attributes){if(pk&&at.name==='style')continue;let v=at.value;if(at.name==='class'){const keep=[...x.classList].filter(c=>(/^k[1-5]$/.test(c)&&!y.classList.contains(c))||pc.includes(c));v=(v+' '+keep.join(' ')).trim()}
         if(x.getAttribute(at.name)!==v)x.setAttribute(at.name,v)}
       if(x.classList.contains('sortingKpiIcon'))continue;      /* το εικονίδιο το ζωγραφίζει άλλο script */
       morphKids(x,y)}
