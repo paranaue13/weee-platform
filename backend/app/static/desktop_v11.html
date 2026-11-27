@@ -1627,7 +1627,7 @@ body[data-theme="dark"] .negPop{background:var(--surface,#17232d);color:var(--fg
 #sortingDetail .sfTable .n{text-align:right;font-variant-numeric:tabular-nums}
 #sortingDetail .sfTable thead th{position:sticky!important;top:var(--sfTop,0px)!important;z-index:5!important;border-top:0;border-bottom:0!important;background:#f0f3fa;color:#44506a;font-size:12px;font-weight:700;box-shadow:none!important;white-space:normal;line-height:1.15}
 #sortingDetail .sfTable th[data-wcol=code]{width:64px}#sortingDetail .sfTable th[data-wcol=desc]{width:150px}#sortingDetail .sfTable th[data-wcol=avg]{width:76px}#sortingDetail .sfTable th[data-wcol=ens]{width:286px}#sortingDetail .sfTable th[data-wcol=tare]{width:64px}#sortingDetail .sfTable th[data-wcol=pcs]{width:80px}#sortingDetail .sfTable th[data-wcol=gross]{width:86px}#sortingDetail .sfTable th[data-wcol=net]{width:86px}#sortingDetail .sfTable th[data-wcol=act]{width:96px}
-#sortingDetail .sfTable th[data-wcol=avg],#sortingDetail .sfTable td:nth-child(3){border-right:1px solid #e3e6ec}
+#sortingDetail .sfTable th[data-wcol=avg],#sortingDetail .sfTable td:nth-child(3){border-right:1px solid #C9CFD6}
 #sortingDetail .sfTable .sfCat{cursor:pointer}
 #sortingDetail .sfTable .sfCat.open td{background:#eef2fc}
 #sortingDetail .sfTable .sfCat.f .sfCd,#sortingDetail .sfTable .sfCat.f .sfDs{color:var(--fg-3,#74777f)}
@@ -9902,7 +9902,7 @@ const SF=(function(){
   function sfColLines(){
     let L=$('sfList'),t=L&&L.querySelector('table.sfTable');if(!t||!t.tHead||!t.tHead.rows[0])return;
     let ths=[...t.tHead.rows[0].cells].filter(th=>th.offsetParent),lr=L.getBoundingClientRect(),bl=parseFloat(getComputedStyle(L).borderLeftWidth)||0,xs=ths.slice(0,-1).map(th=>Math.round(th.getBoundingClientRect().right-lr.left-bl-1+L.scrollLeft));
-    let img=xs.map(()=>'linear-gradient(#E4E7EB,#E4E7EB)').join(','),pos=xs.map(x=>x+'px 0').join(','),size=xs.map(()=>'1px 100%').join(',');
+    let img=xs.map(()=>'linear-gradient(#C9CFD6,#C9CFD6)').join(','),pos=xs.map(x=>x+'px 0').join(','),size=xs.map(()=>'1px 100%').join(',');
     if(L.dataset.cl===pos)return;L.dataset.cl=pos;
     L.style.backgroundImage=img;L.style.backgroundPosition=pos;L.style.backgroundSize=size;L.style.backgroundRepeat='no-repeat';L.style.backgroundAttachment='local';
   }
@@ -15308,7 +15308,7 @@ html[data-pal="aut"] body #receipts .ovCards .sortingKpiCard.ovCardSel{border:2p
 /* B109 · Ταξινόμηση › Κατηγορίες ΑΗΗΕ: όρια κελιών και επικεφαλίδας, γραμμές στηλών ως κάτω, κιλά σε μία γραμμή */
 #sortingDetail table.sfTable thead th{border-right:1px solid #E3D9BF}
 #sortingDetail table.sfTable thead th:last-child,#sortingDetail table.sfTable>tbody>tr>td:last-child{border-right:0}
-#sortingDetail table.sfTable>tbody>tr>td{border-right:1px solid #E4E7EB}
+#sortingDetail table.sfTable>tbody>tr>td{border-right:1px solid #C9CFD6}      /* B134: κάθετες γραμμές πιο ορατές */
 #sortingDetail table.sfTable td.sfMw{white-space:nowrap}
 </style>
 <style id="b110Css">
