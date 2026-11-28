@@ -14550,7 +14550,7 @@ document.addEventListener('mouseover',e=>{const c=e.target.closest&&e.target.clo
   const set=(k,v)=>{if(sd.style.getPropertyValue(k)!==v)sd.style.setProperty(k,v)};
   function fit(){q=0;if(sd.classList.contains('hidden')||!sd.offsetParent&&getComputedStyle(sd).position!=='fixed')return;
     const a=sd.querySelector('.sortingPopupActions'),t=sd.querySelector('.sortEntriesCard .sfTb');
-    {const hd=sd.querySelector('.uHdrWrap')||sd.querySelector('.sortingPopupHeader'),inHd=!!(a&&hd&&hd.contains(a));let v=a&&a.offsetParent&&!inHd?a.offsetHeight:0;if(inHd&&a&&a.offsetParent){const sr=sd.getBoundingClientRect(),cs=getComputedStyle(sd),top=parseFloat(cs.getPropertyValue('--sfTop'))||0;v=Math.round(a.getBoundingClientRect().bottom-(sr.top+sd.clientTop+(parseFloat(cs.paddingTop)||0)+top))}set('--sfAct',v+'px')}   /* B28: τα κουμπιά μέσα στην κεφαλίδα μετριούνται ήδη στο --sfTop (όχι δεύτερη φορά → κενό) */set('--sfTbH',(t&&t.offsetParent?t.offsetHeight:0)+'px');
+    {const hd=sd.querySelector('.uHdrWrap')||sd.querySelector('.sortingPopupHeader'),inHd=!!(a&&hd&&hd.contains(a));let v=a&&a.offsetParent&&!inHd?a.offsetHeight:0;if(inHd&&a&&a.offsetParent){const sr=sd.getBoundingClientRect(),cs=getComputedStyle(sd),top=parseFloat(cs.getPropertyValue('--sfTop'))||0;v=Math.max(0,Math.round(a.getBoundingClientRect().bottom-(sr.top+sd.clientTop+(parseFloat(cs.paddingTop)||0)+top)))}set('--sfAct',v+'px')}   /* B28: τα κουμπιά μέσα στην κεφαλίδα μετριούνται ήδη στο --sfTop (όχι δεύτερη φορά → κενό) */set('--sfTbH',(t&&t.offsetParent?t.offsetHeight:0)+'px');
     if(window.ResizeObserver){[a,t].forEach(e=>{if(e&&!e._b19ro){e._b19ro=1;ro.observe(e)}})}}
   const req=()=>{if(!q)q=requestAnimationFrame(fit)};
   const ro=window.ResizeObserver?new ResizeObserver(req):null;
@@ -15505,7 +15505,8 @@ html body :is(#receiptForm,#sortingDetail) .uHdrWrap>.uTabs>.uTab:not(.active):n
 </style>
 <style id="b144Css">
 /* B144 · Ταξινόμηση: με οριζόντιο scroll του παραθύρου η κεφαλίδα, τα κουμπιά ενεργειών και η περίληψη μένουν καρφωμένα αριστερά (δεν φεύγουν ούτε αφήνουν κενό) */
-#sortingDetail :is(.uHdrWrap,.sortingPopupActions,.sfBubble){transform:translateX(var(--sdSL,0px))}
+#sortingDetail .sortingPopupHeader{left:-16px}
+#sortingDetail :is(.uHdrWrap,.sfBubble){transform:translateX(var(--sdSL,0px))}
 </style>
 <script id="b144Js">
 (function(){const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
