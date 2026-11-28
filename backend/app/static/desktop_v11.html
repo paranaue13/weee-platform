@@ -13178,6 +13178,7 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
     data.rm=rightModel(data.a,rg);rightRender(data.rm);
     ['raLeftTbl','raRightTbl'].forEach(id=>{let t=$(id);if(t&&window.applyStoredColWidths&&[...t.querySelectorAll('thead tr:first-child th')].some((th,i)=>localStorage.getItem('colw:'+id+':'+i)))window.applyStoredColWidths(t)});
     try{window.fitProdWraps&&fitProdWraps()}catch(e){}
+    try{window.StickyTables&&StickyTables.fix()}catch(e){}      /* B145: το γέμισμα του πίνακα (κενή γραμμή + σύνολα κάτω) ξαναγίνεται αμέσως, όχι 90ms αργότερα — αλλιώς τα σύνολα «πηδούσαν» πάνω σε κάθε αυτόματη ανανέωση */
   }
   async function load(force){
     if(!visible)return;
@@ -13186,7 +13187,8 @@ body[data-theme="dark"] #recAnalysis tr.raCat td{border-top-color:#9db8ff}
       if(force)clearApiCache('/inventory/weee');
       const [d,a]=await Promise.all([api(`/inventory/weee-dashboard?start=${rg.startISO}&end=${rg.endISO}`),api(`/inventory/weee-receipt-analysis?start=${rg.startISO}&end=${rg.endISO}&by=${by}`)]);
       if(my!==seq||!visible)return;
-      data={d,a,rg};paintAll();
+      let sig=JSON.stringify([d,a,rg.startISO,rg.endISO,st.period]);if(data&&data.sig===sig)return;      /* αμετάβλητα δεδομένα: καμία επανασχεδίαση του πίνακα */
+      data={d,a,rg,sig};paintAll();
     }catch(e){if(my===seq)$('raLeftRows').innerHTML=`<tr><td colspan="3" class="error">${esc(e.message||String(e))}</td></tr>`}
   }
   const later=()=>{clearTimeout(timer);timer=setTimeout(()=>load(true),400)};
