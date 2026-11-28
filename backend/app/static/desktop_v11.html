@@ -11006,7 +11006,10 @@ const SF=(function(){
   }
   function fixAll(){
     timer=null;
-    document.querySelectorAll('table').forEach(t=>{
+    document.querySelectorAll('table').forEach(fixOne);
+  }
+  function fixOne(t){
+    {
       if(!t.offsetParent)return;
       try{fillDays(t)}catch(e){}
       try{fitFootLabels(t)}catch(e){}
@@ -11019,13 +11022,20 @@ const SF=(function(){
         // το πλαίσιο αλλάζει ύψος/πλάτος (π.χ. εμφανίζεται/κρύβεται μήνυμα πάνω από τον πίνακα): ξαναϋπολογισμός γεμίσματος
         let bw=t.closest('.prodTableWrap,.tablewrap,.sfWrap');if(bw&&!seen.has(bw)){seen.add(bw);ro.observe(bw)}
       }
-    });
+    }
   }
   function schedule(){clearTimeout(timer);timer=setTimeout(fixAll,90)}
-  new MutationObserver(muts=>{
+  /* B146 · ΚΑΝΟΝΑΣ: όποτε αλλάζει το περιεχόμενο ενός πίνακα (αυτόματη ανανέωση, ξαναζωγράφισμα), τα σταθερά του (κενή γραμμή συμπλήρωσης, σύνολα, κεφαλίδα) ξαναϋπολογίζονται ΑΜΕΣΑ, πριν ζωγραφιστεί το καρέ — ποτέ μετά από timeout (αλλιώς τα σύνολα «πηδούν» πάνω για λίγο) */
+  const smo=new MutationObserver(muts=>{
+    let ts=new Set();
+    for(const m of muts){if(m.type!=='childList')continue;
+      let el=m.target&&m.target.nodeType===1?m.target:(m.target&&m.target.parentElement);let t=el&&el.closest?el.closest('table'):null;if(t)ts.add(t);
+      m.addedNodes.forEach(n=>{if(n.nodeType!==1)return;if(n.tagName==='TABLE')ts.add(n);else if(n.querySelectorAll)n.querySelectorAll('table').forEach(x=>ts.add(x))})}
+    if(ts.size){ts.forEach(t=>{try{fixOne(t)}catch(e){}});smo.takeRecords()}
     if(muts.some(m=>m.type==='childList'&&[...m.addedNodes].some(n=>n.nodeType===1&&(n.matches('table,thead,tbody,tfoot,tr')||(n.querySelector&&n.querySelector('table'))))))schedule();
     else if(muts.some(m=>m.type==='attributes'))schedule();
-  }).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
+  });
+  smo.observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','hidden']});
   window.addEventListener('resize',schedule);
   window.StickyTables={fix:fixAll};
   schedule();
@@ -15500,6 +15510,22 @@ html body :is(#receiptForm,#sortingDetail) .uHdrWrap>.uTabs>.uTab:not(.active):n
 <script id="b144Js">
 (function(){const sd=document.getElementById('sortingDetail');if(!sd)return;let q=0;
   sd.addEventListener('scroll',()=>{if(q)return;q=requestAnimationFrame(()=>{q=0;const v=sd.scrollLeft+'px';if(sd.style.getPropertyValue('--sdSL')!==v)sd.style.setProperty('--sdSL',v)})},{passive:true});
+})();
+</script>
+<style id="b146Css">
+/* B146 · ΚΑΝΟΝΑΣ ΣΧΕΔΙΑΣΗΣ: η διάταξη του πλήρους παραθύρου είναι η πραγματική. Σε μικρότερο παράθυρο/άλλο ζουμ ΔΕΝ αλλάζει η διάταξη· μικραίνει αναλογικά (αυτόματο ζουμ) και, αν δεν χωράει, μπαίνουν scrollbars */
+.main>.content>.view{min-width:1500px}
+html.b80W body .main>.content{overflow-x:auto!important;overflow-y:hidden!important}
+#receiptForm .recBody>:not(.recFoot){min-width:1100px}      /* παράθυρο Παραλαβής: ίδια διάταξη με το πλήρες παράθυρο· αν δεν χωράει → οριζόντιο scroll */
+</style>
+<script id="b146Js">
+/* B146 · οι κανόνες CSS «max-width» (ανταποκρινόμενη διάταξη ανά πλάτος παραθύρου) απενεργοποιούνται: ο σχεδιασμός μένει ο ίδιος με το πλήρες παράθυρο. Εξαιρείται η στενή κάρτα της Αρχικής (B139). ΝΕΟΙ κανόνες max-width ΔΕΝ γράφονται (δες CLAUDE.md) */
+(function(){
+  const bad=r=>{try{const t=(r.media&&r.media.mediaText)||r.conditionText||"";return /max-(width|inline-size)/.test(t)&&!/print/.test(t)&&!/b110Cs/.test(r.cssText)}catch(e){return false}};
+  function strip(list,parent){for(let i=list.length-1;i>=0;i--){const r=list[i];
+    if(r.type===CSSRule.MEDIA_RULE||(r.constructor&&r.constructor.name==="CSSContainerRule")){if(bad(r)){try{parent.deleteRule(i)}catch(e){}}else if(r.cssRules)strip(r.cssRules,r)}}}
+  function run(){for(const sh of [...document.styleSheets]){try{strip(sh.cssRules,sh)}catch(e){}}}
+  run();window.__stripResponsive=run;
 })();
 </script>
 </body></html>
